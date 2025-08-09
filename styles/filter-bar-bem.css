@@ -23,7 +23,9 @@
 }
 .tasknotes-plugin .filter-bar__templates-button { order: 1; }
 .tasknotes-plugin .filter-bar__filter-toggle { order: 2; }
-.tasknotes-plugin .filter-bar__search-input { order: 3; flex: 1 1 auto; }
+.tasknotes-plugin .filter-bar__expand-groups { order: 3; }
+.tasknotes-plugin .filter-bar__collapse-groups { order: 3; }
+.tasknotes-plugin .filter-bar__search-input { order: 4; flex: 1 1 auto; }
 
 /* Natural Language Date Input Enhancement */
 .tasknotes-plugin .filter-date-input-container {

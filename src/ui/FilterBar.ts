@@ -384,6 +384,25 @@ export class FilterBar extends EventEmitter {
             }
         });
 
+        // Expand/Collapse all groups buttons (always visible)
+        const expandAllBtn = new ButtonComponent(topControls)
+            .setIcon('list-tree')
+            .setClass('filter-bar__save-button')
+            .setTooltip('Expand All Groups')
+            .onClick(() => {
+                this.emit('expandAllGroups');
+            });
+        expandAllBtn.buttonEl.addClass('filter-bar__expand-groups');
+
+        const collapseAllBtn = new ButtonComponent(topControls)
+            .setIcon('list-collapse')
+            .setClass('filter-bar__save-button')
+            .setTooltip('Collapse All Groups')
+            .onClick(() => {
+                this.emit('collapseAllGroups');
+            });
+        collapseAllBtn.buttonEl.addClass('filter-bar__collapse-groups');
+
         // Search input (expands to fill remaining space on the right)
         this.searchInput = new TextComponent(topControls)
             .setPlaceholder('Search tasks...');

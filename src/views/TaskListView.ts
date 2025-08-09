@@ -308,6 +308,39 @@ export class TaskListView extends ItemView {
             this.plugin.viewStateManager.reorderSavedViews(fromIndex, toIndex);
         });
 
+        // Listen for expand/collapse all groups from FilterBar
+        this.filterBar.on('expandAllGroups', () => {
+            const key = this.currentQuery.groupKey || 'none';
+            const prefs = this.plugin.viewStateManager.getViewPreferences<any>(TASK_LIST_VIEW_TYPE) || {};
+            const next = { ...(prefs.collapsedGroups || {}) } as Record<string, Record<string, boolean>>;
+            next[key] = {}; // clear collapsed flags for this grouping key
+            this.collapsedGroups = next;
+            this.plugin.viewStateManager.setViewPreferences(TASK_LIST_VIEW_TYPE, { ...prefs, collapsedGroups: next });
+            // Update DOM: remove is-collapsed and show lists
+            this.contentEl.querySelectorAll('.task-group').forEach(section => {
+                section.classList.remove('is-collapsed');
+                const list = (section as HTMLElement).querySelector('.task-cards') as HTMLElement | null;
+                if (list) list.style.display = '';
+            });
+        });
+        this.filterBar.on('collapseAllGroups', () => {
+            const key = this.currentQuery.groupKey || 'none';
+            const prefs = this.plugin.viewStateManager.getViewPreferences<any>(TASK_LIST_VIEW_TYPE) || {};
+            const next = { ...(prefs.collapsedGroups || {}) } as Record<string, Record<string, boolean>>;
+            const collapsed: Record<string, boolean> = {};
+            // Mark all currently rendered groups as collapsed
+            this.contentEl.querySelectorAll('.task-group').forEach(section => {
+                const name = (section as HTMLElement).dataset.group;
+                if (name) collapsed[name] = true;
+                section.classList.add('is-collapsed');
+                const list = (section as HTMLElement).querySelector('.task-cards') as HTMLElement | null;
+                if (list) list.style.display = 'none';
+            });
+            next[key] = collapsed;
+            this.collapsedGroups = next;
+            this.plugin.viewStateManager.setViewPreferences(TASK_LIST_VIEW_TYPE, { ...prefs, collapsedGroups: next });
+        });
+
         // Listen for filter changes
         this.filterBar.on('queryChange', async (newQuery: FilterQuery) => {
             this.currentQuery = newQuery;
