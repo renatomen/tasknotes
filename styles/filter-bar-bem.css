@@ -21,6 +21,9 @@
     z-index: 10; /* Ensure this container is on top of the filter box below */
     isolation: isolate; /* Create a new stacking context */
 }
+.tasknotes-plugin .filter-bar__templates-button { order: 1; }
+.tasknotes-plugin .filter-bar__filter-toggle { order: 2; }
+.tasknotes-plugin .filter-bar__search-input { order: 3; flex: 1 1 auto; }
 
 /* Natural Language Date Input Enhancement */
 .tasknotes-plugin .filter-date-input-container {
@@ -78,10 +81,21 @@
 .filter-date-help-tooltip {
     background: var(--background-primary);
     border: 1px solid var(--background-modifier-border);
+.advanced-filter-bar .filter-bar__summary {
+    margin: 0 var(--tn-spacing-sm);
+    color: var(--tn-text-muted);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.filter-date-help-tooltip {
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
     border-radius: var(--radius-m);
     padding: var(--tn-spacing-sm);
     box-shadow: var(--shadow-s);
     min-width: 200px;
+}
     max-width: 300px;
     font-size: var(--font-ui-smaller);
 }
@@ -111,6 +125,7 @@
 }
 
 .tasknotes-plugin .filter-bar__filter-toggle {
+    position: relative; /* context for badge */
     padding: var(--tn-spacing-xs);
     background: transparent;
     border: none;
@@ -137,12 +152,31 @@
     box-shadow: none;
 }
 
+/* Active filter badge */
+.tasknotes-plugin .filter-bar__filter-toggle.has-active-filters::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #a78bfa; /* purple badge */
+    opacity: 0;
+    transform: scale(0.8);
+    animation: tn-badge-fade-in 150ms ease forwards;
+}
+
+@keyframes tn-badge-fade-in {
+    to { opacity: 1; transform: scale(1); }
+}
+
 .tasknotes-plugin .filter-bar__templates-button {
     padding: var(--tn-spacing-xs) var(--tn-spacing-sm);
-    background: transparent;
-    border: none;
+    background-color: var(--color-grey-base); /* default button bg */
+    border: 1px solid var(--color-grey-tint); /* default button border */
     border-radius: var(--radius-s);
-    color: var(--text-muted);
+    color: var(--text-normal); /* default button text */
     cursor: pointer;
     font-size: var(--font-ui-small);
     font-weight: 500;
@@ -151,24 +185,49 @@
     box-shadow: none;
 }
 
+/* Clear all filters button */
+.tasknotes-plugin .filter-bar__clear-filters{
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tn-spacing-xs);
+  padding: 0 var(--tn-spacing-md);
+  min-height: var(--tn-button-height-md);
+  height: var(--tn-button-height-md);
+  border-radius: var(--radius-s);
+  border: 1px solid var(--color-grey-tint);
+  background-color: var(--color-grey-base);
+  color: var(--text-normal);
+  font-size: var(--font-ui-small);
+}
+.tasknotes-plugin .filter-bar__clear-filters:hover { background-color: var(--interactive-hover); }
+.tasknotes-plugin .filter-bar__clear-filters svg{ width:16px; height:16px; }
+
+
 .tasknotes-plugin .filter-bar__templates-button:hover {
-    background: var(--interactive-hover);
+    /* Keep the same colors on hover as the base state to avoid "disappearing" colors */
+    background-color: var(--color-grey-base);
+    border-color: var(--color-grey-tint);
     color: var(--text-normal);
-    transform: none;
-    box-shadow: none;
 }
 
-.tasknotes-plugin .filter-bar__templates-button--active {
-    background: var(--interactive-accent-tint);
-    color: var(--color-accent);
-    box-shadow: none;
-}
-
-.tasknotes-plugin .filter-bar__templates-button--saved-view-active {
-    background: var(--interactive-accent);
+/* When a saved view is active, also keep hover colors consistent */
+.tasknotes-plugin .filter-bar__templates-button--saved-view-active:hover {
+    background-color: var(--interactive-accent);
+    border-color: var(--interactive-accent);
     color: var(--text-on-accent);
-    border: none;
-    box-shadow: 0 0 0 1px var(--color-accent);
+}
+
+/* Dropdown open state */
+.tasknotes-plugin .filter-bar__templates-button--active {
+    outline: 2px solid var(--interactive-accent);
+    outline-offset: 1px;
+}
+
+/* Saved view active (highlighted button) */
+.tasknotes-plugin .filter-bar__templates-button--saved-view-active {
+    background-color: var(--interactive-accent);
+    color: var(--text-on-accent);
+    border-color: var(--interactive-accent);
 }
 
 /* Search Input */
@@ -233,7 +292,7 @@
 .tasknotes-plugin .filter-bar__view-selector-dropdown {
     position: absolute;
     top: 100%;
-    right: 0; /* Align to the right of the container */
+    left: 0; /* Align to the left, near the Views button */
     min-width: 240px;
     max-width: 320px;
     z-index: 1000; /* Ensure it's on top */
@@ -313,7 +372,7 @@
     height: 2px;
     background: currentColor;
     border-radius: 1px;
-    box-shadow: 
+    box-shadow:
         0 -4px 0 currentColor,
         0 4px 0 currentColor;
 }
@@ -355,10 +414,10 @@
 }
 
 @keyframes placeholderPulse {
-    0%, 100% { 
+    0%, 100% {
         opacity: 0.5;
     }
-    50% { 
+    50% {
         opacity: 0.7;
     }
 }
@@ -495,18 +554,31 @@
 }
 
 .tasknotes-plugin .filter-bar__section-header-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--tn-spacing-sm); /* good gap between buttons */
     padding-right: var(--tn-spacing-sm);
 }
 
-/* Use consistent button system */
+/* Save button: icon-only to match size */
 .tasknotes-plugin .filter-bar__save-button {
-    /* Remove individual styles - use tn-btn tn-btn--icon tn-btn--ghost classes */
-    padding: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--tn-button-height-md);    
+    height: var(--tn-button-height-md);
+    border-radius: var(--radius-s);
+    background: var(--color-grey-base);
+    border: 1px solid var(--color-grey-tint);
+    padding: 1px;
+}
+.tasknotes-plugin .filter-bar__save-button:hover {
+    background: var(--interactive-hover);
 }
 
 .tasknotes-plugin .filter-bar__save-button svg {
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
 }
 
 .tasknotes-plugin .filter-bar__section-title {
@@ -915,7 +987,7 @@
     .tasknotes-plugin .filter-bar__condition {
         flex-wrap: wrap;
     }
-    
+
     .tasknotes-plugin .filter-bar__value-container {
         min-width: 120px;
     }
