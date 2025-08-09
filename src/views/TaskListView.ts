@@ -1,45 +1,56 @@
-import { TFile, ItemView, WorkspaceLeaf, EventRef, Notice } from 'obsidian';
-import TaskNotesPlugin from '../main';
-import { 
-    TASK_LIST_VIEW_TYPE, 
-    TaskInfo, 
+import {
     EVENT_DATA_CHANGED,
     EVENT_TASK_UPDATED,
     FilterQuery,
-    SavedView
+    SavedView,
+    TASK_LIST_VIEW_TYPE,
+    TaskInfo
 } from '../types';
-// No helper functions needed from helpers
-import { perfMonitor } from '../utils/PerformanceMonitor';
-import { createTaskCard, updateTaskCard, refreshParentTaskSubtasks } from '../ui/TaskCard';
+import { EventRef, ItemView, Notice, TFile, WorkspaceLeaf, setIcon } from 'obsidian';
+import { createTaskCard, refreshParentTaskSubtasks, updateTaskCard } from '../ui/TaskCard';
+
 import { FilterBar } from '../ui/FilterBar';
+import TaskNotesPlugin from '../main';
+import { perfMonitor } from '../utils/PerformanceMonitor';
+
+// No helper functions needed from helpers
+
+
+
 
 export class TaskListView extends ItemView {
     plugin: TaskNotesPlugin;
-    
+
     // UI elements
     private taskListContainer: HTMLElement | null = null;
     private loadingIndicator: HTMLElement | null = null;
-    
+
     // Removed redundant local caching - CacheManager is the single source of truth
-    
+
     // Loading states
     private isTasksLoading = false;
-    
+
     // Filter system
     private filterBar: FilterBar | null = null;
     private currentQuery: FilterQuery;
-    
+
+    // View header refs
+    private _viewHeader?: { container: HTMLElement; titleEl: HTMLElement; countEl: HTMLElement };
+
     // Task item tracking for dynamic updates
     private taskElements: Map<string, HTMLElement> = new Map();
-    
+
+    // Collapsed state for groups, persisted via ViewStateManager preferences
+    private collapsedGroups: Record<string, Record<string, boolean>> = {};
+
     // Event listeners
     private listeners: EventRef[] = [];
     private functionListeners: (() => void)[] = [];
-    
+
     constructor(leaf: WorkspaceLeaf, plugin: TaskNotesPlugin) {
         super(leaf);
         this.plugin = plugin;
-        
+
         // Initialize with default query - will be properly set when plugin services are ready
         this.currentQuery = {
             type: 'group',
@@ -50,30 +61,30 @@ export class TaskListView extends ItemView {
             sortDirection: 'asc',
             groupKey: 'none'
         };
-        
+
         // Register event listeners
         this.registerEvents();
     }
-    
+
     getViewType(): string {
         return TASK_LIST_VIEW_TYPE;
     }
-    
+
     getDisplayText(): string {
         return 'Tasks';
     }
-    
+
     getIcon(): string {
         return 'check-square';
     }
-    
+
     registerEvents(): void {
         // Clean up any existing listeners
         this.listeners.forEach(listener => this.plugin.emitter.offref(listener));
         this.listeners = [];
         this.functionListeners.forEach(unsubscribe => unsubscribe());
         this.functionListeners = [];
-        
+
         // Listen for data changes
         const dataListener = this.plugin.emitter.on(EVENT_DATA_CHANGED, async () => {
             this.refresh();
@@ -84,17 +95,17 @@ export class TaskListView extends ItemView {
             }
         });
         this.listeners.push(dataListener);
-        
+
         // Listen for individual task updates
         const taskUpdateListener = this.plugin.emitter.on(EVENT_TASK_UPDATED, async ({ path, originalTask, updatedTask }) => {
             if (!path || !updatedTask) {
                 console.error('EVENT_TASK_UPDATED received invalid data:', { path, originalTask, updatedTask });
                 return;
             }
-            
+
             // Check if any parent task cards need their subtasks refreshed
             await refreshParentTaskSubtasks(updatedTask, this.plugin, this.contentEl);
-            
+
             // Check if this task is currently visible in our view
             const taskElement = this.taskElements.get(path);
             if (taskElement) {
@@ -108,7 +119,7 @@ export class TaskListView extends ItemView {
                         showRecurringControls: true,
                         groupByDate: false
                     });
-                    
+
                     // Add update animation for real user updates
                     taskElement.classList.add('task-updated');
                     setTimeout(() => {
@@ -123,7 +134,7 @@ export class TaskListView extends ItemView {
                 // Task not currently visible - it might now match our filters, so refresh
                 this.refreshTasks();
             }
-            
+
             // Update FilterBar options when tasks are updated (may have new properties, contexts, etc.)
             if (this.filterBar) {
                 const updatedFilterOptions = await this.plugin.filterService.getFilterOptions();
@@ -131,31 +142,31 @@ export class TaskListView extends ItemView {
             }
         });
         this.listeners.push(taskUpdateListener);
-        
+
         // Listen for filter service data changes
         const filterDataListener = this.plugin.filterService.on('data-changed', () => {
             this.refreshTasks();
         });
         this.functionListeners.push(filterDataListener);
     }
-    
+
     async onOpen() {
         try {
             // Wait for the plugin to be fully initialized before proceeding
             await this.plugin.onReady();
-            
+
             // Wait for migration to complete before initializing UI
             await this.plugin.waitForMigration();
-            
+
             // Initialize with default query from FilterService
             this.currentQuery = this.plugin.filterService.createDefaultQuery();
-            
+
             // Load saved filter state if it exists (will be empty after migration)
             const savedQuery = this.plugin.viewStateManager.getFilterState(TASK_LIST_VIEW_TYPE);
             if (savedQuery) {
                 this.currentQuery = savedQuery;
             }
-            
+
             await this.refresh();
         } catch (error) {
             console.error('TaskListView: Error during onOpen:', error);
@@ -169,7 +180,7 @@ export class TaskListView extends ItemView {
         this.contentEl.empty();
         const loadingEl = this.contentEl.createDiv({ cls: 'task-list-view__loading' });
         loadingEl.createSpan({ text: 'Initializing...' });
-        
+
         // Poll for cache to be ready (with timeout)
         let attempts = 0;
         const maxAttempts = 50; // 5 seconds max
@@ -187,77 +198,80 @@ export class TaskListView extends ItemView {
         };
         checkReady();
     }
-    
+
     async onClose() {
         // Remove event listeners
         this.listeners.forEach(listener => this.plugin.emitter.offref(listener));
         this.functionListeners.forEach(unsubscribe => unsubscribe());
-        
+
         // Clean up FilterBar
         if (this.filterBar) {
             this.filterBar.destroy();
             this.filterBar = null;
         }
-        
+
         this.contentEl.empty();
     }
-    
+
     async refresh(forceFullRefresh = false) {
         return perfMonitor.measure('task-list-refresh', async () => {
             // If forcing a full refresh, clear the task elements tracking
             if (forceFullRefresh) {
                 this.taskElements.clear();
             }
-            
+
             // Clear and prepare the content element for full refresh
             this.contentEl.empty();
             this.taskElements.clear();
             await this.render();
         });
     }
-    
-    
+
+
     async render() {
         const container = this.contentEl.createDiv({ cls: 'tasknotes-plugin tasknotes-container task-list-view-container' });
-        
+
         // Create header with current date information
         this.createHeader(container);
-        
+
         // Create task list content
         await this.createTasksContent(container);
     }
-    
+
     createHeader(container: HTMLElement) {
         container.createDiv({ cls: 'detail-view-header task-list-header' });
-        
+
         // // Display view title
         // headerContainer.createEl('h2', {
         //     text: 'All tasks',
         //     cls: 'task-list-view__title'
         // });
-        
+
         // Actions container removed - no buttons needed
     }
-    
+
     async createTasksContent(container: HTMLElement) {
         // Create FilterBar container
         const filterBarContainer = container.createDiv({ cls: 'filter-bar-container' });
-        
+
         // Wait for cache to be initialized with actual data
         await this.waitForCacheReady();
-        
+
         // Initialize with default query from FilterService
         this.currentQuery = this.plugin.filterService.createDefaultQuery();
-        
+
         // Load saved filter state if it exists
         const savedQuery = this.plugin.viewStateManager.getFilterState(TASK_LIST_VIEW_TYPE);
         if (savedQuery) {
             this.currentQuery = savedQuery;
         }
-        
+
+        // Load collapsed group preferences
+        this.loadCollapsedPrefs();
+
         // Get filter options from FilterService
         const filterOptions = await this.plugin.filterService.getFilterOptions();
-        
+
         // Create new FilterBar with simplified constructor
         this.filterBar = new FilterBar(
             this.app,
@@ -265,11 +279,11 @@ export class TaskListView extends ItemView {
             this.currentQuery,
             filterOptions
         );
-        
+
         // Get saved views for the FilterBar
         const savedViews = this.plugin.viewStateManager.getSavedViews();
         this.filterBar.updateSavedViews(savedViews);
-        
+
         // Listen for saved view events
         this.filterBar.on('saveView', ({ name, query, viewOptions }) => {
             console.log('TaskListView: Received saveView event:', name, query, viewOptions); // Debug
@@ -277,7 +291,7 @@ export class TaskListView extends ItemView {
             console.log('TaskListView: Saved view result:', savedView); // Debug
             // Don't update here - the ViewStateManager event will handle it
         });
-        
+
         this.filterBar.on('deleteView', (viewId: string) => {
             console.log('TaskListView: Received deleteView event:', viewId); // Debug
             this.plugin.viewStateManager.deleteView(viewId);
@@ -289,11 +303,11 @@ export class TaskListView extends ItemView {
             console.log('TaskListView: Received saved-views-changed event:', updatedViews); // Debug
             this.filterBar?.updateSavedViews(updatedViews);
         });
-        
+
         this.filterBar.on('reorderViews', (fromIndex: number, toIndex: number) => {
             this.plugin.viewStateManager.reorderSavedViews(fromIndex, toIndex);
         });
-        
+
         // Listen for filter changes
         this.filterBar.on('queryChange', async (newQuery: FilterQuery) => {
             this.currentQuery = newQuery;
@@ -301,32 +315,38 @@ export class TaskListView extends ItemView {
             this.plugin.viewStateManager.setFilterState(TASK_LIST_VIEW_TYPE, newQuery);
             await this.refreshTasks();
         });
-        
-        
+
+
         // Task list container
+        // View header container (below filter bar, above tasks)
+        const viewHeader = container.createDiv({ cls: 'task-list-view__view-header' });
+        const viewTitle = viewHeader.createEl('h3', { cls: 'task-list-view__view-title', text: '' });
+        const viewCount = viewHeader.createSpan({ cls: 'task-list-view__view-count', text: '' });
+        this._viewHeader = { container: viewHeader, titleEl: viewTitle, countEl: viewCount } as any;
+
         const taskList = container.createDiv({ cls: 'task-list' });
-        
+
         // Add loading indicator
         this.loadingIndicator = taskList.createDiv({ cls: 'loading-indicator' });
         this.loadingIndicator.createDiv({ cls: 'loading-spinner' });
         this.loadingIndicator.createDiv({ cls: 'loading-text', text: 'Loading tasks...' });
         this.loadingIndicator.addClass('is-hidden');
-        
+
         // Store reference to the task list container for future updates
         this.taskListContainer = taskList;
-        
+
         // Show loading state if we're fetching data
         this.isTasksLoading = true;
         this.updateLoadingState();
-        
+
         // Initial load with current query
         await this.refreshTasks();
-        
+
         // Hide loading state when done
         this.isTasksLoading = false;
         this.updateLoadingState();
     }
-    
+
     /**
      * Refresh tasks using FilterService
      */
@@ -334,17 +354,37 @@ export class TaskListView extends ItemView {
         if (!this.taskListContainer) {
             return;
         }
-        
+
         try {
             this.isTasksLoading = true;
             this.updateLoadingState();
-            
+
             // Get grouped tasks from FilterService
             const groupedTasks = await this.plugin.filterService.getGroupedTasks(this.currentQuery);
-            
-            // Render the grouped tasks
+
+            // Compute (completed/total) across current results
+            const allTasks = Array.from(groupedTasks.values()).flat();
+            const total = allTasks.length;
+            const completed = allTasks.filter(t => this.plugin.statusManager.isCompletedStatus(t.status)).length;
+
+            // Update the view header (title + count on the right)
+            const activeViewName = this.filterBar?.getActiveViewName();
+            if (this._viewHeader) {
+                if (activeViewName) {
+                    this._viewHeader.titleEl.textContent = activeViewName;
+                    this._viewHeader.container.removeClass('is-empty');
+                } else {
+                    this._viewHeader.titleEl.textContent = 'No filter';
+                    this._viewHeader.container.addClass('is-empty');
+                }
+                this._viewHeader.countEl.textContent = total > 0 ? ` (${completed}/${total})` : '';
+            }
+
+            // Hide the top summary since the count moved to the view header
+            this.filterBar?.updateSummary(0, 0);
+
             this.renderTaskItems(this.taskListContainer, groupedTasks);
-            
+
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : String(error);
             console.error('TaskListView: Error refreshing tasks:', {
@@ -353,15 +393,15 @@ export class TaskListView extends ItemView {
                 query: this.currentQuery,
                 cacheInitialized: this.plugin.cacheManager?.isInitialized() || false
             });
-            
+
             // Clear existing content and show error message
             this.taskListContainer.empty();
             const errorContainer = this.taskListContainer.createDiv({ cls: 'error-container' });
-            errorContainer.createEl('p', { 
-                text: 'Error loading tasks. Please try refreshing.', 
-                cls: 'error-message' 
+            errorContainer.createEl('p', {
+                text: 'Error loading tasks. Please try refreshing.',
+                cls: 'error-message'
             });
-            
+
             // Add retry button for better UX
             const retryButton = errorContainer.createEl('button', {
                 text: 'Retry',
@@ -380,7 +420,7 @@ export class TaskListView extends ItemView {
     renderTaskItems(container: HTMLElement, groupedTasks: Map<string, TaskInfo[]>) {
         // Check if there are any tasks across all groups
         const totalTasks = Array.from(groupedTasks.values()).reduce((total, tasks) => total + tasks.length, 0);
-        
+
         if (totalTasks === 0) {
             // Clear everything and show placeholder
             container.empty();
@@ -388,7 +428,7 @@ export class TaskListView extends ItemView {
             container.createEl('p', { text: 'No tasks found for the selected filters.' });
             return;
         }
-        
+
         // Handle grouped vs non-grouped rendering differently
         if (this.currentQuery.groupKey === 'none' && groupedTasks.has('all')) {
             // Non-grouped: use DOMReconciler for the flat task list
@@ -411,7 +451,7 @@ export class TaskListView extends ItemView {
             (task) => this.createTaskCardForReconciler(task), // Render new item
             (element, task) => this.updateTaskCardForReconciler(element, task) // Update existing item
         );
-        
+
         // Update task elements tracking
         this.taskElements.clear();
         Array.from(container.children).forEach(child => {
@@ -421,7 +461,7 @@ export class TaskListView extends ItemView {
             }
         });
     }
-    
+
     // Virtual scrolling methods removed for compliance verification
 
     /**
@@ -430,7 +470,7 @@ export class TaskListView extends ItemView {
     private renderGroupedTasksWithReconciler(container: HTMLElement, groupedTasks: Map<string, TaskInfo[]>) {
         // Save scroll position
         const scrollTop = container.scrollTop;
-        
+
         // Clear container but preserve structure for groups that haven't changed
         const existingGroups = new Map<string, HTMLElement>();
         Array.from(container.children).forEach(child => {
@@ -439,36 +479,90 @@ export class TaskListView extends ItemView {
                 existingGroups.set(groupKey, child as HTMLElement);
             }
         });
-        
+
         // Clear container
         container.empty();
         this.taskElements.clear();
-        
+
         // Render each group
         groupedTasks.forEach((tasks, groupName) => {
             if (tasks.length === 0) return;
-            
+
             // Create group section
             const groupSection = container.createDiv({ cls: 'task-section task-group' });
             groupSection.setAttribute('data-group', groupName);
-            
+
             // Add group header (skip only if grouping is 'none' and group name is 'all')
-            if (!(this.currentQuery.groupKey === 'none' && groupName === 'all')) {
+            // Also add toggle to collapse/expand group tasks
+            const groupingKey = this.currentQuery.groupKey || 'none';
+            const isAllGroup = groupingKey === 'none' && groupName === 'all';
+            const collapsedInitially = this.isGroupCollapsed(groupingKey, groupName);
+
+            if (!isAllGroup) {
                 const headerElement = groupSection.createEl('h3', {
                     cls: 'task-group-header task-list-view__group-header'
                 });
-                
-                // For project groups, make the header clickable if it's a wikilink project
-                if (this.currentQuery.groupKey === 'project' && this.isWikilinkProject(groupName)) {
+
+                // Create toggle button
+                const toggleBtn = headerElement.createEl('button', { cls: 'task-group-toggle', attr: { 'aria-label': 'Toggle group' } });
+                // Prefer Obsidian's icon system for consistent SVGs
+                try { setIcon(toggleBtn, 'chevron-right'); } catch (_) {}
+                const svg = toggleBtn.querySelector('svg');
+                if (svg) { svg.classList.add('chevron'); svg.setAttr('width', '16'); svg.setAttr('height', '16'); }
+                else { toggleBtn.textContent = '▸'; toggleBtn.addClass('chevron-text'); }
+
+                // Label: project wikilink -> clickable, else plain text span
+                let labelEl: HTMLElement;
+                if (groupingKey === 'project' && this.isWikilinkProject(groupName)) {
                     this.createClickableProjectHeader(headerElement, groupName);
+                    labelEl = headerElement.querySelector('.task-list-view__project-link') as HTMLElement;
                 } else {
-                    headerElement.textContent = this.formatGroupName(groupName);
+                    labelEl = headerElement.createSpan({ text: this.formatGroupName(groupName) });
                 }
+
+                // Count badge (direct / leaves)
+                const countEl = headerElement.createSpan({ cls: 'task-group-count', text: '' });
+                this.updateGroupCountBadge(countEl, groupingKey, groupName, tasks).catch(err => console.error('count badge error', err));
+
+                // Click handlers (avoid toggling when clicking a link)
+                this.registerDomEvent(headerElement, 'click', (e: MouseEvent) => {
+                    const target = e.target as HTMLElement;
+                    if (target.closest('a')) return;
+                    const willCollapse = !groupSection.hasClass('is-collapsed');
+                    this.setGroupCollapsed(groupingKey, groupName, willCollapse);
+                    groupSection.toggleClass('is-collapsed', willCollapse);
+                    const list = groupSection.querySelector('.task-cards') as HTMLElement | null;
+                    if (list) list.style.display = willCollapse ? 'none' : '';
+                    toggleBtn.setAttr('aria-expanded', String(!willCollapse));
+                });
+                this.registerDomEvent(toggleBtn, 'click', (e: MouseEvent) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const willCollapse = !groupSection.hasClass('is-collapsed');
+                    this.setGroupCollapsed(groupingKey, groupName, willCollapse);
+                    groupSection.toggleClass('is-collapsed', willCollapse);
+                    const list = groupSection.querySelector('.task-cards') as HTMLElement | null;
+                    if (list) list.style.display = willCollapse ? 'none' : '';
+                    toggleBtn.setAttr('aria-expanded', String(!willCollapse));
+                });
+
+                // Initial ARIA state set after list container is created below
+                toggleBtn.setAttr('aria-expanded', String(!collapsedInitially));
             }
-            
+
             // Create task cards container
             const taskCardsContainer = groupSection.createDiv({ cls: 'tasks-container task-cards' });
-            
+            const sectionId = `task-group-${groupingKey}-${groupName}`.replace(/[^a-zA-Z0-9_-]/g, '-');
+            taskCardsContainer.setAttr('id', sectionId);
+            const toggleButton = groupSection.querySelector('.task-group-toggle') as HTMLElement | null;
+            if (toggleButton) toggleButton.setAttr('aria-controls', sectionId);
+
+            // Apply initial collapsed state
+            if (collapsedInitially) {
+                groupSection.addClass('is-collapsed');
+                taskCardsContainer.style.display = 'none';
+            }
+
             // Use reconciler for this group's task list
             this.plugin.domReconciler.updateList<TaskInfo>(
                 taskCardsContainer,
@@ -477,7 +571,7 @@ export class TaskListView extends ItemView {
                 (task) => this.createTaskCardForReconciler(task), // Render new item
                 (element, task) => this.updateTaskCardForReconciler(element, task) // Update existing item
             );
-            
+
             // Update task elements tracking for this group
             Array.from(taskCardsContainer.children).forEach(child => {
                 const taskPath = (child as HTMLElement).dataset.key;
@@ -486,30 +580,70 @@ export class TaskListView extends ItemView {
                 }
             });
         });
-        
+
         // Restore scroll position
         container.scrollTop = scrollTop;
     }
 
     /**
-     * Create a task card for use with DOMReconciler
+     * Update group count badge with (direct / leaves)
+     * - direct: tasks whose projects include the current project group
+     * - leaves: tasks in this group that are not used as a project by any other task (no children)
      */
+    private async updateGroupCountBadge(countEl: HTMLElement, groupingKey: string, groupName: string, tasks: TaskInfo[]): Promise<void> {
+        try {
+            // Only meaningful for project grouping where subtasks are explicit links
+            if (groupingKey !== 'project') {
+                // Fallback: show simple count as both direct and leaves
+                countEl.textContent = ` (${tasks.length})`;
+                return;
+            }
+
+            // Compute for project grouping
+            // A task is a direct item of this project group if it has a project link matching this group
+            const normalizedGroup = groupName.trim();
+            const groupIsWiki = this.isWikilinkProject(normalizedGroup);
+            const groupNote = groupIsWiki ? normalizedGroup.slice(2, -2).trim() : normalizedGroup;
+
+            // direct: tasks whose projects include either [[Note]] or the exact group string
+            const direct = tasks.filter(t => (t.projects || []).some(p => {
+                if (!p) return false;
+                if (p.startsWith('[[') && p.endsWith(']]')) {
+                    const n = p.slice(2, -2).trim();
+                    return n === groupNote || p === normalizedGroup;
+                }
+                return p === groupNote || p === normalizedGroup;
+            }));
+
+            // Now compute completed vs total for DIRECT items only
+            const completedDirect = direct.filter(t => this.plugin.statusManager.isCompletedStatus(t.status)).length;
+            const totalDirect = direct.length;
+
+            countEl.textContent = ` (${completedDirect}/${totalDirect})`;
+        } catch (e) {
+            console.error('Failed to compute group counts', e);
+            // Fallback to simple total if anything fails
+            countEl.textContent = ` (${tasks.length})`;
+        }
+    }
+
+
     private createTaskCardForReconciler(task: TaskInfo): HTMLElement {
         const taskCard = createTaskCard(task, this.plugin, {
             showDueDate: true,
-            showCheckbox: false, // TaskListView doesn't use checkboxes 
+            showCheckbox: false, // TaskListView doesn't use checkboxes
             showArchiveButton: true,
             showTimeTracking: true,
             showRecurringControls: true,
             groupByDate: false
         });
-        
+
         // Ensure the key is set for reconciler
         taskCard.dataset.key = task.path;
-        
+
         // Add drag functionality
         this.addDragHandlers(taskCard, task);
-        
+
         return taskCard;
     }
 
@@ -534,8 +668,8 @@ export class TaskListView extends ItemView {
         // Use the centralized drag drop manager for FullCalendar compatibility
         this.plugin.dragDropManager.makeTaskCardDraggable(card, task.path);
     }
-    
-    
+
+
     /**
      * Create SVG icon element safely without innerHTML
      */
@@ -544,11 +678,11 @@ export class TaskListView extends ItemView {
         svg.setAttribute('viewBox', viewBox);
         svg.setAttribute('width', width.toString());
         svg.setAttribute('height', height.toString());
-        
+
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         path.setAttribute('fill', 'currentColor');
         path.setAttribute('d', pathData);
-        
+
         svg.appendChild(path);
         return svg;
     }
@@ -562,13 +696,13 @@ export class TaskListView extends ItemView {
         if (priorityConfig) {
             return `${priorityConfig.label} priority`;
         }
-        
-        // Check if it's a status value  
+
+        // Check if it's a status value
         const statusConfig = this.plugin.statusManager.getStatusConfig(groupName);
         if (statusConfig) {
             return statusConfig.label;
         }
-        
+
         switch (groupName) {
             case 'all':
                 return 'All tasks';
@@ -578,37 +712,75 @@ export class TaskListView extends ItemView {
                 return groupName;
         }
     }
-    
-    
+
+
     /**
      * Helper method to update the loading indicator visibility
      */
     private updateLoadingState(): void {
         if (!this.loadingIndicator) return;
-        
+
         if (this.isTasksLoading) {
             this.loadingIndicator.removeClass('is-hidden');
         } else {
             this.loadingIndicator.addClass('is-hidden');
         }
     }
-    
-            
-    
-    
-    
-    
-    
-    
-    
-    
+
+    /**
+     * Load collapsed group preferences from ViewStateManager
+     */
+    private loadCollapsedPrefs(): void {
+        const prefs = this.plugin.viewStateManager.getViewPreferences<any>(TASK_LIST_VIEW_TYPE) || {};
+        const stored = prefs.collapsedGroups;
+        if (stored && typeof stored === 'object') {
+            this.collapsedGroups = { ...stored };
+        } else {
+            this.collapsedGroups = {};
+        }
+    }
+
+    /**
+     * Check if a specific group is collapsed for the current grouping key
+     */
+    private isGroupCollapsed(groupKey: string, groupName: string): boolean {
+        const byKey = this.collapsedGroups[groupKey];
+        return !!(byKey && byKey[groupName]);
+    }
+
+    /**
+     * Set collapsed state for a group and persist to ViewStateManager
+     */
+    private setGroupCollapsed(groupKey: string, groupName: string, collapsed: boolean): void {
+        const prefs = this.plugin.viewStateManager.getViewPreferences<any>(TASK_LIST_VIEW_TYPE) || {};
+        const next = { ...(prefs.collapsedGroups || {}) } as Record<string, Record<string, boolean>>;
+        const forKey = { ...(next[groupKey] || {}) };
+        if (collapsed) {
+            forKey[groupName] = true;
+        } else {
+            delete forKey[groupName];
+        }
+        next[groupKey] = forKey;
+        this.collapsedGroups = next;
+        this.plugin.viewStateManager.setViewPreferences(TASK_LIST_VIEW_TYPE, { ...prefs, collapsedGroups: next });
+    }
+
+
+
+
+
+
+
+
+
+
     openTask(path: string) {
         const file = this.app.vault.getAbstractFileByPath(path);
         if (file instanceof TFile) {
             this.app.workspace.getLeaf(false).openFile(file);
         }
     }
-    
+
     /**
      * Wait for cache to be ready with actual data
      */
@@ -617,7 +789,7 @@ export class TaskListView extends ItemView {
         if (this.plugin.cacheManager.isInitialized()) {
             return;
         }
-        
+
         // If not initialized, wait for the cache-initialized event
         return new Promise((resolve) => {
             const unsubscribe = this.plugin.cacheManager.subscribe('cache-initialized', () => {
@@ -641,18 +813,18 @@ export class TaskListView extends ItemView {
         if (this.isWikilinkProject(projectName)) {
             // Extract the note name from [[Note Name]]
             const noteName = projectName.slice(2, -2);
-            
+
             // Create a clickable link
             const linkEl = headerElement.createEl('a', {
                 cls: 'internal-link task-list-view__project-link',
                 text: noteName
             });
-            
+
             // Add click handler to open the note
             this.registerDomEvent(linkEl, 'click', async (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                
+
                 // Resolve the link to get the actual file
                 const file = this.plugin.app.metadataCache.getFirstLinkpathDest(noteName, '');
                 if (file instanceof TFile) {
@@ -663,7 +835,7 @@ export class TaskListView extends ItemView {
                     new Notice(`Note "${noteName}" not found`);
                 }
             });
-            
+
             // Add hover preview functionality - resolve the file first
             const file = this.plugin.app.metadataCache.getFirstLinkpathDest(noteName, '');
             if (file instanceof TFile) {
