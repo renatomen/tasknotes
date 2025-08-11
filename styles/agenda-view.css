@@ -260,11 +260,38 @@
 .tasknotes-plugin .agenda-view__day-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start; /* keep title near chevron */
+    gap: var(--tn-spacing-sm);
     padding: var(--tn-spacing-md) 0 var(--tn-spacing-sm);
     margin-bottom: var(--tn-spacing-sm);
     border-bottom: 1px solid var(--tn-border-color);
     position: relative;
+}
+
+/* Chevron toggle similar to TaskListView */
+.tasknotes-plugin .agenda-group-toggle {
+    display: contents;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    margin-right: var(--tn-spacing-xs);
+    border: none;
+    background: transparent;
+    color: var(--tn-text-normal);
+    font-size: 14px;
+    line-height: 1;
+}
+.tasknotes-plugin .agenda-group-toggle .chevron {
+    transition: transform var(--tn-transition-fast);
+}
+.tasknotes-plugin .agenda-view__day-header .agenda-group-toggle svg,
+.tasknotes-plugin .agenda-view__day-header .agenda-group-toggle .chevron {
+    transform: rotate(90deg);
+}
+.tasknotes-plugin .agenda-view__day-header.is-collapsed .agenda-group-toggle svg,
+.tasknotes-plugin .agenda-view__day-header.is-collapsed .agenda-group-toggle .chevron {
+    transform: rotate(0deg);
 }
 
 .tasknotes-plugin .agenda-view__day-header-text {

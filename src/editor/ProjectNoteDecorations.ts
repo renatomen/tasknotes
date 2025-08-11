@@ -182,7 +182,7 @@ class ProjectSubtasksWidget extends WidgetType {
                 container,
                 this.currentQuery,
                 filterOptions
-            );
+            ); // Do not show expand/collapse here - not applicable
             
             // Load saved views from the main ViewStateManager
             const savedViews = this.plugin.viewStateManager.getSavedViews();

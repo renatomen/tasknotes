@@ -57,6 +57,9 @@ export class FilterBar extends EventEmitter {
     private activeSavedView: SavedView | null = null;
     private isLoadingSavedView = false;
 
+    // Controls whether expand/collapse all group actions are shown
+    private showGroupExpandCollapse: boolean = false;
+
     // Debouncing for input fields
     private debouncedEmitQueryChange: () => void;
     private debouncedHandleSearchInput: () => void;
@@ -96,13 +99,15 @@ export class FilterBar extends EventEmitter {
         app: App,
         container: HTMLElement,
         initialQuery: FilterQuery,
-        filterOptions: FilterOptions
+        filterOptions: FilterOptions,
+        config?: { showGroupExpandCollapse?: boolean }
     ) {
         super();
         this.app = app;
         this.container = container;
         this.currentQuery = FilterUtils.deepCloneFilterQuery(initialQuery);
         this.filterOptions = filterOptions;
+        this.showGroupExpandCollapse = !!config?.showGroupExpandCollapse;
 
         // Initialize drag and drop handler
         this.dragDropHandler = new DragDropHandler((fromIndex, toIndex) => {
@@ -384,24 +389,26 @@ export class FilterBar extends EventEmitter {
             }
         });
 
-        // Expand/Collapse all groups buttons (always visible)
-        const expandAllBtn = new ButtonComponent(topControls)
-            .setIcon('list-tree')
-            .setClass('filter-bar__save-button')
-            .setTooltip('Expand All Groups')
-            .onClick(() => {
-                this.emit('expandAllGroups');
-            });
-        expandAllBtn.buttonEl.addClass('filter-bar__expand-groups');
+        // Expand/Collapse all groups buttons (only where supported)
+        if (this.showGroupExpandCollapse) {
+            const expandAllBtn = new ButtonComponent(topControls)
+                .setIcon('list-tree')
+                .setClass('filter-bar__save-button')
+                .setTooltip('Expand All Groups')
+                .onClick(() => {
+                    this.emit('expandAllGroups');
+                });
+            expandAllBtn.buttonEl.addClass('filter-bar__expand-groups');
 
-        const collapseAllBtn = new ButtonComponent(topControls)
-            .setIcon('list-collapse')
-            .setClass('filter-bar__save-button')
-            .setTooltip('Collapse All Groups')
-            .onClick(() => {
-                this.emit('collapseAllGroups');
-            });
-        collapseAllBtn.buttonEl.addClass('filter-bar__collapse-groups');
+            const collapseAllBtn = new ButtonComponent(topControls)
+                .setIcon('list-collapse')
+                .setClass('filter-bar__save-button')
+                .setTooltip('Collapse All Groups')
+                .onClick(() => {
+                    this.emit('collapseAllGroups');
+                });
+            collapseAllBtn.buttonEl.addClass('filter-bar__collapse-groups');
+        }
 
         // Search input (expands to fill remaining space on the right)
         this.searchInput = new TextComponent(topControls)
@@ -1522,6 +1529,9 @@ export class FilterBar extends EventEmitter {
 
         // Update button state after render
         this.updateViewSelectorButtonState();
+
+        // Ensure filter toggle badge reflects current state (e.g., when filters are restored on load)
+        this.updateFilterToggleBadge();
     }
 
     /**

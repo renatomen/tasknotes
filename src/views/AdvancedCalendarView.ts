@@ -1,54 +1,55 @@
-import { ItemView, WorkspaceLeaf, TFile, Notice, EventRef, Menu, Modal, setTooltip } from 'obsidian';
-import { ICSEventInfoModal } from '../modals/ICSEventInfoModal';
-import { TimeblockInfoModal } from '../modals/TimeblockInfoModal';
-import { format, startOfDay, endOfDay } from 'date-fns';
-import { Calendar } from '@fullcalendar/core';
-import { 
-    createDailyNote, 
-    getDailyNote, 
-    getAllDailyNotes,
-    appHasDailyNotesPluginLoaded
-} from 'obsidian-daily-notes-interface';
-import dayGridPlugin from '@fullcalendar/daygrid';
-import timeGridPlugin from '@fullcalendar/timegrid';
-import multiMonthPlugin from '@fullcalendar/multimonth';
-import interactionPlugin from '@fullcalendar/interaction';
-import TaskNotesPlugin from '../main';
 import {
     ADVANCED_CALENDAR_VIEW_TYPE,
+    CalendarViewPreferences,
     EVENT_DATA_CHANGED,
     EVENT_TASK_UPDATED,
     EVENT_TIMEBLOCKING_TOGGLED,
-    TaskInfo,
-    TimeBlock,
     FilterQuery,
-    CalendarViewPreferences,
-    ICSEvent
+    ICSEvent,
+    TaskInfo,
+    TimeBlock
 } from '../types';
-import { TaskCreationModal } from '../modals/TaskCreationModal';
-import { TaskEditModal } from '../modals/TaskEditModal';
-import { UnscheduledTasksSelectorModal, ScheduleTaskOptions } from '../modals/UnscheduledTasksSelectorModal';
-import { TimeblockCreationModal } from '../modals/TimeblockCreationModal';
-import { FilterBar } from '../ui/FilterBar';
-import { showTaskContextMenu } from '../ui/TaskCard';
-import { 
-    hasTimeComponent, 
-    getDatePart, 
-    getTimePart,
-    parseDateToLocal,
-    parseDateToUTC,
-    normalizeCalendarBoundariesToUTC,
-    formatDateForStorage,
-    getTodayLocal
-} from '../utils/dateUtils';
-import { 
-    generateRecurringInstances,
-    updateToNextScheduledOccurrence,
+import { EventRef, ItemView, Menu, Modal, Notice, TFile, WorkspaceLeaf, setTooltip } from 'obsidian';
+import { ScheduleTaskOptions, UnscheduledTasksSelectorModal } from '../modals/UnscheduledTasksSelectorModal';
+import {
+    addDTSTARTToRecurrenceRuleWithDraggedTime,
     extractTimeblocksFromNote,
+    generateRecurringInstances,
     timeblockToCalendarEvent,
     updateTimeblockInDailyNote,
-    addDTSTARTToRecurrenceRuleWithDraggedTime
+    updateToNextScheduledOccurrence
 } from '../utils/helpers';
+import {
+    appHasDailyNotesPluginLoaded,
+    createDailyNote,
+    getAllDailyNotes,
+    getDailyNote
+} from 'obsidian-daily-notes-interface';
+import { endOfDay, format, startOfDay } from 'date-fns';
+import {
+    formatDateForStorage,
+    getDatePart,
+    getTimePart,
+    getTodayLocal,
+    hasTimeComponent,
+    normalizeCalendarBoundariesToUTC,
+    parseDateToLocal,
+    parseDateToUTC
+} from '../utils/dateUtils';
+
+import { Calendar } from '@fullcalendar/core';
+import { FilterBar } from '../ui/FilterBar';
+import { ICSEventInfoModal } from '../modals/ICSEventInfoModal';
+import { TaskCreationModal } from '../modals/TaskCreationModal';
+import { TaskEditModal } from '../modals/TaskEditModal';
+import TaskNotesPlugin from '../main';
+import { TimeblockCreationModal } from '../modals/TimeblockCreationModal';
+import { TimeblockInfoModal } from '../modals/TimeblockInfoModal';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import interactionPlugin from '@fullcalendar/interaction';
+import multiMonthPlugin from '@fullcalendar/multimonth';
+import { showTaskContextMenu } from '../ui/TaskCard';
+import timeGridPlugin from '@fullcalendar/timegrid';
 
 interface CalendarEvent {
     id: string;
@@ -241,7 +242,8 @@ export class AdvancedCalendarView extends ItemView {
             this.app,
             filterBarContainer,
             this.currentQuery,
-            filterOptions
+            filterOptions,
+            { showGroupExpandCollapse: false }
         );
         
         // Get saved views for the FilterBar

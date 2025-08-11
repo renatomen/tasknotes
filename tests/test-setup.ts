@@ -17,51 +17,56 @@ function createMockElement(tagName: string = 'div'): any {
   // Mock Obsidian's createEl method
   element.createEl = function(this: any, tagName: string, options: any = {}, callback?: (el: any) => void): any {
     const child = createMockElement(tagName);
-    
+
     // Handle options object
     if (options) {
-      // Handle class names
-      if (options.cls) {
-        if (typeof options.cls === 'string') {
-          child.className = options.cls;
-        } else if (Array.isArray(options.cls)) {
-          child.className = options.cls.join(' ');
+      // Support Obsidian shorthand where options can be a string class name
+      if (typeof options === 'string') {
+        child.className = options;
+      } else {
+        // Handle class names
+        if (options.cls) {
+          if (typeof options.cls === 'string') {
+            child.className = options.cls;
+          } else if (Array.isArray(options.cls)) {
+            child.className = options.cls.join(' ');
+          }
         }
-      }
-      
-      // Handle text content
-      if (options.text !== undefined) {
-        child.textContent = options.text;
-      }
-      
-      // Handle HTML content
-      if (options.html !== undefined) {
-        child.innerHTML = options.html;
-      }
-      
-      // Handle attributes
-      if (options.attr) {
-        Object.entries(options.attr).forEach(([key, value]) => {
-          child.setAttribute(key, String(value));
+
+        // Handle text content
+        if (options.text !== undefined) {
+          child.textContent = options.text;
+        }
+
+        // Handle HTML content
+        if (options.html !== undefined) {
+          child.innerHTML = options.html;
+        }
+
+        // Handle attributes
+        if (options.attr) {
+          Object.entries(options.attr).forEach(([key, value]) => {
+            child.setAttribute(key, String(value));
+          });
+        }
+
+        // Handle other properties (like type for input elements)
+        Object.keys(options).forEach(key => {
+          if (!['cls', 'text', 'html', 'attr'].includes(key)) {
+            (child as any)[key] = (options as any)[key];
+          }
         });
       }
-      
-      // Handle other properties (like type for input elements)
-      Object.keys(options).forEach(key => {
-        if (!['cls', 'text', 'html', 'attr'].includes(key)) {
-          (child as any)[key] = options[key];
-        }
-      });
     }
-    
+
     // Append to parent
     this.appendChild(child);
-    
+
     // Call callback if provided
     if (callback) {
       callback(child);
     }
-    
+
     return child;
   };
 
@@ -103,6 +108,13 @@ function createMockElement(tagName: string = 'div'): any {
     return this;
   };
 
+  // Mock empty method to clear children (Obsidian helper)
+  element.empty = function(this: any): any {
+    while (this.firstChild) this.removeChild(this.firstChild);
+    return this;
+  };
+
+
   return element;
 }
 
@@ -139,7 +151,7 @@ if (!global.IntersectionObserver) {
     root = null;
     rootMargin = '';
     thresholds = [];
-    
+
     constructor() {}
     observe() {}
     unobserve() {}
@@ -153,7 +165,7 @@ if (!global.URL) {
   global.URL = class URL {
     constructor(public href: string, public base?: string) {}
     toString() { return this.href; }
-    
+
     static createObjectURL() { return ''; }
     static revokeObjectURL() {}
   } as any;
@@ -196,20 +208,20 @@ jest.setTimeout(10000);
 export const TestUtils = {
   // Wait for next tick
   nextTick: () => new Promise(resolve => setTimeout(resolve, 0)),
-  
+
   // Wait for specific duration
   wait: (ms: number) => new Promise(resolve => setTimeout(resolve, ms)),
-  
+
   // Create a mock date that's consistent across tests
   createMockDate: (dateString: string) => new Date(dateString),
-  
+
   // Mock current date for consistent testing
   mockCurrentDate: (dateString: string) => {
     const mockDate = new Date(dateString);
     jest.spyOn(global.Date, 'now').mockReturnValue(mockDate.getTime());
     return mockDate;
   },
-  
+
   // Restore date mocking
   restoreDate: () => {
     jest.restoreAllMocks();
