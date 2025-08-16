@@ -7,6 +7,7 @@ import { createTaskCard } from '../ui/TaskCard';
 import { ProjectSubtasksService } from '../services/ProjectSubtasksService';
 import { FilterBar } from '../ui/FilterBar';
 import { FilterService } from '../services/FilterService';
+import { GroupCountUtils } from '../utils/GroupCountUtils';
 
 // Define a state effect for project subtasks updates
 const projectSubtasksUpdateEffect = StateEffect.define<{ forceUpdate?: boolean }>();
@@ -103,9 +104,20 @@ class ProjectSubtasksWidget extends WidgetType {
             cls: 'project-note-subtasks__header'
         });
         
+        // Calculate initial completion stats
+        const initialStats = GroupCountUtils.calculateGroupStats(this.tasks, this.plugin);
+
         const titleEl = titleContainer.createEl('h3', {
-            text: `Subtasks (${this.tasks.length})`,
             cls: 'project-note-subtasks__title'
+        });
+
+        // Add "Subtasks" text
+        titleEl.createSpan({ text: 'Subtasks ' });
+
+        // Add count with agenda-view__item-count styling
+        titleEl.createSpan({
+            text: GroupCountUtils.formatGroupCount(initialStats.completed, initialStats.total).text,
+            cls: 'agenda-view__item-count'
         });
         
         // Add new subtask button
@@ -255,11 +267,15 @@ class ProjectSubtasksWidget extends WidgetType {
     private renderTaskGroups(taskListContainer: HTMLElement): void {
         // Clear existing tasks
         taskListContainer.empty();
-        
-        // Calculate total filtered tasks for count display
+
+        // Calculate total filtered tasks and completion stats
         let totalFilteredTasks = 0;
+        let completedFilteredTasks = 0;
         for (const tasks of this.groupedTasks.values()) {
             totalFilteredTasks += tasks.length;
+            completedFilteredTasks += tasks.filter(task =>
+                this.plugin.statusManager.isCompletedStatus(task.status)
+            ).length;
         }
         
         // Render groups
@@ -290,10 +306,22 @@ class ProjectSubtasksWidget extends WidgetType {
                 const groupHeader = taskListContainer.createEl('div', {
                     cls: 'project-note-subtasks__group-header'
                 });
-                
-                groupHeader.createEl('h4', {
-                    cls: 'project-note-subtasks__group-title',
-                    text: this.getGroupDisplayName(groupKey, tasks.length)
+
+                // Calculate completion stats for this group
+                const groupStats = GroupCountUtils.calculateGroupStats(tasks, this.plugin);
+
+                // Create title element with group name and count together
+                const titleEl = groupHeader.createEl('h4', {
+                    cls: 'project-note-subtasks__group-title'
+                });
+
+                // Add group name
+                titleEl.createSpan({ text: this.getGroupDisplayName(groupKey) });
+
+                // Add count with agenda-view__item-count styling
+                titleEl.createSpan({
+                    text: ` ${GroupCountUtils.formatGroupCount(groupStats.completed, groupStats.total).text}`,
+                    cls: 'agenda-view__item-count'
                 });
                 
                 // Create group container
@@ -318,33 +346,77 @@ class ProjectSubtasksWidget extends WidgetType {
             }
         }
 
-        // Update count in title if it exists
+        // Update count in title with completion stats
         const titleEl = taskListContainer.parentElement?.parentElement?.querySelector('.project-note-subtasks__title');
         if (titleEl) {
-            titleEl.textContent = `Subtasks (${totalFilteredTasks}${totalFilteredTasks !== this.tasks.length ? ` of ${this.tasks.length}` : ''})`;
+            // Clear and rebuild title with new counts
+            titleEl.empty();
+            titleEl.createSpan({ text: 'Subtasks ' });
+
+            // Calculate total stats (not just filtered)
+            const totalStats = GroupCountUtils.calculateGroupStats(this.tasks, this.plugin);
+
+            // Show filtered vs total if filtering is active
+            if (totalFilteredTasks !== this.tasks.length) {
+                titleEl.createSpan({
+                    text: `${completedFilteredTasks} / ${totalFilteredTasks} of ${totalStats.completed} / ${totalStats.total}`,
+                    cls: 'agenda-view__item-count'
+                });
+            } else {
+                titleEl.createSpan({
+                    text: GroupCountUtils.formatGroupCount(totalStats.completed, totalStats.total).text,
+                    cls: 'agenda-view__item-count'
+                });
+            }
         }
     }
 
-    private getGroupDisplayName(groupKey: string, taskCount: number): string {
+    private getGroupDisplayName(groupKey: string): string {
         // Handle different group types with user-friendly names
         switch (groupKey) {
             case 'none':
             case 'all':
-                return `All Tasks (${taskCount})`;
+                return 'All Tasks';
             case 'No Status':
-                return `No Status (${taskCount})`;
+                return 'No Status';
             case 'No Priority':
-                return `No Priority (${taskCount})`;
+                return 'No Priority';
             case 'No Context':
-                return `No Context (${taskCount})`;
+                return 'No Context';
             case 'No Project':
-                return `No Project (${taskCount})`;
+                return 'No Project';
             case 'No Due Date':
-                return `No Due Date (${taskCount})`;
+                return 'No Due Date';
             case 'No Scheduled Date':
-                return `No Scheduled Date (${taskCount})`;
+                return 'No Scheduled Date';
             default:
-                return `${groupKey} (${taskCount})`;
+                return groupKey;
+        }
+    }
+
+    private formatSubtaskTitle(filteredCount: number, completedCount: number): string {
+        const totalTasks = this.tasks.length;
+        const totalCompleted = this.tasks.filter(task =>
+            this.plugin.statusManager.isCompletedStatus(task.status)
+        ).length;
+
+        // If no filtering is applied (showing all tasks)
+        if (filteredCount === totalTasks) {
+            if (totalTasks === 0) {
+                return 'Subtasks (0)';
+            }
+
+            // Show completion stats similar to KanbanView
+            const completionRate = Math.round((totalCompleted / totalTasks) * 100);
+            return `Subtasks (${totalTasks} tasks • ${completionRate}% complete)`;
+        } else {
+            // When filtered, show filtered count with completion info
+            if (filteredCount === 0) {
+                return `Subtasks (0 of ${totalTasks})`;
+            }
+
+            const filteredCompletionRate = filteredCount > 0 ? Math.round((completedCount / filteredCount) * 100) : 0;
+            return `Subtasks (${filteredCount} of ${totalTasks} • ${filteredCompletionRate}% complete)`;
         }
     }
 
