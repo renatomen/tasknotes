@@ -53,5 +53,3 @@ C/
 .copy-files.local
 .augment
 
-# Test output files
-jest-out.txt
