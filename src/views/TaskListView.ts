@@ -12,9 +12,7 @@ import {
 import { perfMonitor } from '../utils/PerformanceMonitor';
 import { createTaskCard, updateTaskCard, refreshParentTaskSubtasks } from '../ui/TaskCard';
 import { FilterBar } from '../ui/FilterBar';
-import { FilterHeading } from '../ui/FilterHeading';
-import { GroupCountUtils } from '../utils/GroupCountUtils';
-
+import { GroupingUtils } from '../utils/GroupingUtils';
 
 export class TaskListView extends ItemView {
     plugin: TaskNotesPlugin;
@@ -30,7 +28,6 @@ export class TaskListView extends ItemView {
     
     // Filter system
     private filterBar: FilterBar | null = null;
-    private filterHeading: FilterHeading | null = null;
     private currentQuery: FilterQuery;
     
     // Task item tracking for dynamic updates
@@ -202,12 +199,6 @@ export class TaskListView extends ItemView {
             this.filterBar.destroy();
             this.filterBar = null;
         }
-
-        // Clean up FilterHeading
-        if (this.filterHeading) {
-            this.filterHeading.destroy();
-            this.filterHeading = null;
-        }
         
         this.contentEl.empty();
     }
@@ -338,10 +329,8 @@ export class TaskListView extends ItemView {
             this.plugin.viewStateManager.setFilterState(TASK_LIST_VIEW_TYPE, newQuery);
             await this.refreshTasks();
         });
-
-        // Create filter heading
-        this.filterHeading = new FilterHeading(container);
-
+        
+        
         // Task list container
         const taskList = container.createDiv({ cls: 'task-list' });
         
@@ -365,31 +354,7 @@ export class TaskListView extends ItemView {
         this.isTasksLoading = false;
         this.updateLoadingState();
     }
-
-    /**
-     * Update the filter heading with current saved view and completion count
-     */
-    private async updateFilterHeading(): Promise<void> {
-        if (!this.filterHeading || !this.filterBar) return;
-
-        try {
-            // Get all filtered tasks to calculate completion stats
-            const groupedTasks = await this.plugin.filterService.getGroupedTasks(this.currentQuery);
-            const allTasks = Array.from(groupedTasks.values()).flat();
-
-            // Calculate completion stats
-            const stats = GroupCountUtils.calculateGroupStats(allTasks, this.plugin);
-
-            // Get current saved view from FilterBar
-            const activeSavedView = (this.filterBar as any).activeSavedView || null;
-
-            // Update the filter heading
-            this.filterHeading.update(activeSavedView, stats.completed, stats.total);
-        } catch (error) {
-            console.error('Error updating filter heading in TaskListView:', error);
-        }
-    }
-
+    
     /**
      * Refresh tasks using FilterService
      */
@@ -436,8 +401,6 @@ export class TaskListView extends ItemView {
         } finally {
             this.isTasksLoading = false;
             this.updateLoadingState();
-            // Update filter heading with current data
-            await this.updateFilterHeading();
         }
     }
 
@@ -534,20 +497,11 @@ export class TaskListView extends ItemView {
                 if (svg) { svg.classList.add('chevron'); svg.setAttr('width', '16'); svg.setAttr('height', '16'); }
                 else { toggleBtn.textContent = '▸'; toggleBtn.addClass('chevron-text'); }
 
-                // Calculate completion stats for this group
-                const groupStats = GroupCountUtils.calculateGroupStats(tasks, this.plugin);
-
                 // Label: project wikilink -> clickable, else plain text span
                 if (groupingKey === 'project' && this.isWikilinkProject(groupName)) {
-                    this.createClickableProjectHeader(headerElement, groupName, groupStats);
+                    this.createClickableProjectHeader(headerElement, groupName);
                 } else {
                     headerElement.createSpan({ text: this.formatGroupName(groupName) });
-
-                    // Add count with agenda-view__item-count styling
-                    headerElement.createSpan({
-                        text: ` ${GroupCountUtils.formatGroupCount(groupStats.completed, groupStats.total).text}`,
-                        cls: 'agenda-view__item-count'
-                    });
                 }
 
                 // Click handlers (match preview-all semantics; ignore link clicks inside header)
@@ -743,7 +697,7 @@ export class TaskListView extends ItemView {
     /**
      * Create a clickable project header for wikilink projects
      */
-    private createClickableProjectHeader(headerElement: HTMLElement, projectName: string, groupStats?: { completed: number; total: number }): void {
+    private createClickableProjectHeader(headerElement: HTMLElement, projectName: string): void {
         if (this.isWikilinkProject(projectName)) {
             // Extract the note name from [[Note Name]]
             const noteName = projectName.slice(2, -2);
@@ -774,14 +728,6 @@ export class TaskListView extends ItemView {
             const file = this.plugin.app.metadataCache.getFirstLinkpathDest(noteName, '');
             if (file instanceof TFile) {
                 this.addHoverPreview(linkEl, file.path);
-            }
-
-            // Add count with agenda-view__item-count styling if stats provided
-            if (groupStats) {
-                headerElement.createSpan({
-                    text: ` ${GroupCountUtils.formatGroupCount(groupStats.completed, groupStats.total).text}`,
-                    cls: 'agenda-view__item-count'
-                });
             }
         } else {
             // Fallback to plain text
