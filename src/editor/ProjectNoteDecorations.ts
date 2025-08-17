@@ -85,7 +85,13 @@ class ProjectSubtasksWidget extends WidgetType {
             this.filterBar.destroy();
             this.filterBar = null;
         }
-        
+
+        // Clean up the filter heading
+        if (this.filterHeading) {
+            this.filterHeading.destroy();
+            this.filterHeading = null;
+        }
+
         // Clean up ViewStateManager event listeners
         if (this.savedViewsUnsubscribe) {
             this.savedViewsUnsubscribe();
@@ -106,21 +112,12 @@ class ProjectSubtasksWidget extends WidgetType {
             cls: 'project-note-subtasks__header'
         });
         
-        // Calculate initial completion stats
-        const initialStats = GroupCountUtils.calculateGroupStats(this.tasks, this.plugin);
-
         const titleEl = titleContainer.createEl('h3', {
             cls: 'project-note-subtasks__title'
         });
 
-        // Add "Subtasks" text
-        titleEl.createSpan({ text: 'Subtasks ' });
-
-        // Add count with agenda-view__item-count styling
-        titleEl.createSpan({
-            text: GroupCountUtils.formatGroupCount(initialStats.completed, initialStats.total).text,
-            cls: 'agenda-view__item-count'
-        });
+        // Add "Subtasks" text only (count is now shown in FilterHeading)
+        titleEl.createSpan({ text: 'Subtasks' });
         
         // Add new subtask button
         const newSubtaskBtn = titleContainer.createEl('button', {
@@ -212,6 +209,11 @@ class ProjectSubtasksWidget extends WidgetType {
                     this.applyFiltersAndRender(this.taskListContainer);
                 }
             });
+
+            // Listen for active saved view changes to update filter heading
+            this.filterBar.on('activeSavedViewChanged', () => {
+                this.updateFilterHeading();
+            });
             
             // Listen for saved view operations
             this.filterBar.on('saveView', (data: { name: string, query: FilterQuery, viewOptions?: {[key: string]: boolean} }) => {
@@ -233,8 +235,10 @@ class ProjectSubtasksWidget extends WidgetType {
                 }
             });
 
-            // Create filter heading after FilterBar
+            // Create filter heading after FilterBar is fully initialized
             this.filterHeading = new FilterHeading(container);
+            // Initial update
+            this.updateFilterHeading();
 
         } catch (error) {
             console.error('Error initializing filter bar for subtasks:', error);
@@ -282,11 +286,16 @@ class ProjectSubtasksWidget extends WidgetType {
             if (taskListContainer) {
                 this.renderTaskGroups(taskListContainer);
             }
+
+            // Update filter heading with current data
+            this.updateFilterHeading();
         } catch (error) {
             console.error('Error applying filters to subtasks:', error);
             // Fallback to unfiltered, ungrouped tasks
             this.groupedTasks.clear();
             this.groupedTasks.set('all', [...this.tasks]);
+            // Update filter heading even on error
+            this.updateFilterHeading();
         }
     }
 
