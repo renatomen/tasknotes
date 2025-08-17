@@ -1,8 +1,8 @@
 import { TFile, ItemView, WorkspaceLeaf, EventRef, Notice, setIcon } from 'obsidian';
 import TaskNotesPlugin from '../main';
-import { 
-    TASK_LIST_VIEW_TYPE, 
-    TaskInfo, 
+import {
+    TASK_LIST_VIEW_TYPE,
+    TaskInfo,
     EVENT_DATA_CHANGED,
     EVENT_TASK_UPDATED,
     FilterQuery,
@@ -14,6 +14,7 @@ import { createTaskCard, updateTaskCard, refreshParentTaskSubtasks } from '../ui
 import { FilterBar } from '../ui/FilterBar';
 import { FilterHeading } from '../ui/FilterHeading';
 import { GroupCountUtils } from '../utils/GroupCountUtils';
+
 
 export class TaskListView extends ItemView {
     plugin: TaskNotesPlugin;
@@ -279,10 +280,7 @@ export class TaskListView extends ItemView {
         // Wire expand/collapse all (as in preview-all)
         this.filterBar.on('expandAllGroups', () => {
             const key = this.currentQuery.groupKey || 'none';
-            const prefs = this.plugin.viewStateManager.getViewPreferences<any>(TASK_LIST_VIEW_TYPE) || {};
-            const next = { ...(prefs.collapsedGroups || {}) } as Record<string, Record<string, boolean>>;
-            next[key] = {};
-            this.plugin.viewStateManager.setViewPreferences(TASK_LIST_VIEW_TYPE, { ...prefs, collapsedGroups: next });
+            GroupingUtils.expandAllGroups(TASK_LIST_VIEW_TYPE, key, this.plugin);
             // Update DOM
             this.contentEl.querySelectorAll('.task-group').forEach(section => {
                 section.classList.remove('is-collapsed');
@@ -292,18 +290,17 @@ export class TaskListView extends ItemView {
         });
         this.filterBar.on('collapseAllGroups', () => {
             const key = this.currentQuery.groupKey || 'none';
-            const prefs = this.plugin.viewStateManager.getViewPreferences<any>(TASK_LIST_VIEW_TYPE) || {};
-            const next = { ...(prefs.collapsedGroups || {}) } as Record<string, Record<string, boolean>>;
-            const collapsed: Record<string, boolean> = {};
+            const groupNames: string[] = [];
             this.contentEl.querySelectorAll('.task-group').forEach(section => {
                 const name = (section as HTMLElement).dataset.group;
-                if (name) collapsed[name] = true;
-                section.classList.add('is-collapsed');
-                const list = (section as HTMLElement).querySelector('.task-cards') as HTMLElement | null;
-                if (list) list.style.display = 'none';
+                if (name) {
+                    groupNames.push(name);
+                    section.classList.add('is-collapsed');
+                    const list = (section as HTMLElement).querySelector('.task-cards') as HTMLElement | null;
+                    if (list) list.style.display = 'none';
+                }
             });
-            next[key] = collapsed;
-            this.plugin.viewStateManager.setViewPreferences(TASK_LIST_VIEW_TYPE, { ...prefs, collapsedGroups: next });
+            GroupingUtils.collapseAllGroups(TASK_LIST_VIEW_TYPE, key, groupNames, this.plugin);
         });
 
         // Get saved views for the FilterBar
@@ -532,7 +529,7 @@ export class TaskListView extends ItemView {
 
                 // Create toggle button first (exactly as in preview-all)
                 const toggleBtn = headerElement.createEl('button', { cls: 'task-group-toggle', attr: { 'aria-label': 'Toggle group' } });
-                try { setIcon(toggleBtn, 'chevron-right'); } catch (_) {}
+                try { setIcon(toggleBtn, 'chevron-right'); } catch (_) { /* Ignore setIcon errors */ }
                 const svg = toggleBtn.querySelector('svg');
                 if (svg) { svg.classList.add('chevron'); svg.setAttr('width', '16'); svg.setAttr('height', '16'); }
                 else { toggleBtn.textContent = '▸'; toggleBtn.addClass('chevron-text'); }
@@ -612,22 +609,11 @@ export class TaskListView extends ItemView {
 
     // Persist and restore collapsed state per grouping key and group name
     private isGroupCollapsed(groupingKey: string, groupName: string): boolean {
-        try {
-            const prefs = this.plugin.viewStateManager.getViewPreferences<any>(TASK_LIST_VIEW_TYPE) || {};
-            const collapsed = prefs.collapsedGroups || {};
-            return !!collapsed?.[groupingKey]?.[groupName];
-        } catch {
-            return false;
-        }
+        return GroupingUtils.isGroupCollapsed(TASK_LIST_VIEW_TYPE, groupingKey, groupName, this.plugin);
     }
 
     private setGroupCollapsed(groupingKey: string, groupName: string, collapsed: boolean): void {
-        const prefs = this.plugin.viewStateManager.getViewPreferences<any>(TASK_LIST_VIEW_TYPE) || {};
-        const next = { ...prefs };
-        if (!next.collapsedGroups) next.collapsedGroups = {};
-        if (!next.collapsedGroups[groupingKey]) next.collapsedGroups[groupingKey] = {};
-        next.collapsedGroups[groupingKey][groupName] = collapsed;
-        this.plugin.viewStateManager.setViewPreferences(TASK_LIST_VIEW_TYPE, next);
+        GroupingUtils.setGroupCollapsed(TASK_LIST_VIEW_TYPE, groupingKey, groupName, collapsed, this.plugin);
     }
 
     /**
@@ -696,26 +682,7 @@ export class TaskListView extends ItemView {
      * Format group name for display
      */
     private formatGroupName(groupName: string): string {
-        // Check if it's a priority value
-        const priorityConfig = this.plugin.priorityManager.getPriorityConfig(groupName);
-        if (priorityConfig) {
-            return `${priorityConfig.label} priority`;
-        }
-        
-        // Check if it's a status value  
-        const statusConfig = this.plugin.statusManager.getStatusConfig(groupName);
-        if (statusConfig) {
-            return statusConfig.label;
-        }
-        
-        switch (groupName) {
-            case 'all':
-                return 'All tasks';
-            case 'no-status':
-                return 'No status assigned';
-            default:
-                return groupName;
-        }
+        return GroupingUtils.formatGroupName(groupName, this.plugin);
     }
     
     

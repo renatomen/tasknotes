@@ -7,6 +7,7 @@ export const AGENDA_VIEW_TYPE = 'tasknotes-agenda-view';
 export const POMODORO_VIEW_TYPE = 'tasknotes-pomodoro-view';
 export const POMODORO_STATS_VIEW_TYPE = 'tasknotes-pomodoro-stats-view';
 export const KANBAN_VIEW_TYPE = 'tasknotes-kanban-view';
+export const SUBTASK_WIDGET_VIEW_TYPE = 'tasknotes-subtask-widget-view';
 
 // Event types
 export const EVENT_DATE_SELECTED = 'date-selected';
@@ -76,7 +77,7 @@ export type FilterProperty =
 	// Placeholder for "Select..." option
 	| ''
 	// Text properties
-	| 'title'
+	| 'title' | 'path'
 	// Select properties
 	| 'status' | 'priority' | 'tags' | 'contexts' | 'projects'
 	// Date properties
@@ -115,6 +116,7 @@ export interface PropertyDefinition {
 export const FILTER_PROPERTIES: PropertyDefinition[] = [
 	// Text properties
 	{ id: 'title', label: 'Title', category: 'text', supportedOperators: ['is', 'is-not', 'contains', 'does-not-contain', 'is-empty', 'is-not-empty'], valueInputType: 'text' },
+	{ id: 'path', label: 'Path', category: 'select', supportedOperators: ['contains', 'does-not-contain', 'is-empty', 'is-not-empty'], valueInputType: 'select' },
 	
 	// Select properties
 	{ id: 'status', label: 'Status', category: 'select', supportedOperators: ['is', 'is-not', 'is-empty', 'is-not-empty'], valueInputType: 'select' },
@@ -190,6 +192,7 @@ export interface FilterOptions {
 	contexts: readonly string[];
 	projects: readonly string[];
 	tags: readonly string[];
+	folders: readonly string[];
 }
 
 // Time and date related types

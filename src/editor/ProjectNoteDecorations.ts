@@ -1,14 +1,15 @@
 import { Decoration, DecorationSet, EditorView, PluginSpec, PluginValue, ViewPlugin, ViewUpdate, WidgetType } from '@codemirror/view';
 import { Extension, RangeSetBuilder, StateEffect } from '@codemirror/state';
-import { TFile, editorLivePreviewField, editorInfoField, EventRef } from 'obsidian';
+import { TFile, editorLivePreviewField, editorInfoField, EventRef, setIcon } from 'obsidian';
 import TaskNotesPlugin from '../main';
-import { TaskInfo, EVENT_DATA_CHANGED, EVENT_TASK_UPDATED, EVENT_TASK_DELETED, FilterQuery } from '../types';
+import { TaskInfo, EVENT_DATA_CHANGED, EVENT_TASK_UPDATED, EVENT_TASK_DELETED, FilterQuery, SUBTASK_WIDGET_VIEW_TYPE } from '../types';
 import { createTaskCard } from '../ui/TaskCard';
 import { ProjectSubtasksService } from '../services/ProjectSubtasksService';
 import { FilterBar } from '../ui/FilterBar';
 import { FilterHeading } from '../ui/FilterHeading';
 import { FilterService } from '../services/FilterService';
 import { GroupCountUtils } from '../utils/GroupCountUtils';
+
 
 // Define a state effect for project subtasks updates
 const projectSubtasksUpdateEffect = StateEffect.define<{ forceUpdate?: boolean }>();
@@ -27,7 +28,7 @@ class ProjectSubtasksWidget extends WidgetType {
     constructor(private plugin: TaskNotesPlugin, private tasks: TaskInfo[], private notePath: string, private version: number = 0) {
         super();
         // Create note-specific view type identifier
-        this.viewType = `project-subtasks:${notePath}`;
+        this.viewType = `${SUBTASK_WIDGET_VIEW_TYPE}:${notePath}`;
         
         // Initialize with ungrouped tasks
         this.groupedTasks.set('all', [...tasks]);
@@ -246,7 +247,6 @@ class ProjectSubtasksWidget extends WidgetType {
             this.filterHeading = new FilterHeading(container);
             // Initial update
             this.updateFilterHeading();
-
         } catch (error) {
             console.error('Error initializing filter bar for subtasks:', error);
         }
@@ -340,14 +340,15 @@ class ProjectSubtasksWidget extends WidgetType {
                 taskListContainer.appendChild(taskCard);
             });
         } else {
-            // Render grouped tasks with group headers
+            // Render grouped tasks with collapsible group headers
             for (const [groupKey, tasks] of this.groupedTasks.entries()) {
                 if (tasks.length === 0) continue;
-                
-                // Create group header
-                const groupHeader = taskListContainer.createEl('div', {
-                    cls: 'project-note-subtasks__group-header'
+
+                // Create group section
+                const groupSection = taskListContainer.createEl('div', {
+                    cls: 'project-note-subtasks__group-section task-group'
                 });
+
 
                 // Calculate completion stats for this group
                 const groupStats = GroupCountUtils.calculateGroupStats(tasks, this.plugin);
@@ -365,12 +366,44 @@ class ProjectSubtasksWidget extends WidgetType {
                     text: ` ${GroupCountUtils.formatGroupCount(groupStats.completed, groupStats.total).text}`,
                     cls: 'agenda-view__item-count'
                 });
-                
+
                 // Create group container
-                const groupContainer = taskListContainer.createEl('div', {
-                    cls: 'project-note-subtasks__group'
+                const groupContainer = groupSection.createEl('div', {
+                    cls: 'project-note-subtasks__group task-cards'
                 });
-                
+
+                // Apply initial collapsed state
+                if (collapsedInitially) {
+                    groupSection.classList.add('is-collapsed');
+                    groupContainer.style.display = 'none';
+                }
+
+                // Add click handlers for expand/collapse
+                groupHeader.addEventListener('click', (e: MouseEvent) => {
+                    const target = e.target as HTMLElement;
+                    if (target.closest('a')) return; // Ignore link clicks
+
+                    const willCollapse = !groupSection.classList.contains('is-collapsed');
+                    GroupingUtils.setGroupCollapsed(this.viewType, groupingKey, groupKey, willCollapse, this.plugin);
+                    groupSection.classList.toggle('is-collapsed', willCollapse);
+                    groupContainer.style.display = willCollapse ? 'none' : '';
+                    toggleBtn.setAttribute('aria-expanded', String(!willCollapse));
+                });
+
+                toggleBtn.addEventListener('click', (e: MouseEvent) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    const willCollapse = !groupSection.classList.contains('is-collapsed');
+                    GroupingUtils.setGroupCollapsed(this.viewType, groupingKey, groupKey, willCollapse, this.plugin);
+                    groupSection.classList.toggle('is-collapsed', willCollapse);
+                    groupContainer.style.display = willCollapse ? 'none' : '';
+                    toggleBtn.setAttribute('aria-expanded', String(!willCollapse));
+                });
+
+                // Set initial ARIA state
+                toggleBtn.setAttribute('aria-expanded', String(!collapsedInitially));
+
                 // Render tasks in this group
                 tasks.forEach(task => {
                     const taskCard = createTaskCard(task, this.plugin, {
@@ -381,7 +414,7 @@ class ProjectSubtasksWidget extends WidgetType {
                         showRecurringControls: true,
                         groupByDate: false
                     });
-                    
+
                     taskCard.classList.add('project-note-subtasks__task');
                     groupContainer.appendChild(taskCard);
                 });
@@ -454,6 +487,7 @@ class ProjectSubtasksWidget extends WidgetType {
             const filteredCompletionRate = filteredCount > 0 ? Math.round((completedCount / filteredCount) * 100) : 0;
             return `Subtasks (${filteredCount} of ${totalTasks} • ${filteredCompletionRate}% complete)`;
         }
+
     }
 
     private createNewSubtask(): void {
