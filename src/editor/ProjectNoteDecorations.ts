@@ -6,8 +6,10 @@ import { TaskInfo, EVENT_DATA_CHANGED, EVENT_TASK_UPDATED, EVENT_TASK_DELETED, F
 import { createTaskCard } from '../ui/TaskCard';
 import { ProjectSubtasksService } from '../services/ProjectSubtasksService';
 import { FilterBar } from '../ui/FilterBar';
+import { FilterHeading } from '../ui/FilterHeading';
 import { FilterService } from '../services/FilterService';
-import { GroupingUtils } from '../utils/GroupingUtils';
+import { GroupCountUtils } from '../utils/GroupCountUtils';
+
 
 // Define a state effect for project subtasks updates
 const projectSubtasksUpdateEffect = StateEffect.define<{ forceUpdate?: boolean }>();
@@ -15,11 +17,13 @@ const projectSubtasksUpdateEffect = StateEffect.define<{ forceUpdate?: boolean }
 class ProjectSubtasksWidget extends WidgetType {
     private groupedTasks: Map<string, TaskInfo[]> = new Map();
     private filterBar: FilterBar | null = null;
+    private filterHeading: FilterHeading | null = null;
     private filterService: FilterService;
     private currentQuery: FilterQuery;
     private savedViewsUnsubscribe: (() => void) | null = null;
     private readonly viewType: string;
     private taskListContainer: HTMLElement | null = null;
+    private editorView: EditorView | null = null;
 
     constructor(private plugin: TaskNotesPlugin, private tasks: TaskInfo[], private notePath: string, private version: number = 0) {
         super();
@@ -83,7 +87,13 @@ class ProjectSubtasksWidget extends WidgetType {
             this.filterBar.destroy();
             this.filterBar = null;
         }
-        
+
+        // Clean up the filter heading
+        if (this.filterHeading) {
+            this.filterHeading.destroy();
+            this.filterHeading = null;
+        }
+
         // Clean up ViewStateManager event listeners
         if (this.savedViewsUnsubscribe) {
             this.savedViewsUnsubscribe();
@@ -92,6 +102,9 @@ class ProjectSubtasksWidget extends WidgetType {
     }
 
     toDOM(view: EditorView): HTMLElement {
+        // Store the view reference for later use
+        this.editorView = view;
+
         const container = document.createElement('div');
         container.className = 'tasknotes-plugin project-note-subtasks project-subtasks-widget';
         
@@ -105,9 +118,11 @@ class ProjectSubtasksWidget extends WidgetType {
         });
         
         const titleEl = titleContainer.createEl('h3', {
-            text: `Subtasks (${this.tasks.length})`,
             cls: 'project-note-subtasks__title'
         });
+
+        // Add "Subtasks" text only (count is now shown in FilterHeading)
+        titleEl.createSpan({ text: 'Subtasks' });
         
         // Add new subtask button
         const newSubtaskBtn = titleContainer.createEl('button', {
@@ -199,6 +214,14 @@ class ProjectSubtasksWidget extends WidgetType {
                     this.applyFiltersAndRender(this.taskListContainer);
                 }
             });
+
+            // Listen for active saved view changes to force widget recreation (like tab reload)
+            this.filterBar.on('activeSavedViewChanged', () => {
+                // Force widget recreation to ensure FilterHeading DOM is properly connected
+                if (this.editorView) {
+                    dispatchProjectSubtasksUpdate(this.editorView);
+                }
+            });
             
             // Listen for saved view operations
             this.filterBar.on('saveView', (data: { name: string, query: FilterQuery, viewOptions?: {[key: string]: boolean} }) => {
@@ -220,39 +243,33 @@ class ProjectSubtasksWidget extends WidgetType {
                 }
             });
 
-            // Wire expand/collapse all functionality
-            this.filterBar.on('expandAllGroups', () => {
-                const key = this.currentQuery.groupKey || 'none';
-                GroupingUtils.expandAllGroups(this.viewType, key, this.plugin);
-                // Update DOM
-                if (this.taskListContainer) {
-                    this.taskListContainer.querySelectorAll('.task-group').forEach(section => {
-                        section.classList.remove('is-collapsed');
-                        const list = (section as HTMLElement).querySelector('.task-cards') as HTMLElement | null;
-                        if (list) list.style.display = '';
-                    });
-                }
-            });
-
-            this.filterBar.on('collapseAllGroups', () => {
-                const key = this.currentQuery.groupKey || 'none';
-                const groupNames: string[] = [];
-                if (this.taskListContainer) {
-                    this.taskListContainer.querySelectorAll('.task-group').forEach(section => {
-                        const name = (section as HTMLElement).dataset.group;
-                        if (name) {
-                            groupNames.push(name);
-                            section.classList.add('is-collapsed');
-                            const list = (section as HTMLElement).querySelector('.task-cards') as HTMLElement | null;
-                            if (list) list.style.display = 'none';
-                        }
-                    });
-                }
-                GroupingUtils.collapseAllGroups(this.viewType, key, groupNames, this.plugin);
-            });
-
+            // Create filter heading after FilterBar is fully initialized
+            this.filterHeading = new FilterHeading(container);
+            // Initial update
+            this.updateFilterHeading();
         } catch (error) {
             console.error('Error initializing filter bar for subtasks:', error);
+        }
+    }
+
+    /**
+     * Update the filter heading with current saved view and completion count
+     */
+    private updateFilterHeading(): void {
+        if (!this.filterHeading || !this.filterBar) return;
+
+        try {
+            // Calculate completion stats from current filtered tasks
+            const allFilteredTasks = Array.from(this.groupedTasks.values()).flat();
+            const stats = GroupCountUtils.calculateGroupStats(allFilteredTasks, this.plugin);
+
+            // Get current saved view from FilterBar
+            const activeSavedView = (this.filterBar as any).activeSavedView || null;
+
+            // Update the filter heading
+            this.filterHeading.update(activeSavedView, stats.completed, stats.total);
+        } catch (error) {
+            console.error('Error updating filter heading in ProjectSubtasksWidget:', error);
         }
     }
 
@@ -276,22 +293,31 @@ class ProjectSubtasksWidget extends WidgetType {
             if (taskListContainer) {
                 this.renderTaskGroups(taskListContainer);
             }
+
+            // Update filter heading with current data
+            this.updateFilterHeading();
         } catch (error) {
             console.error('Error applying filters to subtasks:', error);
             // Fallback to unfiltered, ungrouped tasks
             this.groupedTasks.clear();
             this.groupedTasks.set('all', [...this.tasks]);
+            // Update filter heading even on error
+            this.updateFilterHeading();
         }
     }
 
     private renderTaskGroups(taskListContainer: HTMLElement): void {
         // Clear existing tasks
         taskListContainer.empty();
-        
-        // Calculate total filtered tasks for count display
+
+        // Calculate total filtered tasks and completion stats
         let totalFilteredTasks = 0;
+        let completedFilteredTasks = 0;
         for (const tasks of this.groupedTasks.values()) {
             totalFilteredTasks += tasks.length;
+            completedFilteredTasks += tasks.filter(task =>
+                this.plugin.statusManager.isCompletedStatus(task.status)
+            ).length;
         }
         
         // Render groups
@@ -322,38 +348,23 @@ class ProjectSubtasksWidget extends WidgetType {
                 const groupSection = taskListContainer.createEl('div', {
                     cls: 'project-note-subtasks__group-section task-group'
                 });
-                groupSection.setAttribute('data-group', groupKey);
 
-                const groupingKey = this.currentQuery.groupKey || 'none';
-                const collapsedInitially = GroupingUtils.isGroupCollapsed(this.viewType, groupingKey, groupKey, this.plugin);
 
-                // Create group header with toggle functionality
-                const groupHeader = groupSection.createEl('div', {
-                    cls: 'project-note-subtasks__group-header task-group-header'
+                // Calculate completion stats for this group
+                const groupStats = GroupCountUtils.calculateGroupStats(tasks, this.plugin);
+
+                // Create title element with group name and count together
+                const titleEl = groupHeader.createEl('h4', {
+                    cls: 'project-note-subtasks__group-title'
                 });
 
-                // Create toggle button first
-                const toggleBtn = groupHeader.createEl('button', {
-                    cls: 'task-group-toggle',
-                    attr: { 'aria-label': 'Toggle group' }
-                });
-                try {
-                    setIcon(toggleBtn, 'chevron-right');
-                } catch (_) {}
-                const svg = toggleBtn.querySelector('svg');
-                if (svg) {
-                    svg.classList.add('chevron');
-                    svg.setAttr('width', '16');
-                    svg.setAttr('height', '16');
-                } else {
-                    toggleBtn.textContent = '▸';
-                    toggleBtn.addClass('chevron-text');
-                }
+                // Add group name
+                titleEl.createSpan({ text: this.getGroupDisplayName(groupKey) });
 
-                // Add group title
-                groupHeader.createEl('h4', {
-                    cls: 'project-note-subtasks__group-title',
-                    text: GroupingUtils.getGroupDisplayName(groupKey, tasks.length, this.plugin)
+                // Add count with agenda-view__item-count styling
+                titleEl.createSpan({
+                    text: ` ${GroupCountUtils.formatGroupCount(groupStats.completed, groupStats.total).text}`,
+                    cls: 'agenda-view__item-count'
                 });
 
                 // Create group container
@@ -410,15 +421,73 @@ class ProjectSubtasksWidget extends WidgetType {
             }
         }
 
-        // Update count in title if it exists
+        // Update widget title with filtered count (same as FilterHeading)
         const titleEl = taskListContainer.parentElement?.parentElement?.querySelector('.project-note-subtasks__title');
         if (titleEl) {
-            titleEl.textContent = `Subtasks (${totalFilteredTasks}${totalFilteredTasks !== this.tasks.length ? ` of ${this.tasks.length}` : ''})`;
+            // Clear and rebuild title with filtered count only
+            titleEl.empty();
+            titleEl.createSpan({ text: 'Subtasks ' });
+
+            // Calculate filtered stats (same as FilterHeading)
+            const allFilteredTasks = Array.from(this.groupedTasks.values()).flat();
+            const filteredStats = GroupCountUtils.calculateGroupStats(allFilteredTasks, this.plugin);
+
+            // Show filtered count only (matching FilterHeading)
+            titleEl.createSpan({
+                text: GroupCountUtils.formatGroupCount(filteredStats.completed, filteredStats.total).text,
+                cls: 'agenda-view__item-count'
+            });
         }
     }
 
-    private getGroupDisplayName(groupKey: string, taskCount: number): string {
-        return GroupingUtils.getGroupDisplayName(groupKey, taskCount, this.plugin);
+    private getGroupDisplayName(groupKey: string): string {
+        // Handle different group types with user-friendly names
+        switch (groupKey) {
+            case 'none':
+            case 'all':
+                return 'All Tasks';
+            case 'No Status':
+                return 'No Status';
+            case 'No Priority':
+                return 'No Priority';
+            case 'No Context':
+                return 'No Context';
+            case 'No Project':
+                return 'No Project';
+            case 'No Due Date':
+                return 'No Due Date';
+            case 'No Scheduled Date':
+                return 'No Scheduled Date';
+            default:
+                return groupKey;
+        }
+    }
+
+    private formatSubtaskTitle(filteredCount: number, completedCount: number): string {
+        const totalTasks = this.tasks.length;
+        const totalCompleted = this.tasks.filter(task =>
+            this.plugin.statusManager.isCompletedStatus(task.status)
+        ).length;
+
+        // If no filtering is applied (showing all tasks)
+        if (filteredCount === totalTasks) {
+            if (totalTasks === 0) {
+                return 'Subtasks (0)';
+            }
+
+            // Show completion stats similar to KanbanView
+            const completionRate = Math.round((totalCompleted / totalTasks) * 100);
+            return `Subtasks (${totalTasks} tasks • ${completionRate}% complete)`;
+        } else {
+            // When filtered, show filtered count with completion info
+            if (filteredCount === 0) {
+                return `Subtasks (0 of ${totalTasks})`;
+            }
+
+            const filteredCompletionRate = filteredCount > 0 ? Math.round((completedCount / filteredCount) * 100) : 0;
+            return `Subtasks (${filteredCount} of ${totalTasks} • ${filteredCompletionRate}% complete)`;
+        }
+
     }
 
     private createNewSubtask(): void {
@@ -498,6 +567,10 @@ class ProjectNoteDecorationsPlugin implements PluginValue {
         );
         
         if (update.docChanged || update.viewportChanged || hasUpdateEffect) {
+            // If our custom effect is present, bump version so widgets are recreated (forces a fresh DOM)
+            if (hasUpdateEffect) {
+                this.version++;
+            }
             this.decorations = this.buildDecorations(update.view);
         }
         
