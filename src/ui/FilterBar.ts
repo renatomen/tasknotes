@@ -67,6 +67,7 @@ export class FilterBar extends EventEmitter {
     private filterBuilder?: HTMLElement;
     private displaySection?: HTMLElement;
     private viewOptionsContainer?: HTMLElement;
+    private layoutSectionContainer?: HTMLElement;
     private searchInput?: TextComponent;
     private viewsButtonAlignment: 'left' | 'right' = 'right';
 
@@ -85,6 +86,7 @@ export class FilterBar extends EventEmitter {
         filterBox: false,   // Entire filter box - collapsed by default
         filters: true,      // This view section - expanded by default
         display: true,      // Display & Organization - expanded by default
+        layout: false,      // Layout - collapsed by default
         viewOptions: false  // View Options - collapsed by default
     };
 
@@ -513,7 +515,10 @@ export class FilterBar extends EventEmitter {
         // 2. Display & Organization
         this.renderDisplaySection(this.mainFilterBox);
 
-        // 3. View-Specific Options
+        // 3. Layout (collapsed by default)
+        this.renderLayoutSection(this.mainFilterBox);
+
+        // 4. View-Specific Options
         this.renderViewOptions(this.mainFilterBox);
     }
 
@@ -1394,6 +1399,82 @@ export class FilterBar extends EventEmitter {
     }
 
     /**
+     * Render layout section (collapsed by default)
+     */
+    private renderLayoutSection(container: HTMLElement): void {
+        const section = container.createDiv('filter-bar__section');
+        this.layoutSectionContainer = section;
+
+        // Collapsible header
+        const header = section.createDiv('filter-bar__section-header');
+        const titleWrapper = header.createDiv('filter-bar__section-header-main');
+        titleWrapper.createSpan({
+            text: 'Layout',
+            cls: 'filter-bar__section-title'
+        });
+        setTooltip(titleWrapper, 'Click to expand/collapse task card layout options', { placement: 'top' });
+
+        const content = section.createDiv('filter-bar__section-content');
+        // Collapsed/expanded state follows sectionStates.layout (collapsed by default)
+        if (!this.sectionStates.layout) {
+            content.addClass('filter-bar__section-content--collapsed');
+        }
+
+        // Minimal layout state body (initial scaffolding)
+        const layoutInfo = content.createDiv('filter-bar__layout-info');
+        const infoText = layoutInfo.createSpan({ text: this.currentLayout ? 'A custom layout is set for this view.' : 'No custom layout set. Saving a view will not include a layout until configured.' });
+
+        const actions = content.createDiv('filter-bar__layout-actions');
+        const addDefaultBtn = new ButtonComponent(actions)
+            .setButtonText('Use basic two-row layout')
+            .setTooltip('Initialize a basic two-row layout (Title row + Meta row)')
+            .onClick(() => {
+                this.currentLayout = {
+                    version: 1,
+                    rows: [
+                        { fields: [ { id: 'title', labelVisible: false, editable: false } ] },
+                        { fields: [ { id: 'contexts', labelVisible: true, editable: false }, { id: 'projects', labelVisible: true, editable: false } ] }
+                    ]
+                };
+                infoText.setText('A custom layout is set for this view.');
+            });
+        addDefaultBtn.buttonEl.addClass('clickable-icon');
+
+        const clearBtn = new ButtonComponent(actions)
+            .setButtonText('Clear layout')
+            .setTooltip('Remove custom layout and revert to default rendering')
+            .onClick(() => {
+                this.currentLayout = undefined;
+                infoText.setText('No custom layout set. Saving a view will not include a layout until configured.');
+            });
+        clearBtn.buttonEl.addClass('clickable-icon');
+
+        // Future: Basic field picker UI
+        const picker = content.createDiv('filter-bar__layout-picker');
+        picker.createSpan({ text: 'Fields:' });
+        const list = picker.createDiv('filter-bar__layout-picker-list');
+        const available = ['title','contexts','projects','tags'];
+        available.forEach(id => {
+            const item = list.createDiv('filter-bar__layout-picker-item');
+            const btn = new ButtonComponent(item)
+                .setButtonText(`Add ${id}`)
+                .onClick(() => {
+                    const base = this.currentLayout ?? { version: 1, rows: [] } as import('../types').TaskCardLayoutConfig;
+                    if (base.rows.length === 0) base.rows.push({ fields: [] });
+                    base.rows[0].fields.push({ id: id as any, labelVisible: true, editable: false });
+                    this.currentLayout = base;
+                    infoText.setText('A custom layout is set for this view.');
+                });
+            btn.buttonEl.addClass('clickable-icon');
+        });
+
+
+        titleWrapper.addEventListener('click', () => {
+            this.toggleSection('layout' as any, header, content);
+        });
+    }
+
+    /**
      * Add a new filter condition to a group
      */
     private addFilterCondition(group: FilterGroup): void {
@@ -1487,7 +1568,7 @@ export class FilterBar extends EventEmitter {
     /**
      * Toggle a collapsible section
      */
-    private toggleSection(sectionKey: 'filterBox' | 'filters' | 'display' | 'viewOptions', header: HTMLElement, content: HTMLElement): void {
+    private toggleSection(sectionKey: 'filterBox' | 'filters' | 'display' | 'layout' | 'viewOptions', header: HTMLElement, content: HTMLElement): void {
         this.sectionStates[sectionKey] = !this.sectionStates[sectionKey];
         const isExpanded = this.sectionStates[sectionKey];
 
@@ -1501,10 +1582,20 @@ export class FilterBar extends EventEmitter {
     private showSaveViewDialog(): void {
         new SaveViewModal(this.app, (name) => {
             const currentViewOptions = this.getCurrentViewOptions();
-            this.emit('saveView', { name, query: this.currentQuery, viewOptions: currentViewOptions });
+            const currentLayout = this.getCurrentLayoutConfig?.() ?? undefined;
+            this.emit('saveView', { name, query: this.currentQuery, viewOptions: currentViewOptions, layout: currentLayout } as any);
             this.toggleViewSelectorDropdown();
         }).open();
     }
+
+    // Minimal layout state and getter until layout builder is implemented
+    private currentLayout: import('../types').TaskCardLayoutConfig | undefined;
+
+    private getCurrentLayoutConfig(): import('../types').TaskCardLayoutConfig | undefined {
+        // Return current layout if user has configured it; undefined keeps back-compat default
+        return this.currentLayout;
+    }
+
 
     /**
      * Get current view options as a simple object
@@ -1625,6 +1716,14 @@ export class FilterBar extends EventEmitter {
         // Emit viewOptions event if they exist
         if (view.viewOptions) {
             this.emit('loadViewOptions', view.viewOptions);
+        }
+
+        // Emit and stash layout if present
+        if (view.layout) {
+            this.currentLayout = view.layout;
+            this.emit('loadLayout', view.layout);
+        } else {
+            this.currentLayout = undefined;
         }
 
         // Emit activeSavedViewChanged event

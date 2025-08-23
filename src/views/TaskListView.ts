@@ -308,11 +308,20 @@ export class TaskListView extends ItemView {
         this.filterBar.updateSavedViews(savedViews);
         
         // Listen for saved view events
-        this.filterBar.on('saveView', ({ name, query, viewOptions }) => {
-            console.log('TaskListView: Received saveView event:', name, query, viewOptions); // Debug
+        this.filterBar.on('saveView', ({ name, query, viewOptions, layout }) => {
             const savedView = this.plugin.viewStateManager.saveView(name, query, viewOptions);
-            console.log('TaskListView: Saved view result:', savedView); // Debug
-            // Don't update here - the ViewStateManager event will handle it
+            if (layout) {
+                // Persist layout via updateView (since saveView signature does not include layout yet)
+                this.plugin.viewStateManager.updateView(savedView.id, { layout });
+            }
+        });
+        this.filterBar.on('loadLayout', (layout) => {
+            // Store layout in view preferences so TaskCard creation can access it later if needed
+            const prefs = this.plugin.viewStateManager.getViewPreferences<any>(TASK_LIST_VIEW_TYPE) || {};
+            prefs.taskCardLayout = layout;
+            this.plugin.viewStateManager.setViewPreferences(TASK_LIST_VIEW_TYPE, prefs);
+            // Trigger refresh to apply
+            this.refreshTasks();
         });
         
         this.filterBar.on('deleteView', (viewId: string) => {

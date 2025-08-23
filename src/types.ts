@@ -69,7 +69,39 @@ export interface SavedView {
 	id: string; // Unique ID for the view
 	name: string; // User-defined name (e.g., "High-Priority Work")
 	query: FilterQuery; // The complete configuration, including filters, sorting, and grouping
-	viewOptions?: {[key: string]: boolean}; // View-specific options (e.g., showOverdueOnToday, showNotes)
+	viewOptions?: { [key: string]: boolean }; // View-specific options (e.g., showOverdueOnToday, showNotes)
+	layout?: TaskCardLayoutConfig; // Optional task card layout configuration
+}
+
+
+// Task card layout configuration types
+export type TaskCardFieldId =
+	| 'title'
+	| 'status'
+	| 'priority'
+	| 'due'
+	| 'scheduled'
+	| 'contexts'
+	| 'projects'
+	| 'timeEstimate'
+	| 'completedDate'
+	| 'recurrence'
+	| 'tags'
+	| `user:${string}`;
+
+export interface TaskCardFieldConfig {
+	id: TaskCardFieldId;
+	labelVisible: boolean;
+	editable: boolean;
+}
+
+export interface TaskCardLayoutRow {
+	fields: TaskCardFieldConfig[];
+}
+
+export interface TaskCardLayoutConfig {
+	version: 1;
+	rows: TaskCardLayoutRow[];
 }
 
 // Property and operator definitions for the advanced filtering system
@@ -117,28 +149,28 @@ export const FILTER_PROPERTIES: PropertyDefinition[] = [
 	// Text properties
 	{ id: 'title', label: 'Title', category: 'text', supportedOperators: ['is', 'is-not', 'contains', 'does-not-contain', 'is-empty', 'is-not-empty'], valueInputType: 'text' },
 	{ id: 'path', label: 'Path', category: 'select', supportedOperators: ['contains', 'does-not-contain', 'is-empty', 'is-not-empty'], valueInputType: 'select' },
-	
+
 	// Select properties
 	{ id: 'status', label: 'Status', category: 'select', supportedOperators: ['is', 'is-not', 'is-empty', 'is-not-empty'], valueInputType: 'select' },
 	{ id: 'priority', label: 'Priority', category: 'select', supportedOperators: ['is', 'is-not', 'is-empty', 'is-not-empty'], valueInputType: 'select' },
 	{ id: 'tags', label: 'Tags', category: 'select', supportedOperators: ['contains', 'does-not-contain', 'is-empty', 'is-not-empty'], valueInputType: 'select' },
 	{ id: 'contexts', label: 'Contexts', category: 'select', supportedOperators: ['contains', 'does-not-contain', 'is-empty', 'is-not-empty'], valueInputType: 'select' },
 	{ id: 'projects', label: 'Projects', category: 'select', supportedOperators: ['contains', 'does-not-contain', 'is-empty', 'is-not-empty'], valueInputType: 'select' },
-	
+
 	// Date properties
 	{ id: 'due', label: 'Due Date', category: 'date', supportedOperators: ['is', 'is-not', 'is-before', 'is-after', 'is-on-or-before', 'is-on-or-after', 'is-empty', 'is-not-empty'], valueInputType: 'date' },
 	{ id: 'scheduled', label: 'Scheduled Date', category: 'date', supportedOperators: ['is', 'is-not', 'is-before', 'is-after', 'is-on-or-before', 'is-on-or-after', 'is-empty', 'is-not-empty'], valueInputType: 'date' },
 	{ id: 'completedDate', label: 'Completed Date', category: 'date', supportedOperators: ['is', 'is-not', 'is-before', 'is-after', 'is-on-or-before', 'is-on-or-after', 'is-empty', 'is-not-empty'], valueInputType: 'date' },
 	{ id: 'file.ctime', label: 'Created Date', category: 'date', supportedOperators: ['is', 'is-not', 'is-before', 'is-after', 'is-on-or-before', 'is-on-or-after', 'is-empty', 'is-not-empty'], valueInputType: 'date' },
 	{ id: 'file.mtime', label: 'Modified Date', category: 'date', supportedOperators: ['is', 'is-not', 'is-before', 'is-after', 'is-on-or-before', 'is-on-or-after', 'is-empty', 'is-not-empty'], valueInputType: 'date' },
-	
+
 	// Boolean properties
 	{ id: 'archived', label: 'Archived', category: 'boolean', supportedOperators: ['is-checked', 'is-not-checked'], valueInputType: 'none' },
-	
+
 	// Numeric properties
-	{ id: 'timeEstimate', label: 'Time Estimate', category: 'numeric', supportedOperators: ['is', 'is-not', 'is-greater-than', 'is-less-than'], valueInputType: 'number' },
-	
-	// Special properties
+{ id: 'timeEstimate', label: 'Time Estimate', category: 'numeric', supportedOperators: ['is', 'is-not', 'is-greater-than', 'is-less-than'], valueInputType: 'number' },
+
+// Special properties
 	{ id: 'recurrence', label: 'Recurrence', category: 'special', supportedOperators: ['is-empty', 'is-not-empty'], valueInputType: 'none' },
 	{ id: 'status.isCompleted', label: 'Completed', category: 'boolean', supportedOperators: ['is-checked', 'is-not-checked'], valueInputType: 'none' }
 ];
@@ -252,14 +284,14 @@ export interface TimeEntry {
 export interface Reminder {
 	id: string; // A unique ID for UI keying, e.g., 'rem_1678886400000'
 	type: 'absolute' | 'relative';
-	
+
 	// For relative reminders
 	relatedTo?: 'due' | 'scheduled'; // The anchor date property
 	offset?: string; // ISO 8601 duration format, e.g., "-PT5M", "-PT1H", "-P2D"
-	
+
 	// For absolute reminders
 	absoluteTime?: string; // Full ISO 8601 timestamp, e.g., "2025-10-26T09:00:00"
-	
+
 	// Common properties
 	description?: string; // The notification message (optional, can be auto-generated)
 }
@@ -512,7 +544,7 @@ export interface ICSCache {
 }
 
 // Webhook types
-export type WebhookEvent = 
+export type WebhookEvent =
 	| 'task.created'
 	| 'task.updated'
 	| 'task.deleted'

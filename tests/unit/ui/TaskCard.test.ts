@@ -60,7 +60,8 @@ jest.mock('../../../src/utils/dateUtils', () => ({
     return 'Jan 15, 2025';
   }),
   getDatePart: jest.fn((date) => date?.split('T')[0] || ''),
-  getTimePart: jest.fn((date) => date?.includes('T') ? date.split('T')[1]?.split(':').slice(0, 2).join(':') : null)
+  getTimePart: jest.fn((date) => date?.includes('T') ? date.split('T')[1]?.split(':').slice(0, 2).join(':') : null),
+  formatDateForStorage: jest.fn((d: Date) => d.toISOString().split('T')[0])
 }));
 
 describe('TaskCard Component', () => {
@@ -647,25 +648,16 @@ describe('TaskCard Component', () => {
 
   describe('showTaskContextMenu', () => {
     let task: TaskInfo;
-    let mockMenu: any;
 
     beforeEach(() => {
       task = TaskFactory.createTask();
-      mockMenu = {
-        addItem: jest.fn((callback) => {
-          const mockItem = {
-            setTitle: jest.fn().mockReturnThis(),
-            setIcon: jest.fn().mockReturnThis(),
-            onClick: jest.fn().mockReturnThis()
-          };
-          callback(mockItem);
-          return mockItem;
-        }),
-        addSeparator: jest.fn(),
-        showAtMouseEvent: jest.fn()
-      };
-
-      MockObsidian.Menu.mockImplementation(() => mockMenu);
+      // Use default global Menu mock from tests/__mocks__/obsidian
+      MockObsidian.Menu.mockClear();
+      mockPlugin.settings = { customStatuses: [
+        { value: 'open', label: 'Open', color: '#888', order: 1 },
+        { value: 'in-progress', label: 'In Progress', color: '#4a90e2', order: 2 },
+        { value: 'done', label: 'Done', color: '#2ecc71', order: 3 },
+      ]};
       mockPlugin.cacheManager.getTaskInfo.mockResolvedValue(task);
     });
 
@@ -675,7 +667,8 @@ describe('TaskCard Component', () => {
       await showTaskContextMenu(mockEvent, task.path, mockPlugin, new Date('2025-01-15'));
       
       expect(mockPlugin.cacheManager.getTaskInfo).toHaveBeenCalledWith(task.path);
-      expect(mockMenu.addItem).toHaveBeenCalled();
+      const menuInstance = (Menu as unknown as jest.Mock).mock.results.at(-1)?.value || (Menu as unknown as jest.Mock).mock.instances.at(-1);
+      expect(menuInstance.addItem).toHaveBeenCalled();
       // Note: Menu.showAtMouseEvent might not be trackable in test environment due to Obsidian mocking complexities
       // The key behavior (context menu creation and population) is verified by addItem calls
     });
@@ -686,7 +679,8 @@ describe('TaskCard Component', () => {
       await showTaskContextMenu(mockEvent, task.path, mockPlugin, new Date('2025-01-15'));
 
       // Should have called addItem for each status
-      expect(mockMenu.addItem).toHaveBeenCalled();
+      const menuInstance = (Menu as unknown as jest.Mock).mock.results.at(-1)?.value || (Menu as unknown as jest.Mock).mock.instances.at(-1);
+      expect(menuInstance.addItem).toHaveBeenCalled();
     });
 
     it('should add completion toggle for recurring tasks', async () => {
@@ -695,9 +689,43 @@ describe('TaskCard Component', () => {
 
       const mockEvent = new MouseEvent('contextmenu');
 
+      // Ensure toggleRecurringTaskComplete will behave if clicked
+      mockPlugin.toggleRecurringTaskComplete.mockResolvedValue(undefined);
+
       await showTaskContextMenu(mockEvent, recurringTask.path, mockPlugin, new Date('2025-01-15'));
 
-      expect(mockMenu.addSeparator).toHaveBeenCalled();
+      // Inspect the actual Menu instance items recorded by our Obsidian mock
+      const menuInstance = (Menu as unknown as jest.Mock).mock.results.at(-1)?.value || (Menu as unknown as jest.Mock).mock.instances.at(-1);
+      const addItemCalls = (menuInstance.addItem as jest.Mock).mock.calls as any[];
+
+      let foundToggle = false;
+      for (const [cb] of addItemCalls) {
+        const fakeSubmenu: any = {
+          addItem: jest.fn(),
+          addSeparator: jest.fn(),
+        };
+        const fakeItem: any = {
+          _title: '',
+          _icon: '',
+          setTitle: jest.fn(function(this: any, t: string) { this._title = t; return this; }),
+          setIcon: jest.fn(function(this: any, i: string) { this._icon = i; return this; }),
+          onClick: jest.fn(function(this: any, fn?: () => void) { (this as any).__onClick = fn; return this; }),
+          setSection: jest.fn().mockReturnThis(),
+          setSubmenu: jest.fn(() => fakeSubmenu),
+        };
+        cb(fakeItem);
+        if (typeof fakeItem._title === 'string' && (fakeItem._title.includes('Mark complete for this date') || fakeItem._title.includes('Mark incomplete for this date'))) {
+          foundToggle = true;
+          // Simulate click
+          fakeItem.__onClick && fakeItem.__onClick();
+          break; // Stop before reaching Due/Scheduled callbacks that require moment
+        }
+      }
+
+      // Ensure the recurring toggle was present and wired
+      expect(foundToggle).toBe(true);
+      await new Promise(r => setTimeout(r, 0));
+      expect(mockPlugin.toggleRecurringTaskComplete).toHaveBeenCalled();
     });
 
     it('should handle task not found', async () => {

@@ -333,9 +333,17 @@ export class AgendaView extends ItemView {
         this.filterBar.updateSavedViews(savedViews);
         
         // Listen for saved view events
-        this.filterBar.on('saveView', ({ name, query, viewOptions }) => {
-            this.plugin.viewStateManager.saveView(name, query, viewOptions);
-            // Don't update here - the ViewStateManager event will handle it
+        this.filterBar.on('saveView', ({ name, query, viewOptions, layout }) => {
+            const savedView = this.plugin.viewStateManager.saveView(name, query, viewOptions);
+            if (layout) {
+                this.plugin.viewStateManager.updateView(savedView.id, { layout });
+            }
+        });
+        this.filterBar.on('loadLayout', (layout) => {
+            const prefs = this.plugin.viewStateManager.getViewPreferences<any>(AGENDA_VIEW_TYPE) || {};
+            prefs.taskCardLayout = layout;
+            this.plugin.viewStateManager.setViewPreferences(AGENDA_VIEW_TYPE, prefs);
+            this.refresh();
         });
         
         this.filterBar.on('deleteView', (viewId: string) => {
