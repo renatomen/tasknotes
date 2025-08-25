@@ -869,7 +869,8 @@ export class AgendaView extends ItemView {
                 showTimeTracking: true,
                 showRecurringControls: true,
                 groupByDate: this.groupByDate,
-                targetDate: item.date
+                targetDate: item.date,
+                displayFields: this.currentDisplayFields
             });
         } else if (item.type === 'ics') {
             updateICSEventCard(element, item.item as import('../types').ICSEvent, this.plugin);
@@ -897,7 +898,8 @@ export class AgendaView extends ItemView {
                 showTimeTracking: true,
                 showRecurringControls: true,
                 groupByDate: this.groupByDate,
-                targetDate: item.date
+                targetDate: item.date,
+                displayFields: this.currentDisplayFields
             });
         } else if (item.type === 'ics') {
             updateICSEventCard(element, item.item as import('../types').ICSEvent, this.plugin);
