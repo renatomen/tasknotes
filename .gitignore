@@ -55,5 +55,3 @@ C/
 .augment
 # Test output files
 jest-out.txt
-BASES_API_DOCUMENTATION.md
-OBSIDIAN-SERVER-README.md
