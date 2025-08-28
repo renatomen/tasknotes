@@ -438,6 +438,8 @@ export class TaskNotesSettingTab extends PluginSettingTab {
 					});
 			});
 
+
+
 		new Setting(container)
 			.setName('Default task status')
 			.setDesc('Default status for new tasks')
@@ -1887,6 +1889,7 @@ export class TaskNotesSettingTab extends PluginSettingTab {
 					.addOption('openNote', 'Open note')
 					.setValue(this.plugin.settings.singleClickAction)
 					.onChange(async (value: 'edit' | 'openNote') => {
+
 						this.plugin.settings.singleClickAction = value;
 						await this.plugin.saveSettings();
 					});
@@ -1907,19 +1910,53 @@ export class TaskNotesSettingTab extends PluginSettingTab {
 					});
 			});
 
-		// Recurring task due date behavior
-		new Setting(container)
-			.setName('Maintain due date offset in recurring tasks')
-			.setDesc('When completing a recurring task, move the due date by the same offset as the scheduled date to preserve the time separation between them')
-			.addToggle(toggle => {
-				toggle.toggleEl.setAttribute('aria-label', 'Maintain due date offset in recurring tasks');
-				return toggle
-					.setValue(this.plugin.settings.maintainDueDateOffsetInRecurring)
-					.onChange(async (value) => {
-						this.plugin.settings.maintainDueDateOffsetInRecurring = value;
-						await this.plugin.saveSettings();
+			// Project autosuggest settings
+			new Setting(container).setName('Project autosuggest').setHeading();
+			container.createEl('p', { cls: 'settings-help-note', text: 'Configure how project suggestions appear when typing + in the natural language input.' });
+
+			new Setting(container)
+				.setName('Enable fuzzy matching (experimental)')
+				.setDesc('Allows fuzzy matching for project names. Exact prefix matching is faster and recommended for large vaults.')
+				.addToggle(toggle => {
+					toggle.toggleEl.setAttribute('aria-label', 'Enable fuzzy matching for project autosuggest');
+					return toggle
+						.setValue(!!this.plugin.settings.projectAutosuggest?.enableFuzzy)
+						.onChange(async (value) => {
+							this.plugin.settings.projectAutosuggest = this.plugin.settings.projectAutosuggest || { enableFuzzy: false, rows: [] };
+							this.plugin.settings.projectAutosuggest.enableFuzzy = value;
+							await this.plugin.saveSettings();
+						});
+				});
+
+			const rowsContainer = container.createDiv('project-autosuggest-rows');
+			rowsContainer.createEl('p', { cls: 'settings-help-note', text: 'Display rows (up to 3). Use tokens like {title|n(Title)}, {aliases|n(Aliases)}, {file.path|n(Path)}. Only n and n(Name) flags are supported.' });
+
+			const getRows = (): string[] => (this.plugin.settings.projectAutosuggest?.rows ?? []).slice(0, 3);
+			const setRow = async (idx: number, value: string) => {
+				const current = this.plugin.settings.projectAutosuggest?.rows ?? [];
+				const next = [...current];
+				next[idx] = value;
+				this.plugin.settings.projectAutosuggest = this.plugin.settings.projectAutosuggest || { enableFuzzy: false, rows: [] };
+				this.plugin.settings.projectAutosuggest.rows = next.slice(0, 3);
+				await this.plugin.saveSettings();
+			};
+
+			const renderRowInput = (idx: number, label: string) => {
+				new Setting(rowsContainer)
+					.setName(label)
+					.addText(text => {
+						text.inputEl.setAttribute('aria-label', `Project autosuggest ${label}`);
+						return text
+							.setPlaceholder('{title|n(Title)}')
+							.setValue(getRows()[idx] || '')
+							.onChange(async (v) => setRow(idx, v));
 					});
-			});
+			};
+
+			renderRowInput(0, 'Row 1');
+			renderRowInput(1, 'Row 2');
+			renderRowInput(2, 'Row 3');
+
 	}
 
 	private renderFieldMappingTab(): void {
@@ -1946,6 +1983,8 @@ export class TaskNotesSettingTab extends PluginSettingTab {
 		const header = table.createEl('tr');
 		header.createEl('th', { cls: 'settings-view__table-header', text: 'TaskNotes field' });
 		header.createEl('th', { cls: 'settings-view__table-header', text: 'Your property name' });
+
+
 
 		const fieldMappings: Array<[keyof FieldMapping, string]> = [
 			['title', 'Title'],
