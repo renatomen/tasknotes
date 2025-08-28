@@ -18,19 +18,57 @@ The natural language input field includes auto-suggestion functionality that act
 
 #### Project Suggestions
 
-When typing `+` in the natural language input, you'll see up to 20 suggestions from your vault's markdown files. The suggestions display additional information to help identify files:
+When typing `+` in the natural language input, you'll see up to 20 suggestions from your vault's markdown files. The enhanced project auto-suggester provides configurable display cards and intelligent search capabilities.
 
+![Enhanced Project Auto-Suggester](../assets/enhanced-project-auto-suggester.gif)
+
+##### Configurable Display Cards
+
+The project suggestions display is fully customizable through the settings. You can configure up to 3 rows of information for each suggestion card using the `{property|flags}` syntax:
+
+**Available Properties:**
+- `title` - The frontmatter title (using your configured field mapping)
+- `aliases` - Frontmatter aliases array
+- `file.basename` - The file name without extension (e.g., "Project A" from "Project A.md")
+- `file.name` - The full file name with extension (e.g., "Project A.md")
+- `file.path` - The full vault path including the file (e.g., "Areas/Projects/Project A.md")
+- `file.parent` - The parent folder portion of the path (e.g., "Areas/Projects")
+
+**Available Flags:**
+- `n(Label)` - Display the field name/label instead of the value
+- `s` - Include this field in search. If the content of a field flagged with `|s` matches the search query, the file will be included in the results.
+
+You can use literals (normal text) and emojis to decorate your cards.
+
+**Example Configuration:**
 ```
-project-alpha [title: Alpha Project Development | aliases: alpha, proj-alpha]
-meeting-notes [title: Weekly Team Meeting Notes]
-simple-project
-work-file [aliases: work, office-tasks]
+{title}
+{title|n(Name)}
+{aliases}
+{file.path|n(Full Path)|s}
+{file.parent|n(Folder)|s}
+📂{file.parent}
+🏷️{tags|s}
+↳{Parent}
 ```
 
-Project suggestions search across:
-- File names (basename without extension)
-- Frontmatter titles (using your configured field mapping)
-- Frontmatter aliases
+##### Search Capabilities
+
+The auto-suggester supports two search modes:
+
+**Exact Prefix Matching (Default - Faster)**
+- Searches file basenames for exact prefix matches
+- Recommended for large vaults due to better performance
+- Searches across all fields marked with the `|s` flag
+**Fuzzy Matching (Experimental-not fully implemented)**
+- Allows partial and out-of-order character matching
+- Searches across all fields marked with the `|s` flag
+- Better for finding files with typos or partial remembering
+- Slower performance, especially in large vaults
+
+##### Smart Highlighting
+
+When using fuzzy matching, the auto-suggester highlights matching terms in the search results, making it easy to see why each file was matched.
 
 Selecting a project suggestion inserts it as `+[[filename]]`, creating a wikilink to the file while maintaining the `+` project marker that the natural language parser recognizes.
 
