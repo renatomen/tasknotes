@@ -15,6 +15,11 @@ export interface UserMappedField {
 	type: 'text' | 'number' | 'date' | 'boolean' | 'list';
 }
 
+export interface ProjectAutosuggestSettings {
+	enableFuzzy: boolean;
+	rows: string[]; // up to 3 rows; each uses {property|flags} format
+}
+
 export interface TaskNotesSettings {
 	tasksFolder: string;  // Now just a default location for new tasks
 	moveArchivedTasks: boolean; // Whether to move tasks to archive folder when archived
@@ -52,6 +57,7 @@ export interface TaskNotesSettings {
 	useDefaultsOnInstantConvert: boolean;
 	enableNaturalLanguageInput: boolean;
 	nlpDefaultToScheduled: boolean;
+	projectAutosuggest?: ProjectAutosuggestSettings; // Display config for project suggestions in NL input
 	singleClickAction: 'edit' | 'openNote';
 	doubleClickAction: 'edit' | 'openNote' | 'none';
 	// Inline task conversion settings

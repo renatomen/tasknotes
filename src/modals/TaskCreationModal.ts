@@ -150,8 +150,41 @@ class NLPSuggest extends AbstractInputSuggest<TagSuggestion | ContextSuggestion 
         const text = el.createSpan('nlp-suggest-text');
         
         if (suggestion.type === 'project') {
-            // For projects with enhanced display
-            text.textContent = suggestion.displayName;
+            // Multi-line card: row1 filename, rows2-4 from config
+            const filenameRow = text.createDiv({ cls: 'nlp-suggest-project__filename', text: suggestion.basename });
+            const cfg = (this.plugin.settings?.projectAutosuggest?.rows ?? []).slice(0, 3);
+            if (Array.isArray(cfg) && cfg.length > 0) {
+                const resolver = new ProjectMetadataResolver({
+                    getFrontmatter: (e) => e.frontmatter,
+                });
+                for (let i = 0; i < Math.min(cfg.length, 3); i++) {
+                    const row = cfg[i];
+                    if (!row) continue;
+                    try {
+                        const tokens = parseDisplayFieldsRow(row);
+                        // Build row text from tokens
+                        const parts: string[] = [];
+                        for (const t of tokens) {
+                            if (t.property.startsWith('literal:')) { parts.push(t.property.slice(8)); continue; }
+                            const value = resolver.resolve(t.property, suggestion.entry) || '';
+                            if (!value) continue;
+                            if (t.showName) {
+                                const label = t.displayName ?? t.property;
+                                parts.push(`${label}: ${value}`);
+                            } else {
+                                parts.push(value);
+                            }
+                        }
+                        const line = parts.join(' ');
+                        if (line.trim().length > 0) {
+                            text.createDiv({ cls: 'nlp-suggest-project__meta', text: line });
+                        }
+                    } catch {
+                        // Ignore parse errors per row to keep UI resilient
+                    }
+                }
+            }
+        }
         } else {
             // For contexts and tags
             text.textContent = suggestion.display;
