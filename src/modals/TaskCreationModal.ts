@@ -173,9 +173,60 @@ class NLPSuggest extends AbstractInputSuggest<TagSuggestion | ContextSuggestion 
 
         const text = el.createSpan('nlp-suggest-text');
 
+        // Helper: highlight all case-insensitive occurrences of query within text nodes
+        const highlightOccurrences = (container: HTMLElement, query: string) => {
+            if (!query) return;
+            const qLower = query.toLowerCase();
+            const walk = (node: Node) => {
+                if (node.nodeType === Node.TEXT_NODE) {
+                    const original = node.nodeValue || '';
+                    const lower = original.toLowerCase();
+                    if (!lower.includes(qLower)) return;
+
+                    const frag = document.createDocumentFragment();
+                    let lastIndex = 0;
+                    let idx = lower.indexOf(qLower, lastIndex);
+                    while (idx !== -1) {
+                        if (idx > lastIndex) {
+                            frag.appendChild(document.createTextNode(original.slice(lastIndex, idx)));
+                        }
+                        const mark = document.createElement('mark');
+                        mark.textContent = original.slice(idx, idx + query.length);
+                        frag.appendChild(mark);
+                        lastIndex = idx + query.length;
+                        idx = lower.indexOf(qLower, lastIndex);
+                    }
+                    if (lastIndex < original.length) {
+                        frag.appendChild(document.createTextNode(original.slice(lastIndex)));
+                    }
+                    node.parentNode?.replaceChild(frag, node);
+                } else if (node.nodeType === Node.ELEMENT_NODE) {
+                    if ((node as Element).tagName === 'MARK') return; // don't re-enter highlights
+                    const children = Array.from(node.childNodes);
+                    for (const child of children) walk(child);
+                }
+            };
+            walk(container);
+        };
+
+        // Determine the active +query (text after last '+') to highlight
+        let activeQuery = '';
+        if (this.currentTrigger === '+') {
+            const cursorPos = this.textarea.selectionStart;
+            const textBeforeCursor = this.textarea.value.slice(0, cursorPos);
+            const lastPlusIndex = textBeforeCursor.lastIndexOf('+');
+            if (lastPlusIndex !== -1) {
+                const after = textBeforeCursor.slice(lastPlusIndex + 1);
+                if (after && !after.includes(' ') && !after.includes('\n')) {
+                    activeQuery = after;
+                }
+            }
+        }
         if (suggestion.type === 'project') {
             // Multi-line card: row1 filename, rows2-4 from config
             const filenameRow = text.createDiv({ cls: 'nlp-suggest-project__filename', text: suggestion.basename });
+            if (activeQuery) highlightOccurrences(filenameRow, activeQuery);
+
             const cfg = (this.plugin.settings?.projectAutosuggest?.rows ?? []).slice(0, 3);
             if (Array.isArray(cfg) && cfg.length > 0) {
                 const resolver = new ProjectMetadataResolver({
@@ -201,7 +252,8 @@ class NLPSuggest extends AbstractInputSuggest<TagSuggestion | ContextSuggestion 
                         }
                         const line = parts.join(' ');
                         if (line.trim().length > 0) {
-                            text.createDiv({ cls: 'nlp-suggest-project__meta', text: line });
+                            const metaRow = text.createDiv({ cls: 'nlp-suggest-project__meta', text: line });
+                            if (activeQuery) highlightOccurrences(metaRow, activeQuery);
                         }
                     } catch {
                         // Ignore parse errors per row to keep UI resilient
