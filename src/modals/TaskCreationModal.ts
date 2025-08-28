@@ -45,12 +45,14 @@ interface ContextSuggestion {
 class NLPSuggest extends AbstractInputSuggest<TagSuggestion | ContextSuggestion | ProjectSuggestion | StatusSuggestion> {
     private plugin: TaskNotesPlugin;
     private textarea: HTMLTextAreaElement;
-    private currentTrigger: '@' | '#' | '+' | 'status' | null = null;
-
+    private currentTrigger: '@' | '#' | '+' | null = null;
+    // Store app reference explicitly to avoid relying on plugin.app in tests and runtime
+    private obsidianApp: App;
     constructor(app: App, textareaEl: HTMLTextAreaElement, plugin: TaskNotesPlugin) {
         super(app, textareaEl as unknown as HTMLInputElement);
         this.plugin = plugin;
         this.textarea = textareaEl;
+        this.obsidianApp = app;
     }
 
     protected async getSuggestions(query: string): Promise<(TagSuggestion | ContextSuggestion | ProjectSuggestion | StatusSuggestion)[]> {
@@ -153,15 +155,109 @@ class NLPSuggest extends AbstractInputSuggest<TagSuggestion | ContextSuggestion 
                     toString() { return this.value; }
                 }));
         } else if (trigger === '+') {
-            // Inline fuzzy: use shared file suggestion helper with multi-word support
+            // Use FileSuggestHelper for multi-word support with enhanced project autosuggest cards and |s flag support
             const { FileSuggestHelper } = await import('../suggest/FileSuggestHelper');
+
+            // Apply excluded folders filter to FileSuggestHelper
+            const excluded = (this.plugin.settings.excludedFolders || '')
+                .split(',')
+                .map(s => s.trim())
+                .filter(Boolean);
+
+            // Get suggestions using FileSuggestHelper (with multi-word support)
             const list = await FileSuggestHelper.suggest(this.plugin, queryAfterTrigger);
-            return list.map(item => ({
-                basename: item.insertText,
-                displayName: item.displayText,
-                type: 'project' as const,
-                toString() { return this.basename; }
-            }));
+
+            // Filter out excluded folders
+            const filteredList = list.filter(item => {
+                // Find the corresponding file to check its path
+                const appRef: App | undefined = (this as any).obsidianApp ?? (this as any).app ?? this.plugin?.app;
+                const file = appRef?.vault.getMarkdownFiles().find(f => f.basename === item.insertText);
+                if (!file) return true; // Keep if we can't find the file
+                return !excluded.some(folder => file.path.startsWith(folder));
+            });
+
+            // Convert to enhanced project suggestions with configurable cards and |s flag support
+            const { ProjectMetadataResolver } = await import('../utils/projectMetadataResolver');
+            const { parseDisplayFieldsRow } = await import('../utils/projectAutosuggestDisplayFieldsParser');
+
+            // Robustly resolve app reference for both runtime and tests
+            const appRef: App | undefined = (this as any).obsidianApp ?? (this as any).app ?? this.plugin?.app;
+
+            const resolver = new ProjectMetadataResolver({
+                getFrontmatter: (file) => {
+                    const cache = appRef?.metadataCache.getFileCache(file);
+                    return cache?.frontmatter || {};
+                },
+            });
+
+            const rowConfigs = (this.plugin.settings?.projectAutosuggest?.rows ?? []).slice(0, 3);
+
+            return filteredList.map(item => {
+                // Find the corresponding file for enhanced metadata
+                const file = appRef?.vault.getMarkdownFiles().find(f => f.basename === item.insertText);
+                if (!file) {
+                    // Fallback to basic suggestion if file not found
+                    return {
+                        basename: item.insertText,
+                        displayName: item.displayText,
+                        type: 'project' as const,
+                        toString() { return this.basename; }
+                    };
+                }
+
+                const cache = appRef?.metadataCache.getFileCache(file);
+                const frontmatter = cache?.frontmatter || {};
+                const mapped = this.plugin.fieldMapper.mapFromFrontmatter(frontmatter, file.path, this.plugin.settings.storeTitleInFilename);
+
+                const fileData = {
+                    basename: file.basename,
+                    name: file.name,
+                    path: file.path,
+                    parent: file.parent?.path || '',
+                    title: typeof mapped.title === 'string' ? mapped.title : '',
+                    aliases: Array.isArray(mapped.aliases) ? mapped.aliases : [],
+                    frontmatter: frontmatter
+                };
+
+                // Generate enhanced display name using configured rows
+                const generateDisplayName = (rows: string[], item: any, resolver: ProjectMetadataResolver): string => {
+                    const lines: string[] = [];
+                    for (const row of rows) {
+                        try {
+                            const tokens = parseDisplayFieldsRow(row);
+                            const line = tokens.map(token => {
+                                if (token.type === 'literal') return token.value;
+                                const value = resolver.resolveProperty(item, token.property);
+                                if (!value) return '';
+                                return token.showName ? `${token.label || token.property}: ${value}` : value;
+                            }).filter(Boolean).join('');
+                            if (line.trim()) lines.push(line);
+                        } catch {
+                            // Skip invalid rows
+                        }
+                    }
+                    return lines.join(' | ') || file.basename;
+                };
+
+                const displayName = generateDisplayName(rowConfigs, fileData, resolver);
+
+                return {
+                    basename: item.insertText,
+                    displayName: displayName,
+                    type: 'project' as const,
+                    entry: {
+                        basename: fileData.basename,
+                        name: fileData.name,
+                        path: fileData.path,
+                        parent: fileData.parent,
+                        title: fileData.title,
+                        aliases: fileData.aliases,
+                        frontmatter: fileData.frontmatter
+                    },
+                    toString() { return this.basename; }
+                } as ProjectSuggestion;
+            });
+        }
         }
 
         return [];
