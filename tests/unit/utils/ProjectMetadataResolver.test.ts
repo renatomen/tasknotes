@@ -30,10 +30,11 @@ describe('ProjectMetadataResolver', () => {
     expect(r.resolve('aliases', e)).toBe('Alias A, Alias B');
   });
 
-  it('resolves frontmatter:key', () => {
+  it('resolves frontmatter property without prefix and with explicit prefix', () => {
     const e = makeEntry();
+    expect(r.resolve('custom', e)).toBe('Value');
     expect(r.resolve('frontmatter:custom', e)).toBe('Value');
-    expect(r.resolve('frontmatter:missing', e)).toBe('');
+    expect(r.resolve('missing', e)).toBe('');
   });
 
   it('returns empty for unknown keys', () => {

@@ -22,14 +22,38 @@ export class ProjectMetadataResolver {
       return parts.join(', ');
     }
     const t = typeof value;
-    if (t === 'string' || t === 'number' || t === 'boolean') return String(value);
+    if (t === 'string') {
+      const s = value as string;
+      const trimmed = s.trim();
+      // Wikilink: [[path#subpath|Alias]] or [[path|Alias]] or [[path]]
+      const wl = trimmed.match(/^\[\[([^\]]+)\]\]$/);
+      if (wl) {
+        const inside = wl[1];
+        // Split alias if present
+        const parts = inside.split('|');
+        if (parts.length > 1 && parts[1].trim()) {
+          return parts[1].trim(); // alias wins
+        }
+        // No alias: take path before optional # and show basename without .md
+        const pathPart = parts[0].split('#')[0].trim();
+        const base = pathPart.split('/').pop() || pathPart;
+        return base.replace(/\.md$/i, '');
+      }
+      // Markdown link: [text](url)
+      const ml = trimmed.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+      if (ml) {
+        return ml[1].trim();
+      }
+      return trimmed; // plain string
+    }
+    if (t === 'number' || t === 'boolean') return String(value);
     // Obsidian frontmatter links are objects with a path field
     if (t === 'object') {
       const anyVal = value as any;
       if (typeof anyVal.path === 'string') {
         const p = anyVal.path as string;
         const base = p.split('/').pop() || p;
-        return base.replace(/\.md$/, '');
+        return base.replace(/\.md$/i, '');
       }
       // Unknown object types are not rendered
       return '';
