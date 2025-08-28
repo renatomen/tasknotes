@@ -40,7 +40,13 @@ interface ContextSuggestion {
     toString(): string;
 }
 
-
+interface StatusSuggestion {
+    value: string; // status value (e.g., 'in-progress')
+    label: string; // human label (e.g., 'In Progress')
+    display: string; // shown in list (use label)
+    type: 'status';
+    toString(): string;
+}
 
 class NLPSuggest extends AbstractInputSuggest<TagSuggestion | ContextSuggestion | ProjectSuggestion | StatusSuggestion> {
     private plugin: TaskNotesPlugin;
@@ -78,10 +84,10 @@ class NLPSuggest extends AbstractInputSuggest<TagSuggestion | ContextSuggestion 
 
         // Determine most recent valid trigger by index
         const candidates: Array<{type: '@'|'#'|'+'|'status'; index: number}> = [
-            { type: '@' as const, index: lastAtIndex },
-            { type: '#' as const, index: lastHashIndex },
-            { type: '+' as const, index: lastPlusIndex },
-            { type: 'status' as const, index: lastStatusIndex }
+            { type: '@', index: lastAtIndex },
+            { type: '#', index: lastHashIndex },
+            { type: '+', index: lastPlusIndex },
+            { type: 'status', index: lastStatusIndex }
         ].filter(c => isBoundary(c.index));
 
         if (candidates.length === 0) {
@@ -127,17 +133,19 @@ class NLPSuggest extends AbstractInputSuggest<TagSuggestion | ContextSuggestion 
                     toString() { return this.value; }
                 }));
         } else if (trigger === 'status') {
-            // Use the StatusSuggestionService for status suggestions
-            const statusService = new StatusSuggestionService(
-                this.plugin.settings.customStatuses,
-                this.plugin.settings.customPriorities,
-                this.plugin.settings.nlpDefaultToScheduled
-            );
-            return statusService.getStatusSuggestions(
-                queryAfterTrigger,
-                this.plugin.settings.customStatuses || [],
-                10
-            );
+            const statuses = this.plugin.settings.customStatuses || [];
+            const q = queryAfterTrigger.toLowerCase();
+            return statuses
+                .filter(s => s && typeof s.value === 'string' && typeof s.label === 'string')
+                .filter(s => s.value.toLowerCase().includes(q) || s.label.toLowerCase().includes(q))
+                .slice(0, 10)
+                .map(s => ({
+                    value: s.value,
+                    label: s.label,
+                    display: s.label,
+                    type: 'status' as const,
+                    toString() { return this.value; }
+                } as StatusSuggestion));
         } else if (trigger === '#') {
             const tags = this.plugin.cacheManager.getAllTags();
             return tags
@@ -598,15 +606,7 @@ export class TaskCreationModal extends TaskModal {
             const taskData = this.buildTaskData();
             const result = await this.plugin.taskService.createTask(taskData);
 
-            // Check if filename was changed due to length constraints
-            const expectedFilename = result.taskInfo.title.replace(/[<>:"/\\|?*]/g, '').trim();
-            const actualFilename = result.file.basename;
-            
-            if (actualFilename.startsWith('task-') && actualFilename !== expectedFilename) {
-                new Notice(`Task "${result.taskInfo.title}" created successfully (filename shortened due to length)`);
-            } else {
-                new Notice(`Task "${result.taskInfo.title}" created successfully`);
-            }
+            new Notice(`Task "${result.taskInfo.title}" created successfully`);
 
             if (this.options.onTaskCreated) {
                 this.options.onTaskCreated(result.taskInfo);

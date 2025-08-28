@@ -226,10 +226,6 @@ export class NaturalLanguageParser {
                 const candidates = [config.label, config.value];
 
                 for (const candidate of candidates) {
-                    // Skip empty candidates
-                    if (!candidate || candidate.trim() === '') {
-                        continue;
-                    }
                     const match = this.findStatusMatch(text, candidate);
                     if (match) {
                         result.status = config.value;
@@ -255,16 +251,10 @@ export class NaturalLanguageParser {
      * Returns the match details or null if no valid match found.
      */
     private findStatusMatch(text: string, statusText: string): { fullMatch: string; startIndex: number } | null {
-        // Guard against empty status text to prevent infinite loop
-        if (!statusText || statusText.trim() === '') {
-            return null;
-        }
-        
         const lowerText = text.toLowerCase();
         const lowerStatus = statusText.toLowerCase();
 
         let searchIndex = 0;
-        // eslint-disable-next-line no-constant-condition
         while (true) {
             const index = lowerText.indexOf(lowerStatus, searchIndex);
             if (index === -1) break;
