@@ -15,9 +15,32 @@ export interface ResolverDeps {
 export class ProjectMetadataResolver {
   constructor(private deps: ResolverDeps) {}
 
+  private stringifyFmValue(value: any): string {
+    if (value == null) return '';
+    if (Array.isArray(value)) {
+      const parts = value.map(v => this.stringifyFmValue(v)).filter(Boolean);
+      return parts.join(', ');
+    }
+    const t = typeof value;
+    if (t === 'string' || t === 'number' || t === 'boolean') return String(value);
+    // Obsidian frontmatter links are objects with a path field
+    if (t === 'object') {
+      const anyVal = value as any;
+      if (typeof anyVal.path === 'string') {
+        const p = anyVal.path as string;
+        const base = p.split('/').pop() || p;
+        return base.replace(/\.md$/, '');
+      }
+      // Unknown object types are not rendered
+      return '';
+    }
+    return '';
+  }
+
   resolve(property: string, entry: ProjectEntry): string {
     if (!property) return '';
 
+    // File-scoped properties must be explicitly prefixed
     if (property.startsWith('file.')) {
       switch (property) {
         case 'file.basename': return entry.basename || '';
@@ -28,25 +51,24 @@ export class ProjectMetadataResolver {
       }
     }
 
+    // Convenience: title and aliases are commonly derived/transformed
     if (property === 'title') {
       return entry.title || '';
     }
-
     if (property === 'aliases') {
       const list = entry.aliases || [];
       return list.length ? list.join(', ') : '';
     }
 
+    // Backward compatibility: explicit frontmatter prefix still supported
+    let key = property;
     if (property.startsWith('frontmatter:')) {
-      const key = property.slice('frontmatter:'.length);
-      const fm = this.deps.getFrontmatter(entry) || {};
-      const v = fm[key];
-      if (Array.isArray(v)) return v.join(', ');
-      if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') return String(v);
-      return '';
+      key = property.slice('frontmatter:'.length);
     }
 
-    return '';
+    // Default: any non-file.* token resolves from frontmatter
+    const fm = this.deps.getFrontmatter(entry) || {};
+    return this.stringifyFmValue(fm[key]);
   }
 }
 
