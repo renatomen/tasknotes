@@ -2,6 +2,8 @@ export interface DisplayFieldToken {
   property: string;
   showName: boolean;
   displayName?: string;
+  // Optional searchable flag: when true, this token participates in + search
+  searchable?: boolean;
 }
 
 function splitPipesRespectingEscapes(s: string): string[] {
@@ -51,6 +53,8 @@ export function parseDisplayFieldsRow(input: string): DisplayFieldToken[] {
       else if (flag.startsWith('n(') && flag.endsWith(')')) {
         token.showName = true;
         token.displayName = unescapeValue(flag.slice(2, -1));
+      } else if (flag === 's') {
+        (token as any).searchable = true;
       }
     }
     tokens.push(token);
@@ -67,6 +71,7 @@ export function serializeDisplayFieldsRow(tokens: DisplayFieldToken[]): string {
     const flags: string[] = [];
     if (t.showName && t.displayName) flags.push(`n(${esc(t.displayName)})`);
     else if (t.showName) flags.push('n');
+    if ((t as any).searchable) flags.push('s');
     return `{${t.property}${flags.length ? '|' + flags.join('|') : ''}}`;
   }).join('');
 }
