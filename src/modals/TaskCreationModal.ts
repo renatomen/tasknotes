@@ -333,23 +333,45 @@ class NLPSuggest extends AbstractInputSuggest<TagSuggestion | ContextSuggestion 
                     if (!row) continue;
                     try {
                         const tokens = parseDisplayFieldsRow(row);
-                        // Build row text from tokens
-                        const parts: string[] = [];
+                        // Build row DOM from tokens so we can selectively highlight searchable fields only
+                        const metaRow = text.createDiv({ cls: 'nlp-suggest-project__meta' });
+                        const ALWAYS_SEARCHABLE = new Set(['title', 'aliases', 'file.basename']);
+                        let appended = false;
                         for (const t of tokens) {
-                            if (t.property.startsWith('literal:')) { parts.push(t.property.slice(8)); continue; }
+                            if (t.property.startsWith('literal:')) {
+                                const lit = t.property.slice(8);
+                                if (lit) {
+                                    if (metaRow.childNodes.length > 0) metaRow.appendChild(document.createTextNode(' '));
+                                    metaRow.appendChild(document.createTextNode(lit));
+                                    appended = true;
+                                }
+                                continue;
+                            }
                             const value = resolver.resolve(t.property, suggestion.entry) || '';
                             if (!value) continue;
+                            if (metaRow.childNodes.length > 0) metaRow.appendChild(document.createTextNode(' '));
+
                             if (t.showName) {
                                 const label = t.displayName ?? t.property;
-                                parts.push(`${label}: ${value}`);
-                            } else {
-                                parts.push(value);
+                                const labelSpan = document.createElement('span');
+                                labelSpan.className = 'nlp-suggest-project__meta-label';
+                                labelSpan.textContent = `${label}:`;
+                                metaRow.appendChild(labelSpan);
+                                metaRow.appendChild(document.createTextNode(' '));
                             }
+
+                            const valueSpan = document.createElement('span');
+                            valueSpan.className = 'nlp-suggest-project__meta-value';
+                            valueSpan.textContent = value;
+                            metaRow.appendChild(valueSpan);
+                            appended = true;
+
+                            // Highlight only searchable fields: tokens with |s flag or always-searchable ones
+                            const isSearchable = (t as any).searchable === true || ALWAYS_SEARCHABLE.has(t.property);
+                            if (activeQuery && isSearchable) highlightOccurrences(valueSpan, activeQuery);
                         }
-                        const line = parts.join(' ');
-                        if (line.trim().length > 0) {
-                            const metaRow = text.createDiv({ cls: 'nlp-suggest-project__meta', text: line });
-                            if (activeQuery) highlightOccurrences(metaRow, activeQuery);
+                        if (!appended || metaRow.textContent?.trim().length === 0) {
+                            metaRow.remove();
                         }
                     } catch {
                         // Ignore parse errors per row to keep UI resilient
