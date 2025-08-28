@@ -1753,7 +1753,7 @@ export class TaskNotesSettingTab extends PluginSettingTab {
 
 			new Setting(container)
 				.setName('Enable fuzzy matching (experimental)')
-				.setDesc('Allows fuzzy matching for project names. Exact prefix matching is faster and recommended for large vaults.')
+				.setDesc('When enabled: Allows fuzzy matching for project names (slower, better for finding projects with typos). When disabled: Uses exact prefix matching (faster performance, recommended for large vaults).')
 				.addToggle(toggle => {
 					toggle.toggleEl.setAttribute('aria-label', 'Enable fuzzy matching for project autosuggest');
 					return toggle
