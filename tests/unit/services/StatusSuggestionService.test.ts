@@ -1,9 +1,9 @@
 import { StatusSuggestionService, StatusSuggestion } from '../../../src/services/StatusSuggestionService';
-import { StatusConfig } from '../../../src/types';
+import { StatusConfiguration } from '../../../src/types';
 
 describe('StatusSuggestionService', () => {
     let service: StatusSuggestionService;
-    let mockStatusConfigs: StatusConfig[];
+    let mockStatusConfigs: StatusConfiguration[];
     let mockPriorityConfigs: any[];
 
     beforeEach(() => {

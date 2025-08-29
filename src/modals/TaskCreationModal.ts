@@ -40,13 +40,7 @@ interface ContextSuggestion {
     toString(): string;
 }
 
-interface StatusSuggestion {
-    value: string; // status value (e.g., 'in-progress')
-    label: string; // human label (e.g., 'In Progress')
-    display: string; // shown in list (use label)
-    type: 'status';
-    toString(): string;
-}
+
 
 class NLPSuggest extends AbstractInputSuggest<TagSuggestion | ContextSuggestion | ProjectSuggestion | StatusSuggestion> {
     private plugin: TaskNotesPlugin;
@@ -133,19 +127,17 @@ class NLPSuggest extends AbstractInputSuggest<TagSuggestion | ContextSuggestion 
                     toString() { return this.value; }
                 }));
         } else if (trigger === 'status') {
-            const statuses = this.plugin.settings.customStatuses || [];
-            const q = queryAfterTrigger.toLowerCase();
-            return statuses
-                .filter(s => s && typeof s.value === 'string' && typeof s.label === 'string')
-                .filter(s => s.value.toLowerCase().includes(q) || s.label.toLowerCase().includes(q))
-                .slice(0, 10)
-                .map(s => ({
-                    value: s.value,
-                    label: s.label,
-                    display: s.label,
-                    type: 'status' as const,
-                    toString() { return this.value; }
-                } as StatusSuggestion));
+            // Use the StatusSuggestionService for status suggestions
+            const statusService = new StatusSuggestionService(
+                this.plugin.settings.customStatuses,
+                this.plugin.settings.customPriorities,
+                this.plugin.settings.nlpDefaultToScheduled
+            );
+            return statusService.getStatusSuggestions(
+                queryAfterTrigger,
+                this.plugin.settings.customStatuses || [],
+                10
+            );
         } else if (trigger === '#') {
             const tags = this.plugin.cacheManager.getAllTags();
             return tags

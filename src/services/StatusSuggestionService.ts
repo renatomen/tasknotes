@@ -1,5 +1,5 @@
 import { NaturalLanguageParser, ParsedTaskData } from './NaturalLanguageParser';
-import { StatusConfig } from '../types';
+import { StatusConfiguration } from '../types';
 
 /**
  * Service responsible for status suggestion logic and natural language processing.
@@ -9,7 +9,7 @@ export class StatusSuggestionService {
     private nlpParser: NaturalLanguageParser;
 
     constructor(
-        statusConfigs: StatusConfig[],
+        statusConfigs: StatusConfiguration[],
         priorityConfigs: any[],
         defaultToScheduled: boolean
     ) {
@@ -31,14 +31,13 @@ export class StatusSuggestionService {
      * Get status suggestions based on query
      */
     getStatusSuggestions(
-        query: string,
-        statusConfigs: StatusConfig[],
-        limit = 10
+        query: string, 
+        statusConfigs: StatusConfiguration[], 
+        limit: number = 10
     ): StatusSuggestion[] {
         const q = query.toLowerCase();
         return statusConfigs
             .filter(s => s && typeof s.value === 'string' && typeof s.label === 'string')
-            .filter(s => s.value.trim() !== '' && s.label.trim() !== '') // Filter out empty values
             .filter(s => s.value.toLowerCase().includes(q) || s.label.toLowerCase().includes(q))
             .slice(0, limit)
             .map(s => ({
