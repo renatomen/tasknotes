@@ -8,6 +8,50 @@ import { calculateDefaultDate, sanitizeTags } from '../utils/helpers';
 import { NaturalLanguageParser, ParsedTaskData as NLParsedTaskData } from '../services/NaturalLanguageParser';
 import { combineDateAndTime } from '../utils/dateUtils';
 import { splitListPreservingLinksAndQuotes } from '../utils/stringSplit';
+import { ProjectMetadataResolver } from '../utils/projectMetadataResolver';
+import { parseDisplayFieldsRow } from '../utils/projectAutosuggestDisplayFieldsParser';
+
+interface TriggerDetectionResult {
+    trigger: '@' | '#' | '+' | null;
+    triggerIndex: number;
+    queryAfterTrigger: string;
+}
+
+/**
+ * Pure function to detect suggestion triggers in text
+ * @param textBeforeCursor - Text before cursor position
+ * @returns Trigger detection result with trigger type, index, and query
+ */
+function detectSuggestionTrigger(textBeforeCursor: string): TriggerDetectionResult {
+    // Find the last @, #, or + before cursor
+    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+    const lastHashIndex = textBeforeCursor.lastIndexOf('#');
+    const lastPlusIndex = textBeforeCursor.lastIndexOf('+');
+
+    let triggerIndex = -1;
+    let trigger: '@' | '#' | '+' | null = null;
+
+    // Find the most recent trigger
+    if (lastAtIndex >= lastHashIndex && lastAtIndex >= lastPlusIndex && lastAtIndex !== -1) {
+        triggerIndex = lastAtIndex;
+        trigger = '@';
+    } else if (lastHashIndex >= lastPlusIndex && lastHashIndex !== -1) {
+        triggerIndex = lastHashIndex;
+        trigger = '#';
+    } else if (lastPlusIndex !== -1) {
+        triggerIndex = lastPlusIndex;
+        trigger = '+';
+    }
+
+    // Extract the query after the trigger
+    const queryAfterTrigger = triggerIndex !== -1 ? textBeforeCursor.slice(triggerIndex + 1) : '';
+
+    return {
+        trigger,
+        triggerIndex,
+        queryAfterTrigger
+    };
+}
 
 export interface TaskCreationOptions {
     prePopulatedValues?: Partial<TaskInfo>;
@@ -53,38 +97,17 @@ class NLPSuggest extends AbstractInputSuggest<TagSuggestion | ContextSuggestion 
     }
     
     protected async getSuggestions(query: string): Promise<(TagSuggestion | ContextSuggestion | ProjectSuggestion)[]> {
-        // Get cursor position and text around it
+        // Get cursor position and detect trigger
         const cursorPos = this.textarea.selectionStart;
         const textBeforeCursor = this.textarea.value.slice(0, cursorPos);
-        
-        // Find the last @, #, or + before cursor
-        const lastAtIndex = textBeforeCursor.lastIndexOf('@');
-        const lastHashIndex = textBeforeCursor.lastIndexOf('#');
-        const lastPlusIndex = textBeforeCursor.lastIndexOf('+');
-        
-        let triggerIndex = -1;
-        let trigger: '@' | '#' | '+' | null = null;
-        
-        // Find the most recent trigger
-        if (lastAtIndex >= lastHashIndex && lastAtIndex >= lastPlusIndex && lastAtIndex !== -1) {
-            triggerIndex = lastAtIndex;
-            trigger = '@';
-        } else if (lastHashIndex >= lastPlusIndex && lastHashIndex !== -1) {
-            triggerIndex = lastHashIndex;
-            trigger = '#';
-        } else if (lastPlusIndex !== -1) {
-            triggerIndex = lastPlusIndex;
-            trigger = '+';
-        }
-        
+
+        const { trigger, triggerIndex, queryAfterTrigger } = detectSuggestionTrigger(textBeforeCursor);
+
         // No trigger found or trigger is not at word boundary
         if (triggerIndex === -1 || (triggerIndex > 0 && /\w/.test(textBeforeCursor[triggerIndex - 1]))) {
             this.currentTrigger = null;
             return [];
         }
-        
-        // Extract the query after the trigger
-        const queryAfterTrigger = textBeforeCursor.slice(triggerIndex + 1);
 
         // If '+' trigger already has a completed wikilink (+[[...]]), do not suggest again
         if (trigger === '+' && /^\[\[[^\]]*\]\]/.test(queryAfterTrigger)) {
@@ -152,90 +175,106 @@ class NLPSuggest extends AbstractInputSuggest<TagSuggestion | ContextSuggestion 
                 return !excluded.some(folder => file.path.startsWith(folder));
             });
 
-            // Convert to enhanced project suggestions with configurable cards and |s flag support
-            const { ProjectMetadataResolver } = await import('../utils/projectMetadataResolver');
-            const { parseDisplayFieldsRow } = await import('../utils/projectAutosuggestDisplayFieldsParser');
-
             // Robustly resolve app reference for both runtime and tests
             const appRef: App | undefined = (this as any).obsidianApp ?? (this as any).app ?? this.plugin?.app;
 
-            const resolver = new ProjectMetadataResolver({
-                getFrontmatter: (file) => {
+            try {
+                // Convert to enhanced project suggestions with configurable cards and |s flag support
+                const resolver = new ProjectMetadataResolver({
+                    getFrontmatter: (file) => {
+                        const cache = appRef?.metadataCache.getFileCache(file);
+                        return cache?.frontmatter || {};
+                    },
+                });
+
+                const rowConfigs = (this.plugin.settings?.projectAutosuggest?.rows ?? []).slice(0, 3);
+
+                return filteredList.map(item => {
+                    // Find the corresponding file for enhanced metadata
+                    const file = appRef?.vault.getMarkdownFiles().find(f => f.basename === item.insertText);
+                    if (!file) {
+                        // Fallback to basic suggestion if file not found
+                        return {
+                            basename: item.insertText,
+                            displayName: item.displayText,
+                            type: 'project' as const,
+                            toString() { return this.basename; }
+                        };
+                    }
+
                     const cache = appRef?.metadataCache.getFileCache(file);
-                    return cache?.frontmatter || {};
-                },
-            });
+                    const frontmatter = cache?.frontmatter || {};
+                    const mapped = this.plugin.fieldMapper.mapFromFrontmatter(frontmatter, file.path, this.plugin.settings.storeTitleInFilename);
 
-            const rowConfigs = (this.plugin.settings?.projectAutosuggest?.rows ?? []).slice(0, 3);
+                    const fileData = {
+                        basename: file.basename,
+                        name: file.name,
+                        path: file.path,
+                        parent: file.parent?.path || '',
+                        title: typeof mapped.title === 'string' ? mapped.title : '',
+                        aliases: Array.isArray(mapped.aliases) ? mapped.aliases : [],
+                        frontmatter: frontmatter
+                    };
 
-            return filteredList.map(item => {
-                // Find the corresponding file for enhanced metadata
-                const file = appRef?.vault.getMarkdownFiles().find(f => f.basename === item.insertText);
-                if (!file) {
-                    // Fallback to basic suggestion if file not found
+                    // Generate enhanced display name using configured rows
+                    const generateDisplayName = (rows: string[], item: any, resolver: ProjectMetadataResolver): string => {
+                        const lines: string[] = [];
+                        for (const row of rows) {
+                            try {
+                                const tokens = parseDisplayFieldsRow(row);
+                                const parts: string[] = [];
+                                for (const token of tokens) {
+                                    if (token.property.startsWith('literal:')) {
+                                        parts.push(token.property.slice(8));
+                                        continue;
+                                    }
+                                    const value = resolver.resolve(token.property, item) || '';
+                                    if (!value) continue;
+                                    if (token.showName) {
+                                        const label = token.displayName ?? token.property;
+                                        parts.push(`${label}: ${value}`);
+                                    } else {
+                                        parts.push(value);
+                                    }
+                                }
+                                const line = parts.join(' ');
+                                if (line.trim()) lines.push(line);
+                            } catch {
+                                // Skip invalid rows
+                            }
+                        }
+                        return lines.join(' | ') || file.basename;
+                    };
+
+                    const displayName = generateDisplayName(rowConfigs, fileData, resolver);
+
                     return {
                         basename: item.insertText,
-                        displayName: item.displayText,
+                        displayName: displayName,
                         type: 'project' as const,
+                        entry: {
+                            basename: fileData.basename,
+                            name: fileData.name,
+                            path: fileData.path,
+                            parent: fileData.parent,
+                            title: fileData.title,
+                            aliases: fileData.aliases,
+                            frontmatter: fileData.frontmatter
+                        },
                         toString() { return this.basename; }
-                    };
-                }
-
-                const cache = appRef?.metadataCache.getFileCache(file);
-                const frontmatter = cache?.frontmatter || {};
-                const mapped = this.plugin.fieldMapper.mapFromFrontmatter(frontmatter, file.path, this.plugin.settings.storeTitleInFilename);
-
-                const fileData = {
-                    basename: file.basename,
-                    name: file.name,
-                    path: file.path,
-                    parent: file.parent?.path || '',
-                    title: typeof mapped.title === 'string' ? mapped.title : '',
-                    aliases: Array.isArray(mapped.aliases) ? mapped.aliases : [],
-                    frontmatter: frontmatter
-                };
-
-                // Generate enhanced display name using configured rows
-                const generateDisplayName = (rows: string[], item: any, resolver: ProjectMetadataResolver): string => {
-                    const lines: string[] = [];
-                    for (const row of rows) {
-                        try {
-                            const tokens = parseDisplayFieldsRow(row);
-                            const line = tokens.map(token => {
-                                if (token.type === 'literal') return token.value;
-                                const value = resolver.resolveProperty(item, token.property);
-                                if (!value) return '';
-                                return token.showName ? `${token.label || token.property}: ${value}` : value;
-                            }).filter(Boolean).join('');
-                            if (line.trim()) lines.push(line);
-                        } catch {
-                            // Skip invalid rows
-                        }
-                    }
-                    return lines.join(' | ') || file.basename;
-                };
-
-                const displayName = generateDisplayName(rowConfigs, fileData, resolver);
-
-                return {
+                    } as ProjectSuggestion;
+                });
+            } catch (err) {
+                console.error('Enhanced project autosuggest failed, falling back to basic suggestions', err);
+                return filteredList.map(item => ({
                     basename: item.insertText,
-                    displayName: displayName,
+                    displayName: item.displayText,
                     type: 'project' as const,
-                    entry: {
-                        basename: fileData.basename,
-                        name: fileData.name,
-                        path: fileData.path,
-                        parent: fileData.parent,
-                        title: fileData.title,
-                        aliases: fileData.aliases,
-                        frontmatter: fileData.frontmatter
-                    },
                     toString() { return this.basename; }
-                } as ProjectSuggestion;
-            });
+                }));
+            }
         }
-        }
-        
+
         return [];
     }
     
@@ -246,32 +285,72 @@ class NLPSuggest extends AbstractInputSuggest<TagSuggestion | ContextSuggestion 
         const text = el.createSpan('nlp-suggest-text');
 
         // Helper: highlight all case-insensitive occurrences of query within text nodes
+        // Supports multi-word queries by highlighting each word separately
         const highlightOccurrences = (container: HTMLElement, query: string) => {
             if (!query) return;
-            const qLower = query.toLowerCase();
+
+            // Split query into individual words for multi-word highlighting
+            const queryWords = query.toLowerCase().split(/\s+/).filter(Boolean);
+            if (queryWords.length === 0) return;
+
             const walk = (node: Node) => {
                 if (node.nodeType === Node.TEXT_NODE) {
                     const original = node.nodeValue || '';
                     const lower = original.toLowerCase();
-                    if (!lower.includes(qLower)) return;
+
+                    // Check if any query word exists in this text node
+                    const hasMatch = queryWords.some(word => lower.includes(word));
+                    if (!hasMatch) return;
 
                     const frag = document.createDocumentFragment();
                     let lastIndex = 0;
-                    let idx = lower.indexOf(qLower, lastIndex);
-                    while (idx !== -1) {
-                        if (idx > lastIndex) {
-                            frag.appendChild(document.createTextNode(original.slice(lastIndex, idx)));
+
+                    // Find all occurrences of all query words
+                    const matches: Array<{start: number, end: number, word: string}> = [];
+                    for (const word of queryWords) {
+                        let idx = lower.indexOf(word, 0);
+                        while (idx !== -1) {
+                            matches.push({
+                                start: idx,
+                                end: idx + word.length,
+                                word: word
+                            });
+                            idx = lower.indexOf(word, idx + 1);
+                        }
+                    }
+
+                    // Sort matches by start position
+                    matches.sort((a, b) => a.start - b.start);
+
+                    // Remove overlapping matches (keep the first one)
+                    const nonOverlapping: Array<{start: number, end: number, word: string}> = [];
+                    for (const match of matches) {
+                        const overlaps = nonOverlapping.some(existing =>
+                            (match.start < existing.end && match.end > existing.start)
+                        );
+                        if (!overlaps) {
+                            nonOverlapping.push(match);
+                        }
+                    }
+
+                    // Apply highlights
+                    for (const match of nonOverlapping) {
+                        if (match.start > lastIndex) {
+                            frag.appendChild(document.createTextNode(original.slice(lastIndex, match.start)));
                         }
                         const mark = document.createElement('mark');
-                        mark.textContent = original.slice(idx, idx + query.length);
+                        mark.textContent = original.slice(match.start, match.end);
                         frag.appendChild(mark);
-                        lastIndex = idx + query.length;
-                        idx = lower.indexOf(qLower, lastIndex);
+                        lastIndex = match.end;
                     }
+
                     if (lastIndex < original.length) {
                         frag.appendChild(document.createTextNode(original.slice(lastIndex)));
                     }
-                    node.parentNode?.replaceChild(frag, node);
+
+                    if (nonOverlapping.length > 0) {
+                        node.parentNode?.replaceChild(frag, node);
+                    }
                 } else if (node.nodeType === Node.ELEMENT_NODE) {
                     if ((node as Element).tagName === 'MARK') return; // don't re-enter highlights
                     const children = Array.from(node.childNodes);
@@ -289,8 +368,9 @@ class NLPSuggest extends AbstractInputSuggest<TagSuggestion | ContextSuggestion 
             const lastPlusIndex = textBeforeCursor.lastIndexOf('+');
             if (lastPlusIndex !== -1) {
                 const after = textBeforeCursor.slice(lastPlusIndex + 1);
-                if (after && !after.includes(' ') && !after.includes('\n')) {
-                    activeQuery = after;
+                // For multi-word support, allow spaces in the query for highlighting
+                if (after && !after.includes('\n')) {
+                    activeQuery = after.trim();
                 }
             }
         }
@@ -354,7 +434,6 @@ class NLPSuggest extends AbstractInputSuggest<TagSuggestion | ContextSuggestion 
                     }
                 }
             }
-        }
         } else {
             // For contexts and tags
             text.textContent = suggestion.display;
