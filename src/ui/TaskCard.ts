@@ -30,6 +30,11 @@ export interface TaskCardOptions {
         selected: { id: string; displayName: string; visible: boolean }[];
         getValue: (taskPath: string, propId: string) => unknown;
     };
+    /** Optional multiple rows of external properties (row 3, row 4, etc.) */
+    extraPropertiesRows?: Array<{
+        selected: { id: string; displayName: string; visible: boolean }[];
+        getValue: (taskPath: string, propId: string) => unknown;
+    }>;
 }
 
 export const DEFAULT_TASK_CARD_OPTIONS: TaskCardOptions = {
@@ -608,22 +613,21 @@ export function createTaskCard(task: TaskInfo, plugin: TaskNotesPlugin, options:
         metadataLine.style.display = 'none';
     }
 
-    // Third line: Bases-driven selected properties (if provided)
-    if (opts.extraPropertiesRow && Array.isArray(opts.extraPropertiesRow.selected)) {
-        const items = opts.extraPropertiesRow.selected.filter(p => p?.visible);
-        if (items.length > 0) {
-            const propRow = contentContainer.createEl('div', { cls: 'task-card__properties' });
-            const frag = document.createDocumentFragment();
-            for (const p of items) {
-                const value = opts.extraPropertiesRow.getValue(task.path, p.id);
-                if (value === undefined || value === null) continue;
-
-                // Skip empty strings/arrays
-                if (typeof value === 'string' && value.trim() === '') continue;
-                if (Array.isArray(value) && value.length === 0) continue;
-
-                const chip = document.createElement('span');
-                chip.className = 'task-card__property';
+    // External properties rows (e.g., Bases): support multiple rows while preserving legacy single-row option
+    const extRows = opts.extraPropertiesRows ?? (opts.extraPropertiesRow ? [opts.extraPropertiesRow] : []);
+    for (const row of extRows) {
+        if (!row || !Array.isArray(row.selected)) continue;
+        const items = row.selected.filter(p => p?.visible);
+        if (items.length === 0) continue;
+        const propRow = contentContainer.createEl('div', { cls: 'task-card__properties' });
+        const frag = document.createDocumentFragment();
+        for (const p of items) {
+            const value = row.getValue(task.path, p.id);
+            if (value === undefined || value === null) continue;
+            if (typeof value === 'string' && value.trim() === '') continue;
+            if (Array.isArray(value) && value.length === 0) continue;
+            const chip = document.createElement('span');
+            chip.className = 'task-card__property';
 
                 // Label
                 const labelEl = document.createElement('span');
@@ -669,7 +673,6 @@ export function createTaskCard(task: TaskInfo, plugin: TaskNotesPlugin, options:
             if (frag.childNodes.length > 0) propRow.appendChild(frag);
             else propRow.remove();
         }
-    }
 
     // Add click handlers with single/double click distinction
     const { clickHandler, dblclickHandler } = createTaskClickHandler({

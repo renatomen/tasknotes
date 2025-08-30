@@ -1579,6 +1579,21 @@ export class TaskNotesSettingTab extends PluginSettingTab {
 					});
 			});
 
+		// Experimental: Bases POC logs toggle
+		new Setting(container)
+			.setName('Enable Bases POC logs')
+			.setDesc('Show verbose diagnostics for the Bases proof-of-concept (console logs).')
+			.addToggle(toggle => {
+				toggle.toggleEl.setAttribute('aria-label', 'Enable Bases POC logs');
+				return toggle
+					.setValue(!!this.plugin.settings.basesPOCLogs)
+					.onChange(async (value) => {
+						this.plugin.settings.basesPOCLogs = value;
+						await this.plugin.saveSettings();
+						new Notice('Bases POC logs ' + (value ? 'enabled' : 'disabled') + '.');
+					});
+			});
+
 		// Status bar toggle
 		new Setting(container)
 			.setName('Show tracked tasks in status bar')

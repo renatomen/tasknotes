@@ -200,6 +200,8 @@ export const DEFAULT_SETTINGS: TaskNotesSettings = {
 	// Status bar defaults
 	// Experimental: Bases POC disabled by default
 	enableBasesPOC: false,
+	// Developer logs for Bases POC disabled by default
+	basesPOCLogs: false,
 	showTrackedTasksInStatusBar: false,
 	// Time tracking defaults
 	autoStopTimeTrackingOnComplete: true,

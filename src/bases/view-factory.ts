@@ -105,9 +105,26 @@ export function buildTasknotesTaskListViewFactory(plugin: TaskNotesPlugin) {
             dataItems.filter(i => !!i.path).map(i => [i.path!, (i as any).properties || (i as any).frontmatter || {}])
           );
 
-          // Compute Bases-driven third row configuration (properties row)
-          const { getBasesPropertyRowConfig } = await import('./property-selection');
-          const extra = getBasesPropertyRowConfig(basesContainer as any, pathToProps) || undefined;
+          // Compute TaskNotes Task Card property rows from Bases view config
+          const { getTaskNotesTasklistRows } = await import('./tasklist-rows');
+          const rows = getTaskNotesTasklistRows(basesContainer as any, pathToProps);
+          let extraRows = [rows.row3, rows.row4].filter(Boolean) as any[];
+          try {
+            const settingsLogsOn = !!((plugin as any)?.settings?.basesPOCLogs);
+            if (settingsLogsOn) {
+              console.log('[TaskNotes][Bases] EXTRA_ROWS_UNCONDITIONAL:', {
+                count: extraRows.length,
+                row3: rows.row3?.selected?.map(s => s.id),
+                row4: rows.row4?.selected?.map(s => s.id)
+              });
+            }
+          } catch (_) { /* ignore */ }
+          // Backward-compatible fallback: use 'order' as single row if custom config absent
+          if (extraRows.length === 0) {
+            const { getBasesPropertyRowConfig } = await import('./property-selection');
+            const fallback = getBasesPropertyRowConfig(basesContainer as any, pathToProps) || undefined;
+            if (fallback) extraRows = [fallback] as any[];
+          }
 
           // In-memory search filter (ephemeral)
           const { buildSearchIndex, filterTasksBySearch } = await import('./search');
@@ -240,7 +257,7 @@ export function buildTasknotesTaskListViewFactory(plugin: TaskNotesPlugin) {
               });
 
               // Render tasks for this group using existing helper
-              await renderTaskNotesInBasesView(list, tasks, plugin, { extraPropertiesRow: extra });
+              await renderTaskNotesInBasesView(list, tasks, plugin, { extraPropertiesRows: extraRows as any });
 
               itemsContainer.appendChild(section);
               groupSections.push(section);
@@ -296,7 +313,7 @@ export function buildTasknotesTaskListViewFactory(plugin: TaskNotesPlugin) {
             const { getBasesSortComparator } = await import('./sorting');
             const cmp = getBasesSortComparator(basesContainer as any, pathToProps);
             const toRender = cmp ? [...searchedTasks].sort(cmp) : searchedTasks;
-            await renderTaskNotesInBasesView(itemsContainer, toRender, plugin, { extraPropertiesRow: extra });
+            await renderTaskNotesInBasesView(itemsContainer, toRender, plugin, { extraPropertiesRows: extraRows as any });
           }
         }
       } catch (error: any) {

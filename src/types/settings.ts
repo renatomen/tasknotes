@@ -100,6 +100,8 @@ export interface TaskNotesSettings {
 	userField?: UserFieldMapping;
 	// Experimental (unsafe) Bases POC toggle
 	enableBasesPOC?: boolean;
+	// Developer logs for Bases POC (verbose diagnostics)
+	basesPOCLogs?: boolean;
 }
 
 export interface DefaultReminder {
