@@ -1,7 +1,7 @@
 import TaskNotesPlugin from '../main';
 import { BasesDataItem, identifyTaskNotesFromBasesData, renderTaskNotesInBasesView } from './helpers';
 import { TaskNotesBasesTaskListComponent } from './component';
-import { setIcon, ButtonComponent } from 'obsidian';
+import { setIcon, ButtonComponent, TextComponent, debounce, setTooltip } from 'obsidian';
 import { renderTextWithLinks, appendInternalLink } from '../ui/renderers/linkRenderer';
 
 export interface BasesContainerLike {
@@ -36,6 +36,19 @@ export function buildTasknotesTaskListViewFactory(plugin: TaskNotesPlugin) {
     controls.className = 'filter-bar__top-controls';
     root.appendChild(controls);
 
+    // Add search input (ephemeral in-memory filtering)
+    let currentSearchTerm = '';
+    const searchInput = new TextComponent(controls)
+      .setPlaceholder('Search path | title | aliases');
+    searchInput.inputEl.addClass('filter-bar__search-input');
+    setTooltip(searchInput.inputEl, 'Quick search (ephemeral)', { placement: 'top' } as any);
+
+    const triggerSearch = debounce(() => {
+      currentSearchTerm = searchInput.getValue();
+      void render();
+    }, 800);
+    searchInput.onChange(() => triggerSearch());
+
     const itemsContainer = document.createElement('div');
     itemsContainer.className = 'tn-bases-items-container';
     itemsContainer.style.cssText = 'margin-top: 12px;';
@@ -65,6 +78,9 @@ export function buildTasknotesTaskListViewFactory(plugin: TaskNotesPlugin) {
         const dataItems = extractDataItems();
         const taskNotes = await identifyTaskNotesFromBasesData(dataItems);
 
+        // Clear previous expand/collapse buttons (keep search input)
+        controls.querySelectorAll('.filter-bar__expand-groups, .filter-bar__collapse-groups').forEach(el => el.remove());
+
         // Render body
         itemsContainer.innerHTML = '';
         if (taskNotes.length === 0) {
@@ -93,16 +109,27 @@ export function buildTasknotesTaskListViewFactory(plugin: TaskNotesPlugin) {
           const { getBasesPropertyRowConfig } = await import('./property-selection');
           const extra = getBasesPropertyRowConfig(basesContainer as any, pathToProps) || undefined;
 
+          // In-memory search filter (ephemeral)
+          const { buildSearchIndex, filterTasksBySearch } = await import('./search');
+          const getAliases = (p: string): string[] => {
+            const props = pathToProps.get(p) || {};
+            const v = props['note.aliases'] ?? props['aliases'];
+            if (Array.isArray(v)) return v.filter((x: any) => !!x).map(String);
+            if (typeof v === 'string' && v.trim()) return [v];
+            return [];
+          };
+          const searchIndex = buildSearchIndex(taskNotes, { getAliases });
+          const searchedTasks = filterTasksBySearch(taskNotes, searchIndex, currentSearchTerm);
+
           // Attempt to read Bases native groupBy configuration
           const { getBasesGroupByConfig } = await import('./group-by');
           const groupCfg = getBasesGroupByConfig(basesContainer as any, pathToProps);
 
           if (groupCfg) {
-            // Group tasks by the configured Bases property
             // Sort tasks using Bases view sort settings if available
             const { getBasesSortComparator } = await import('./sorting');
             const cmp = getBasesSortComparator(basesContainer as any, pathToProps);
-            const tasksForGrouping = cmp ? [...taskNotes].sort(cmp) : taskNotes;
+            const tasksForGrouping = cmp ? [...searchedTasks].sort(cmp) : searchedTasks;
 
             const groups = new Map<string, typeof taskNotes>();
             for (const t of tasksForGrouping) {
@@ -268,7 +295,7 @@ export function buildTasknotesTaskListViewFactory(plugin: TaskNotesPlugin) {
             // No groupBy configured -> flat list, but still apply Bases sort if present
             const { getBasesSortComparator } = await import('./sorting');
             const cmp = getBasesSortComparator(basesContainer as any, pathToProps);
-            const toRender = cmp ? [...taskNotes].sort(cmp) : taskNotes;
+            const toRender = cmp ? [...searchedTasks].sort(cmp) : searchedTasks;
             await renderTaskNotesInBasesView(itemsContainer, toRender, plugin, { extraPropertiesRow: extra });
           }
         }
