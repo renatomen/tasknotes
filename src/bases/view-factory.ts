@@ -1,6 +1,7 @@
 import TaskNotesPlugin from '../main';
 import { BasesDataItem, identifyTaskNotesFromBasesData, renderTaskNotesInBasesView } from './helpers';
 import { TaskNotesBasesTaskListComponent } from './component';
+import { setIcon } from 'obsidian';
 
 export interface BasesContainerLike {
   results?: Map<any, any>;
@@ -82,13 +83,118 @@ export function buildTasknotesTaskListViewFactory(plugin: TaskNotesPlugin) {
             dataItems.filter(i => !!i.path).map(i => [i.path!, (i as any).properties || (i as any).frontmatter || {}])
           );
 
-          // Compute Bases-driven third row configuration
+          // Compute Bases-driven third row configuration (properties row)
           const { getBasesPropertyRowConfig } = await import('./property-selection');
           const extra = getBasesPropertyRowConfig(basesContainer as any, pathToProps) || undefined;
 
-          await renderTaskNotesInBasesView(itemsContainer, taskNotes, plugin, {
-            extraPropertiesRow: extra
-          });
+          // Attempt to read Bases native groupBy configuration
+          const { getBasesGroupByConfig } = await import('./group-by');
+          const groupCfg = getBasesGroupByConfig(basesContainer as any, pathToProps);
+
+          if (groupCfg) {
+            // Group tasks by the configured Bases property
+            const groups = new Map<string, typeof taskNotes>();
+            for (const t of taskNotes) {
+              const values = groupCfg.getGroupValues(t.path) || ['none'];
+              for (const v of values) {
+                const key = String(v ?? 'none');
+                if (!groups.has(key)) groups.set(key, []);
+                groups.get(key)!.push(t);
+              }
+            }
+
+            // Sort groups alphabetically for predictable order
+            const groupNames = Array.from(groups.keys()).sort((a, b) => a.localeCompare(b));
+
+            // Utilities for count and collapsed state
+            const { GroupCountUtils } = await import('../utils/GroupCountUtils');
+            const { GroupingUtils } = await import('../utils/GroupingUtils');
+            const { BASES_TASK_LIST_VIEW_TYPE } = await import('../types');
+            const groupingKey = `bases:${groupCfg.normalizedId}`;
+
+            for (const groupName of groupNames) {
+              const tasks = groups.get(groupName)!;
+              if (!tasks.length) continue;
+
+              const section = document.createElement('section');
+              section.className = 'task-section task-group';
+              section.setAttribute('data-group', groupName);
+
+              // Header
+              const header = document.createElement('h3');
+              header.className = 'task-group-header task-list-view__group-header';
+
+              const toggleBtn = document.createElement('button');
+              toggleBtn.className = 'task-group-toggle';
+              toggleBtn.setAttribute('aria-label', 'Toggle group');
+              try {
+                setIcon(toggleBtn, 'chevron-right');
+                const svg = toggleBtn.querySelector('svg');
+                if (svg) { svg.classList.add('chevron'); svg.setAttribute('width', '16'); svg.setAttribute('height', '16'); }
+              } catch (_) {
+                toggleBtn.textContent = '▸';
+              }
+              header.appendChild(toggleBtn);
+
+              const labelSpan = document.createElement('span');
+              labelSpan.textContent = groupName;
+              header.appendChild(labelSpan);
+
+              // Count
+              const stats = GroupCountUtils.calculateGroupStats(tasks, plugin);
+              const countSpan = document.createElement('span');
+              countSpan.className = 'agenda-view__item-count';
+              countSpan.textContent = ` ${GroupCountUtils.formatGroupCount(stats.completed, stats.total).text}`;
+              header.appendChild(countSpan);
+
+              section.appendChild(header);
+
+              // List container
+              const list = document.createElement('div');
+              list.className = 'tasks-container task-cards';
+              section.appendChild(list);
+
+              // Collapsed state
+              const collapsedInitially = GroupingUtils.isGroupCollapsed(
+                BASES_TASK_LIST_VIEW_TYPE,
+                groupingKey,
+                groupName,
+                plugin
+              );
+              if (collapsedInitially) {
+                section.classList.add('is-collapsed');
+                list.style.display = 'none';
+              }
+              toggleBtn.setAttribute('aria-expanded', String(!collapsedInitially));
+
+              // Toggle behavior
+              const toggle = () => {
+                const willCollapse = !section.classList.contains('is-collapsed');
+                GroupingUtils.setGroupCollapsed(BASES_TASK_LIST_VIEW_TYPE, groupingKey, groupName, willCollapse, plugin);
+                section.classList.toggle('is-collapsed', willCollapse);
+                list.style.display = willCollapse ? 'none' : '';
+                toggleBtn.setAttribute('aria-expanded', String(!willCollapse));
+              };
+              header.addEventListener('click', (e) => {
+                const target = e.target as HTMLElement;
+                if (target.closest('a')) return; // ignore internal link clicks
+                toggle();
+              });
+              toggleBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                toggle();
+              });
+
+              // Render tasks for this group using existing helper
+              await renderTaskNotesInBasesView(list, tasks, plugin, { extraPropertiesRow: extra });
+
+              itemsContainer.appendChild(section);
+            }
+          } else {
+            // No groupBy configured -> flat list
+            await renderTaskNotesInBasesView(itemsContainer, taskNotes, plugin, { extraPropertiesRow: extra });
+          }
         }
       } catch (error: any) {
         console.error('[TaskNotes][BasesPOC] Error rendering Bases data:', error);
