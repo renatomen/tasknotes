@@ -94,8 +94,13 @@ export function buildTasknotesTaskListViewFactory(plugin: TaskNotesPlugin) {
 
           if (groupCfg) {
             // Group tasks by the configured Bases property
+            // Sort tasks using Bases view sort settings if available
+            const { getBasesSortComparator } = await import('./sorting');
+            const cmp = getBasesSortComparator(basesContainer as any, pathToProps);
+            const tasksForGrouping = cmp ? [...taskNotes].sort(cmp) : taskNotes;
+
             const groups = new Map<string, typeof taskNotes>();
-            for (const t of taskNotes) {
+            for (const t of tasksForGrouping) {
               const values = groupCfg.getGroupValues(t.path) || ['none'];
               for (const v of values) {
                 const key = String(v ?? 'none');
@@ -104,8 +109,15 @@ export function buildTasknotesTaskListViewFactory(plugin: TaskNotesPlugin) {
               }
             }
 
-            // Sort groups alphabetically for predictable order
-            const groupNames = Array.from(groups.keys()).sort((a, b) => a.localeCompare(b));
+            // Order group headings: if first sort key matches the same domain, use its direction; else alphabetical
+            let groupNames = Array.from(groups.keys());
+            if (cmp && (cmp as any).__basesSortEntries && (cmp as any).__basesSortEntries.length > 0) {
+              const first = (cmp as any).__basesSortEntries[0];
+              const { getGroupNameComparator } = await import('./group-ordering');
+              groupNames = groupNames.sort(getGroupNameComparator(first));
+            } else {
+              groupNames = groupNames.sort((a, b) => a.localeCompare(b));
+            }
 
             // Utilities for count and collapsed state
             const { GroupCountUtils } = await import('../utils/GroupCountUtils');
@@ -200,8 +212,11 @@ export function buildTasknotesTaskListViewFactory(plugin: TaskNotesPlugin) {
               itemsContainer.appendChild(section);
             }
           } else {
-            // No groupBy configured -> flat list
-            await renderTaskNotesInBasesView(itemsContainer, taskNotes, plugin, { extraPropertiesRow: extra });
+            // No groupBy configured -> flat list, but still apply Bases sort if present
+            const { getBasesSortComparator } = await import('./sorting');
+            const cmp = getBasesSortComparator(basesContainer as any, pathToProps);
+            const toRender = cmp ? [...taskNotes].sort(cmp) : taskNotes;
+            await renderTaskNotesInBasesView(itemsContainer, toRender, plugin, { extraPropertiesRow: extra });
           }
         }
       } catch (error: any) {
