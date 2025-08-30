@@ -1564,6 +1564,21 @@ export class TaskNotesSettingTab extends PluginSettingTab {
 			cls: 'settings-help-note'
 		});
 
+		// Experimental: Bases POC toggle (unsafe)
+		new Setting(container)
+			.setName('Enable Bases POC (unsafe)')
+			.setDesc('Unofficial proof-of-concept for a custom Bases view. Requires restart or plugin reload.')
+			.addToggle(toggle => {
+				toggle.toggleEl.setAttribute('aria-label', 'Enable experimental Bases POC');
+				return toggle
+					.setValue(!!this.plugin.settings.enableBasesPOC)
+					.onChange(async (value) => {
+						this.plugin.settings.enableBasesPOC = value;
+						await this.plugin.saveSettings();
+						new Notice('Bases POC setting changed. Reload the plugin to apply.');
+					});
+			});
+
 		// Status bar toggle
 		new Setting(container)
 			.setName('Show tracked tasks in status bar')

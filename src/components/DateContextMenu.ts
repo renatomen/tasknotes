@@ -287,10 +287,10 @@ export class DateContextMenu {
                 try {
                     (input as any).showPicker();
                 } catch (error) {
-                    input.focus();
+                    (input as any).focus();
                 }
             } else {
-                input.focus();
+                (input as any).focus();
             }
         });
     }

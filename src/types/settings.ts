@@ -98,6 +98,8 @@ export interface TaskNotesSettings {
 	userFields?: UserMappedField[];
 	// Legacy single-field (for migration only)
 	userField?: UserFieldMapping;
+	// Experimental (unsafe) Bases POC toggle
+	enableBasesPOC?: boolean;
 }
 
 export interface DefaultReminder {

@@ -215,6 +215,15 @@ export default class TaskNotesPlugin extends Plugin {
 		this.statusBarService = new StatusBarService(this);
 		this.notificationService = new NotificationService(this);
 
+		// Experimental: attempt early Bases registration so restored Bases tabs can use our view
+		try {
+			const { registerBasesTaskList } = await import('./bases/registration');
+			await registerBasesTaskList(this);
+		} catch (e) {
+			// Avoid noisy logs on reloads where view was already registered
+			console.debug('[TaskNotes][Bases] Early registration skipped:', e?.message ?? e);
+		}
+
 		// Note: View registration and heavy operations moved to onLayoutReady
 
 		// Add ribbon icons
@@ -355,6 +364,15 @@ export default class TaskNotesPlugin extends Plugin {
 				KANBAN_VIEW_TYPE,
 				(leaf) => new KanbanView(leaf, this)
 			);
+
+			// Experimental: register Bases view(s) when enabled (unofficial)
+			// Delegated to src/bases/registration.ts to keep main.ts lean
+			try {
+				const { registerBasesTaskList } = await import('./bases/registration');
+				await registerBasesTaskList(this);
+			} catch (e) {
+				console.debug('[TaskNotes][Bases] Registration skipped:', e?.message ?? e);
+			}
 
 			// Register essential editor extensions (now safe after layout ready)
 			this.registerEditorExtension(createTaskLinkOverlay(this));

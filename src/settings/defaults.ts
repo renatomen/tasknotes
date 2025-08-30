@@ -198,6 +198,8 @@ export const DEFAULT_SETTINGS: TaskNotesSettings = {
 	// Migration defaults
 	recurrenceMigrated: false,
 	// Status bar defaults
+	// Experimental: Bases POC disabled by default
+	enableBasesPOC: false,
 	showTrackedTasksInStatusBar: false,
 	// Time tracking defaults
 	autoStopTimeTrackingOnComplete: true,

@@ -8,6 +8,8 @@ export const POMODORO_VIEW_TYPE = 'tasknotes-pomodoro-view';
 export const POMODORO_STATS_VIEW_TYPE = 'tasknotes-pomodoro-stats-view';
 export const KANBAN_VIEW_TYPE = 'tasknotes-kanban-view';
 export const SUBTASK_WIDGET_VIEW_TYPE = 'tasknotes-subtask-widget-view';
+// Experimental Bases Task List view type (unofficial)
+export const BASES_TASK_LIST_VIEW_TYPE = 'tasknotes-bases-task-list-view';
 
 // Event types
 export const EVENT_DATE_SELECTED = 'date-selected';
