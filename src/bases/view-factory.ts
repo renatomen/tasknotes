@@ -2,6 +2,7 @@ import TaskNotesPlugin from '../main';
 import { BasesDataItem, identifyTaskNotesFromBasesData, renderTaskNotesInBasesView } from './helpers';
 import { TaskNotesBasesTaskListComponent } from './component';
 import { setIcon } from 'obsidian';
+import { renderTextWithLinks, appendInternalLink } from '../ui/renderers/linkRenderer';
 
 export interface BasesContainerLike {
   results?: Map<any, any>;
@@ -137,7 +138,14 @@ export function buildTasknotesTaskListViewFactory(plugin: TaskNotesPlugin) {
               header.appendChild(toggleBtn);
 
               const labelSpan = document.createElement('span');
-              labelSpan.textContent = groupName;
+              labelSpan.className = 'tn-bases-group-label';
+
+              // Render wikilinks/markdown links clickable in group names (Text/List props)
+              // If the rendered result has no anchors, fall back to plain text
+              renderTextWithLinks(labelSpan, groupName, { metadataCache: plugin.app.metadataCache, workspace: plugin.app.workspace });
+              if (labelSpan.querySelectorAll('a').length === 0) {
+                labelSpan.textContent = groupName;
+              }
               header.appendChild(labelSpan);
 
               // Count
