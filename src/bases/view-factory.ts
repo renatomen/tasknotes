@@ -87,7 +87,18 @@ export function buildTasknotesTaskListViewFactory(plugin: TaskNotesPlugin) {
 
           itemsContainer.appendChild(emptyEl);
         } else {
-          await renderTaskNotesInBasesView(itemsContainer, taskNotes, plugin);
+          // Build a map from task path to its properties/frontmatter for property value resolution
+          const pathToProps = new Map<string, Record<string, any>>(
+            dataItems.filter(i => !!i.path).map(i => [i.path!, (i as any).properties || (i as any).frontmatter || {}])
+          );
+
+          // Compute Bases-driven third row configuration
+          const { getBasesPropertyRowConfig } = await import('./property-selection');
+          const extra = getBasesPropertyRowConfig(basesContainer as any, pathToProps) || undefined;
+
+          await renderTaskNotesInBasesView(itemsContainer, taskNotes, plugin, {
+            extraPropertiesRow: extra
+          });
         }
       } catch (error: any) {
         console.error('[TaskNotes][BasesPOC] Error rendering Bases data:', error);

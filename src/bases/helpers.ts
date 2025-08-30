@@ -69,7 +69,8 @@ export async function identifyTaskNotesFromBasesData(
 export async function renderTaskNotesInBasesView(
   container: HTMLElement,
   taskNotes: TaskInfo[],
-  plugin: TaskNotesPlugin
+  plugin: TaskNotesPlugin,
+  extraOptions: Partial<import('../ui/TaskCard').TaskCardOptions> = {}
 ): Promise<void> {
   const { createTaskCard, DEFAULT_TASK_CARD_OPTIONS } = await import('../ui/TaskCard');
 
@@ -83,7 +84,8 @@ export async function renderTaskNotesInBasesView(
     showCheckbox: true,
     showDueDate: true,
     showArchiveButton: false,
-    showTimeTracking: false
+    showTimeTracking: false,
+    ...extraOptions
   };
 
   for (const taskInfo of taskNotes) {

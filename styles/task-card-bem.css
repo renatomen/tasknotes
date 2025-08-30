@@ -98,6 +98,22 @@
     margin-top: 2px;
 }
 
+/* Third row: Bases-driven selected properties */
+.tasknotes-plugin .task-card__properties {
+    font-size: var(--tn-font-size-sm);
+    color: var(--tn-text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 2px;
+}
+.tasknotes-plugin .task-card__property {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .tasknotes-plugin .task-card__metadata-item {
     display: flex;
     align-items: center;
