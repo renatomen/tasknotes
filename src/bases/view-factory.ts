@@ -1,7 +1,7 @@
 import TaskNotesPlugin from '../main';
 import { BasesDataItem, identifyTaskNotesFromBasesData, renderTaskNotesInBasesView } from './helpers';
 import { TaskNotesBasesTaskListComponent } from './component';
-import { setIcon } from 'obsidian';
+import { setIcon, ButtonComponent } from 'obsidian';
 import { renderTextWithLinks, appendInternalLink } from '../ui/renderers/linkRenderer';
 
 export interface BasesContainerLike {
@@ -31,9 +31,14 @@ export function buildTasknotesTaskListViewFactory(plugin: TaskNotesPlugin) {
     currentRoot = root;
 
 
+    // Controls container (top bar) - mimic FilterBar expand/collapse buttons
+    const controls = document.createElement('div');
+    controls.className = 'filter-bar__top-controls';
+    root.appendChild(controls);
+
     const itemsContainer = document.createElement('div');
     itemsContainer.className = 'tn-bases-items-container';
-    itemsContainer.style.cssText = 'margin-top: 20px;';
+    itemsContainer.style.cssText = 'margin-top: 12px;';
     root.appendChild(itemsContainer);
 
     // Helper to extract items from Bases results
@@ -125,6 +130,7 @@ export function buildTasknotesTaskListViewFactory(plugin: TaskNotesPlugin) {
             const { BASES_TASK_LIST_VIEW_TYPE } = await import('../types');
             const groupingKey = `bases:${groupCfg.normalizedId}`;
 
+            const groupSections: HTMLElement[] = [];
             for (const groupName of groupNames) {
               const tasks = groups.get(groupName)!;
               if (!tasks.length) continue;
@@ -210,7 +216,54 @@ export function buildTasknotesTaskListViewFactory(plugin: TaskNotesPlugin) {
               await renderTaskNotesInBasesView(list, tasks, plugin, { extraPropertiesRow: extra });
 
               itemsContainer.appendChild(section);
+              groupSections.push(section);
             }
+
+            // After creating all groups, add expand/collapse all buttons matching Task List behavior
+            try {
+              const { GroupingUtils } = await import('../utils/GroupingUtils');
+              const { BASES_TASK_LIST_VIEW_TYPE } = await import('../types');
+              const groupingKeyForButtons = `bases:${groupCfg.normalizedId}`;
+
+              // Expand All button
+              const expandAllBtn = new ButtonComponent(controls)
+                .setIcon('list-tree')
+                .setTooltip('Expand All Groups')
+                .setClass('filter-bar__expand-groups');
+              (expandAllBtn as any).buttonEl.classList.add('clickable-icon');
+              expandAllBtn.onClick(() => {
+                for (const section of groupSections) {
+                  section.classList.remove('is-collapsed');
+                  const list = section.querySelector('.task-cards') as HTMLElement | null;
+                  if (list) list.style.display = '';
+                  const name = section.getAttribute('data-group') || '';
+                  GroupingUtils.setGroupCollapsed(BASES_TASK_LIST_VIEW_TYPE, groupingKeyForButtons, name, false, plugin);
+                  const btn = section.querySelector('.task-group-toggle');
+                  btn?.setAttribute('aria-expanded', 'true');
+                }
+              });
+
+              // Collapse All button
+              const collapseAllBtn = new ButtonComponent(controls)
+                .setIcon('list-collapse')
+                .setTooltip('Collapse All Groups')
+                .setClass('filter-bar__collapse-groups');
+              (collapseAllBtn as any).buttonEl.classList.add('clickable-icon');
+              collapseAllBtn.onClick(() => {
+                const names = groupSections.map(s => s.getAttribute('data-group') || '');
+                for (const section of groupSections) {
+                  const list = section.querySelector('.task-cards') as HTMLElement | null;
+                  const hasTasks = !!list && list.children.length > 0;
+                  if (hasTasks) {
+                    section.classList.add('is-collapsed');
+                    if (list) list.style.display = 'none';
+                    const btn = section.querySelector('.task-group-toggle');
+                    btn?.setAttribute('aria-expanded', 'false');
+                  }
+                }
+                GroupingUtils.collapseAllGroups(BASES_TASK_LIST_VIEW_TYPE, groupingKeyForButtons, names, plugin);
+              });
+            } catch (_) { /* ignore */ }
           } else {
             // No groupBy configured -> flat list, but still apply Bases sort if present
             const { getBasesSortComparator } = await import('./sorting');
