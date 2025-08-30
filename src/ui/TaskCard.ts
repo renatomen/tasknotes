@@ -27,12 +27,12 @@ export interface TaskCardOptions {
     targetDate?: Date;
     /** Optional third row driven by external integrations (e.g., Bases) */
     extraPropertiesRow?: {
-        selected: { id: string; displayName: string; visible: boolean }[];
+        selected: { id: string; displayName: string; visible: boolean; tnLabel?: string | null; tnSeparator?: string }[];
         getValue: (taskPath: string, propId: string) => unknown;
     };
     /** Optional multiple rows of external properties (row 3, row 4, etc.) */
     extraPropertiesRows?: Array<{
-        selected: { id: string; displayName: string; visible: boolean }[];
+        selected: { id: string; displayName: string; visible: boolean; tnLabel?: string | null; tnSeparator?: string }[];
         getValue: (taskPath: string, propId: string) => unknown;
     }>;
 }
@@ -629,10 +629,18 @@ export function createTaskCard(task: TaskInfo, plugin: TaskNotesPlugin, options:
             const chip = document.createElement('span');
             chip.className = 'task-card__property';
 
+                // Compute label and separator according to TaskNotes extensions
+                const labelOverride = (p as any).tnLabel as (string | null | undefined);
+                const sepOverride = (p as any).tnSeparator as (string | undefined);
+
                 // Label
-                const labelEl = document.createElement('span');
-                labelEl.textContent = `${p.displayName}: `;
-                chip.appendChild(labelEl);
+                if (labelOverride !== null) {
+                    const labelText = (labelOverride !== undefined) ? labelOverride : p.displayName;
+                    const separator = (sepOverride !== undefined) ? sepOverride : ': ';
+                    const labelEl = document.createElement('span');
+                    labelEl.textContent = `${labelText}${separator}`;
+                    chip.appendChild(labelEl);
+                }
 
                 // Value (with link rendering for wikilinks/markdown and tag rendering)
                 const valueEl = document.createElement('span');

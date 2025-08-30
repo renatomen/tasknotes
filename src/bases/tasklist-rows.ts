@@ -1,6 +1,14 @@
 import type { TaskInfo } from '../types';
 
-export interface BasesSelectedProperty { id: string; displayName: string; visible: boolean }
+// Extended property config passed to TaskCard for rendering
+export interface BasesSelectedProperty {
+  id: string;
+  displayName: string; // Bases/native display name for intelligibility in menus/filters
+  visible: boolean;
+  // TaskNotes extensions for UI rendering only (do not affect Bases internals)
+  tnLabel?: string | null; // null -> suppress label; string -> override label; undefined -> use displayName
+  tnSeparator?: string; // custom separator between label and value; default to ': '
+}
 export interface BasesRowConfig {
   selected: BasesSelectedProperty[];
   getValue: (taskPath: string, propId: string) => unknown;
@@ -34,7 +42,17 @@ function normalizeTokens(tokens: unknown, idIndex: Map<string, string>): string[
   const seen = new Set<string>();
   const out: string[] = [];
   for (const token of arr) {
-    const t = String(token || '');
+    let raw: string = '';
+    if (typeof token === 'string') {
+      raw = token;
+    } else if (token && typeof token === 'object') {
+      const keys = Object.keys(token as any);
+      if (keys.length === 1) raw = keys[0];
+      else raw = '';
+    } else {
+      raw = String(token || '');
+    }
+    const t = String(raw || '');
     if (!t) continue;
     const id = idIndex.get(t) || idIndex.get(t.toLowerCase()) || t;
     if (!seen.has(id)) {
@@ -162,18 +180,77 @@ export function getTaskNotesTasklistRows(basesContainer: any, pathToProps: Map<s
 
     const rows: TasklistRows = {};
 
-    const makeRow = (ids?: string[]): BasesRowConfig | undefined => {
+    // Helper: parse optional per-field overrides from config token
+    // Accept forms like: 'note.assignee' or { 'note.assignee': { overrideDisplayName: string|null|"", displayNameSuffix: string|null|"" } }
+    const parseToken = (token: any): { id: string; overrideDisplayName?: string | null; displayNameSuffix?: string | null } | null => {
+      if (typeof token === 'string') return { id: token };
+      if (token && typeof token === 'object') {
+        const keys = Object.keys(token);
+        if (keys.length === 1) {
+          const id = keys[0];
+          const cfg = (token as any)[id] || {};
+          return {
+            id,
+            overrideDisplayName: (cfg?.overrideDisplayName ?? undefined),
+            displayNameSuffix: (cfg?.displayNameSuffix ?? undefined)
+          };
+        }
+      }
+      return null;
+    };
+
+    // Re-parse tn to capture overrides per row
+    let row3Tokens: Array<{ id: string; overrideDisplayName?: string | null; displayNameSuffix?: string | null }> | undefined;
+    let row4Tokens: Array<{ id: string; overrideDisplayName?: string | null; displayNameSuffix?: string | null }> | undefined;
+    if (tn) {
+      const extractArray = (arrLike: any): any[] => (Array.isArray(arrLike) ? arrLike : []);
+      if (Array.isArray(tn)) {
+        for (const entry of tn) {
+          if (!entry || typeof entry !== 'object') continue;
+          if ((entry as any)['row.3']) row3Tokens = extractArray((entry as any)['row.3']).map(parseToken).filter(Boolean) as any[];
+          if ((entry as any)['row.4']) row4Tokens = extractArray((entry as any)['row.4']).map(parseToken).filter(Boolean) as any[];
+        }
+      } else if (typeof tn === 'object') {
+        if ((tn as any)['row.3'] || (tn as any)['row.4']) {
+          row3Tokens = extractArray((tn as any)['row.3']).map(parseToken).filter(Boolean) as any[];
+          row4Tokens = extractArray((tn as any)['row.4']).map(parseToken).filter(Boolean) as any[];
+        } else if ((tn as any).rows) {
+          row3Tokens = extractArray((tn as any).rows?.['3']).map(parseToken).filter(Boolean) as any[];
+          row4Tokens = extractArray((tn as any).rows?.['4']).map(parseToken).filter(Boolean) as any[];
+        }
+      }
+    }
+
+    const makeRow = (ids?: string[], tokens?: Array<{ id: string; overrideDisplayName?: string | null; displayNameSuffix?: string | null }>): BasesRowConfig | undefined => {
       if (!ids || ids.length === 0) return undefined;
-      const selected = ids.map(id => ({
-        id,
-        displayName: propsMap?.[id]?.getDisplayName?.() ?? id,
-        visible: true
-      }));
+      const tokenMap = new Map<string, { overrideDisplayName?: string | null; displayNameSuffix?: string | null }>();
+      (tokens || []).forEach(t => tokenMap.set(t.id, { overrideDisplayName: t.overrideDisplayName, displayNameSuffix: t.displayNameSuffix }));
+      const selected = ids.map(id => {
+        const baseDisplay = propsMap?.[id]?.getDisplayName?.() ?? id;
+        const overrides = tokenMap.get(id);
+        let tnLabel: string | null | undefined = undefined;
+        if (overrides && ('overrideDisplayName' in overrides)) {
+          const ov = overrides.overrideDisplayName;
+          tnLabel = (ov === '' ? null : ov);
+        }
+        let tnSeparator: string | undefined = undefined;
+        if (overrides && ('displayNameSuffix' in overrides)) {
+          const sep = overrides.displayNameSuffix;
+          tnSeparator = (sep === '' ? '' : typeof sep === 'string' ? sep : undefined);
+        }
+        return {
+          id,
+          displayName: baseDisplay,
+          visible: true,
+          tnLabel,
+          tnSeparator
+        } as BasesSelectedProperty;
+      });
       return { selected, getValue };
     };
 
-    rows.row3 = makeRow(row3Ids);
-    rows.row4 = makeRow(row4Ids);
+    rows.row3 = makeRow(row3Ids, row3Tokens);
+    rows.row4 = makeRow(row4Ids, row4Tokens);
 
     return rows;
   } catch (e) {
