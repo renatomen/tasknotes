@@ -28,16 +28,6 @@ export function buildTasknotesTaskListViewFactory(plugin: TaskNotesPlugin) {
     viewContainerEl.appendChild(root);
     currentRoot = root;
 
-    // Initial render (loading header + async pipeline)
-    const header = document.createElement('div');
-    header.className = 'tn-bases-header';
-    header.style.cssText = 'margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #ddd;';
-    root.appendChild(header);
-
-    const title = document.createElement('h4');
-    title.textContent = 'TaskNotes Task List (loading...)';
-    title.style.cssText = 'margin: 0; color: #333;';
-    header.appendChild(title);
 
     const itemsContainer = document.createElement('div');
     itemsContainer.className = 'tn-bases-items-container';

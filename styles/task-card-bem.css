@@ -114,6 +114,18 @@
     text-overflow: ellipsis;
 }
 
+
+/* Tag styling inside property chips */
+.tasknotes-plugin .task-card__property .tag {
+    color: var(--text-accent);
+    background: color-mix(in srgb, var(--interactive-accent) 12%, transparent);
+    border: 1px solid var(--interactive-accent);
+    border-radius: 999px;
+    padding: 0 6px;
+    font-size: 0.9em;
+    text-decoration: none;
+}
+
 .tasknotes-plugin .task-card__metadata-item {
     display: flex;
     align-items: center;

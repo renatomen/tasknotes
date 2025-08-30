@@ -15,6 +15,7 @@ import { PriorityContextMenu } from '../components/PriorityContextMenu';
 import { RecurrenceContextMenu } from '../components/RecurrenceContextMenu';
 import { createTaskClickHandler, createTaskHoverHandler } from '../utils/clickHandlers';
 import { ReminderModal } from '../modals/ReminderModal';
+import { renderValueWithLinks } from './renderers/linkRenderer'; // DI-friendly link renderer
 
 export interface TaskCardOptions {
     showDueDate: boolean;
@@ -614,17 +615,55 @@ export function createTaskCard(task: TaskInfo, plugin: TaskNotesPlugin, options:
             const propRow = contentContainer.createEl('div', { cls: 'task-card__properties' });
             const frag = document.createDocumentFragment();
             for (const p of items) {
-                const val = opts.extraPropertiesRow.getValue(task.path, p.id);
-                if (val === undefined || val === null) continue;
-                const str = Array.isArray(val)
-                    ? val.join(', ')
-                    : (typeof val === 'object' && !(val instanceof Date))
-                        ? JSON.stringify(val)
-                        : String(val);
-                if (!str || !str.trim()) continue;
+                const value = opts.extraPropertiesRow.getValue(task.path, p.id);
+                if (value === undefined || value === null) continue;
+
+                // Skip empty strings/arrays
+                if (typeof value === 'string' && value.trim() === '') continue;
+                if (Array.isArray(value) && value.length === 0) continue;
+
                 const chip = document.createElement('span');
                 chip.className = 'task-card__property';
-                chip.textContent = `${p.displayName}: ${str}`;
+
+                // Label
+                const labelEl = document.createElement('span');
+                labelEl.textContent = `${p.displayName}: `;
+                chip.appendChild(labelEl);
+
+                // Value (with link rendering for wikilinks/markdown and tag rendering)
+                const valueEl = document.createElement('span');
+                if (typeof value === 'string' || Array.isArray(value)) {
+                    // Detect Obsidian 'tags' property (reserved) or simple '#'-prefixed tag strings
+                    const isTagsProp = p.id === 'tags' || p.id.endsWith('.tags') || p.displayName.toLowerCase() === 'tags';
+
+                    const looksLikeTags = isTagsProp
+                        ? true // treat string or array as tags even without '#'
+                        : (Array.isArray(value)
+                            ? (value as unknown[]).every(v => typeof v === 'string' && String(v).trim().startsWith('#'))
+                            : String(value).trim().startsWith('#'));
+
+                    if (looksLikeTags) {
+                        // Lazy import avoided due to non-async context; import at top-level if needed
+                        // Inline dynamic require pattern to keep bundle size small without async/await here
+                        // eslint-disable-next-line @typescript-eslint/no-var-requires
+                        const tags = require('./renderers/tagRenderer') as typeof import('./renderers/tagRenderer');
+                        tags.renderTagsValue(valueEl, value);
+                    } else {
+                        renderValueWithLinks(valueEl, value, { metadataCache: plugin.app.metadataCache, workspace: plugin.app.workspace });
+                    }
+                } else if (value instanceof Date) {
+                    valueEl.textContent = value.toLocaleString();
+                } else if (typeof value === 'object') {
+                    try {
+                        valueEl.textContent = JSON.stringify(value);
+                    } catch {
+                        valueEl.textContent = String(value);
+                    }
+                } else {
+                    valueEl.textContent = String(value);
+                }
+                chip.appendChild(valueEl);
+
                 frag.appendChild(chip);
             }
             if (frag.childNodes.length > 0) propRow.appendChild(frag);
@@ -636,7 +675,8 @@ export function createTaskCard(task: TaskInfo, plugin: TaskNotesPlugin, options:
     const { clickHandler, dblclickHandler } = createTaskClickHandler({
         task,
         plugin,
-        excludeSelector: '.task-card__checkbox',
+        // Do not treat clicks on these as card clicks
+        excludeSelector: '.task-card__checkbox, a.tag, a.internal-link, a.external-link',
         contextMenuHandler: async (e) => {
             const path = card.dataset.taskPath;
             if (!path) return;
@@ -1234,6 +1274,78 @@ export async function showDeleteConfirmationModal(task: TaskInfo, plugin: TaskNo
         modal.open();
     });
 }
+
+/**
+ * Render a text string into a container, converting WikiLinks and Markdown links to Obsidian links
+ */
+function renderTextWithLinks_local(container: HTMLElement, text: string, plugin: TaskNotesPlugin) {
+    const linkRegex = /\[\[([^\[\]]+)\]\]|\[([^\]]+)\]\(([^)]+)\)/g;
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+
+    while ((match = linkRegex.exec(text)) !== null) {
+        const [full, wikiInner, mdText, mdHref] = match as any;
+        const start = match.index;
+
+        // Append plain text before the link
+        if (start > lastIndex) {
+            container.appendChild(document.createTextNode(text.slice(lastIndex, start)));
+        }
+
+        if (wikiInner) {
+            const content = wikiInner;
+            let filePath = content;
+            let displayText = content;
+            if (content.includes('|')) {
+                const [fp, alias] = content.split('|');
+                filePath = fp;
+                displayText = alias;
+            }
+            // migrated to renderer; keep behavior here for backward compatibility if needed
+            // (no-op placeholder)
+        } else if (mdText && mdHref) {
+            const href = mdHref.trim();
+            const disp = mdText.trim();
+            if (/^[a-z]+:\/\//i.test(href)) {
+                // External link
+                const a = container.createEl('a', { text: disp, attr: { href, target: '_blank', rel: 'noopener' } });
+                a.classList.add('external-link');
+            } else {
+                // Internal link handled by renderer in new code paths
+                const span = container.createEl('span', { text: disp });
+                span.setAttr('data-href', href);
+            }
+        }
+
+        lastIndex = start + full.length;
+    }
+
+    // Append remaining text
+    if (lastIndex < text.length) {
+        container.appendChild(document.createTextNode(text.slice(lastIndex)));
+    }
+}
+
+/**
+ * Render a value (string or string[]) with link support into the container
+ */
+function renderValueWithLinks_local(container: HTMLElement, value: unknown, plugin: TaskNotesPlugin) {
+    if (typeof value === 'string') {
+        renderTextWithLinks_local(container, value, plugin);
+        return;
+    }
+    if (Array.isArray(value)) {
+        value.forEach((item, idx) => {
+            if (idx > 0) container.appendChild(document.createTextNode(', '));
+            if (typeof item === 'string') renderTextWithLinks_local(container, item, plugin);
+            else container.appendChild(document.createTextNode(String(item)));
+        });
+        return;
+    }
+    // Fallback
+    container.appendChild(document.createTextNode(String(value)));
+}
+
 
 /**
  * Check if a project string is in wikilink format [[Note Name]]

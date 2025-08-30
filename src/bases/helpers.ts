@@ -81,7 +81,7 @@ export async function renderTaskNotesInBasesView(
 
   const cardOptions = {
     ...DEFAULT_TASK_CARD_OPTIONS,
-    showCheckbox: true,
+    showCheckbox: false,
     showDueDate: true,
     showArchiveButton: false,
     showTimeTracking: false,
