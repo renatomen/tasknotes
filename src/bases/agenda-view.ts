@@ -323,9 +323,9 @@ export function buildTasknotesAgendaViewFactory(plugin: TaskNotesPlugin) {
           expandAllBtn.onClick(() => {
             for (const section of groupSections) {
               section.classList.remove('is-collapsed');
-              const list = section.querySelector('.task-cards') as HTMLElement | null;
+              const list = section.querySelector('.agenda-view__day-items') as HTMLElement | null;
               if (list) list.style.display = '';
-              const name = section.getAttribute('data-group') || '';
+              const name = section.getAttribute('data-day') || '';
               GroupingUtils.setGroupCollapsed(BASES_TASK_LIST_VIEW_TYPE, 'bases:agenda', name, false, plugin);
               const btn = section.querySelector('.task-group-toggle');
               btn?.setAttribute('aria-expanded', 'true');
@@ -338,9 +338,9 @@ export function buildTasknotesAgendaViewFactory(plugin: TaskNotesPlugin) {
             .setClass('filter-bar__collapse-groups');
           (collapseAllBtn as any).buttonEl.classList.add('clickable-icon');
           collapseAllBtn.onClick(() => {
-            const names = groupSections.map(s => s.getAttribute('data-group') || '');
+            const names = groupSections.map(s => s.getAttribute('data-day') || '');
             for (const section of groupSections) {
-              const list = section.querySelector('.task-cards') as HTMLElement | null;
+              const list = section.querySelector('.agenda-view__day-items') as HTMLElement | null;
               const hasTasks = !!list && list.children.length > 0;
               if (hasTasks) {
                 section.classList.add('is-collapsed');
