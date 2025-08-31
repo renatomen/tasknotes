@@ -64,6 +64,25 @@ export async function registerBasesTaskList(plugin: TaskNotesPlugin): Promise<vo
         }
       } catch (e) {
         console.warn('[TaskNotes][Bases] Could not register TaskNotes Kanban:', e);
+
+	      // Register Agenda view using same pattern
+	      try {
+	        const { buildTasknotesAgendaViewFactory } = await import('./agenda-view');
+	        const agendaFactory = buildTasknotesAgendaViewFactory(plugin);
+	        const agendaRegistration = {
+	          name: 'TaskNotes Agenda',
+	          icon: 'calendar',
+	          factory: agendaFactory,
+	          options: () => ({ description: 'TaskNotes Agenda view' })
+	        } as const;
+	        if (!bases.registrations.tasknotesAgenda) {
+	          bases.registrations.tasknotesAgenda = agendaRegistration;
+	          console.log('[TaskNotes][Bases] Registered TaskNotes Agenda (key: tasknotesAgenda)');
+	        }
+	      } catch (e) {
+	        console.warn('[TaskNotes][Bases] Could not register TaskNotes Agenda:', e);
+	      }
+
       }
 
       // Best-effort refresh of existing Bases leaves (handles restored tabs)
