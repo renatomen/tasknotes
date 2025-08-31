@@ -7,6 +7,9 @@ import { TaskNotesBasesTaskListComponent } from './component';
 import { GroupCountUtils } from '../utils/GroupCountUtils';
 import { GroupingUtils } from '../utils/GroupingUtils';
 import { BASES_TASK_LIST_VIEW_TYPE } from '../types';
+import { addDays, startOfWeek, endOfWeek } from 'date-fns';
+import { convertUTCToLocalCalendarDate, createUTCDateFromLocalCalendarDate, formatDateForStorage, isTodayUTC } from '../utils/dateUtils';
+
 
 export interface BasesContainerLike {
   results?: Map<any, any>;
@@ -26,6 +29,50 @@ function getTaskDates(props: Record<string, any>): string[] {
   };
   push(due);
   push(scheduled);
+// Bases agenda period config: number of days or "week"; fallback to 7 days
+function readAgendaPeriod(basesContainer: any, plugin: TaskNotesPlugin): { daysToShow: number; weekMode: boolean } {
+  try {
+    const controller = (basesContainer?.controller ?? basesContainer) as any;
+    const query = (basesContainer?.query ?? controller?.query) as any;
+    const fullCfg = controller?.getViewConfig?.() ?? {};
+    const data = (fullCfg as any)?.data ?? {};
+    let raw = data['tasknotes.agenda']
+      ?? data?.tasknotes?.agenda
+      ?? (fullCfg as any)['tasknotes.agenda']
+      ?? (fullCfg as any)?.tasknotes?.agenda;
+    if (!raw) {
+      try { raw = query?.getViewConfig?.('tasknotes.agenda') ?? (query?.getViewConfig?.('tasknotes') as any)?.agenda; } catch (_) {}
+    }
+
+    let period = (raw && typeof raw === 'object') ? (raw as any).period : raw;
+    if (period === 'week') return { daysToShow: -1, weekMode: true };
+    const n = parseInt(String(period ?? '7'), 10);
+    if (!isNaN(n) && n > 0) return { daysToShow: n, weekMode: false };
+  } catch (_) {}
+  return { daysToShow: 7, weekMode: false };
+}
+
+function getAgendaDates(selectedDate: Date, daysToShow: number, firstDay: number): Date[] {
+  const dates: Date[] = [];
+  if (daysToShow === -1) {
+    const weekStart = startOfWeek(selectedDate, { weekStartsOn: firstDay as 0|1|2|3|4|5|6 });
+    const weekEnd = endOfWeek(selectedDate, { weekStartsOn: firstDay as 0|1|2|3|4|5|6 });
+    let current = weekStart;
+    while (current <= weekEnd) {
+      const normalized = createUTCDateFromLocalCalendarDate(current);
+      dates.push(normalized);
+      current = addDays(current, 1);
+    }
+  } else {
+    for (let i = 0; i < daysToShow; i++) {
+      const target = addDays(selectedDate, i);
+      const normalized = createUTCDateFromLocalCalendarDate(target);
+      dates.push(normalized);
+    }
+  }
+  return dates;
+}
+
   // normalize to YYYY-MM-DD if possible (already expected)
   return out.filter(Boolean);
 }
@@ -132,87 +179,116 @@ export function buildTasknotesAgendaViewFactory(plugin: TaskNotesPlugin) {
           return [];
         };
         const searchIndex = buildSearchIndex(taskNotes, { getAliases });
-        const searchedTasks = filterTasksBySearch(taskNotes, searchIndex, currentSearchTerm);
 
-        // Group by calendar date keys (YYYY-MM-DD) from due/scheduled
-        const groups = new Map<string, typeof taskNotes>();
-        for (const t of searchedTasks) {
-          const props = pathToProps.get(t.path) || {};
-          const dateKeys = getTaskDates(props);
-          if (dateKeys.length === 0) {
-            if (!groups.has('none')) groups.set('none', []);
-            groups.get('none')!.push(t);
-            continue;
-          }
-          for (const key of dateKeys) {
-            const k = String(key);
-            if (!groups.has(k)) groups.set(k, []);
-            groups.get(k)!.push(t);
+        // Compute agenda dates exactly like AgendaView
+        const selected = new Date(plugin.selectedDate);
+        const firstDay = (plugin.settings?.calendarViewSettings?.firstDay ?? 0) as number;
+        const { daysToShow } = readAgendaPeriod(basesContainer as any, plugin);
+        const agendaDates = getAgendaDates(selected, daysToShow, firstDay);
+
+        // Build a base query similar to AgendaView
+        const baseQuery: any = {
+          type: 'group', id: 'bases-agenda', conjunction: 'and', children: [],
+          sortKey: 'due', sortDirection: 'asc', groupKey: 'none'
+        };
+
+        // Gather tasks per day using FilterService when available, else fallback to raw tasks
+        const agendaData: Array<{ date: Date; tasks: any[] }> = [];
+        for (const date of agendaDates) {
+          if ((plugin as any).filterService?.getTasksForDate) {
+            try {
+              const tasksForDate = await (plugin as any).filterService.getTasksForDate(date, baseQuery, true);
+              agendaData.push({ date, tasks: filterTasksBySearch(tasksForDate, searchIndex, currentSearchTerm) });
+            } catch {
+              // Fallback: approximate by checking task props against this date
+              const dayKey = formatDateForStorage(date);
+              const approx = taskNotes.filter(t => {
+                const props = pathToProps.get(t.path) || {};
+                const keys = getTaskDates(props);
+                return keys.includes(dayKey);
+              });
+              agendaData.push({ date, tasks: filterTasksBySearch(approx, searchIndex, currentSearchTerm) });
+            }
+          } else {
+            const dayKey = formatDateForStorage(date);
+            const approx = taskNotes.filter(t => {
+              const props = pathToProps.get(t.path) || {};
+              const keys = getTaskDates(props);
+              return keys.includes(dayKey);
+            });
+            agendaData.push({ date, tasks: filterTasksBySearch(approx, searchIndex, currentSearchTerm) });
           }
         }
 
-        // Order day group names (chronological when parsable; else alpha)
-        let groupNames = Array.from(groups.keys());
-        const parseDate = (s: string): number => {
-          // Expecting YYYY-MM-DD
-          const m = /^\d{4}-\d{2}-\d{2}$/.test(s) ? Date.parse(s + 'T00:00:00Z') : NaN;
-          return isNaN(m) ? NaN : m;
-        };
-        groupNames.sort((a, b) => {
-          const ta = parseDate(a), tb = parseDate(b);
-          if (!isNaN(ta) && !isNaN(tb)) return ta - tb;
-          if (!isNaN(ta)) return -1;
-          if (!isNaN(tb)) return 1;
-          return a.localeCompare(b);
-        });
-
-        // Render sections
+        // Render sections in chronological order with Agenda header styling
         const groupSections: HTMLElement[] = [];
-        for (const groupName of groupNames) {
-          const tasks = groups.get(groupName) || [];
-          if (!tasks.length) continue;
+        for (const { date, tasks } of agendaData) {
+          const hasItems = (tasks?.length || 0) > 0;
+          if (!hasItems) continue;
+
+          const dayKey = formatDateForStorage(date);
 
           const section = document.createElement('section');
-          section.className = 'task-section task-group';
-          section.setAttribute('data-group', groupName);
+          section.className = 'agenda-view__day-section task-group';
+          section.setAttribute('data-day', dayKey);
 
-          // Header
-          const header = document.createElement('h3');
-          header.className = 'task-group-header task-list-view__group-header';
+          // Header (similar to AgendaView.createDayHeader)
+          const header = document.createElement('div');
+          header.className = 'agenda-view__day-header task-group-header';
+          header.setAttribute('data-day', dayKey);
 
           const toggleBtn = document.createElement('button');
           toggleBtn.className = 'task-group-toggle';
-          toggleBtn.setAttribute('aria-label', 'Toggle group');
-          try {
-            setIcon(toggleBtn, 'chevron-right');
-            const svg = toggleBtn.querySelector('svg');
-            if (svg) { svg.classList.add('chevron'); svg.setAttribute('width', '16'); svg.setAttribute('height', '16'); }
-          } catch (_) {
-            toggleBtn.textContent = '▸';
-          }
+          toggleBtn.setAttribute('aria-label', 'Toggle day');
+          try { setIcon(toggleBtn, 'chevron-right'); } catch (_) {}
+          const svg = toggleBtn.querySelector('svg');
+          if (svg) { svg.classList.add('chevron'); svg.setAttribute('width', '16'); svg.setAttribute('height', '16'); } else { toggleBtn.textContent = '▸'; }
           header.appendChild(toggleBtn);
 
-          const labelSpan = document.createElement('span');
-          labelSpan.className = 'tn-bases-group-label';
-          labelSpan.textContent = groupName;
-          header.appendChild(labelSpan);
+          const headerText = document.createElement('div');
+          headerText.className = 'agenda-view__day-header-text';
+          const displayDate = convertUTCToLocalCalendarDate(date);
+          const { format } = await import('date-fns');
+          const dayName = format(displayDate, 'EEEE');
+          const dateFormatted = format(displayDate, 'MMMM d');
+          if (isTodayUTC(date)) {
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'agenda-view__day-name agenda-view__day-name--today';
+            nameSpan.textContent = 'Today';
+            headerText.appendChild(nameSpan);
+            const dateSpan = document.createElement('span');
+            dateSpan.className = 'agenda-view__day-date';
+            dateSpan.textContent = ` • ${dateFormatted}`;
+            headerText.appendChild(dateSpan);
+          } else {
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'agenda-view__day-name';
+            nameSpan.textContent = dayName;
+            headerText.appendChild(nameSpan);
+            const dateSpan = document.createElement('span');
+            dateSpan.className = 'agenda-view__day-date';
+            dateSpan.textContent = ` • ${dateFormatted}`;
+            headerText.appendChild(dateSpan);
+          }
+          header.appendChild(headerText);
 
+          // Count badge (tasks completion)
           const stats = GroupCountUtils.calculateGroupStats(tasks as any, plugin);
           const countSpan = document.createElement('span');
           countSpan.className = 'agenda-view__item-count';
-          countSpan.textContent = ` ${GroupCountUtils.formatGroupCount(stats.completed, stats.total).text}`;
+          countSpan.textContent = `${GroupCountUtils.formatGroupCount(stats.completed, stats.total).text}`;
           header.appendChild(countSpan);
 
           section.appendChild(header);
 
           const list = document.createElement('div');
-          list.className = 'tasks-container task-cards';
+          list.className = 'agenda-view__day-items';
           section.appendChild(list);
 
           const collapsedInitially = GroupingUtils.isGroupCollapsed(
             BASES_TASK_LIST_VIEW_TYPE,
             'bases:agenda',
-            groupName,
+            dayKey,
             plugin
           );
           if (collapsedInitially) {
@@ -223,7 +299,7 @@ export function buildTasknotesAgendaViewFactory(plugin: TaskNotesPlugin) {
 
           const toggle = () => {
             const willCollapse = !section.classList.contains('is-collapsed');
-            GroupingUtils.setGroupCollapsed(BASES_TASK_LIST_VIEW_TYPE, 'bases:agenda', groupName, willCollapse, plugin);
+            GroupingUtils.setGroupCollapsed(BASES_TASK_LIST_VIEW_TYPE, 'bases:agenda', dayKey, willCollapse, plugin);
             section.classList.toggle('is-collapsed', willCollapse);
             list.style.display = willCollapse ? 'none' : '';
             toggleBtn.setAttribute('aria-expanded', String(!willCollapse));
