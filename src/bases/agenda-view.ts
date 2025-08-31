@@ -29,6 +29,10 @@ function getTaskDates(props: Record<string, any>): string[] {
   };
   push(due);
   push(scheduled);
+  // normalize to YYYY-MM-DD if possible (already expected)
+  return out.filter(Boolean);
+}
+
 // Bases agenda period config: number of days or "week"; fallback to 7 days
 function readAgendaPeriod(basesContainer: any, plugin: TaskNotesPlugin): { daysToShow: number; weekMode: boolean } {
   try {
@@ -71,10 +75,6 @@ function getAgendaDates(selectedDate: Date, daysToShow: number, firstDay: number
     }
   }
   return dates;
-}
-
-  // normalize to YYYY-MM-DD if possible (already expected)
-  return out.filter(Boolean);
 }
 
 export function buildTasknotesAgendaViewFactory(plugin: TaskNotesPlugin) {
