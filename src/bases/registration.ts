@@ -48,6 +48,24 @@ export async function registerBasesTaskList(plugin: TaskNotesPlugin): Promise<vo
         console.log('[TaskNotes][Bases] Registered TaskNotes Task List (key: tasknotesTaskList)');
       }
 
+      // Register Kanban view using same pattern
+      try {
+        const { buildTasknotesKanbanViewFactory } = await import('./kanban-view');
+        const kanbanFactory = buildTasknotesKanbanViewFactory(plugin);
+        const kanbanRegistration = {
+          name: 'TaskNotes Kanban',
+          icon: 'layout-grid',
+          factory: kanbanFactory,
+          options: () => ({ description: 'TaskNotes Kanban view' })
+        } as const;
+        if (!bases.registrations.tasknotesKanban) {
+          bases.registrations.tasknotesKanban = kanbanRegistration;
+          console.log('[TaskNotes][Bases] Registered TaskNotes Kanban (key: tasknotesKanban)');
+        }
+      } catch (e) {
+        console.warn('[TaskNotes][Bases] Could not register TaskNotes Kanban:', e);
+      }
+
       // Best-effort refresh of existing Bases leaves (handles restored tabs)
       try {
         plugin.app.workspace.iterateAllLeaves((leaf) => {
