@@ -1929,7 +1929,7 @@ export class TaskNotesSettingTab extends PluginSettingTab {
 				});
 
 			const rowsContainer = container.createDiv('project-autosuggest-rows');
-			rowsContainer.createEl('p', { cls: 'settings-help-note', text: 'Display rows (up to 3). Use tokens like {title|n(Title)}, {aliases|n(Aliases)}, {file.path|n(Path)}. Only n and n(Name) flags are supported.' });
+			rowsContainer.createEl('p', { cls: 'settings-help-note', text: 'Display rows (up to 3). Use tokens like {title|n(Title)}, {aliases|n(Aliases)}, {file.path|n(Path)|s}. Flags: n or n(Label) shows field name; s includes that field in + search (in addition to defaults).' });
 
 			const getRows = (): string[] => (this.plugin.settings.projectAutosuggest?.rows ?? []).slice(0, 3);
 			const setRow = async (idx: number, value: string) => {
