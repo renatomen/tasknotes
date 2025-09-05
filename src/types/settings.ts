@@ -58,6 +58,8 @@ export interface TaskNotesSettings {
 	enableNaturalLanguageInput: boolean;
 	nlpDefaultToScheduled: boolean;
 	projectAutosuggest?: ProjectAutosuggestSettings; // Display config for project suggestions in NL input
+	/** Optional single-character trigger for status suggestions in NLP (e.g., "*") */
+	statusSuggestionTrigger?: string;
 	singleClickAction: 'edit' | 'openNote';
 	doubleClickAction: 'edit' | 'openNote' | 'none';
 	// Inline task conversion settings

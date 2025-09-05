@@ -83,17 +83,60 @@ export function renderFeaturesTab(container: HTMLElement, plugin: TaskNotesPlugi
             }
         });
 
-        createTextSetting(container, {
-            name: 'Status suggestion trigger',
-            desc: 'Text to trigger status suggestions (leave empty to disable)',
-            placeholder: '@',
-            getValue: () => plugin.settings.statusSuggestionTrigger,
-            setValue: async (value: string) => {
-                plugin.settings.statusSuggestionTrigger = value;
-                save();
-            }
-        });
     }
+
+    // Project Autosuggest Section
+    createSectionHeader(container, 'Project autosuggest');
+    createHelpText(container, 'Configure how project suggestions appear when typing + in the natural language input.');
+
+    // Fuzzy matching toggle
+    createToggleSetting(container, {
+        name: 'Enable fuzzy matching (experimental)',
+        desc: 'When enabled: Allows fuzzy matching for project names (slower, better for finding projects with typos). When disabled: Uses exact prefix matching (faster performance, recommended for large vaults).',
+        getValue: () => !!(plugin.settings.projectAutosuggest?.enableFuzzy),
+        setValue: async (value: boolean) => {
+            plugin.settings.projectAutosuggest = plugin.settings.projectAutosuggest || { enableFuzzy: false, rows: [] };
+            plugin.settings.projectAutosuggest.enableFuzzy = value;
+            save();
+        }
+    });
+
+    // Display rows (up to 3)
+    createHelpText(container, 'Display rows (up to 3). Use tokens like {title|n(Title)}, {aliases|n(Aliases)}, {file.path|n(Path)|s}. Flags: n or n(Label) shows field name; s includes that field in + search (in addition to defaults).');
+
+    const getRow = (idx: number): string => (plugin.settings.projectAutosuggest?.rows?.[idx] ?? '');
+    const setRow = (idx: number, value: string) => {
+        const current = plugin.settings.projectAutosuggest?.rows ?? [];
+        const next = [...current];
+        next[idx] = value;
+        plugin.settings.projectAutosuggest = plugin.settings.projectAutosuggest || { enableFuzzy: false, rows: [] };
+        plugin.settings.projectAutosuggest.rows = next.slice(0, 3);
+        save();
+    };
+
+    createTextSetting(container, {
+        name: 'Row 1',
+        desc: 'First line of each suggestion card',
+        placeholder: '{title|n(Title)}',
+        getValue: () => getRow(0),
+        setValue: async (value: string) => setRow(0, value)
+    });
+
+    createTextSetting(container, {
+        name: 'Row 2',
+        desc: 'Second line of each suggestion card',
+        placeholder: '{aliases}',
+        getValue: () => getRow(1),
+        setValue: async (value: string) => setRow(1, value)
+    });
+
+    createTextSetting(container, {
+        name: 'Row 3',
+        desc: 'Third line of each suggestion card',
+        placeholder: '{file.path|n(Path)|s}',
+        getValue: () => getRow(2),
+        setValue: async (value: string) => setRow(2, value)
+    });
 
     // Pomodoro Timer Section
     createSectionHeader(container, 'Pomodoro Timer');

@@ -194,9 +194,7 @@ export const DEFAULT_SETTINGS: TaskNotesSettings = {
 	useDefaultsOnInstantConvert: true,
 	enableNaturalLanguageInput: true,
 	nlpDefaultToScheduled: true,
-		// NLP status suggestion trigger
-		statusSuggestionTrigger: '*',
-
+	
 	singleClickAction: 'edit',
 	doubleClickAction: 'openNote',
 	// Autosuggest project card defaults
