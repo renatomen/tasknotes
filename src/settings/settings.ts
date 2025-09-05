@@ -1790,30 +1790,6 @@ export class TaskNotesSettingTab extends PluginSettingTab {
 
 		// Hide completed tasks from overdue
 
-			// Status suggestion trigger (NLP)
-			new Setting(container)
-				.setName('Status suggestion trigger')
-				.setDesc('Type this pattern before a status to see suggestions in the task creation input. Leave empty to disable. Avoid @, #, + which are reserved.')
-				.addText(text => {
-					text
-						.setPlaceholder('*')
-						.setValue(this.plugin.settings.statusSuggestionTrigger || '')
-						.onChange(async (value) => {
-							// Normalize and basic validation: keep small length, avoid reserved triggers
-							const trimmed = value.trim();
-							const reserved = ['@', '#', '+'];
-							if (reserved.includes(trimmed)) {
-								new Notice('This trigger conflicts with existing triggers (@, #, +). Please choose another.');
-								return;
-							}
-							if (trimmed.length > 3) {
-								new Notice('Please use a short trigger (max 3 characters).');
-								return;
-							}
-							this.plugin.settings.statusSuggestionTrigger = trimmed; // empty disables
-							await this.plugin.saveSettings();
-						});
-				});
 
 		new Setting(container)
 			.setName('Hide completed tasks from overdue')

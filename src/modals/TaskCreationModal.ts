@@ -67,6 +67,16 @@ interface ProjectSuggestion {
     basename: string;
     displayName: string;
     type: 'project';
+    // Optional enhanced entry for display/filters
+    entry?: {
+        basename: string;
+        name: string;
+        path: string;
+        parent: string;
+        title?: string;
+        aliases?: string[];
+        frontmatter?: Record<string, any>;
+    };
     toString(): string;
 }
 
@@ -120,7 +130,7 @@ class NLPSuggest extends AbstractInputSuggest<TagSuggestion | ContextSuggestion 
 
         // Check if there's a space in the query (which would end the suggestion context)
         // For '+' (projects/wikilinks), allow spaces for multi-word fuzzy queries
-        if ((trigger === '@' || trigger === '#' || trigger === 'status') && (queryAfterTrigger.includes(' ') || queryAfterTrigger.includes('\n'))) {
+        if ((trigger === '@' || trigger === '#') && (queryAfterTrigger.includes(' ') || queryAfterTrigger.includes('\n'))) {
             this.currentTrigger = null;
             return [];
         }
@@ -141,18 +151,6 @@ class NLPSuggest extends AbstractInputSuggest<TagSuggestion | ContextSuggestion 
                     type: 'context' as const,
                     toString() { return this.value; }
                 }));
-        } else if (trigger === 'status') {
-            // Use the StatusSuggestionService for status suggestions
-            const statusService = new StatusSuggestionService(
-                this.plugin.settings.customStatuses,
-                this.plugin.settings.customPriorities,
-                this.plugin.settings.nlpDefaultToScheduled
-            );
-            return statusService.getStatusSuggestions(
-                queryAfterTrigger,
-                this.plugin.settings.customStatuses || [],
-                10
-            );
         } else if (trigger === '#') {
             const tags = this.plugin.cacheManager.getAllTags();
             return tags
@@ -196,7 +194,7 @@ class NLPSuggest extends AbstractInputSuggest<TagSuggestion | ContextSuggestion 
                 // Convert to enhanced project suggestions with configurable cards and |s flag support
                 const resolver = new ProjectMetadataResolver({
                     getFrontmatter: (file) => {
-                        const cache = appRef?.metadataCache.getFileCache(file);
+                        const cache = appRef?.metadataCache.getFileCache(file as any);
                         return cache?.frontmatter || {};
                     },
                 });
@@ -226,7 +224,7 @@ class NLPSuggest extends AbstractInputSuggest<TagSuggestion | ContextSuggestion 
                         path: file.path,
                         parent: file.parent?.path || '',
                         title: typeof mapped.title === 'string' ? mapped.title : '',
-                        aliases: Array.isArray(mapped.aliases) ? mapped.aliases : [],
+                        aliases: Array.isArray((mapped as any).aliases) ? (mapped as any).aliases : [],
                         frontmatter: frontmatter
                     };
 
@@ -294,7 +292,7 @@ class NLPSuggest extends AbstractInputSuggest<TagSuggestion | ContextSuggestion 
 
     public renderSuggestion(suggestion: TagSuggestion | ContextSuggestion | ProjectSuggestion | StatusSuggestion, el: HTMLElement): void {
         const icon = el.createSpan('nlp-suggest-icon');
-        icon.textContent = this.currentTrigger === 'status' ? (this.plugin.settings.statusSuggestionTrigger || '') : (this.currentTrigger || '');
+        icon.textContent = this.currentTrigger || '';
 
         const text = el.createSpan('nlp-suggest-text');
 
@@ -417,7 +415,7 @@ class NLPSuggest extends AbstractInputSuggest<TagSuggestion | ContextSuggestion 
                                 }
                                 continue;
                             }
-                            const value = resolver.resolve(t.property, suggestion.entry) || '';
+                            const value = resolver.resolve(t.property, suggestion.entry as any) || '';
                             if (!value) continue;
                             if (metaRow.childNodes.length > 0) metaRow.appendChild(document.createTextNode(' '));
 
@@ -486,9 +484,6 @@ class NLPSuggest extends AbstractInputSuggest<TagSuggestion | ContextSuggestion 
         if (this.currentTrigger === '+') {
             // For project (+) trigger, wrap in wikilink syntax but keep the + sign
             replacement = '+[[' + suggestionText + ']]';
-        } else if (this.currentTrigger === 'status') {
-            // For status: insert the label text (like other suggestions)
-            replacement = suggestion.type === 'status' ? suggestion.label : suggestionText;
         } else {
             // For @ and #, keep the trigger and the suggestion
             replacement = this.currentTrigger + suggestionText;

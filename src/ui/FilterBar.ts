@@ -1758,8 +1758,8 @@ export class FilterBar extends EventEmitter {
      */
     private showSortGroupContextMenu(event: MouseEvent): void {
         try {
-            const menu = new Menu();
-            
+            const menu = (window as any).Menu ? new (window as any).Menu() : (new (require('obsidian') as any).Menu());
+
             // Build sort options
             const builtInSortOptions: Record<string, string> = {
                 'due': 'Due Date',
@@ -1779,13 +1779,13 @@ export class FilterBar extends EventEmitter {
             }
 
             // Sort section
-            menu.addItem(item => {
+            menu.addItem((item: any) => {
                 item.setTitle('SORT');
                 item.setDisabled(true);
             });
             
             Object.entries(sortOptions).forEach(([key, label]) => {
-                menu.addItem(item => {
+                menu.addItem((item: any) => {
                     item.setTitle(label);
                     if (this.currentQuery.sortKey === key) {
                         item.setIcon('check');
@@ -1800,15 +1800,15 @@ export class FilterBar extends EventEmitter {
 
             // Order section
             menu.addSeparator();
-            menu.addItem(item => {
+            menu.addItem((item: any) => {
                 item.setTitle('ORDER');
                 item.setDisabled(true);
             });
             
-            menu.addItem(item => {
+            menu.addItem((item: any) => {
                 item.setTitle('Ascending');
                 if (this.currentQuery.sortDirection === 'asc') {
-                    item.setIcon('check');
+                    (item as any).setIcon?.('check');
                 }
                 item.onClick(() => {
                     this.currentQuery.sortDirection = 'asc';
@@ -1816,11 +1816,11 @@ export class FilterBar extends EventEmitter {
                     this.updateDisplaySection();
                 });
             });
-            
-            menu.addItem(item => {
+
+            menu.addItem((item: any) => {
                 item.setTitle('Descending');
                 if (this.currentQuery.sortDirection === 'desc') {
-                    item.setIcon('check');
+                    (item as any).setIcon?.('check');
                 }
                 item.onClick(() => {
                     this.currentQuery.sortDirection = 'desc';
@@ -1852,13 +1852,13 @@ export class FilterBar extends EventEmitter {
                 }
 
                 menu.addSeparator();
-                menu.addItem(item => {
+                menu.addItem((item: any) => {
                     item.setTitle('GROUP');
                     item.setDisabled(true);
                 });
                 
                 Object.entries(groupOptions).forEach(([key, label]) => {
-                    menu.addItem(item => {
+                    menu.addItem((item: any) => {
                         item.setTitle(label);
                         if (this.currentQuery.groupKey === key) {
                             item.setIcon('check');
