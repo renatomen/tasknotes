@@ -13,13 +13,15 @@ export interface SubgroupMenuOptions {
     filterOptions: FilterOptions;
     /** Callback when subgroup option is selected */
     onSubgroupSelect: (subgroupKey: TaskGroupKey) => void;
+    /** Force showing the subgroup section even when primary group is 'none' (e.g., Agenda view) */
+    forceVisible?: boolean;
 }
 
 /**
  * Builder for creating subgroup menu sections in context menus
  * Follows single responsibility principle by focusing solely on subgroup menu construction
  * Uses dependency injection pattern for configuration and callbacks
- * 
+ *
  * Implements the builder pattern for constructing menu sections with proper validation
  */
 export class SubgroupMenuBuilder {
@@ -32,9 +34,9 @@ export class SubgroupMenuBuilder {
 
     /**
      * Add SUBGROUP section to existing menu
-     * Only adds section when primary grouping is active (not 'none')
+     * Only adds section when primary grouping is active (not 'none') unless forced
      * Implements conditional UI pattern based on current state
-     * 
+     *
      * @param menu - Obsidian Menu instance to add items to
      */
     addSubgroupSection(menu: Menu): void {
@@ -75,7 +77,8 @@ export class SubgroupMenuBuilder {
      * Encapsulates business logic for conditional UI display
      */
     private shouldShowSubgroupSection(): boolean {
-        const { currentGroupKey } = this.options;
+        const { currentGroupKey, forceVisible } = this.options;
+        if (forceVisible) return true;
         return !!(currentGroupKey && currentGroupKey !== 'none');
     }
 
@@ -96,15 +99,15 @@ export class SubgroupMenuBuilder {
      */
     private addNoneOption(menu: Menu): void {
         const { currentSubgroupKey, onSubgroupSelect } = this.options;
-        
+
         menu.addItem(item => {
             item.setTitle('None');
-            
+
             // Mark as selected if no subgrouping is currently active
             if (currentSubgroupKey === 'none' || !currentSubgroupKey) {
                 item.setIcon('check');
             }
-            
+
             item.onClick(() => {
                 onSubgroupSelect('none');
             });
@@ -122,12 +125,12 @@ export class SubgroupMenuBuilder {
         Object.entries(availableOptions).forEach(([key, label]) => {
             menu.addItem(item => {
                 item.setTitle(label);
-                
+
                 // Mark as selected if this is the current subgroup key
                 if (currentSubgroupKey === key) {
                     item.setIcon('check');
                 }
-                
+
                 item.onClick(() => {
                     onSubgroupSelect(key as TaskGroupKey);
                 });
@@ -142,7 +145,7 @@ export class SubgroupMenuBuilder {
      */
     private getAvailableSubgroupOptions(): Record<string, string> {
         const { currentGroupKey, filterOptions } = this.options;
-        
+
         // Base grouping options available for subgrouping
         const baseOptions: Record<string, string> = {
             'status': 'Status',
@@ -157,7 +160,7 @@ export class SubgroupMenuBuilder {
         // Add user-defined properties from filter options
         const userOptions: Record<string, string> = {};
         const userProperties = filterOptions.userProperties || [];
-        
+
         for (const property of userProperties) {
             if (this.isValidUserProperty(property)) {
                 userOptions[property.id] = property.label;
@@ -166,12 +169,12 @@ export class SubgroupMenuBuilder {
 
         // Combine all options
         const allOptions = { ...baseOptions, ...userOptions };
-        
+
         // Remove current primary group key to prevent duplicate grouping
         if (currentGroupKey && currentGroupKey !== 'none') {
             delete allOptions[currentGroupKey];
         }
-        
+
         return allOptions;
     }
 
@@ -181,9 +184,9 @@ export class SubgroupMenuBuilder {
      */
     private isValidUserProperty(property: any): boolean {
         return !!(
-            property?.id && 
-            property?.label && 
-            typeof property.id === 'string' && 
+            property?.id &&
+            property?.label &&
+            typeof property.id === 'string' &&
             property.id.startsWith('user:')
         );
     }

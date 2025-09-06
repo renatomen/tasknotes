@@ -707,6 +707,11 @@ export class ItemView extends Component {
     return 'Mock View';
   }
 
+  // Simulate Obsidian's DOM event registration helper
+  registerDomEvent(el: HTMLElement, event: string, handler: any): void {
+    el.addEventListener(event as any, handler);
+  }
+
   async onOpen(): Promise<void> {}
   async onClose(): Promise<void> {}
 }

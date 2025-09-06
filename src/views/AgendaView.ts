@@ -7,7 +7,8 @@ import {
     FilterQuery,
     NoteInfo,
     SavedView,
-    TaskInfo
+    TaskInfo,
+    TASK_LIST_VIEW_TYPE
 } from '../types';
 import { EventRef, ItemView, Notice, Setting, TFile, WorkspaceLeaf, setIcon, ButtonComponent } from 'obsidian';
 import { addDays, endOfWeek, format, isSameDay, startOfWeek } from 'date-fns';
@@ -19,6 +20,7 @@ import { FilterBar } from '../ui/FilterBar';
 import { FilterHeading } from '../ui/FilterHeading';
 import { FilterService } from '../services/FilterService';
 import { GroupCountUtils } from '../utils/GroupCountUtils';
+import { GroupingUtils } from '../utils/GroupingUtils';
 import TaskNotesPlugin from '../main';
 import { createNoteCard } from '../ui/NoteCard';
 
@@ -320,8 +322,14 @@ export class AgendaView extends ItemView {
         const savedQuery = this.plugin.viewStateManager.getFilterState(AGENDA_VIEW_TYPE);
         if (savedQuery) {
             this.currentQuery = savedQuery;
+        } else {
+            // Preserve subgroup selection from Task List view when switching to Agenda
+            const taskListQuery = this.plugin.viewStateManager.getFilterState(TASK_LIST_VIEW_TYPE);
+            if (taskListQuery && taskListQuery.subgroupKey && taskListQuery.subgroupKey !== 'none') {
+                this.currentQuery.subgroupKey = taskListQuery.subgroupKey;
+            }
         }
-        
+
         // Get filter options from FilterService
         const filterOptions = await this.plugin.filterService.getFilterOptions();
         
@@ -750,45 +758,132 @@ export class AgendaView extends ItemView {
                 // Add click handlers for collapse/expand
                 this.addDayHeaderClickHandlers(dayHeader, daySection, itemsContainer, dayKey);
 
-                // Collect items for this day
-                const dayItems: Array<{type: 'task' | 'note' | 'ics', item: any, date: Date}> = [];
+                const subgroupKey = this.currentQuery.subgroupKey;
+                if (subgroupKey && subgroupKey !== 'none') {
+                    // Render hierarchical subgroups of tasks within this day
+                    const subgroupsContainer = itemsContainer.createDiv({ cls: 'task-subgroups-container' });
 
-                // Add tasks
-                dayData.tasks.forEach(task => {
-                    dayItems.push({ type: 'task', item: task, date: dayData.date });
-                });
+                    // Group tasks by selected subgroup key for this specific date
+                    const grouped = this.plugin.filterService.groupTasks(dayData.tasks, subgroupKey as any, dayData.date);
 
-                // Add notes
-                dayData.notes.forEach(note => {
-                    dayItems.push({ type: 'note', item: note, date: dayData.date });
-                });
+                    grouped.forEach((tasks, subgroupName) => {
+                        if (tasks.length === 0) return;
 
-                // Add ICS events (sorted chronologically)
-                if (this.showICSEvents) {
-                    // Sort ICS events by start time before adding them
-                    const sortedIcsEvents = [...dayData.ics].sort((a, b) => {
-                        try {
-                            const timeA = new Date(a.start).getTime();
-                            const timeB = new Date(b.start).getTime();
-                            return timeA - timeB;
-                        } catch {
-                            return 0;
+                        // Create subgroup section
+                        const subgroupSection = subgroupsContainer.createDiv({ cls: 'task-section task-subgroup' });
+                        subgroupSection.setAttribute('data-group', dayKey);
+                        subgroupSection.setAttribute('data-subgroup', subgroupName);
+                        subgroupSection.setAttribute('data-group-level', 'secondary');
+
+                        // Build header with toggle and count
+                        const subgroupHeader = subgroupSection.createEl('h4', {
+                            cls: 'task-group-header task-subgroup-header'
+                        });
+
+                        // Left: toggle + title
+                        const left = subgroupHeader.createDiv({ cls: 'task-group-header-left' });
+                        const toggleBtn = left.createEl('button', { cls: 'task-group-toggle', attr: { 'aria-label': 'Toggle subgroup' } });
+                        try { setIcon(toggleBtn, 'chevron-right'); } catch {}
+                        left.createSpan({ text: subgroupName });
+
+                        // Right: count
+                        const right = subgroupHeader.createDiv({ cls: 'task-group-header-right' });
+                        const stats = GroupCountUtils.calculateGroupStats(tasks, this.plugin);
+                        right.createSpan({ text: ` ${GroupCountUtils.formatGroupCount(stats.completed, stats.total).text}`, cls: 'agenda-view__item-count' });
+
+                        // Tasks container for this subgroup
+                        const taskCards = subgroupSection.createDiv({ cls: 'tasks-container task-cards' });
+
+                        // Apply initial collapsed state for subgroup
+                        const isCollapsed = GroupingUtils.isSubgroupCollapsed(AGENDA_VIEW_TYPE, dayKey, subgroupKey as any, subgroupName, this.plugin);
+                        if (isCollapsed) {
+                            subgroupSection.addClass('is-collapsed');
+                            taskCards.style.display = 'none';
                         }
-                    });
-                    
-                    sortedIcsEvents.forEach(ics => {
-                        dayItems.push({ type: 'ics', item: ics, date: dayData.date });
-                    });
-                }
 
-                // Use DOMReconciler for this day's items
-                this.plugin.domReconciler.updateList(
-                    itemsContainer,
-                    dayItems,
-                    (item) => `${item.type}-${(item.item as any).path || (item.item as any).id || 'unknown'}`,
-                    (item) => this.createDayItemElement(item),
-                    (element, item) => this.updateDayItemElement(element, item)
-                );
+                        // Click handlers for collapse/expand with state persistence
+                        this.registerDomEvent(subgroupHeader, 'click', (e: MouseEvent) => {
+                            const target = e.target as HTMLElement;
+                            if (target.closest('a')) return;
+                            if (target.closest('.task-group-header-right')) return;
+                            const willCollapse = !subgroupSection.hasClass('is-collapsed');
+                            GroupingUtils.setSubgroupCollapsed(AGENDA_VIEW_TYPE, dayKey, subgroupKey as any, subgroupName, willCollapse, this.plugin);
+                            subgroupSection.toggleClass('is-collapsed', willCollapse);
+                            taskCards.style.display = willCollapse ? 'none' : '';
+                            toggleBtn.setAttr('aria-expanded', String(!willCollapse));
+                        });
+
+                        // Render tasks in this subgroup
+                        this.plugin.domReconciler.updateList<TaskInfo>(
+                            taskCards,
+                            tasks,
+                            (task) => task.path,
+                            (task) => this.createTaskItemElement(task, dayData.date),
+                            (el, task) => this.updateDayItemElement(el, { type: 'task', item: task, date: dayData.date })
+                        );
+                    });
+
+                    // Render non-task items (notes and ICS) below subgroups
+                    const otherItems: Array<{type: 'note' | 'ics', item: any, date: Date}> = [];
+                    dayData.notes.forEach(note => otherItems.push({ type: 'note', item: note, date: dayData.date }));
+                    if (this.showICSEvents) {
+                        const sortedIcsEvents = [...dayData.ics].sort((a, b) => {
+                            try { return new Date(a.start).getTime() - new Date(b.start).getTime(); } catch { return 0; }
+                        });
+                        sortedIcsEvents.forEach(ics => otherItems.push({ type: 'ics', item: ics, date: dayData.date }));
+                    }
+                    if (otherItems.length > 0) {
+                        const othersContainer = itemsContainer.createDiv({ cls: 'agenda-view__day-others' });
+                        this.plugin.domReconciler.updateList(
+                            othersContainer,
+                            otherItems,
+                            (item) => `${item.type}-${(item.item as any).path || (item.item as any).id || 'unknown'}`,
+                            (item) => this.createDayItemElement(item),
+                            (el, item) => this.updateDayItemElement(el, item)
+                        );
+                    }
+                } else {
+                    // Original flat per-day rendering when subgrouping is not active
+                    // Collect items for this day
+                    const dayItems: Array<{type: 'task' | 'note' | 'ics', item: any, date: Date}> = [];
+
+                    // Add tasks
+                    dayData.tasks.forEach(task => {
+                        dayItems.push({ type: 'task', item: task, date: dayData.date });
+                    });
+
+                    // Add notes
+                    dayData.notes.forEach(note => {
+                        dayItems.push({ type: 'note', item: note, date: dayData.date });
+                    });
+
+                    // Add ICS events (sorted chronologically)
+                    if (this.showICSEvents) {
+                        // Sort ICS events by start time before adding them
+                        const sortedIcsEvents = [...dayData.ics].sort((a, b) => {
+                            try {
+                                const timeA = new Date(a.start).getTime();
+                                const timeB = new Date(b.start).getTime();
+                                return timeA - timeB;
+                            } catch {
+                                return 0;
+                            }
+                        });
+
+                        sortedIcsEvents.forEach(ics => {
+                            dayItems.push({ type: 'ics', item: ics, date: dayData.date });
+                        });
+                    }
+
+                    // Use DOMReconciler for this day's items
+                    this.plugin.domReconciler.updateList(
+                        itemsContainer,
+                        dayItems,
+                        (item) => `${item.type}-${(item.item as any).path || (item.item as any).id || 'unknown'}`,
+                        (item) => this.createDayItemElement(item),
+                        (element, item) => this.updateDayItemElement(element, item)
+                    );
+                }
             }
         });
 

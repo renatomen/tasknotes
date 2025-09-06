@@ -1829,9 +1829,27 @@ export class FilterBar extends EventEmitter {
                         this.updateDisplaySection();
                         this.updateFilterToggleBadge();
                         this.emitImmediateQueryChange();
-                    }
+                    },
+                    // Always show SUBGROUP section in agenda view where primary groups are date ranges
+                    forceVisible: this.viewType === 'agenda'
                 });
 
+                subgroupBuilder.addSubgroupSection(menu);
+            } else {
+                // Agenda view: hide GROUP section but always show SUBGROUP section
+                const subgroupBuilder = new SubgroupMenuBuilder({
+                    currentGroupKey: this.currentQuery.groupKey || 'none',
+                    currentSubgroupKey: this.currentQuery.subgroupKey,
+                    filterOptions: this.filterOptions,
+                    onSubgroupSelect: (subgroupKey: TaskGroupKey) => {
+                        this.currentQuery.subgroupKey = subgroupKey;
+                        this.updateExpandCollapseButtons();
+                        this.updateDisplaySection();
+                        this.updateFilterToggleBadge();
+                        this.emitImmediateQueryChange();
+                    },
+                    forceVisible: true
+                });
                 subgroupBuilder.addSubgroupSection(menu);
             }
 
