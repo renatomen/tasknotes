@@ -261,12 +261,12 @@ export class HierarchicalTaskRenderer {
             cls: 'task-group-subgroup-controls'
         });
 
-        // Expand group and subgroups button
+        // Expand all subgroups button (does not affect primary group state)
         const expandSubgroupsBtn = controlsContainer.createEl('button', {
             cls: 'task-group-subgroup-control-btn task-group-expand-subgroups',
             attr: {
-                'aria-label': `Expand ${primaryGroupName} and all its subgroups`,
-                'title': 'Expand group and all subgroups'
+                'aria-label': `Expand all subgroups in ${primaryGroupName}`,
+                'title': 'Expand all subgroups'
             }
         });
 
@@ -276,12 +276,12 @@ export class HierarchicalTaskRenderer {
             expandSubgroupsBtn.textContent = '⊞';
         }
 
-        // Collapse group and subgroups button
+        // Collapse all subgroups button (does not affect primary group state)
         const collapseSubgroupsBtn = controlsContainer.createEl('button', {
             cls: 'task-group-subgroup-control-btn task-group-collapse-subgroups',
             attr: {
-                'aria-label': `Collapse ${primaryGroupName} and all its subgroups`,
-                'title': 'Collapse group and all subgroups'
+                'aria-label': `Collapse all subgroups in ${primaryGroupName}`,
+                'title': 'Collapse all subgroups'
             }
         });
 
@@ -311,14 +311,7 @@ export class HierarchicalTaskRenderer {
         primaryGroupName: string,
         subgroupKey: string
     ): void {
-        // First, expand the primary group itself
-        primarySection.classList.remove('is-collapsed');
-        const subgroupsContainer = primarySection.querySelector('.task-subgroups-container') as HTMLElement | null;
-        if (subgroupsContainer) {
-            subgroupsContainer.style.display = '';
-        }
-
-        // Then, expand all subgroups within this primary group
+        // Expand all subgroups within this primary group ONLY (preserve primary group state)
         const subgroups = primarySection.querySelectorAll('.task-subgroup');
         subgroups.forEach(subgroupSection => {
             subgroupSection.classList.remove('is-collapsed');
@@ -326,9 +319,7 @@ export class HierarchicalTaskRenderer {
             if (taskCards) taskCards.style.display = '';
         });
 
-        // Update state - expand primary group and all its subgroups
-        // Note: We need to get the primary grouping key from the current query
-        // For now, we'll handle the subgroups state only since primary group state is managed elsewhere
+        // Update state for subgroups only
         GroupingUtils.expandAllSubgroups(this.viewType, primaryGroupName, subgroupKey, this.plugin);
     }
 
@@ -340,14 +331,7 @@ export class HierarchicalTaskRenderer {
         primaryGroupName: string,
         subgroupKey: string
     ): void {
-        // First, collapse the primary group itself
-        primarySection.classList.add('is-collapsed');
-        const subgroupsContainer = primarySection.querySelector('.task-subgroups-container') as HTMLElement | null;
-        if (subgroupsContainer) {
-            subgroupsContainer.style.display = 'none';
-        }
-
-        // Collect subgroup names for state management
+        // Collapse all subgroups within this primary group ONLY (preserve primary group state)
         const subgroupNames: string[] = [];
         const subgroups = primarySection.querySelectorAll('.task-subgroup');
 
@@ -361,9 +345,7 @@ export class HierarchicalTaskRenderer {
             }
         });
 
-        // Update state - collapse primary group and all its subgroups
-        // Note: We need to get the primary grouping key from the current query
-        // For now, we'll handle the subgroups state only since primary group state is managed elsewhere
+        // Update state for subgroups only
         GroupingUtils.collapseAllSubgroups(this.viewType, primaryGroupName, subgroupKey, subgroupNames, this.plugin);
     }
 
