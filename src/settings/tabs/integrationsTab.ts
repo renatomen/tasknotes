@@ -2,10 +2,10 @@ import { Notice, Platform, Modal, Setting, setIcon, App } from 'obsidian';
 import TaskNotesPlugin from '../../main';
 import { WebhookConfig } from '../../types';
 import { loadAPIEndpoints } from '../../api/loadAPIEndpoints';
-import { 
-    createSectionHeader, 
-    createTextSetting, 
-    createToggleSetting, 
+import {
+    createSectionHeader,
+    createTextSetting,
+    createToggleSetting,
     createDropdownSetting,
     createNumberSetting,
     createHelpText,
@@ -14,10 +14,10 @@ import {
 } from '../components/settingHelpers';
 // import { ListEditorComponent, ListEditorItem } from '../components/ListEditorComponent';
 import { showConfirmationModal } from '../../modals/ConfirmationModal';
-import { 
-    createCard, 
-    createStatusBadge, 
-    createCardInput, 
+import {
+    createCard,
+    createStatusBadge,
+    createCardInput,
     createDeleteHeaderButton,
     createCardUrlInput,
     createCardNumberInput,
@@ -46,7 +46,7 @@ function getRelativeTime(date: Date): string {
     const diffMinutes = Math.floor(diffSeconds / 60);
     const diffHours = Math.floor(diffMinutes / 60);
     const diffDays = Math.floor(diffHours / 24);
-    
+
     if (diffDays > 0) {
         return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
     } else if (diffHours > 0) {
@@ -178,6 +178,9 @@ export function renderIntegrationsTab(container: HTMLElement, plugin: TaskNotesP
         }
     });
 
+
+    // (Moved) Bases Integration (POC) section now lives under 'Plugin Integrations' below.
+
     // HTTP API Section (Skip on mobile)
     if (!Platform.isMobile) {
         createSectionHeader(container, 'HTTP API');
@@ -227,10 +230,10 @@ export function renderIntegrationsTab(container: HTMLElement, plugin: TaskNotesP
             const apiToggleIcon = apiHeaderContent.createSpan('tasknotes-settings__collapsible-icon');
             apiToggleIcon.textContent = '▶';
             apiHeaderContent.createSpan({ text: 'Available API Endpoints', cls: 'tasknotes-settings__collapsible-title' });
-            
+
             const apiEndpointsContent = apiInfoContainer.createDiv('tasknotes-settings__collapsible-content');
             apiEndpointsContent.style.display = 'none'; // Start collapsed
-            
+
             // Toggle functionality
             apiHeader.addEventListener('click', () => {
                 const isExpanded = apiEndpointsContent.style.display !== 'none';
@@ -244,7 +247,7 @@ export function renderIntegrationsTab(container: HTMLElement, plugin: TaskNotesP
 
         // Webhooks Section
         createSectionHeader(container, 'Webhooks');
-        
+
         // Webhook description
         const webhookDescEl = container.createDiv('setting-item-description');
         webhookDescEl.createEl('p', { text: 'Webhooks send real-time notifications to external services when TaskNotes events occur.' });
@@ -252,7 +255,7 @@ export function renderIntegrationsTab(container: HTMLElement, plugin: TaskNotesP
 
         // Webhook management
         renderWebhookList(container, plugin, save);
-        
+
         // Add webhook button
         createButtonSetting(container, {
             name: 'Add Webhook',
@@ -280,10 +283,10 @@ export function renderIntegrationsTab(container: HTMLElement, plugin: TaskNotesP
 
                     plugin.settings.webhooks.push(webhook);
                     save();
-                    
+
                     // Re-render webhook list to show the new webhook
                     renderWebhookList(container.querySelector('.tasknotes-webhooks-container')?.parentElement || container, plugin, save);
-                    
+
                     // Show success message with secret
                     new SecretNoticeModal(plugin.app, webhook.secret).open();
                     new Notice('Webhook created successfully');
@@ -296,6 +299,49 @@ export function renderIntegrationsTab(container: HTMLElement, plugin: TaskNotesP
     // Other Integrations Section
     createSectionHeader(container, 'Plugin Integrations');
     createHelpText(container, 'Configure integrations with other Obsidian plugins.');
+
+    // Bases Integration (POC)
+    createSectionHeader(container, 'Bases Integration (POC)');
+    createHelpText(container, 'Experimental integration with the Obsidian Bases plugin. Registers TaskNotes views in Bases when enabled.');
+
+    createToggleSetting(container, {
+        name: 'Enable Bases integration (POC)',
+        desc: 'Registers TaskNotes views with Bases (requires Obsidian 1.9.12+ and Bases plugin enabled).',
+        getValue: () => !!plugin.settings.enableBasesPOC,
+        setValue: async (value: boolean) => {
+            plugin.settings.enableBasesPOC = value;
+            save();
+            if (value) {
+                try {
+                    const { registerBasesTaskList } = await import('../../bases/registration');
+                    await registerBasesTaskList(plugin);
+                } catch (e) {
+                    console.warn('[TaskNotes][Bases] Immediate registration attempt failed:', e);
+                }
+            }
+        }
+    });
+
+    createToggleSetting(container, {
+        name: 'Enable Bases POC logs',
+        desc: 'Log extra diagnostics to console for Bases integration components.',
+        getValue: () => !!plugin.settings.basesPOCLogs,
+        setValue: async (value: boolean) => {
+            plugin.settings.basesPOCLogs = value;
+            save();
+        }
+    });
+
+    createToggleSetting(container, {
+        name: 'Enable advanced Bases data logs',
+        desc: 'Dump full Bases results (metadata, properties, formulas) to console for inspection. WARNING: very verbose.',
+        getValue: () => !!plugin.settings.basesAdvancedDataLogs,
+        setValue: async (value: boolean) => {
+            plugin.settings.basesAdvancedDataLogs = value;
+            save();
+        }
+    });
+
 
     // Bases integration (commented out for now due to type issues)
     // const basesFiles = (plugin.app as any).plugins?.plugins?.['bases']?.settings?.files || [];
@@ -345,9 +391,9 @@ function renderICSSubscriptionsList(container: HTMLElement, plugin: TaskNotesPlu
         // Create input elements
         const enabledToggle = createCardInput('checkbox');
         enabledToggle.checked = subscription.enabled;
-        
+
         const nameInput = createCardInput('text', 'Calendar name', subscription.name);
-        
+
         // Create type dropdown
         const typeSelect = document.createElement('select');
         typeSelect.className = 'tasknotes-settings__card-input';
@@ -355,7 +401,7 @@ function renderICSSubscriptionsList(container: HTMLElement, plugin: TaskNotesPlu
             <option value="remote" ${subscription.type === 'remote' ? 'selected' : ''}>Remote URL</option>
             <option value="local" ${subscription.type === 'local' ? 'selected' : ''}>Local File</option>
         `;
-        
+
         // Create input based on type
         let sourceInput: HTMLElement;
         if (subscription.type === 'remote') {
@@ -365,10 +411,10 @@ function renderICSSubscriptionsList(container: HTMLElement, plugin: TaskNotesPlu
             fileInput.setAttribute('placeholder', 'Calendar.ics');
             sourceInput = fileInput;
         }
-        
+
         const colorInput = createCardInput('color', '', subscription.color);
         const refreshInput = createCardNumberInput(5, 1440, 5, subscription.refreshInterval || 60);
-        
+
         // Update handlers
         const updateSubscription = async (updates: Partial<typeof subscription>) => {
             try {
@@ -382,7 +428,7 @@ function renderICSSubscriptionsList(container: HTMLElement, plugin: TaskNotesPlu
                 renderICSSubscriptionsList(container, plugin, save);
             }
         };
-        
+
         // Update handlers
         enabledToggle.addEventListener('change', () => updateSubscription({ enabled: enabledToggle.checked }));
         nameInput.addEventListener('blur', () => updateSubscription({ name: nameInput.value.trim() }));
@@ -396,7 +442,7 @@ function renderICSSubscriptionsList(container: HTMLElement, plugin: TaskNotesPlu
         typeSelect.addEventListener('change', async () => {
             const newType = typeSelect.value as 'remote' | 'local';
             const oldType = subscription.type;
-            
+
             // Update the subscription object
             subscription.type = newType;
             if (newType === 'remote') {
@@ -475,13 +521,13 @@ function renderICSSubscriptionsList(container: HTMLElement, plugin: TaskNotesPlu
             subscription.enabled ? 'Enabled' : 'Disabled',
             subscription.enabled ? 'active' : 'inactive'
         );
-        
+
         const typeBadge = createInfoBadge(
             subscription.type === 'remote' ? 'Remote' : 'Local File'
         );
-        
+
         const metaBadges = [statusBadge, typeBadge];
-        
+
         // Add last sync badge if available
         if (subscription.lastFetched) {
             const lastSyncDate = new Date(subscription.lastFetched);
@@ -489,7 +535,7 @@ function renderICSSubscriptionsList(container: HTMLElement, plugin: TaskNotesPlu
             const syncBadge = createInfoBadge(`Synced ${timeAgo}`);
             metaBadges.push(syncBadge);
         }
-        
+
         // Add error badge if there's an error
         if (subscription.lastError) {
             const errorBadge = createStatusBadge('Error', 'inactive');
@@ -502,9 +548,9 @@ function renderICSSubscriptionsList(container: HTMLElement, plugin: TaskNotesPlu
             { label: 'Enabled:', input: enabledToggle },
             { label: 'Name:', input: nameInput },
             { label: 'Type:', input: typeSelect },
-            { 
-                label: subscription.type === 'remote' ? 'URL:' : 'File Path:', 
-                input: sourceInput, 
+            {
+                label: subscription.type === 'remote' ? 'URL:' : 'File Path:',
+                input: sourceInput,
             },
             { label: 'Color:', input: colorInput },
             { label: 'Refresh (min):', input: refreshInput }
@@ -525,7 +571,7 @@ function renderICSSubscriptionsList(container: HTMLElement, plugin: TaskNotesPlu
                     createDeleteHeaderButton(async () => {
                         const confirmed = await showConfirmationModal(plugin.app, {
                             title: 'Delete Subscription',
-                            message: `Are you sure you want to delete the subscription "${subscription.name}"? This action cannot be undone.`, 
+                            message: `Are you sure you want to delete the subscription "${subscription.name}"? This action cannot be undone.`,
                             confirmText: 'Delete',
                             cancelText: 'Cancel',
                             isDestructive: true
@@ -559,7 +605,7 @@ function renderICSSubscriptionsList(container: HTMLElement, plugin: TaskNotesPlu
                             new Notice('Enable the subscription first');
                             return;
                         }
-                        
+
                         try {
                             await plugin.icsSubscriptionService!.refreshSubscription(subscription.id);
                             new Notice(`Refreshed "${subscription.name}"`);
@@ -583,9 +629,9 @@ function renderWebhookList(container: HTMLElement, plugin: TaskNotesPlugin, save
     if (existingContainer) {
         existingContainer.remove();
     }
-    
+
     const webhooksContainer = container.createDiv('tasknotes-webhooks-container');
-    
+
     if (!plugin.settings.webhooks || plugin.settings.webhooks.length === 0) {
         showCardEmptyState(
             webhooksContainer,
@@ -610,12 +656,12 @@ function renderWebhookList(container: HTMLElement, plugin: TaskNotesPlugin, save
 
         const successBadge = createInfoBadge(`✓ ${webhook.successCount || 0}`);
         const failureBadge = createInfoBadge(`✗ ${webhook.failureCount || 0}`);
-        
+
         // Create inputs for inline editing
         const urlInput = createCardUrlInput('Webhook URL', webhook.url);
         const activeToggle = createCardInput('checkbox');
         activeToggle.checked = webhook.active;
-        
+
         // Update handlers
         urlInput.addEventListener('blur', () => {
             if (urlInput.value.trim() !== webhook.url) {
@@ -624,36 +670,36 @@ function renderWebhookList(container: HTMLElement, plugin: TaskNotesPlugin, save
                 new Notice('Webhook URL updated');
             }
         });
-        
+
         activeToggle.addEventListener('change', () => {
             webhook.active = activeToggle.checked;
             save();
-            
+
             // Update the status badge in place instead of re-rendering entire list
             const card = activeToggle.closest('.tasknotes-settings__card');
             if (card) {
                 const statusBadge = card.querySelector('.tasknotes-settings__card-status-badge--active, .tasknotes-settings__card-status-badge--inactive');
                 if (statusBadge) {
                     statusBadge.textContent = webhook.active ? 'Active' : 'Inactive';
-                    statusBadge.className = webhook.active ? 
-                        'tasknotes-settings__card-status-badge tasknotes-settings__card-status-badge--active' : 
+                    statusBadge.className = webhook.active ?
+                        'tasknotes-settings__card-status-badge tasknotes-settings__card-status-badge--active' :
                         'tasknotes-settings__card-status-badge tasknotes-settings__card-status-badge--inactive';
                 }
-                
+
                 // Update test button disabled state
                 const testButton = card.querySelector('[aria-label*="Test"]') as HTMLButtonElement;
                 if (testButton) {
                     testButton.disabled = !webhook.active || !webhook.url;
                 }
             }
-            
+
             new Notice(`Webhook ${webhook.active ? 'enabled' : 'disabled'}`);
         });
-        
+
         // Format webhook creation date
         const createdDate = webhook.createdAt ? new Date(webhook.createdAt) : null;
         const createdText = createdDate ? `Created ${getRelativeTime(createdDate)}` : 'Creation date unknown';
-        
+
         // Create events display as a formatted string
         const eventsDisplay = document.createElement('div');
         eventsDisplay.style.display = 'flex';
@@ -662,7 +708,7 @@ function renderWebhookList(container: HTMLElement, plugin: TaskNotesPlugin, save
         eventsDisplay.style.alignItems = 'center';
         eventsDisplay.style.minHeight = '1.5rem';
         eventsDisplay.style.lineHeight = '1.5rem';
-        
+
         if (webhook.events.length === 0) {
             const noEventsSpan = document.createElement('span');
             noEventsSpan.textContent = 'No events selected';
@@ -678,9 +724,9 @@ function renderWebhookList(container: HTMLElement, plugin: TaskNotesPlugin, save
                 eventsDisplay.appendChild(eventBadge);
             });
         }
-        
+
         // Create transform file display if exists
-        const transformDisplay = webhook.transformFile ? 
+        const transformDisplay = webhook.transformFile ?
             (() => {
                 const span = document.createElement('span');
                 span.textContent = webhook.transformFile;
@@ -693,7 +739,7 @@ function renderWebhookList(container: HTMLElement, plugin: TaskNotesPlugin, save
                 span.style.borderRadius = '4px';
                 span.style.border = '1px solid var(--background-modifier-border)';
                 return span;
-            })() : 
+            })() :
             (() => {
                 const span = document.createElement('span');
                 span.textContent = 'Raw payload (no transform)';
@@ -715,12 +761,12 @@ function renderWebhookList(container: HTMLElement, plugin: TaskNotesPlugin, save
                     createDeleteHeaderButton(async () => {
                         const confirmed = await showConfirmationModal(plugin.app, {
                             title: 'Delete Webhook',
-                            message: `Are you sure you want to delete this webhook?\n\nURL: ${webhook.url}\n\nThis action cannot be undone.`, 
+                            message: `Are you sure you want to delete this webhook?\n\nURL: ${webhook.url}\n\nThis action cannot be undone.`,
                             confirmText: 'Delete',
                             cancelText: 'Cancel',
                             isDestructive: true
                         });
-                        
+
                         if (confirmed) {
                             plugin.settings.webhooks.splice(index, 1);
                             save();
@@ -758,7 +804,7 @@ function renderWebhookList(container: HTMLElement, plugin: TaskNotesPlugin, save
                             modal.open();
                         }
                     },
-                    
+
                 ]
             }
         });
@@ -779,29 +825,29 @@ function generateWebhookSecret(): string {
  */
 class SecretNoticeModal extends Modal {
     private secret: string;
-    
+
     constructor(app: App, secret: string) {
         super(app);
         this.secret = secret;
     }
-    
+
     onOpen(): void {
         const { contentEl } = this;
         contentEl.empty();
         contentEl.addClass('tasknotes-webhook-modal');
-        
+
         const notice = contentEl.createDiv({ cls: 'tasknotes-webhook-secret-notice' });
-        
+
         const title = notice.createDiv({ cls: 'tasknotes-webhook-secret-title' });
         const titleIcon = title.createSpan();
         setIcon(titleIcon, 'shield-check');
         title.createSpan({ text: 'Webhook Secret Generated' });
-        
+
         const content = notice.createDiv({ cls: 'tasknotes-webhook-secret-content' });
         content.createEl('p', { text: 'Your webhook secret has been generated. Save this secret as you won\'t be able to view it again:' });
         content.createEl('code', { text: this.secret, cls: 'tasknotes-webhook-secret-code' });
         content.createEl('p', { text: 'Use this secret to verify webhook payloads in your receiving application.' });
-        
+
         const buttonContainer = contentEl.createDiv({ cls: 'tasknotes-webhook-modal-buttons' });
         const closeBtn = buttonContainer.createEl('button', {
             text: 'Got it',
@@ -809,7 +855,7 @@ class SecretNoticeModal extends Modal {
         });
         closeBtn.onclick = () => this.close();
     }
-    
+
     onClose(): void {
         const { contentEl } = this;
         contentEl.empty();
