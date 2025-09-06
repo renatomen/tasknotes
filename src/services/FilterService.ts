@@ -1,4 +1,4 @@
-import { FilterQuery, TaskInfo, TaskSortKey, TaskGroupKey, SortDirection, FilterCondition, FilterGroup, FilterOptions, FilterProperty, FilterOperator } from '../types';
+import { FilterQuery, TaskInfo, TaskSortKey, TaskGroupKey, SortDirection, FilterCondition, FilterGroup, FilterOptions, FilterProperty, FilterOperator, GroupedTasksResult } from '../types';
 import { parseLinktext } from 'obsidian';
 import { MinimalNativeCache } from '../utils/MinimalNativeCache';
 import { StatusManager } from './StatusManager';
@@ -8,6 +8,7 @@ import { FilterUtils, FilterValidationError, FilterEvaluationError, TaskProperty
 import { isDueByRRule, filterEmptyProjects, getEffectiveTaskStatus } from '../utils/helpers';
 import { format } from 'date-fns';
 import { splitListPreservingLinksAndQuotes } from '../utils/stringSplit';
+import { HierarchicalGroupingService } from './HierarchicalGroupingService';
 import {
     getTodayString,
     isBeforeDateSafe,
@@ -30,6 +31,7 @@ export class FilterService extends EventEmitter {
     private cacheManager: MinimalNativeCache;
     private statusManager: StatusManager;
     private priorityManager: PriorityManager;
+    private hierarchicalGroupingService: HierarchicalGroupingService;
 
     // Query result caching for repeated filter operations
     private indexQueryCache = new Map<string, Set<string>>();
@@ -55,15 +57,26 @@ export class FilterService extends EventEmitter {
         this.cacheManager = cacheManager;
         this.statusManager = statusManager;
         this.priorityManager = priorityManager;
+
+        // Initialize hierarchical grouping service with dependency injection
+        this.hierarchicalGroupingService = new HierarchicalGroupingService(this);
     }
 
     /**
      * Main method to get filtered, sorted, and grouped tasks
      * Handles the new advanced FilterQuery structure with nested conditions and groups
      * Uses query-first approach with index optimization for better performance
+     * Supports both flat and hierarchical grouping based on query configuration
      */
-    async getGroupedTasks(query: FilterQuery, targetDate?: Date): Promise<Map<string, TaskInfo[]>> {
+    async getGroupedTasks(query: FilterQuery, targetDate?: Date): Promise<GroupedTasksResult> {
         try {
+            console.log('FilterService.getGroupedTasks - received query:', {
+                groupKey: query?.groupKey,
+                subgroupKey: query?.subgroupKey,
+                sortKey: query?.sortKey,
+                fullQuery: query
+            });
+
             // Use non-strict validation to allow incomplete filters during building
             FilterUtils.validateFilterNode(query, false);
 
@@ -83,13 +96,18 @@ export class FilterService extends EventEmitter {
             this.currentSortKey = (query.sortKey || 'due');
             this.currentSortDirection = (query.sortDirection || 'asc');
 
-            // Group the results; group order handled inside sortGroups
-            return this.groupTasks(sortedTasks, query.groupKey || 'none', targetDate);
+            // Use hierarchical grouping service for both flat and hierarchical grouping
+            return this.hierarchicalGroupingService.groupTasksHierarchically(
+                sortedTasks,
+                query.groupKey || 'none',
+                query.subgroupKey,
+                targetDate
+            );
         } catch (error) {
             if (error instanceof FilterValidationError || error instanceof FilterEvaluationError) {
                 console.error('Filter error:', error.message, { nodeId: error.nodeId, field: (error as FilterValidationError).field });
                 // Return empty results rather than throwing - let UI handle gracefully
-                return new Map<string, TaskInfo[]>();
+                return { isHierarchical: false, flatGroups: new Map<string, TaskInfo[]>() };
             }
             throw error;
         }
@@ -1118,8 +1136,9 @@ export class FilterService extends EventEmitter {
 
     /**
      * Group sorted tasks by specified criteria
+     * Made public to support HierarchicalGroupingService
      */
-    private groupTasks(tasks: TaskInfo[], groupKey: TaskGroupKey, targetDate?: Date): Map<string, TaskInfo[]> {
+    public groupTasks(tasks: TaskInfo[], groupKey: TaskGroupKey, targetDate?: Date): Map<string, TaskInfo[]> {
         if (groupKey === 'none') {
             return new Map([['all', tasks]]);
         }

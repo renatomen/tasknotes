@@ -318,16 +318,21 @@ export class KanbanView extends ItemView {
 
         try {
             // Get grouped tasks from FilterService
-            const groupedTasks = await this.plugin.filterService.getGroupedTasks(this.currentQuery, this.plugin.selectedDate);
-            
+            const groupedResult = await this.plugin.filterService.getGroupedTasks(this.currentQuery, this.plugin.selectedDate);
+
+            // Extract flat groups for Kanban (Kanban doesn't support hierarchical grouping)
+            const groupedTasks = groupedResult.isHierarchical && groupedResult.hierarchicalGroups
+                ? this.flattenHierarchicalGroups(groupedResult.hierarchicalGroups)
+                : groupedResult.flatGroups || new Map();
+
             // Remove loading indicator if it exists
             if (loadingIndicator) {
                 loadingIndicator.remove();
             }
-            
+
             // Render the grouped tasks using DOMReconciler
             this.renderBoardFromGroupedTasksWithReconciler(groupedTasks);
-            
+
             // Calculate stats from all tasks
             const allTasks = Array.from(groupedTasks.values()).flat();
             
@@ -530,11 +535,16 @@ export class KanbanView extends ItemView {
         
         try {
             // Get fresh grouped tasks from FilterService
-            const groupedTasks = await this.plugin.filterService.getGroupedTasks(this.currentQuery, this.plugin.selectedDate);
-            
+            const groupedResult = await this.plugin.filterService.getGroupedTasks(this.currentQuery, this.plugin.selectedDate);
+
+            // Extract flat groups for Kanban
+            const groupedTasks = groupedResult.isHierarchical && groupedResult.hierarchicalGroups
+                ? this.flattenHierarchicalGroups(groupedResult.hierarchicalGroups)
+                : groupedResult.flatGroups || new Map();
+
             // Re-render the board using the new column order and DOMReconciler
             this.renderBoardFromGroupedTasksWithReconciler(groupedTasks);
-            
+
             // Update stats after rendering
             const allTasks = Array.from(groupedTasks.values()).flat();
             const statsContainer = this.contentEl.querySelector('.kanban-view__stats') as HTMLElement;
@@ -1145,6 +1155,27 @@ export class KanbanView extends ItemView {
         
         // Open the task creation modal with pre-populated values
         this.plugin.openTaskCreationModal(prePopulatedValues);
+    }
+
+    /**
+     * Flatten hierarchical groups into a single-level map for Kanban display
+     * Kanban view doesn't support hierarchical grouping, so we combine subgroups
+     */
+    private flattenHierarchicalGroups(hierarchicalGroups: Map<string, Map<string, TaskInfo[]>>): Map<string, TaskInfo[]> {
+        const flatGroups = new Map<string, TaskInfo[]>();
+
+        hierarchicalGroups.forEach((subgroups, primaryGroupName) => {
+            const allTasksInPrimaryGroup: TaskInfo[] = [];
+            subgroups.forEach((tasks) => {
+                allTasksInPrimaryGroup.push(...tasks);
+            });
+
+            if (allTasksInPrimaryGroup.length > 0) {
+                flatGroups.set(primaryGroupName, allTasksInPrimaryGroup);
+            }
+        });
+
+        return flatGroups;
     }
 
 }

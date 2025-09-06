@@ -255,22 +255,44 @@ export class ProjectSubtasksWidget extends WidgetType {
 
             // Wire expand/collapse all functionality
             this.filterBar.on('expandAllGroups', () => {
-                const key = this.currentQuery.groupKey || 'none';
-                GroupingUtils.expandAllGroups(this.viewType, key, this.plugin);
+                const groupKey = this.currentQuery.groupKey || 'none';
+                const subgroupKey = this.currentQuery.subgroupKey;
+
                 // Update DOM
                 if (this.taskListContainer) {
+                    // Expand all primary groups
                     this.taskListContainer.querySelectorAll('.task-group').forEach(section => {
+                        section.classList.remove('is-collapsed');
+                        const list = (section as HTMLElement).querySelector('.task-cards') as HTMLElement | null;
+                        if (list) list.style.display = '';
+                        // Also show subgroups container if it exists
+                        const subgroupsContainer = (section as HTMLElement).querySelector('.task-subgroups-container') as HTMLElement | null;
+                        if (subgroupsContainer) subgroupsContainer.style.display = '';
+                    });
+
+                    // Expand all subgroups
+                    this.taskListContainer.querySelectorAll('.task-subgroup').forEach(section => {
                         section.classList.remove('is-collapsed');
                         const list = (section as HTMLElement).querySelector('.task-cards') as HTMLElement | null;
                         if (list) list.style.display = '';
                     });
                 }
+
+                // Update state in GroupingUtils
+                GroupingUtils.expandAllGroups(this.viewType, groupKey, this.plugin);
+                if (subgroupKey && subgroupKey !== 'none') {
+                    GroupingUtils.expandAllSubgroupsGlobally(this.viewType, subgroupKey, this.plugin);
+                }
             });
 
             this.filterBar.on('collapseAllGroups', () => {
-                const key = this.currentQuery.groupKey || 'none';
+                const groupKey = this.currentQuery.groupKey || 'none';
+                const subgroupKey = this.currentQuery.subgroupKey;
                 const groupNames: string[] = [];
+                const subgroupData: Array<{primaryGroup: string, subgroupName: string}> = [];
+
                 if (this.taskListContainer) {
+                    // Collapse all primary groups
                     this.taskListContainer.querySelectorAll('.task-group').forEach(section => {
                         const name = (section as HTMLElement).dataset.group;
                         if (name) {
@@ -278,10 +300,30 @@ export class ProjectSubtasksWidget extends WidgetType {
                             section.classList.add('is-collapsed');
                             const list = (section as HTMLElement).querySelector('.task-cards') as HTMLElement | null;
                             if (list) list.style.display = 'none';
+                            // Also hide subgroups container
+                            const subgroupsContainer = (section as HTMLElement).querySelector('.task-subgroups-container') as HTMLElement | null;
+                            if (subgroupsContainer) subgroupsContainer.style.display = 'none';
+                        }
+                    });
+
+                    // Collapse all subgroups and collect their data
+                    this.taskListContainer.querySelectorAll('.task-subgroup').forEach(section => {
+                        const primaryGroup = (section as HTMLElement).dataset.group;
+                        const subgroupName = (section as HTMLElement).dataset.subgroup;
+                        if (primaryGroup && subgroupName) {
+                            subgroupData.push({primaryGroup, subgroupName});
+                            section.classList.add('is-collapsed');
+                            const list = (section as HTMLElement).querySelector('.task-cards') as HTMLElement | null;
+                            if (list) list.style.display = 'none';
                         }
                     });
                 }
-                GroupingUtils.collapseAllGroups(this.viewType, key, groupNames, this.plugin);
+
+                // Update state in GroupingUtils
+                GroupingUtils.collapseAllGroups(this.viewType, groupKey, groupNames, this.plugin);
+                if (subgroupKey && subgroupKey !== 'none') {
+                    GroupingUtils.collapseAllSubgroupsGlobally(this.viewType, subgroupKey, subgroupData, this.plugin);
+                }
             });
 
             // Create filter heading with integrated controls
@@ -326,27 +368,49 @@ export class ProjectSubtasksWidget extends WidgetType {
             .setTooltip('Expand All Groups')
             .setClass('task-view-control-button')
             .onClick(() => {
-                const key = this.currentQuery.groupKey || 'none';
+                const groupKey = this.currentQuery.groupKey || 'none';
+                const subgroupKey = this.currentQuery.subgroupKey;
+
                 if (this.taskListContainer) {
+                    // Expand all primary groups
                     this.taskListContainer.querySelectorAll('.task-group').forEach(section => {
+                        section.classList.remove('is-collapsed');
+                        const list = (section as HTMLElement).querySelector('.task-cards') as HTMLElement | null;
+                        if (list) list.style.display = '';
+                        // Also show subgroups container if it exists
+                        const subgroupsContainer = (section as HTMLElement).querySelector('.task-subgroups-container') as HTMLElement | null;
+                        if (subgroupsContainer) subgroupsContainer.style.display = '';
+                    });
+
+                    // Expand all subgroups
+                    this.taskListContainer.querySelectorAll('.task-subgroup').forEach(section => {
                         section.classList.remove('is-collapsed');
                         const list = (section as HTMLElement).querySelector('.task-cards') as HTMLElement | null;
                         if (list) list.style.display = '';
                     });
                 }
-                GroupingUtils.expandAllGroups(this.viewType, key, this.plugin);
+
+                // Update state in GroupingUtils
+                GroupingUtils.expandAllGroups(this.viewType, groupKey, this.plugin);
+                if (subgroupKey && subgroupKey !== 'none') {
+                    GroupingUtils.expandAllSubgroupsGlobally(this.viewType, subgroupKey, this.plugin);
+                }
             });
         expandAllBtn.buttonEl.addClass('clickable-icon');
 
-        // Collapse all button  
+        // Collapse all button
         const collapseAllBtn = new ButtonComponent(container)
             .setIcon('list-collapse')
             .setTooltip('Collapse All Groups')
             .setClass('task-view-control-button')
             .onClick(() => {
-                const key = this.currentQuery.groupKey || 'none';
+                const groupKey = this.currentQuery.groupKey || 'none';
+                const subgroupKey = this.currentQuery.subgroupKey;
                 const groupNames: string[] = [];
+                const subgroupData: Array<{primaryGroup: string, subgroupName: string}> = [];
+
                 if (this.taskListContainer) {
+                    // Collapse all primary groups
                     this.taskListContainer.querySelectorAll('.task-group').forEach(section => {
                         const name = (section as HTMLElement).dataset.group;
                         if (name) {
@@ -354,10 +418,30 @@ export class ProjectSubtasksWidget extends WidgetType {
                             section.classList.add('is-collapsed');
                             const list = (section as HTMLElement).querySelector('.task-cards') as HTMLElement | null;
                             if (list) list.style.display = 'none';
+                            // Also hide subgroups container
+                            const subgroupsContainer = (section as HTMLElement).querySelector('.task-subgroups-container') as HTMLElement | null;
+                            if (subgroupsContainer) subgroupsContainer.style.display = 'none';
+                        }
+                    });
+
+                    // Collapse all subgroups and collect their data
+                    this.taskListContainer.querySelectorAll('.task-subgroup').forEach(section => {
+                        const primaryGroup = (section as HTMLElement).dataset.group;
+                        const subgroupName = (section as HTMLElement).dataset.subgroup;
+                        if (primaryGroup && subgroupName) {
+                            subgroupData.push({primaryGroup, subgroupName});
+                            section.classList.add('is-collapsed');
+                            const list = (section as HTMLElement).querySelector('.task-cards') as HTMLElement | null;
+                            if (list) list.style.display = 'none';
                         }
                     });
                 }
-                GroupingUtils.collapseAllGroups(this.viewType, key, groupNames, this.plugin);
+
+                // Update state in GroupingUtils
+                GroupingUtils.collapseAllGroups(this.viewType, groupKey, groupNames, this.plugin);
+                if (subgroupKey && subgroupKey !== 'none') {
+                    GroupingUtils.collapseAllSubgroupsGlobally(this.viewType, subgroupKey, subgroupData, this.plugin);
+                }
             });
         collapseAllBtn.buttonEl.addClass('clickable-icon');
     }
@@ -387,15 +471,30 @@ export class ProjectSubtasksWidget extends WidgetType {
         try {
             // Apply filters to get grouped tasks
             const allGroupedTasks = await this.filterService.getGroupedTasks(this.currentQuery);
-            
+
             // Filter grouped tasks to only include our original subtasks
             const originalTaskPaths = new Set(this.tasks.map(t => t.path));
             this.groupedTasks.clear();
-            
-            for (const [groupKey, tasks] of allGroupedTasks) {
-                const filteredGroupTasks = tasks.filter(task => originalTaskPaths.has(task.path));
-                if (filteredGroupTasks.length > 0) {
-                    this.groupedTasks.set(groupKey, filteredGroupTasks);
+
+            // Handle both flat and hierarchical grouping results
+            if (allGroupedTasks.isHierarchical && allGroupedTasks.hierarchicalGroups) {
+                // For hierarchical grouping, flatten the structure for the subtasks widget
+                for (const [primaryGroupKey, secondaryGroups] of allGroupedTasks.hierarchicalGroups) {
+                    for (const [secondaryGroupKey, tasks] of secondaryGroups) {
+                        const combinedKey = `${primaryGroupKey} > ${secondaryGroupKey}`;
+                        const filteredGroupTasks = tasks.filter((task: any) => originalTaskPaths.has(task.path));
+                        if (filteredGroupTasks.length > 0) {
+                            this.groupedTasks.set(combinedKey, filteredGroupTasks);
+                        }
+                    }
+                }
+            } else if (allGroupedTasks.flatGroups) {
+                // For flat grouping, use the existing logic
+                for (const [groupKey, tasks] of allGroupedTasks.flatGroups) {
+                    const filteredGroupTasks = tasks.filter((task: any) => originalTaskPaths.has(task.path));
+                    if (filteredGroupTasks.length > 0) {
+                        this.groupedTasks.set(groupKey, filteredGroupTasks);
+                    }
                 }
             }
             
@@ -468,8 +567,13 @@ export class ProjectSubtasksWidget extends WidgetType {
                     cls: 'project-note-subtasks__group-header task-group-header'
                 });
 
+                // Create left side container (toggle + title)
+                const leftContainer = groupHeader.createDiv({
+                    cls: 'task-group-header-left'
+                });
+
                 // Create toggle button first
-                const toggleBtn = groupHeader.createEl('button', {
+                const toggleBtn = leftContainer.createEl('button', {
                     cls: 'task-group-toggle',
                     attr: { 'aria-label': 'Toggle group' }
                 });
@@ -488,19 +592,24 @@ export class ProjectSubtasksWidget extends WidgetType {
                     toggleBtn.addClass('chevron-text');
                 }
 
-                // Create title element with group name and count together
-                const titleEl = groupHeader.createEl('h4', {
+                // Create title element with group name
+                const titleEl = leftContainer.createEl('h4', {
                     cls: 'project-note-subtasks__group-title'
                 });
 
                 // Add group name (no redundant count in parentheses)
                 titleEl.createSpan({ text: this.getGroupDisplayName(groupKey) });
 
+                // Create right side container (count)
+                const rightContainer = groupHeader.createDiv({
+                    cls: 'task-group-header-right'
+                });
+
                 // Calculate completion stats for this group
                 const groupStats = GroupCountUtils.calculateGroupStats(tasks, this.plugin);
 
                 // Add count with agenda-view__item-count styling
-                titleEl.createSpan({
+                rightContainer.createSpan({
                     text: ` ${GroupCountUtils.formatGroupCount(groupStats.completed, groupStats.total).text}`,
                     cls: 'agenda-view__item-count'
                 });
@@ -520,6 +629,7 @@ export class ProjectSubtasksWidget extends WidgetType {
                 groupHeader.addEventListener('click', (e: MouseEvent) => {
                     const target = e.target as HTMLElement;
                     if (target.closest('a')) return; // Ignore link clicks
+                    if (target.closest('.task-group-header-right')) return; // Ignore clicks on right side (count)
 
                     const willCollapse = !groupSection.classList.contains('is-collapsed');
                     GroupingUtils.setGroupCollapsed(this.viewType, groupingKey, groupKey, willCollapse, this.plugin);

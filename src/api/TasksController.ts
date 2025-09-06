@@ -319,12 +319,22 @@ export class TasksController extends BaseController {
 	async queryTasks(req: IncomingMessage, res: ServerResponse): Promise<void> {
 		try {
 			const query = await this.parseRequestBody(req) as FilterQuery;
-			const filteredTasksMap = await this.filterService.getGroupedTasks(query);
-			
+			const groupedResult = await this.filterService.getGroupedTasks(query);
+
 			// Flatten grouped results into a single array
 			const filteredTasks: TaskInfo[] = [];
-			for (const taskGroup of filteredTasksMap.values()) {
-				filteredTasks.push(...taskGroup);
+			if (groupedResult.isHierarchical && groupedResult.hierarchicalGroups) {
+				// Flatten hierarchical groups
+				for (const subgroups of groupedResult.hierarchicalGroups.values()) {
+					for (const taskGroup of subgroups.values()) {
+						filteredTasks.push(...taskGroup);
+					}
+				}
+			} else if (groupedResult.flatGroups) {
+				// Flatten regular groups
+				for (const taskGroup of groupedResult.flatGroups.values()) {
+					filteredTasks.push(...taskGroup);
+				}
 			}
 			
 			const allTasks = await this.cacheManager.getAllTasks();
