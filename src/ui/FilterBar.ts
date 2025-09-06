@@ -8,6 +8,7 @@ import { isValidDateInput } from '../utils/dateUtils';
 import { showConfirmationModal } from '../modals/ConfirmationModal';
 import { DateContextMenu } from '../components/DateContextMenu';
 import { PropertyVisibilityDropdown } from './PropertyVisibilityDropdown';
+import { SubgroupMenuBuilder } from '../components/SubgroupMenuBuilder';
 
 class SaveViewModal extends Modal {
     private name: string;
@@ -1494,13 +1495,18 @@ export class FilterBar extends EventEmitter {
             .addOptions(options)
             .setValue(this.currentQuery.groupKey || 'none')
             .onChange((value: TaskGroupKey) => {
+                console.log('FilterBar GROUP dropdown changed:', {
+                    oldValue: this.currentQuery.groupKey,
+                    newValue: value,
+                    currentQuery: this.currentQuery
+                });
                 this.currentQuery.groupKey = value;
                 // Update expand/collapse buttons visibility immediately
                 this.updateExpandCollapseButtons();
                 // Update only display section and badge to avoid destroying DOM (keeps toggle element stable for tests)
                 this.updateDisplaySection();
                 this.updateFilterToggleBadge();
-                this.emitQueryChange();
+                this.emitImmediateQueryChange();
             });
         setTooltip(groupDropdown.selectEl, 'Group tasks by a common property', { placement: 'top' });
 
@@ -1789,14 +1795,44 @@ export class FilterBar extends EventEmitter {
                             item.setIcon('check');
                         }
                         item.onClick(() => {
+                            console.log('FilterBar context menu GROUP clicked:', {
+                                oldValue: this.currentQuery.groupKey,
+                                newValue: key,
+                                currentQuery: this.currentQuery
+                            });
                             this.currentQuery.groupKey = key as any;
+                            // Reset subgroup when changing primary group
+                            if (this.currentQuery.subgroupKey && this.currentQuery.subgroupKey !== 'none') {
+                                this.currentQuery.subgroupKey = 'none';
+                            }
                             this.updateExpandCollapseButtons();
                             this.updateDisplaySection();
                             this.updateFilterToggleBadge();
-                            this.emitQueryChange();
+                            this.emitImmediateQueryChange();
                         });
                     });
                 });
+
+                // Add SUBGROUP section using SubgroupMenuBuilder
+                const subgroupBuilder = new SubgroupMenuBuilder({
+                    currentGroupKey: this.currentQuery.groupKey || 'none',
+                    currentSubgroupKey: this.currentQuery.subgroupKey,
+                    filterOptions: this.filterOptions,
+                    onSubgroupSelect: (subgroupKey: TaskGroupKey) => {
+                        console.log('FilterBar SUBGROUP selected:', {
+                            oldValue: this.currentQuery.subgroupKey,
+                            newValue: subgroupKey,
+                            currentQuery: this.currentQuery
+                        });
+                        this.currentQuery.subgroupKey = subgroupKey;
+                        this.updateExpandCollapseButtons();
+                        this.updateDisplaySection();
+                        this.updateFilterToggleBadge();
+                        this.emitImmediateQueryChange();
+                    }
+                });
+
+                subgroupBuilder.addSubgroupSection(menu);
             }
 
             // Show menu at mouse position
