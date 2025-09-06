@@ -64,6 +64,7 @@ export interface FilterQuery extends FilterGroup {
 	sortKey?: TaskSortKey;
 	sortDirection?: SortDirection;
 	groupKey?: TaskGroupKey;
+	subgroupKey?: TaskGroupKey; // Secondary grouping field for hierarchical grouping
 }
 
 // A named, persistent configuration that encapsulates the entire state
@@ -578,5 +579,43 @@ export interface WebhookDelivery {
 // Webhook notification interface for loose coupling
 export interface IWebhookNotifier {
 	triggerWebhook(event: WebhookEvent, data: any): Promise<void>;
+}
+
+// Hierarchical Grouping Types
+
+/**
+ * Result structure for hierarchical task grouping
+ * Supports both flat (single-level) and hierarchical (two-level) grouping
+ */
+export interface GroupedTasksResult {
+	/** Indicates whether the result contains hierarchical grouping */
+	isHierarchical: boolean;
+	/** Flat grouping structure (used when isHierarchical is false) */
+	flatGroups?: Map<string, TaskInfo[]>;
+	/** Hierarchical grouping structure (used when isHierarchical is true) */
+	hierarchicalGroups?: Map<string, Map<string, TaskInfo[]>>;
+}
+
+/**
+ * Collapsed state structure for hierarchical groups
+ * Extends existing group state to include subgroup collapse information
+ */
+export interface HierarchicalGroupState {
+	/** Existing collapsed groups state */
+	collapsedGroups?: Record<string, Record<string, boolean>>;
+	/** Collapsed state for subgroups within primary groups */
+	collapsedSubgroups?: SubgroupCollapsedState;
+}
+
+/**
+ * Nested structure for tracking subgroup collapsed states
+ * Format: [primaryGroupName][subgroupingKey][subgroupName] = boolean
+ */
+export interface SubgroupCollapsedState {
+	[primaryGroupName: string]: {
+		[subgroupingKey: string]: {
+			[subgroupName: string]: boolean;
+		};
+	};
 }
 
