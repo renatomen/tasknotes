@@ -185,7 +185,7 @@ export function buildTasknotesAgendaViewFactory(plugin: TaskNotesPlugin) {
       try {
         // Try to find the workspace leaf containing this view
         const workspace = plugin.app.workspace;
-        let currentLeaf = null;
+        let currentLeaf: any = null;
 
         // Search through all leaves to find the one containing our view
         workspace.iterateAllLeaves((leaf) => {
