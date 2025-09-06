@@ -266,7 +266,7 @@ export function buildTasknotesTaskListViewFactory(plugin: TaskNotesPlugin) {
               });
 
               // Render tasks for this group using existing helper
-              await renderTaskNotesInBasesView(list, tasks, plugin, { extraPropertiesRows: extraRows as any });
+              await renderTaskNotesInBasesView(list, tasks, plugin, basesContainer, { extraPropertiesRows: extraRows as any });
 
               itemsContainer.appendChild(section);
               groupSections.push(section);
@@ -322,7 +322,7 @@ export function buildTasknotesTaskListViewFactory(plugin: TaskNotesPlugin) {
             const { getBasesSortComparator } = await import('./sorting');
             const cmp = getBasesSortComparator(basesContainer as any, pathToProps);
             const toRender = cmp ? [...searchedTasks].sort(cmp) : searchedTasks;
-            await renderTaskNotesInBasesView(itemsContainer, toRender, plugin, { extraPropertiesRows: extraRows as any });
+            await renderTaskNotesInBasesView(itemsContainer, toRender, plugin, basesContainer, { extraPropertiesRows: extraRows as any });
           }
         }
       } catch (error: any) {

@@ -245,6 +245,9 @@ export interface TaskInfo {
 	dateModified?: string; // Last modification date (ISO timestamp)
 	icsEventId?: string[]; // Links to ICS calendar event IDs
 	reminders?: Reminder[]; // Task reminders
+	// Optional fields used by Bases integration when rendering TaskCards based on Bases columns/formulas
+	customProperties?: Record<string, any>; // Any non-core properties detected from frontmatter
+	basesData?: any; // Raw Bases data for formula computation in rendering layer
 }
 
 export interface TaskCreationData extends Partial<TaskInfo> {
