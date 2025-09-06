@@ -14,8 +14,23 @@
 .tasknotes-plugin .filter-heading__content {
     display: flex;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: space-between; /* Changed to space-between for right alignment */
     margin-bottom: var(--tn-spacing-md);
+}
+
+/* Left side container (title) */
+.tasknotes-plugin .filter-heading__left {
+    display: flex;
+    align-items: center;
+    flex: 1;
+}
+
+/* Right side container (controls + count) */
+.tasknotes-plugin .filter-heading__right {
+    display: flex;
+    align-items: center;
+    gap: var(--tn-spacing-sm);
+    margin-left: auto;
 }
 
 /* Heading title */
@@ -30,7 +45,6 @@
 .tasknotes-plugin .filter-heading__count {
     font-weight: 600;
     font-size: var(--font-ui-small);
-    margin-left: 10px;
 }
 
 /* Divider line */
