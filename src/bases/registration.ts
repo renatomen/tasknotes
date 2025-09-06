@@ -38,7 +38,7 @@ export async function registerBasesTaskList(plugin: TaskNotesPlugin): Promise<vo
       const factory = buildTasknotesTaskListViewFactory(plugin);
       const registration = {
         name: 'TaskNotes Task List',
-        icon: 'check-square',
+        icon: 'tasknotes-simple',
         factory,
         options: () => ({ description: 'TaskNotes Task List view' })
       } as const;
