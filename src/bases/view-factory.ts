@@ -3,6 +3,7 @@ import { BasesDataItem, identifyTaskNotesFromBasesData, renderTaskNotesInBasesVi
 import { TaskNotesBasesTaskListComponent } from './component';
 import { setIcon, ButtonComponent, TextComponent, debounce, setTooltip, TFile } from 'obsidian';
 import { renderTextWithLinks, appendInternalLink } from '../ui/renderers/linkRenderer';
+import type { GroupedTasksResult, TaskInfo, TaskGroupKey } from '../types';
 
 export interface BasesContainerLike {
   results?: Map<any, any>;
@@ -251,6 +252,10 @@ export function buildTasknotesTaskListViewFactory(plugin: TaskNotesPlugin) {
           const { getBasesGroupByConfig } = await import('./group-by');
           const groupCfg = getBasesGroupByConfig(basesContainer as any, pathToProps);
 
+          // Check for TaskNotes subgroupBy configuration
+          const { getTaskNotesSubgroupBy } = await import('./tasklist-rows');
+          const subgroupBy = getTaskNotesSubgroupBy(basesContainer as any);
+
           if (groupCfg) {
             // Sort tasks using Bases view sort settings if available
             const { getBasesSortComparator } = await import('./sorting');
@@ -283,93 +288,157 @@ export function buildTasknotesTaskListViewFactory(plugin: TaskNotesPlugin) {
             const { BASES_TASK_LIST_VIEW_TYPE } = await import('../types');
             const groupingKey = `bases:${groupCfg.normalizedId}`;
 
-            const groupSections: HTMLElement[] = [];
-            for (const groupName of groupNames) {
-              const tasks = groups.get(groupName)!;
-              if (!tasks.length) continue;
+            // Check if subgroupBy is configured for hierarchical rendering
+            if (subgroupBy && subgroupBy !== 'none') {
+              // Use HierarchicalTaskRenderer for subgroup support
+              const { HierarchicalTaskRenderer } = await import('../ui/HierarchicalTaskRenderer');
 
-              const section = document.createElement('section');
-              section.className = 'task-section task-group';
-              section.setAttribute('data-group', groupName);
+              // Create hierarchical grouped result
+              const hierarchicalGroups = new Map<string, Map<string, typeof taskNotes>>();
 
-              // Header
-              const header = document.createElement('h3');
-              header.className = 'task-group-header task-list-view__group-header';
+              // First group by primary groupBy, then by subgroupBy
+              for (const groupName of groupNames) {
+                const primaryTasks = groups.get(groupName)!;
+                if (!primaryTasks.length) continue;
 
-              const toggleBtn = document.createElement('button');
-              toggleBtn.className = 'task-group-toggle';
-              toggleBtn.setAttribute('aria-label', 'Toggle group');
-              try {
-                setIcon(toggleBtn, 'chevron-right');
-                const svg = toggleBtn.querySelector('svg');
-                if (svg) { svg.classList.add('chevron'); svg.setAttribute('width', '16'); svg.setAttribute('height', '16'); }
-              } catch (_) {
-                toggleBtn.textContent = '▸';
+                // Group tasks within this primary group by subgroupBy
+                const subgroups = new Map<string, typeof taskNotes>();
+                for (const task of primaryTasks) {
+                  // Get subgroup values using the same logic as FilterService.groupTasks
+                  const subgroupValues = getTaskGroupValues(task, subgroupBy, plugin);
+                  for (const subgroupValue of subgroupValues) {
+                    const subgroupKey = String(subgroupValue ?? 'none');
+                    if (!subgroups.has(subgroupKey)) subgroups.set(subgroupKey, []);
+                    subgroups.get(subgroupKey)!.push(task);
+                  }
+                }
+
+                hierarchicalGroups.set(groupName, subgroups);
               }
-              header.appendChild(toggleBtn);
 
-              const labelSpan = document.createElement('span');
-              labelSpan.className = 'tn-bases-group-label';
-
-              // Render wikilinks/markdown links clickable in group names (Text/List props)
-              // If the rendered result has no anchors, fall back to plain text
-              renderTextWithLinks(labelSpan, groupName, { metadataCache: plugin.app.metadataCache, workspace: plugin.app.workspace });
-              if (labelSpan.querySelectorAll('a').length === 0) {
-                labelSpan.textContent = groupName;
-              }
-              header.appendChild(labelSpan);
-
-              // Count
-              const stats = GroupCountUtils.calculateGroupStats(tasks, plugin);
-              const countSpan = document.createElement('span');
-              countSpan.className = 'agenda-view__item-count';
-              countSpan.textContent = ` ${GroupCountUtils.formatGroupCount(stats.completed, stats.total).text}`;
-              header.appendChild(countSpan);
-
-              section.appendChild(header);
-
-              // List container
-              const list = document.createElement('div');
-              list.className = 'tasks-container task-cards';
-              section.appendChild(list);
-
-              // Collapsed state
-              const collapsedInitially = GroupingUtils.isGroupCollapsed(
-                BASES_TASK_LIST_VIEW_TYPE,
-                groupingKey,
-                groupName,
-                plugin
-              );
-              if (collapsedInitially) {
-                section.classList.add('is-collapsed');
-                list.style.display = 'none';
-              }
-              toggleBtn.setAttribute('aria-expanded', String(!collapsedInitially));
-
-              // Toggle behavior
-              const toggle = () => {
-                const willCollapse = !section.classList.contains('is-collapsed');
-                GroupingUtils.setGroupCollapsed(BASES_TASK_LIST_VIEW_TYPE, groupingKey, groupName, willCollapse, plugin);
-                section.classList.toggle('is-collapsed', willCollapse);
-                list.style.display = willCollapse ? 'none' : '';
-                toggleBtn.setAttribute('aria-expanded', String(!willCollapse));
+              const groupedResult: GroupedTasksResult = {
+                isHierarchical: true,
+                hierarchicalGroups
               };
-              header.addEventListener('click', (e) => {
-                const target = e.target as HTMLElement;
-                if (target.closest('a')) return; // ignore internal link clicks
-                toggle();
-              });
-              toggleBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                toggle();
-              });
 
-              // Render tasks for this group using existing helper
-              await renderTaskNotesInBasesView(list, tasks, plugin, { extraPropertiesRows: extraRows as any });
+              // Create query object for HierarchicalTaskRenderer
+              const currentQuery = {
+                groupKey: groupCfg.normalizedId as any,
+                subgroupKey: subgroupBy,
+                subgroupBy: subgroupBy
+              };
 
-              itemsContainer.appendChild(section);
-              groupSections.push(section);
+              // Use HierarchicalTaskRenderer
+              const hierarchicalRenderer = new HierarchicalTaskRenderer(plugin, BASES_TASK_LIST_VIEW_TYPE);
+              const taskElements = new Map<string, HTMLElement>();
+
+              hierarchicalRenderer.renderHierarchicalGroups(
+                itemsContainer,
+                groupedResult,
+                currentQuery,
+                taskElements,
+                (task) => {
+                  // Create task card using Bases rendering
+                  const cardEl = document.createElement('div');
+                  renderTaskNotesInBasesView(cardEl, [task], plugin, { extraPropertiesRows: extraRows as any });
+                  return cardEl.firstElementChild as HTMLElement || cardEl;
+                },
+                (element, task) => {
+                  // Update task card using Bases rendering
+                  element.innerHTML = '';
+                  renderTaskNotesInBasesView(element, [task], plugin, { extraPropertiesRows: extraRows as any });
+                }
+              );
+            } else {
+              // Original flat group rendering when no subgroupBy
+              const groupSections: HTMLElement[] = [];
+              for (const groupName of groupNames) {
+                const tasks = groups.get(groupName)!;
+                if (!tasks.length) continue;
+
+                const section = document.createElement('section');
+                section.className = 'task-section task-group';
+                section.setAttribute('data-group', groupName);
+
+                // Header
+                const header = document.createElement('h3');
+                header.className = 'task-group-header task-list-view__group-header';
+
+                const toggleBtn = document.createElement('button');
+                toggleBtn.className = 'task-group-toggle';
+                toggleBtn.setAttribute('aria-label', 'Toggle group');
+                try {
+                  setIcon(toggleBtn, 'chevron-right');
+                  const svg = toggleBtn.querySelector('svg');
+                  if (svg) { svg.classList.add('chevron'); svg.setAttribute('width', '16'); svg.setAttribute('height', '16'); }
+                } catch (_) {
+                  toggleBtn.textContent = '▸';
+                }
+                header.appendChild(toggleBtn);
+
+                const labelSpan = document.createElement('span');
+                labelSpan.className = 'tn-bases-group-label';
+
+                // Render wikilinks/markdown links clickable in group names (Text/List props)
+                // If the rendered result has no anchors, fall back to plain text
+                renderTextWithLinks(labelSpan, groupName, { metadataCache: plugin.app.metadataCache, workspace: plugin.app.workspace });
+                if (labelSpan.querySelectorAll('a').length === 0) {
+                  labelSpan.textContent = groupName;
+                }
+                header.appendChild(labelSpan);
+
+                // Count
+                const stats = GroupCountUtils.calculateGroupStats(tasks, plugin);
+                const countSpan = document.createElement('span');
+                countSpan.className = 'agenda-view__item-count';
+                countSpan.textContent = ` ${GroupCountUtils.formatGroupCount(stats.completed, stats.total).text}`;
+                header.appendChild(countSpan);
+
+                section.appendChild(header);
+
+                // List container
+                const list = document.createElement('div');
+                list.className = 'tasks-container task-cards';
+                section.appendChild(list);
+
+                // Collapsed state
+                const collapsedInitially = GroupingUtils.isGroupCollapsed(
+                  BASES_TASK_LIST_VIEW_TYPE,
+                  groupingKey,
+                  groupName,
+                  plugin
+                );
+                if (collapsedInitially) {
+                  section.classList.add('is-collapsed');
+                  list.style.display = 'none';
+                }
+                toggleBtn.setAttribute('aria-expanded', String(!collapsedInitially));
+
+                // Toggle behavior
+                const toggle = () => {
+                  const willCollapse = !section.classList.contains('is-collapsed');
+                  GroupingUtils.setGroupCollapsed(BASES_TASK_LIST_VIEW_TYPE, groupingKey, groupName, willCollapse, plugin);
+                  section.classList.toggle('is-collapsed', willCollapse);
+                  list.style.display = willCollapse ? 'none' : '';
+                  toggleBtn.setAttribute('aria-expanded', String(!willCollapse));
+                };
+                header.addEventListener('click', (e) => {
+                  const target = e.target as HTMLElement;
+                  if (target.closest('a')) return; // ignore internal link clicks
+                  toggle();
+                });
+                toggleBtn.addEventListener('click', (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  toggle();
+                });
+
+                // Render tasks for this group using existing helper
+                await renderTaskNotesInBasesView(list, tasks, plugin, { extraPropertiesRows: extraRows as any });
+
+                itemsContainer.appendChild(section);
+                groupSections.push(section);
+              }
             }
 
             // After creating all groups, add expand/collapse all buttons matching Task List behavior
@@ -378,44 +447,130 @@ export function buildTasknotesTaskListViewFactory(plugin: TaskNotesPlugin) {
               const { BASES_TASK_LIST_VIEW_TYPE } = await import('../types');
               const groupingKeyForButtons = `bases:${groupCfg.normalizedId}`;
 
-              // Expand All button
-              const expandAllBtn = new ButtonComponent(controls)
-                .setIcon('list-tree')
-                .setTooltip('Expand All Groups')
-                .setClass('filter-bar__expand-groups');
-              (expandAllBtn as any).buttonEl.classList.add('clickable-icon');
-              expandAllBtn.onClick(() => {
-                for (const section of groupSections) {
-                  section.classList.remove('is-collapsed');
-                  const list = section.querySelector('.task-cards') as HTMLElement | null;
-                  if (list) list.style.display = '';
-                  const name = section.getAttribute('data-group') || '';
-                  GroupingUtils.setGroupCollapsed(BASES_TASK_LIST_VIEW_TYPE, groupingKeyForButtons, name, false, plugin);
-                  const btn = section.querySelector('.task-group-toggle');
-                  btn?.setAttribute('aria-expanded', 'true');
-                }
-              });
+              if (subgroupBy && subgroupBy !== 'none') {
+                // Hierarchical expand/collapse buttons
+                const expandAllBtn = new ButtonComponent(controls)
+                  .setIcon('list-tree')
+                  .setTooltip('Expand All Groups and Subgroups')
+                  .setClass('filter-bar__expand-groups');
+                (expandAllBtn as any).buttonEl.classList.add('clickable-icon');
+                expandAllBtn.onClick(() => {
+                  // Expand all primary groups
+                  const primarySections = itemsContainer.querySelectorAll('.task-section[data-group-level="primary"]');
+                  for (const section of primarySections) {
+                    section.classList.remove('is-collapsed');
+                    const container = section.querySelector('.tasks-container');
+                    if (container) (container as HTMLElement).style.display = '';
+                    const name = section.getAttribute('data-group') || '';
+                    GroupingUtils.setGroupCollapsed(BASES_TASK_LIST_VIEW_TYPE, groupingKeyForButtons, name, false, plugin);
+                    const btn = section.querySelector('.task-group-toggle');
+                    btn?.setAttribute('aria-expanded', 'true');
+                  }
+
+                  // Expand all subgroups
+                  const subgroupSections = itemsContainer.querySelectorAll('.task-section[data-group-level="secondary"]');
+                  for (const section of subgroupSections) {
+                    section.classList.remove('is-collapsed');
+                    const container = section.querySelector('.tasks-container');
+                    if (container) (container as HTMLElement).style.display = '';
+                    const primaryGroup = section.getAttribute('data-group') || '';
+                    const subgroupName = section.getAttribute('data-subgroup') || '';
+                    GroupingUtils.setSubgroupCollapsed(BASES_TASK_LIST_VIEW_TYPE, primaryGroup, subgroupBy, subgroupName, false, plugin);
+                    const btn = section.querySelector('.task-group-toggle');
+                    btn?.setAttribute('aria-expanded', 'true');
+                  }
+                });
+              } else {
+                // Flat expand/collapse buttons
+                const expandAllBtn = new ButtonComponent(controls)
+                  .setIcon('list-tree')
+                  .setTooltip('Expand All Groups')
+                  .setClass('filter-bar__expand-groups');
+                (expandAllBtn as any).buttonEl.classList.add('clickable-icon');
+                expandAllBtn.onClick(() => {
+                  const groupSections = itemsContainer.querySelectorAll('.task-section.task-group');
+                  for (const section of groupSections) {
+                    section.classList.remove('is-collapsed');
+                    const list = section.querySelector('.task-cards') as HTMLElement | null;
+                    if (list) list.style.display = '';
+                    const name = section.getAttribute('data-group') || '';
+                    GroupingUtils.setGroupCollapsed(BASES_TASK_LIST_VIEW_TYPE, groupingKeyForButtons, name, false, plugin);
+                    const btn = section.querySelector('.task-group-toggle');
+                    btn?.setAttribute('aria-expanded', 'true');
+                  }
+                });
+              }
 
               // Collapse All button
-              const collapseAllBtn = new ButtonComponent(controls)
-                .setIcon('list-collapse')
-                .setTooltip('Collapse All Groups')
-                .setClass('filter-bar__collapse-groups');
-              (collapseAllBtn as any).buttonEl.classList.add('clickable-icon');
-              collapseAllBtn.onClick(() => {
-                const names = groupSections.map(s => s.getAttribute('data-group') || '');
-                for (const section of groupSections) {
-                  const list = section.querySelector('.task-cards') as HTMLElement | null;
-                  const hasTasks = !!list && list.children.length > 0;
-                  if (hasTasks) {
-                    section.classList.add('is-collapsed');
-                    if (list) list.style.display = 'none';
-                    const btn = section.querySelector('.task-group-toggle');
-                    btn?.setAttribute('aria-expanded', 'false');
+              if (subgroupBy && subgroupBy !== 'none') {
+                // Hierarchical collapse button
+                const collapseAllBtn = new ButtonComponent(controls)
+                  .setIcon('list-collapse')
+                  .setTooltip('Collapse All Groups and Subgroups')
+                  .setClass('filter-bar__collapse-groups');
+                (collapseAllBtn as any).buttonEl.classList.add('clickable-icon');
+                collapseAllBtn.onClick(() => {
+                  // Collapse all primary groups
+                  const primarySections = itemsContainer.querySelectorAll('.task-section[data-group-level="primary"]');
+                  const primaryNames: string[] = [];
+                  for (const section of primarySections) {
+                    const container = section.querySelector('.tasks-container');
+                    const hasTasks = !!container && container.children.length > 0;
+                    if (hasTasks) {
+                      section.classList.add('is-collapsed');
+                      if (container) (container as HTMLElement).style.display = 'none';
+                      const btn = section.querySelector('.task-group-toggle');
+                      btn?.setAttribute('aria-expanded', 'false');
+                      const name = section.getAttribute('data-group') || '';
+                      primaryNames.push(name);
+                    }
                   }
-                }
-                GroupingUtils.collapseAllGroups(BASES_TASK_LIST_VIEW_TYPE, groupingKeyForButtons, names, plugin);
-              });
+
+                  // Collapse all subgroups
+                  const subgroupSections = itemsContainer.querySelectorAll('.task-section[data-group-level="secondary"]');
+                  const subgroupData: Array<{primaryGroup: string, subgroupName: string}> = [];
+                  for (const section of subgroupSections) {
+                    const container = section.querySelector('.tasks-container');
+                    const hasTasks = !!container && container.children.length > 0;
+                    if (hasTasks) {
+                      section.classList.add('is-collapsed');
+                      if (container) (container as HTMLElement).style.display = 'none';
+                      const btn = section.querySelector('.task-group-toggle');
+                      btn?.setAttribute('aria-expanded', 'false');
+                      const primaryGroup = section.getAttribute('data-group') || '';
+                      const subgroupName = section.getAttribute('data-subgroup') || '';
+                      subgroupData.push({ primaryGroup, subgroupName });
+                    }
+                  }
+
+                  GroupingUtils.collapseAllGroups(BASES_TASK_LIST_VIEW_TYPE, groupingKeyForButtons, primaryNames, plugin);
+                  GroupingUtils.collapseAllSubgroupsGlobally(BASES_TASK_LIST_VIEW_TYPE, subgroupBy, subgroupData, plugin);
+                });
+              } else {
+                // Flat collapse button
+                const collapseAllBtn = new ButtonComponent(controls)
+                  .setIcon('list-collapse')
+                  .setTooltip('Collapse All Groups')
+                  .setClass('filter-bar__collapse-groups');
+                (collapseAllBtn as any).buttonEl.classList.add('clickable-icon');
+                collapseAllBtn.onClick(() => {
+                  const groupSections = itemsContainer.querySelectorAll('.task-section.task-group');
+                  const names: string[] = [];
+                  for (const section of groupSections) {
+                    const list = section.querySelector('.task-cards') as HTMLElement | null;
+                    const hasTasks = !!list && list.children.length > 0;
+                    if (hasTasks) {
+                      section.classList.add('is-collapsed');
+                      if (list) list.style.display = 'none';
+                      const btn = section.querySelector('.task-group-toggle');
+                      btn?.setAttribute('aria-expanded', 'false');
+                      const name = section.getAttribute('data-group') || '';
+                      names.push(name);
+                    }
+                  }
+                  GroupingUtils.collapseAllGroups(BASES_TASK_LIST_VIEW_TYPE, groupingKeyForButtons, names, plugin);
+                });
+              }
 
               // Add "+New" button after expand/collapse buttons
               addNewTaskButton();
@@ -459,5 +614,63 @@ export function buildTasknotesTaskListViewFactory(plugin: TaskNotesPlugin) {
 
     return component as any;
   };
+}
+
+/**
+ * Helper function to get group values for a single task
+ * Extracted from FilterService.groupTasks logic for reuse in Bases views
+ */
+export function getTaskGroupValues(task: TaskInfo, groupKey: TaskGroupKey, plugin: TaskNotesPlugin): string[] {
+  if (groupKey === 'none') {
+    return ['all'];
+  }
+
+  // Handle projects and tags which can have multiple values
+  if (groupKey === 'project') {
+    const { filterEmptyProjects } = require('../utils/helpers');
+    const filteredProjects = filterEmptyProjects(task.projects || []);
+    if (filteredProjects.length > 0) {
+      return filteredProjects.map((project: string) => {
+        // Use absolute path for consistent grouping (same as FilterService)
+        return plugin.filterService.resolveProjectToAbsolutePath(project);
+      });
+    } else {
+      return ['No Project'];
+    }
+  }
+
+  if (groupKey === 'tags') {
+    const tags = task.tags || [];
+    return tags.length > 0 ? tags : ['none'];
+  }
+
+  // Single-value grouping
+  let groupValue: string;
+  switch (groupKey) {
+    case 'status':
+      groupValue = task.status || 'no-status';
+      break;
+    case 'priority':
+      groupValue = task.priority || 'unknown';
+      break;
+    case 'context':
+      // For multiple contexts, use first context or 'none'
+      groupValue = (task.contexts && task.contexts.length > 0)
+        ? task.contexts[0]
+        : 'none';
+      break;
+    case 'due':
+      // Use FilterService's date grouping logic
+      groupValue = (plugin.filterService as any).getDueDateGroup(task);
+      break;
+    case 'scheduled':
+      // Use FilterService's scheduled date grouping logic
+      groupValue = (plugin.filterService as any).getScheduledDateGroup(task);
+      break;
+    default:
+      groupValue = 'unknown';
+  }
+
+  return [groupValue];
 }
 

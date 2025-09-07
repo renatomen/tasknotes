@@ -421,7 +421,118 @@ export function buildTasknotesAgendaViewFactory(plugin: TaskNotesPlugin) {
           header.addEventListener('click', (e) => { const target = e.target as HTMLElement; if (target.closest('a')) return; toggle(); });
           toggleBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); toggle(); });
 
-          await renderTaskNotesInBasesView(list, tasks as any, plugin, { extraPropertiesRows: extraRows as any });
+          // Check for TaskNotes subgroupBy configuration
+          const { getTaskNotesSubgroupBy } = await import('./tasklist-rows');
+          const subgroupBy = getTaskNotesSubgroupBy(basesContainer as any);
+
+          if (subgroupBy && subgroupBy !== 'none') {
+            // Render hierarchical subgroups within this day
+            const subgroupsContainer = list.createDiv({ cls: 'task-subgroups-container' });
+
+            // Group tasks by selected subgroup key for this specific date
+            const { getTaskGroupValues } = await import('./view-factory');
+            const subgroups = new Map<string, typeof tasks>();
+            for (const task of tasks) {
+              const subgroupValues = getTaskGroupValues(task, subgroupBy, plugin);
+              for (const subgroupValue of subgroupValues) {
+                const subgroupKey = String(subgroupValue ?? 'none');
+                if (!subgroups.has(subgroupKey)) subgroups.set(subgroupKey, []);
+                subgroups.get(subgroupKey)!.push(task);
+              }
+            }
+
+            // Render each subgroup
+            for (const [subgroupName, subgroupTasks] of subgroups) {
+              if (subgroupTasks.length === 0) continue;
+
+              // Create subgroup section
+              const subgroupSection = subgroupsContainer.createDiv({ cls: 'task-section task-subgroup' });
+              subgroupSection.setAttribute('data-group', dayKey);
+              subgroupSection.setAttribute('data-subgroup', subgroupName);
+              subgroupSection.setAttribute('data-group-level', 'secondary');
+
+              // Build header with toggle and count
+              const subgroupHeader = subgroupSection.createEl('h4', {
+                cls: 'task-group-header task-subgroup-header'
+              });
+
+              const subgroupToggleBtn = document.createElement('button');
+              subgroupToggleBtn.className = 'task-group-toggle';
+              subgroupToggleBtn.setAttribute('aria-label', 'Toggle subgroup');
+              try { setIcon(subgroupToggleBtn, 'chevron-right'); } catch (_) {}
+              const subgroupSvg = subgroupToggleBtn.querySelector('svg');
+              if (subgroupSvg) {
+                subgroupSvg.classList.add('chevron');
+                subgroupSvg.setAttribute('width', '16');
+                subgroupSvg.setAttribute('height', '16');
+              } else {
+                subgroupToggleBtn.textContent = '▸';
+              }
+              subgroupHeader.appendChild(subgroupToggleBtn);
+
+              const subgroupLabelSpan = document.createElement('span');
+              subgroupLabelSpan.className = 'tn-bases-subgroup-label';
+              subgroupLabelSpan.textContent = subgroupName;
+              subgroupHeader.appendChild(subgroupLabelSpan);
+
+              // Count
+              const { GroupCountUtils } = await import('../utils/GroupCountUtils');
+              const subgroupStats = GroupCountUtils.calculateGroupStats(subgroupTasks, plugin);
+              const subgroupCountSpan = document.createElement('span');
+              subgroupCountSpan.className = 'agenda-view__item-count';
+              subgroupCountSpan.textContent = ` ${GroupCountUtils.formatGroupCount(subgroupStats.completed, subgroupStats.total).text}`;
+              subgroupHeader.appendChild(subgroupCountSpan);
+
+              subgroupSection.appendChild(subgroupHeader);
+
+              // Subgroup tasks container
+              const subgroupTasksContainer = subgroupSection.createDiv({
+                cls: 'tasks-container task-cards'
+              });
+
+              // Apply initial collapsed state for subgroup
+              const { GroupingUtils } = await import('../utils/GroupingUtils');
+              const isSubgroupCollapsed = GroupingUtils.isSubgroupCollapsed(
+                BASES_TASK_LIST_VIEW_TYPE,
+                dayKey,
+                subgroupBy,
+                subgroupName,
+                plugin
+              );
+
+              if (isSubgroupCollapsed) {
+                subgroupSection.classList.add('is-collapsed');
+                subgroupTasksContainer.style.display = 'none';
+              }
+              subgroupToggleBtn.setAttribute('aria-expanded', String(!isSubgroupCollapsed));
+
+              // Toggle behavior for subgroup
+              const subgroupToggle = () => {
+                const willCollapse = !subgroupSection.classList.contains('is-collapsed');
+                GroupingUtils.setSubgroupCollapsed(BASES_TASK_LIST_VIEW_TYPE, dayKey, subgroupBy, subgroupName, willCollapse, plugin);
+                subgroupSection.classList.toggle('is-collapsed', willCollapse);
+                subgroupTasksContainer.style.display = willCollapse ? 'none' : '';
+                subgroupToggleBtn.setAttribute('aria-expanded', String(!willCollapse));
+              };
+              subgroupHeader.addEventListener('click', (e) => {
+                const target = e.target as HTMLElement;
+                if (target.closest('a')) return;
+                if (target.closest('.task-group-header-right')) return;
+                subgroupToggle();
+              });
+              subgroupToggleBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                subgroupToggle();
+              });
+
+              // Render tasks in this subgroup
+              await renderTaskNotesInBasesView(subgroupTasksContainer, subgroupTasks as any, plugin, { extraPropertiesRows: extraRows as any });
+            }
+          } else {
+            // Standard flat rendering when no subgroupBy
+            await renderTaskNotesInBasesView(list, tasks as any, plugin, { extraPropertiesRows: extraRows as any });
+          }
 
           itemsContainer.appendChild(section);
           groupSections.push(section);

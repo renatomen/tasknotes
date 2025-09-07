@@ -1,4 +1,4 @@
-import type { TaskInfo } from '../types';
+import type { TaskInfo, TaskGroupKey } from '../types';
 
 // Extended property config passed to TaskCard for rendering
 export interface BasesSelectedProperty {
@@ -254,6 +254,56 @@ export function getTaskNotesTasklistRows(basesContainer: any, pathToProps: Map<s
   } catch (e) {
     console.debug('[TaskNotes][Bases] getTaskNotesTasklistRows failed:', e);
     return {};
+  }
+}
+
+/**
+ * Parse tasknotes.subgroupBy configuration from Bases YAML
+ * Follows the same pattern as tasknotes.tasklist parsing
+ *
+ * @param basesContainer - Bases container with query and controller
+ * @returns TaskGroupKey for subgrouping or null if not configured
+ */
+export function getTaskNotesSubgroupBy(basesContainer: any): TaskGroupKey | null {
+  try {
+    const controller = (basesContainer?.controller ?? basesContainer) as any;
+    const query = (basesContainer?.query ?? controller?.query) as any;
+    if (!controller) return null;
+
+    const fullCfg = controller?.getViewConfig?.() ?? {};
+    const data = (fullCfg as any)?.data ?? {};
+
+    // Read custom config under tasknotes.subgroupBy (or tasknote.subgroupBy)
+    // Bases may provide dotted keys under fullCfg.data
+    let subgroupBy = data['tasknotes.subgroupBy']
+      ?? data?.tasknotes?.subgroupBy
+      ?? (fullCfg as any)['tasknotes.subgroupBy']
+      ?? (fullCfg as any)?.tasknotes?.subgroupBy
+      ?? (fullCfg as any)['tasknote.subgroupBy']
+      ?? (fullCfg as any)?.tasknote?.subgroupBy;
+
+    if (!subgroupBy) {
+      try {
+        subgroupBy = query?.getViewConfig?.('tasknotes.subgroupBy')
+          ?? (query?.getViewConfig?.('tasknotes') as any)?.subgroupBy;
+      } catch (_) { /* ignore */ }
+    }
+
+    // Validate that the subgroupBy value is a valid TaskGroupKey
+    if (subgroupBy && typeof subgroupBy === 'string') {
+      const validKeys: TaskGroupKey[] = [
+        'none', 'status', 'priority', 'context', 'project', 'due', 'scheduled', 'tags'
+      ];
+
+      if (validKeys.includes(subgroupBy as TaskGroupKey)) {
+        return subgroupBy as TaskGroupKey;
+      }
+    }
+
+    return null;
+  } catch (e) {
+    console.debug('[TaskNotes][Bases] getTaskNotesSubgroupBy failed:', e);
+    return null;
   }
 }
 
