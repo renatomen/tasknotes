@@ -70,13 +70,6 @@ export class FilterService extends EventEmitter {
      */
     async getGroupedTasks(query: FilterQuery, targetDate?: Date): Promise<GroupedTasksResult> {
         try {
-            console.log('FilterService.getGroupedTasks - received query:', {
-                groupKey: query?.groupKey,
-                subgroupKey: query?.subgroupKey,
-                sortKey: query?.sortKey,
-                fullQuery: query
-            });
-
             // Use non-strict validation to allow incomplete filters during building
             FilterUtils.validateFilterNode(query, false);
 

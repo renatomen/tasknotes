@@ -541,12 +541,6 @@ export class TaskListView extends ItemView {
             this.updateLoadingState();
             
             // Get grouped tasks from FilterService
-            console.log('TaskListView.refreshTasks - currentQuery:', {
-                groupKey: this.currentQuery?.groupKey,
-                subgroupKey: this.currentQuery?.subgroupKey,
-                sortKey: this.currentQuery?.sortKey,
-                fullQuery: this.currentQuery
-            });
             const groupedResult = await this.plugin.filterService.getGroupedTasks(this.currentQuery);
 
             // Render the grouped tasks using hierarchical renderer

@@ -30,24 +30,17 @@ export class HierarchicalGroupingService {
         secondaryGroupKey?: TaskGroupKey,
         targetDate?: Date
     ): GroupedTasksResult {
-        console.log('HierarchicalGroupingService.groupTasksHierarchically called with:', {
-            tasksCount: tasks.length,
-            primaryGroupKey,
-            secondaryGroupKey,
-            targetDate
-        });
+        // Debug logging removed
 
         // Validate inputs early (fail-fast pattern)
         this.validateInputs(tasks, primaryGroupKey, secondaryGroupKey);
 
         // Single-level grouping conditions
         if (this.shouldUseFlatGrouping(primaryGroupKey, secondaryGroupKey)) {
-            console.log('Using flat grouping');
             return this.createFlatGroupingResult(tasks, primaryGroupKey, targetDate);
         }
 
         // Two-level hierarchical grouping
-        console.log('Using hierarchical grouping');
         return this.createHierarchicalGroupingResult(tasks, primaryGroupKey, secondaryGroupKey!, targetDate);
     }
 
@@ -129,28 +122,17 @@ export class HierarchicalGroupingService {
         // First, group by primary field using existing FilterService logic
         const primaryGroups = this.filterService.groupTasks(tasks, primaryGroupKey, targetDate);
 
-        console.log('Primary groups:', {
-            groupCount: primaryGroups.size,
-            groups: Array.from(primaryGroups.keys()),
-            totalTasks: Array.from(primaryGroups.values()).reduce((sum, tasks) => sum + tasks.length, 0)
-        });
+        // Debug logging removed
 
         // Then, subgroup each primary group by secondary field
         primaryGroups.forEach((primaryTasks: TaskInfo[], primaryGroupName: string) => {
             const secondaryGroups = this.filterService.groupTasks(primaryTasks, secondaryGroupKey, targetDate);
             hierarchicalGroups.set(primaryGroupName, secondaryGroups);
 
-            console.log(`Secondary groups for "${primaryGroupName}":`, {
-                subgroupCount: secondaryGroups.size,
-                subgroups: Array.from(secondaryGroups.keys()),
-                totalTasks: Array.from(secondaryGroups.values()).reduce((sum, tasks) => sum + tasks.length, 0)
-            });
+            // Debug logging removed
         });
 
-        console.log('Final hierarchical result:', {
-            primaryGroupCount: hierarchicalGroups.size,
-            isHierarchical: true
-        });
+        // Debug logging removed
 
         return {
             isHierarchical: true,
