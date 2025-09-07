@@ -83,6 +83,17 @@ export function renderFeaturesTab(container: HTMLElement, plugin: TaskNotesPlugi
             }
         });
 
+        // Status suggestion trigger (single character; empty to disable)
+        createTextSetting(container, {
+            name: 'Status suggestion trigger',
+            desc: 'Single character to trigger status suggestions in NLP input (empty to disable). Example: *',
+            placeholder: '*',
+            getValue: () => plugin.settings.statusSuggestionTrigger || '',
+            setValue: async (value: string) => {
+                plugin.settings.statusSuggestionTrigger = (value || '').trim();
+                save();
+            }
+        });
     }
 
     // Project Autosuggest Section

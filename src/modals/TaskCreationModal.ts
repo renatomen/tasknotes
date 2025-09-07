@@ -13,7 +13,7 @@ import { ProjectMetadataResolver } from '../utils/projectMetadataResolver';
 import { parseDisplayFieldsRow } from '../utils/projectAutosuggestDisplayFieldsParser';
 
 interface TriggerDetectionResult {
-    trigger: '@' | '#' | '+' | null;
+    trigger: '@' | '#' | '+' | 'status' | null;
     triggerIndex: number;
     queryAfterTrigger: string;
 }
@@ -23,29 +23,39 @@ interface TriggerDetectionResult {
  * @param textBeforeCursor - Text before cursor position
  * @returns Trigger detection result with trigger type, index, and query
  */
-function detectSuggestionTrigger(textBeforeCursor: string): TriggerDetectionResult {
-    // Find the last @, #, or + before cursor
+function detectSuggestionTrigger(textBeforeCursor: string, statusTrig?: string): TriggerDetectionResult {
+    // Find the last @, #, +, or custom status trigger before cursor
     const lastAtIndex = textBeforeCursor.lastIndexOf('@');
     const lastHashIndex = textBeforeCursor.lastIndexOf('#');
     const lastPlusIndex = textBeforeCursor.lastIndexOf('+');
+    const lastStatusIndex = statusTrig && statusTrig.trim() ? textBeforeCursor.lastIndexOf(statusTrig) : -1;
 
     let triggerIndex = -1;
-    let trigger: '@' | '#' | '+' | null = null;
+    let trigger: '@' | '#' | '+' | 'status' | null = null;
 
-    // Find the most recent trigger
-    if (lastAtIndex >= lastHashIndex && lastAtIndex >= lastPlusIndex && lastAtIndex !== -1) {
-        triggerIndex = lastAtIndex;
-        trigger = '@';
-    } else if (lastHashIndex >= lastPlusIndex && lastHashIndex !== -1) {
-        triggerIndex = lastHashIndex;
-        trigger = '#';
-    } else if (lastPlusIndex !== -1) {
-        triggerIndex = lastPlusIndex;
-        trigger = '+';
+    // Determine the most recent trigger index among all candidates
+    const maxIndex = Math.max(lastAtIndex, lastHashIndex, lastPlusIndex, lastStatusIndex);
+    if (maxIndex === -1) {
+        return { trigger: null, triggerIndex: -1, queryAfterTrigger: '' };
     }
 
-    // Extract the query after the trigger
-    const queryAfterTrigger = triggerIndex !== -1 ? textBeforeCursor.slice(triggerIndex + 1) : '';
+    if (maxIndex === lastAtIndex) {
+        triggerIndex = lastAtIndex;
+        trigger = '@';
+    } else if (maxIndex === lastHashIndex) {
+        triggerIndex = lastHashIndex;
+        trigger = '#';
+    } else if (maxIndex === lastPlusIndex) {
+        triggerIndex = lastPlusIndex;
+        trigger = '+';
+    } else {
+        triggerIndex = lastStatusIndex;
+        trigger = 'status';
+    }
+
+    // Extract the query after the trigger (status trigger can be multi-char)
+    const offset = trigger === 'status' ? (statusTrig?.length || 0) : 1;
+    const queryAfterTrigger = triggerIndex !== -1 ? textBeforeCursor.slice(triggerIndex + offset) : '';
 
     return {
         trigger,
@@ -99,22 +109,29 @@ interface ContextSuggestion {
 class NLPSuggest extends AbstractInputSuggest<TagSuggestion | ContextSuggestion | ProjectSuggestion | StatusSuggestion> {
     private plugin: TaskNotesPlugin;
     private textarea: HTMLTextAreaElement;
-    private currentTrigger: '@' | '#' | '+' | null = null;
+    private currentTrigger: '@' | '#' | '+' | 'status' | null = null;
     // Store app reference explicitly to avoid relying on plugin.app in tests and runtime
     private obsidianApp: App;
+    private statusService: StatusSuggestionService;
     constructor(app: App, textareaEl: HTMLTextAreaElement, plugin: TaskNotesPlugin) {
         super(app, textareaEl as unknown as HTMLInputElement);
         this.plugin = plugin;
         this.textarea = textareaEl;
         this.obsidianApp = app;
+        this.statusService = new StatusSuggestionService(
+            plugin.settings.customStatuses,
+            plugin.settings.customPriorities,
+            plugin.settings.nlpDefaultToScheduled
+        );
     }
-    
-    protected async getSuggestions(query: string): Promise<(TagSuggestion | ContextSuggestion | ProjectSuggestion)[]> {
+
+    protected async getSuggestions(query: string): Promise<(TagSuggestion | ContextSuggestion | ProjectSuggestion | StatusSuggestion)[]> {
         // Get cursor position and detect trigger
         const cursorPos = this.textarea.selectionStart;
         const textBeforeCursor = this.textarea.value.slice(0, cursorPos);
 
-        const { trigger, triggerIndex, queryAfterTrigger } = detectSuggestionTrigger(textBeforeCursor);
+        const statusTrig = (this.plugin.settings.statusSuggestionTrigger || '').trim();
+        const { trigger, triggerIndex, queryAfterTrigger } = detectSuggestionTrigger(textBeforeCursor, statusTrig);
 
         // No trigger found or trigger is not at word boundary
         if (triggerIndex === -1 || (triggerIndex > 0 && /\w/.test(textBeforeCursor[triggerIndex - 1]))) {
@@ -135,6 +152,24 @@ class NLPSuggest extends AbstractInputSuggest<TagSuggestion | ContextSuggestion 
             return [];
         }
         this.currentTrigger = trigger;
+
+        // Handle status trigger (custom, variable length)
+        if (trigger === 'status') {
+            // If no trigger configured, disable
+            if (!statusTrig) {
+                this.currentTrigger = null;
+                return [];
+            }
+            // Context validation
+            if (!this.statusService.isValidStatusContext(this.textarea.value, cursorPos)) {
+                this.currentTrigger = null;
+                return [];
+            }
+            // Extract query after the status trigger
+            const q = this.statusService.extractQueryAfterTrigger(this.textarea.value, statusTrig, cursorPos);
+            const suggestions = this.statusService.getStatusSuggestions(q, this.plugin.settings.customStatuses).slice(0, 10);
+            return suggestions;
+        }
 
         // Get suggestions based on trigger type
         if (trigger === '@') {
@@ -456,20 +491,35 @@ class NLPSuggest extends AbstractInputSuggest<TagSuggestion | ContextSuggestion 
         if (!this.currentTrigger) return;
 
         const cursorPos = this.textarea.selectionStart;
+
+        // Handle status selection via service (variable-length trigger, label insertion)
+        if (this.currentTrigger === 'status') {
+            const statusTrig = (this.plugin.settings.statusSuggestionTrigger || '').trim();
+            if (!statusTrig) return;
+            const { newText, newCursorPos } = this.statusService.applyStatusSelection(
+                this.textarea.value,
+                statusTrig,
+                cursorPos,
+                suggestion as StatusSuggestion
+            );
+            this.textarea.value = newText;
+            this.textarea.setSelectionRange(newCursorPos, newCursorPos);
+            this.textarea.dispatchEvent(new Event('input', { bubbles: true }));
+            this.textarea.focus();
+            return;
+        }
+
         const textBeforeCursor = this.textarea.value.slice(0, cursorPos);
         const textAfterCursor = this.textarea.value.slice(cursorPos);
 
-        // Find the last trigger position (handle custom status trigger length)
+        // Find the last trigger position
         let lastTriggerIndex = -1;
-        const statusTrig = (this.plugin.settings.statusSuggestionTrigger || '').trim();
         if (this.currentTrigger === '@') {
             lastTriggerIndex = textBeforeCursor.lastIndexOf('@');
         } else if (this.currentTrigger === '#') {
             lastTriggerIndex = textBeforeCursor.lastIndexOf('#');
         } else if (this.currentTrigger === '+') {
             lastTriggerIndex = textBeforeCursor.lastIndexOf('+');
-        } else if (this.currentTrigger === 'status' && statusTrig) {
-            lastTriggerIndex = textBeforeCursor.lastIndexOf(statusTrig);
         }
 
         if (lastTriggerIndex === -1) return;
