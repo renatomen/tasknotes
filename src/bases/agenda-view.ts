@@ -340,10 +340,14 @@ export function buildTasknotesAgendaViewFactory(plugin: TaskNotesPlugin) {
           section.className = 'agenda-view__day-section task-group';
           section.setAttribute('data-day', dayKey);
 
-          // Header (similar to AgendaView.createDayHeader)
+          // Header (similar to AgendaView.createDayHeader but with TaskList structure)
           const header = document.createElement('div');
           header.className = 'agenda-view__day-header task-group-header';
           header.setAttribute('data-day', dayKey);
+
+          // Create left side container (toggle + title) - matches TaskList view structure
+          const leftContainer = document.createElement('div');
+          leftContainer.className = 'task-group-header-left';
 
           const toggleBtn = document.createElement('button');
           toggleBtn.className = 'task-group-toggle';
@@ -351,13 +355,13 @@ export function buildTasknotesAgendaViewFactory(plugin: TaskNotesPlugin) {
           try { setIcon(toggleBtn, 'chevron-right'); } catch (_) {}
           const svg = toggleBtn.querySelector('svg');
           if (svg) { svg.classList.add('chevron'); svg.setAttribute('width', '16'); svg.setAttribute('height', '16'); } else { toggleBtn.textContent = '▸'; }
-          header.appendChild(toggleBtn);
+          leftContainer.appendChild(toggleBtn);
 
           // Add a consistent group label span used by tests and for copyable day key
           const labelSpan = document.createElement('span');
           labelSpan.className = 'tn-bases-group-label';
           labelSpan.textContent = dayKey;
-          header.appendChild(labelSpan);
+          leftContainer.appendChild(labelSpan);
 
           const headerText = document.createElement('div');
           headerText.className = 'agenda-view__day-header-text';
@@ -384,14 +388,22 @@ export function buildTasknotesAgendaViewFactory(plugin: TaskNotesPlugin) {
             dateSpan.textContent = ` • ${dateFormatted}`;
             headerText.appendChild(dateSpan);
           }
-          header.appendChild(headerText);
+          leftContainer.appendChild(headerText);
+
+          // Create right side container (controls + count) - matches TaskList view structure
+          const rightContainer = document.createElement('div');
+          rightContainer.className = 'task-group-header-right';
 
           // Count badge (tasks completion)
           const stats = GroupCountUtils.calculateGroupStats(tasks as any, plugin);
           const countSpan = document.createElement('span');
           countSpan.className = 'agenda-view__item-count';
           countSpan.textContent = `${GroupCountUtils.formatGroupCount(stats.completed, stats.total).text}`;
-          header.appendChild(countSpan);
+          rightContainer.appendChild(countSpan);
+
+          // Add containers to header
+          header.appendChild(leftContainer);
+          header.appendChild(rightContainer);
 
           section.appendChild(header);
 
@@ -425,9 +437,16 @@ export function buildTasknotesAgendaViewFactory(plugin: TaskNotesPlugin) {
           const { getTaskNotesSubgroupBy } = await import('./tasklist-rows');
           const subgroupBy = getTaskNotesSubgroupBy(basesContainer as any);
 
+          // Debug logging
+          console.log('[TaskNotes][Bases Agenda] subgroupBy:', subgroupBy, 'for day:', dayKey);
+
           if (subgroupBy && subgroupBy !== 'none') {
-            // Add group-specific expand/collapse controls to the day header
-            addDaySubgroupControlButtons(header, dayKey, subgroupBy, plugin, root);
+            console.log('[TaskNotes][Bases Agenda] Adding group-specific controls for day:', dayKey);
+            // Add group-specific expand/collapse controls to the day header's right container
+            const rightContainer = header.querySelector('.task-group-header-right') as HTMLElement;
+            if (rightContainer) {
+              addDaySubgroupControlButtons(rightContainer, dayKey, subgroupBy, plugin, root);
+            }
 
             // Render hierarchical subgroups within this day
             const subgroupsContainer = list.createDiv({ cls: 'task-subgroups-container' });
@@ -605,11 +624,11 @@ export function buildTasknotesAgendaViewFactory(plugin: TaskNotesPlugin) {
   };
 
   /**
-   * Add group-specific expand/collapse control buttons to day header
+   * Add group-specific expand/collapse control buttons to day header's right container
    * Similar to HierarchicalTaskRenderer.addSubgroupControlButtons but for Bases Agenda view
    */
   function addDaySubgroupControlButtons(
-    dayHeader: HTMLElement,
+    rightContainer: HTMLElement,
     dayKey: string,
     subgroupKey: string,
     plugin: TaskNotesPlugin,
@@ -660,12 +679,13 @@ export function buildTasknotesAgendaViewFactory(plugin: TaskNotesPlugin) {
     controlsContainer.appendChild(expandSubgroupsBtn);
     controlsContainer.appendChild(collapseSubgroupsBtn);
 
-    // Insert controls before the count span (same positioning as TaskList view)
-    const countSpan = dayHeader.querySelector('.agenda-view__item-count');
+    // Insert controls before the count span in the right container
+    // This ensures they appear adjacent to the count (controls then count)
+    const countSpan = rightContainer.querySelector('.agenda-view__item-count');
     if (countSpan) {
-      dayHeader.insertBefore(controlsContainer, countSpan);
+      rightContainer.insertBefore(controlsContainer, countSpan);
     } else {
-      dayHeader.appendChild(controlsContainer);
+      rightContainer.appendChild(controlsContainer);
     }
   }
 
