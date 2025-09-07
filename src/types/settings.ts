@@ -18,6 +18,10 @@ export interface UserMappedField {
 export interface ProjectAutosuggestSettings {
 	enableFuzzy: boolean;
 	rows: string[]; // up to 3 rows; each uses {property|flags} format
+	// Optional advanced display and filtering options
+	showAdvanced?: boolean;
+	requiredTags?: string[];
+	includeFolders?: string[];
 }
 
 export interface TaskNotesSettings {
