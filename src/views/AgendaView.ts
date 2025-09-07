@@ -439,13 +439,13 @@ export class AgendaView extends ItemView {
         // Create filter heading with integrated controls
         this.filterHeading = new FilterHeading(container);
         
-        // Add expand/collapse controls to the heading container  
+        // Add expand/collapse controls to the heading container
         const headingContainer = container.querySelector('.filter-heading') as HTMLElement;
         if (headingContainer) {
-            const headingContent = headingContainer.querySelector('.filter-heading__content') as HTMLElement;
-            if (headingContent) {
+            const rightContainer = headingContainer.querySelector('.filter-heading__right') as HTMLElement;
+            if (rightContainer) {
                 // Add controls to the right side of the heading
-                const controlsContainer = headingContent.createDiv({ cls: 'filter-heading__controls' });
+                const controlsContainer = rightContainer.createDiv({ cls: 'filter-heading__controls' });
                 this.createExpandCollapseButtons(controlsContainer);
             }
         }
@@ -1391,6 +1391,15 @@ export class AgendaView extends ItemView {
             headerText.createSpan({ cls: 'agenda-view__day-date', text: ` • ${dateFormatted}` });
         }
 
+        // Create right side container for controls and count
+        const rightContainer = dayHeader.createDiv({ cls: 'task-group-header-right' });
+
+        // Add subgroup control buttons when subgroups are active
+        const subgroupKey = this.currentQuery.subgroupKey;
+        if (subgroupKey && subgroupKey !== 'none') {
+            this.addDaySubgroupControlButtons(rightContainer, dayKey, subgroupKey);
+        }
+
         // Item count badge - show completion count for tasks only
         const tasks = dayData.tasks || [];
         let countText: string;
@@ -1405,13 +1414,113 @@ export class AgendaView extends ItemView {
             countText = `${itemCount}`;
         }
 
-        dayHeader.createDiv({ cls: 'agenda-view__item-count', text: countText });
+        rightContainer.createDiv({ cls: 'agenda-view__item-count', text: countText });
 
         // Set initial ARIA state
         const collapsedInitially = this.isDayCollapsed(dayKey);
         toggleBtn.setAttr('aria-expanded', String(!collapsedInitially));
 
         return dayHeader;
+    }
+
+    /**
+     * Add expand/collapse subgroup control buttons to day header
+     * Similar to HierarchicalTaskRenderer.addSubgroupControlButtons
+     */
+    private addDaySubgroupControlButtons(
+        rightContainer: HTMLElement,
+        dayKey: string,
+        subgroupKey: string
+    ): void {
+        // Create container for subgroup control buttons
+        const controlsContainer = rightContainer.createDiv({
+            cls: 'task-group-subgroup-controls'
+        });
+
+        // Expand all subgroups button for this day
+        const expandSubgroupsBtn = controlsContainer.createEl('button', {
+            cls: 'task-group-subgroup-control-btn task-group-expand-subgroups',
+            attr: {
+                'aria-label': `Expand all subgroups for ${dayKey}`,
+                'title': 'Expand all subgroups'
+            }
+        });
+
+        try {
+            setIcon(expandSubgroupsBtn, 'list-tree');
+        } catch (_) {
+            expandSubgroupsBtn.textContent = '⊞';
+        }
+
+        // Collapse all subgroups button for this day
+        const collapseSubgroupsBtn = controlsContainer.createEl('button', {
+            cls: 'task-group-subgroup-control-btn task-group-collapse-subgroups',
+            attr: {
+                'aria-label': `Collapse all subgroups for ${dayKey}`,
+                'title': 'Collapse all subgroups'
+            }
+        });
+
+        try {
+            setIcon(collapseSubgroupsBtn, 'list-collapse');
+        } catch (_) {
+            collapseSubgroupsBtn.textContent = '⊟';
+        }
+
+        // Add click handlers
+        this.registerDomEvent(expandSubgroupsBtn, 'click', (e: MouseEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.expandAllSubgroupsForDay(dayKey, subgroupKey);
+        });
+
+        this.registerDomEvent(collapseSubgroupsBtn, 'click', (e: MouseEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.collapseAllSubgroupsForDay(dayKey, subgroupKey);
+        });
+    }
+
+    /**
+     * Expand all subgroups within a specific day
+     */
+    private expandAllSubgroupsForDay(dayKey: string, subgroupKey: string): void {
+        const daySection = this.contentEl.querySelector(`[data-day="${dayKey}"]`);
+        if (!daySection) return;
+
+        const subgroups = daySection.querySelectorAll('.task-subgroup');
+        subgroups.forEach(subgroupSection => {
+            subgroupSection.classList.remove('is-collapsed');
+            const taskCards = subgroupSection.querySelector('.task-cards') as HTMLElement | null;
+            if (taskCards) taskCards.style.display = '';
+        });
+
+        // Update state for subgroups in this day
+        GroupingUtils.expandAllSubgroups(AGENDA_VIEW_TYPE, dayKey, subgroupKey, this.plugin);
+    }
+
+    /**
+     * Collapse all subgroups within a specific day
+     */
+    private collapseAllSubgroupsForDay(dayKey: string, subgroupKey: string): void {
+        const daySection = this.contentEl.querySelector(`[data-day="${dayKey}"]`);
+        if (!daySection) return;
+
+        const subgroups = daySection.querySelectorAll('.task-subgroup');
+        const subgroupNames: string[] = [];
+
+        subgroups.forEach(subgroupSection => {
+            const subgroupName = (subgroupSection as HTMLElement).dataset.subgroup;
+            if (subgroupName) {
+                subgroupNames.push(subgroupName);
+                subgroupSection.classList.add('is-collapsed');
+                const taskCards = subgroupSection.querySelector('.task-cards') as HTMLElement | null;
+                if (taskCards) taskCards.style.display = 'none';
+            }
+        });
+
+        // Update state for subgroups in this day
+        GroupingUtils.collapseAllSubgroups(AGENDA_VIEW_TYPE, dayKey, subgroupKey, subgroupNames, this.plugin);
     }
 
     /**
