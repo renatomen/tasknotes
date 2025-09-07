@@ -444,9 +444,8 @@ export class AgendaView extends ItemView {
         if (headingContainer) {
             const rightContainer = headingContainer.querySelector('.filter-heading__right') as HTMLElement;
             if (rightContainer) {
-                // Add controls to the right side of the heading
-                const controlsContainer = rightContainer.createDiv({ cls: 'filter-heading__controls' });
-                this.createExpandCollapseButtons(controlsContainer);
+                // Add controls to the right side of the heading (before the count, like Task List view)
+                this.createExpandCollapseButtons(rightContainer);
             }
         }
         
@@ -459,17 +458,37 @@ export class AgendaView extends ItemView {
 
     /**
      * Create expand/collapse buttons for day sections
+     * Positioned consistently with Task List view (before the count)
      */
     private createExpandCollapseButtons(container: HTMLElement): void {
-        // Always show controls for agenda view (unlike task list which is conditional)
-        container.style.display = 'flex';
-        container.empty();
-        
+        // Remove existing expand/collapse buttons container but preserve other content (like count)
+        const existingButtonsContainer = container.querySelector('.filter-heading__buttons');
+        if (existingButtonsContainer) {
+            existingButtonsContainer.remove();
+        }
+
+        // Find the count element to insert buttons before it (same as Task List view)
+        const countElement = container.querySelector('.filter-heading__count');
+
+        // Create a container for the buttons (same structure as Task List view)
+        const buttonsContainer = document.createElement('div');
+        buttonsContainer.className = 'filter-heading__buttons';
+        buttonsContainer.style.display = 'flex';
+        buttonsContainer.style.alignItems = 'center';
+        buttonsContainer.style.gap = 'var(--tn-spacing-xs)';
+
+        // Insert buttons container before the count (same as Task List view)
+        if (countElement) {
+            container.insertBefore(buttonsContainer, countElement);
+        } else {
+            container.appendChild(buttonsContainer);
+        }
+
         // Expand all button
-        const expandAllBtn = new ButtonComponent(container)
+        const expandAllBtn = new ButtonComponent(buttonsContainer)
             .setIcon('list-tree')
             .setTooltip('Expand All Days')
-            .setClass('agenda-view-control-button')
+            .setClass('task-view-control-button')
             .onClick(() => {
                 // Expand all visible day sections
                 const sections = this.contentEl.querySelectorAll('.agenda-view__day-section.task-group');
@@ -488,11 +507,11 @@ export class AgendaView extends ItemView {
             });
         expandAllBtn.buttonEl.addClass('clickable-icon');
 
-        // Collapse all button  
-        const collapseAllBtn = new ButtonComponent(container)
+        // Collapse all button
+        const collapseAllBtn = new ButtonComponent(buttonsContainer)
             .setIcon('list-collapse')
             .setTooltip('Collapse All Days')
-            .setClass('agenda-view-control-button')
+            .setClass('task-view-control-button')
             .onClick(() => {
                 // Collapse all visible day sections
                 const collapsed: Record<string, boolean> = {};
