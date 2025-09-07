@@ -448,34 +448,22 @@ export function buildTasknotesTaskListViewFactory(plugin: TaskNotesPlugin) {
               const groupingKeyForButtons = `bases:${groupCfg.normalizedId}`;
 
               if (subgroupBy && subgroupBy !== 'none') {
-                // Hierarchical expand/collapse buttons
+                // Hierarchical expand/collapse buttons - only affect primary groups
                 const expandAllBtn = new ButtonComponent(controls)
                   .setIcon('list-tree')
-                  .setTooltip('Expand All Groups and Subgroups')
+                  .setTooltip('Expand All Groups')
                   .setClass('filter-bar__expand-groups');
                 (expandAllBtn as any).buttonEl.classList.add('clickable-icon');
                 expandAllBtn.onClick(() => {
-                  // Expand all primary groups
+                  // Only expand primary groups, not subgroups
                   const primarySections = itemsContainer.querySelectorAll('.task-section[data-group-level="primary"]');
                   for (const section of primarySections) {
                     section.classList.remove('is-collapsed');
-                    const container = section.querySelector('.tasks-container');
+                    // In hierarchical mode, primary groups contain '.task-subgroups-container'
+                    const container = section.querySelector('.task-subgroups-container, .tasks-container');
                     if (container) (container as HTMLElement).style.display = '';
                     const name = section.getAttribute('data-group') || '';
                     GroupingUtils.setGroupCollapsed(BASES_TASK_LIST_VIEW_TYPE, groupingKeyForButtons, name, false, plugin);
-                    const btn = section.querySelector('.task-group-toggle');
-                    btn?.setAttribute('aria-expanded', 'true');
-                  }
-
-                  // Expand all subgroups
-                  const subgroupSections = itemsContainer.querySelectorAll('.task-section[data-group-level="secondary"]');
-                  for (const section of subgroupSections) {
-                    section.classList.remove('is-collapsed');
-                    const container = section.querySelector('.tasks-container');
-                    if (container) (container as HTMLElement).style.display = '';
-                    const primaryGroup = section.getAttribute('data-group') || '';
-                    const subgroupName = section.getAttribute('data-subgroup') || '';
-                    GroupingUtils.setSubgroupCollapsed(BASES_TASK_LIST_VIEW_TYPE, primaryGroup, subgroupBy, subgroupName, false, plugin);
                     const btn = section.querySelector('.task-group-toggle');
                     btn?.setAttribute('aria-expanded', 'true');
                   }
@@ -503,22 +491,23 @@ export function buildTasknotesTaskListViewFactory(plugin: TaskNotesPlugin) {
 
               // Collapse All button
               if (subgroupBy && subgroupBy !== 'none') {
-                // Hierarchical collapse button
+                // Hierarchical collapse button - only affect primary groups
                 const collapseAllBtn = new ButtonComponent(controls)
                   .setIcon('list-collapse')
-                  .setTooltip('Collapse All Groups and Subgroups')
+                  .setTooltip('Collapse All Groups')
                   .setClass('filter-bar__collapse-groups');
                 (collapseAllBtn as any).buttonEl.classList.add('clickable-icon');
                 collapseAllBtn.onClick(() => {
-                  // Collapse all primary groups
+                  // Only collapse primary groups, not subgroups
                   const primarySections = itemsContainer.querySelectorAll('.task-section[data-group-level="primary"]');
                   const primaryNames: string[] = [];
                   for (const section of primarySections) {
-                    const container = section.querySelector('.tasks-container');
+                    // In hierarchical mode, primary groups contain '.task-subgroups-container'
+                    const container = section.querySelector('.task-subgroups-container, .tasks-container');
                     const hasTasks = !!container && container.children.length > 0;
                     if (hasTasks) {
                       section.classList.add('is-collapsed');
-                      if (container) (container as HTMLElement).style.display = 'none';
+                      (container as HTMLElement).style.display = 'none';
                       const btn = section.querySelector('.task-group-toggle');
                       btn?.setAttribute('aria-expanded', 'false');
                       const name = section.getAttribute('data-group') || '';
@@ -526,25 +515,7 @@ export function buildTasknotesTaskListViewFactory(plugin: TaskNotesPlugin) {
                     }
                   }
 
-                  // Collapse all subgroups
-                  const subgroupSections = itemsContainer.querySelectorAll('.task-section[data-group-level="secondary"]');
-                  const subgroupData: Array<{primaryGroup: string, subgroupName: string}> = [];
-                  for (const section of subgroupSections) {
-                    const container = section.querySelector('.tasks-container');
-                    const hasTasks = !!container && container.children.length > 0;
-                    if (hasTasks) {
-                      section.classList.add('is-collapsed');
-                      if (container) (container as HTMLElement).style.display = 'none';
-                      const btn = section.querySelector('.task-group-toggle');
-                      btn?.setAttribute('aria-expanded', 'false');
-                      const primaryGroup = section.getAttribute('data-group') || '';
-                      const subgroupName = section.getAttribute('data-subgroup') || '';
-                      subgroupData.push({ primaryGroup, subgroupName });
-                    }
-                  }
-
                   GroupingUtils.collapseAllGroups(BASES_TASK_LIST_VIEW_TYPE, groupingKeyForButtons, primaryNames, plugin);
-                  GroupingUtils.collapseAllSubgroupsGlobally(BASES_TASK_LIST_VIEW_TYPE, subgroupBy, subgroupData, plugin);
                 });
               } else {
                 // Flat collapse button
