@@ -105,5 +105,66 @@ describe('AgendaView hierarchical subgroups', () => {
     // Expect persistence to be called
     expect((GroupingUtils as any).setSubgroupCollapsed).toHaveBeenCalled();
   });
+
+  test('renders expand/collapse buttons in filter heading right container', async () => {
+    const plugin = makeBasicPluginMock();
+    const leaf = new MockLeaf() as any;
+    const view = new AgendaView(leaf, plugin as any);
+
+    attachAgendaContainer(view);
+    await view.onOpen();
+
+    // Verify filter heading exists
+    const filterHeading = (view as any).contentEl.querySelector('.filter-heading');
+    expect(filterHeading).toBeTruthy();
+
+    // Verify controls are in the right container
+    const rightContainer = filterHeading?.querySelector('.filter-heading__right');
+    expect(rightContainer).toBeTruthy();
+
+    const controlsContainer = rightContainer?.querySelector('.filter-heading__controls');
+    expect(controlsContainer).toBeTruthy();
+
+    // Verify expand/collapse buttons exist
+    const buttons = controlsContainer?.querySelectorAll('.agenda-view-control-button');
+    expect(buttons?.length).toBe(2); // Expand All and Collapse All
+  });
+
+  test('renders subgroup control buttons in day headers when subgroups are active', async () => {
+    const plugin = makeBasicPluginMock();
+    const leaf = new MockLeaf() as any;
+    const view = new AgendaView(leaf, plugin as any);
+
+    attachAgendaContainer(view);
+    await view.onOpen();
+
+    // Prepare container and day data with subgroups
+    const content = (view as any).contentEl.querySelector('.agenda-view__content') as HTMLElement
+      || (view as any).contentEl.createDiv({ cls: 'agenda-view__content' });
+
+    // Set subgroup and render grouped agenda directly
+    (view as any).currentQuery.subgroupKey = 'project';
+    const tA = makeTask({ path: '/a.md', project: 'Alpha' } as any);
+    const tB = makeTask({ path: '/b.md', project: 'Beta' } as any);
+    const dayData = [{ date: new Date(), tasks: [tA, tB], notes: [], ics: [] }];
+    (view as any).renderGroupedAgendaWithReconciler(content, dayData);
+
+    // Verify day header exists
+    const dayHeader = (view as any).contentEl.querySelector('.agenda-view__day-header');
+    expect(dayHeader).toBeTruthy();
+
+    // Verify subgroup control buttons are in the day header
+    const rightContainer = dayHeader?.querySelector('.task-group-header-right');
+    expect(rightContainer).toBeTruthy();
+
+    const controlsContainer = rightContainer?.querySelector('.task-group-subgroup-controls');
+    expect(controlsContainer).toBeTruthy();
+
+    // Verify both expand and collapse subgroup buttons exist
+    const expandBtn = controlsContainer?.querySelector('.task-group-expand-subgroups');
+    const collapseBtn = controlsContainer?.querySelector('.task-group-collapse-subgroups');
+    expect(expandBtn).toBeTruthy();
+    expect(collapseBtn).toBeTruthy();
+  });
 });
 
