@@ -24,19 +24,25 @@ export class FilterHeading {
     private render(): void {
         // Create main heading container
         const headingContainer = this.container.createDiv('filter-heading');
-        
+
         // Create heading content wrapper
         const headingContent = headingContainer.createDiv('filter-heading__content');
-        
+
+        // Create left side container (title)
+        const leftContainer = headingContent.createDiv('filter-heading__left');
+
         // View name element
-        this.headingElement = headingContent.createEl('h2', {
+        this.headingElement = leftContainer.createEl('h2', {
             cls: 'filter-heading__title',
             text: 'All'
         });
-        
+
+        // Create right side container (controls + count)
+        const rightContainer = headingContent.createDiv('filter-heading__right');
+
         // Count element
-        this.countElement = headingContent.createDiv('filter-heading__count agenda-view__item-count');
-        
+        this.countElement = rightContainer.createDiv('filter-heading__count agenda-view__item-count');
+
         // Divider line
         this.dividerElement = headingContainer.createDiv('filter-heading__divider');
     }

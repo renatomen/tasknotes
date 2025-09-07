@@ -815,12 +815,22 @@ export class AdvancedCalendarView extends ItemView {
         
         try {
             // Get filtered tasks from FilterService
-            const groupedTasks = await this.plugin.filterService.getGroupedTasks(this.currentQuery);
-            
+            const groupedResult = await this.plugin.filterService.getGroupedTasks(this.currentQuery);
+
             // Flatten grouped tasks since calendar doesn't use grouping
             const allTasks: TaskInfo[] = [];
-            for (const tasks of groupedTasks.values()) {
-                allTasks.push(...tasks);
+            if (groupedResult.isHierarchical && groupedResult.hierarchicalGroups) {
+                // Flatten hierarchical groups
+                for (const subgroups of groupedResult.hierarchicalGroups.values()) {
+                    for (const tasks of subgroups.values()) {
+                        allTasks.push(...tasks);
+                    }
+                }
+            } else if (groupedResult.flatGroups) {
+                // Flatten regular groups
+                for (const tasks of groupedResult.flatGroups.values()) {
+                    allTasks.push(...tasks);
+                }
             }
             
             // Get calendar's visible date range for recurring task generation

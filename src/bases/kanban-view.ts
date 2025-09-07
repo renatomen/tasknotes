@@ -1,5 +1,5 @@
 import TaskNotesPlugin from '../main';
-import { TextComponent, debounce, setTooltip, Notice } from 'obsidian';
+import { TextComponent, debounce, setTooltip, Notice, setIcon, ButtonComponent, TFile } from 'obsidian';
 import { BasesDataItem, identifyTaskNotesFromBasesData, renderTaskNotesInBasesView } from './helpers';
 import { getTaskNotesTasklistRows } from './tasklist-rows';
 import { getBasesGroupByConfig } from './group-by';
@@ -70,6 +70,105 @@ export function buildTasknotesKanbanViewFactory(plugin: TaskNotesPlugin) {
     board.className = 'kanban-view__board';
     board.style.marginTop = '12px';
     root.appendChild(board);
+
+    /**
+     * Add "+New" button to the right side of the controls
+     */
+    const addNewTaskButton = () => {
+      // Remove any existing "+New" button first
+      controls.querySelectorAll('.filter-bar__new-task-button').forEach(el => el.remove());
+
+      const newTaskButton = new ButtonComponent(controls)
+        .setTooltip('Create new task')
+        .setClass('filter-bar__new-task-button')
+        .onClick(() => {
+          createNewTaskWithContext();
+        });
+      newTaskButton.buttonEl.addClass('clickable-icon');
+      newTaskButton.buttonEl.addClass('has-text-icon');
+
+      // Clear any existing content and build manually
+      newTaskButton.buttonEl.empty();
+
+      // Add icon
+      const iconEl = newTaskButton.buttonEl.createSpan({ cls: 'button-icon' });
+      setIcon(iconEl, 'plus');
+
+      // Add text
+      const textEl = newTaskButton.buttonEl.createSpan({ cls: 'button-text', text: 'New' });
+    };
+
+    /**
+     * Context-aware task creation based on workspace position
+     */
+    const createNewTaskWithContext = () => {
+      try {
+        // Detect workspace position and determine context
+        const context = detectWorkspaceContext();
+
+        if (context.isInSidebar) {
+          // Sidebar mode: Use active file as project context
+          const activeFile = plugin.app.workspace.getActiveFile();
+          if (activeFile) {
+            const projectReference = `[[${activeFile.basename}]]`;
+            plugin.openTaskCreationModal({
+              projects: [projectReference]
+            });
+          } else {
+            // No active file, create standalone task
+            plugin.openTaskCreationModal();
+          }
+        } else {
+          // Main content mode: Create standalone task
+          plugin.openTaskCreationModal();
+        }
+      } catch (error) {
+        console.error('[TaskNotes][Bases] Error creating new task:', error);
+        // Fallback to basic task creation
+        plugin.openTaskCreationModal();
+      }
+    };
+
+    /**
+     * Detect if the Bases view is in sidebar vs main content area
+     */
+    const detectWorkspaceContext = () => {
+      try {
+        // Try to find the workspace leaf containing this view
+        const workspace = plugin.app.workspace;
+        let currentLeaf: any = null;
+
+        // Search through all leaves to find the one containing our view
+        workspace.iterateAllLeaves((leaf) => {
+          if (leaf.view && leaf.view.containerEl &&
+              leaf.view.containerEl.contains(viewContainerEl)) {
+            currentLeaf = leaf;
+          }
+        });
+
+        if (!currentLeaf) {
+          // Fallback: assume main content if we can't determine
+          return { isInSidebar: false, leaf: null };
+        }
+
+        // Check if the leaf is in a sidebar by examining its parent structure
+        const leafEl = currentLeaf.containerEl;
+        const isInLeftSidebar = leafEl.closest('.workspace-split.mod-left-split') !== null;
+        const isInRightSidebar = leafEl.closest('.workspace-split.mod-right-split') !== null;
+        const isInSidebar = isInLeftSidebar || isInRightSidebar;
+
+        return {
+          isInSidebar,
+          isInLeftSidebar,
+          isInRightSidebar,
+          leaf: currentLeaf
+        };
+      } catch (error) {
+        console.error('[TaskNotes][Bases] Error detecting workspace context:', error);
+        // Safe fallback
+        return { isInSidebar: false, leaf: null };
+      }
+    };
 
     // Helpers
     const extractDataItems = (): BasesDataItem[] => {
@@ -155,14 +254,55 @@ export function buildTasknotesKanbanViewFactory(plugin: TaskNotesPlugin) {
         const cmp = getBasesSortComparator(basesContainer as any, pathToProps);
         const tasksForGrouping = cmp ? [...searchedTasks].sort(cmp) : searchedTasks;
 
+        // Check for TaskNotes subgroupBy configuration
+        const { getTaskNotesSubgroupBy } = await import('./tasklist-rows');
+        const subgroupBy = getTaskNotesSubgroupBy(basesContainer as any);
+
         // Build groups
         const groups = new Map<string, typeof taskNotes>();
-        for (const t of tasksForGrouping) {
-          const values = groupCfg.getGroupValues(t.path) || ['none'];
-          for (const v of values) {
-            const key = String(v ?? 'none');
-            if (!groups.has(key)) groups.set(key, []);
-            groups.get(key)!.push(t);
+
+        if (subgroupBy && subgroupBy !== 'none') {
+          // Hierarchical grouping with flattening (Kanban doesn't support nested groups)
+          const hierarchicalGroups = new Map<string, Map<string, typeof taskNotes>>();
+
+          // First group by primary groupBy
+          for (const t of tasksForGrouping) {
+            const values = groupCfg.getGroupValues(t.path) || ['none'];
+            for (const v of values) {
+              const key = String(v ?? 'none');
+              if (!hierarchicalGroups.has(key)) hierarchicalGroups.set(key, new Map());
+
+              // Then subgroup by subgroupBy within each primary group
+              const { getTaskGroupValues } = await import('./view-factory');
+              const subgroupValues = getTaskGroupValues(t, subgroupBy, plugin);
+              for (const subgroupValue of subgroupValues) {
+                const subgroupKey = String(subgroupValue ?? 'none');
+                const primaryGroup = hierarchicalGroups.get(key)!;
+                if (!primaryGroup.has(subgroupKey)) primaryGroup.set(subgroupKey, []);
+                primaryGroup.get(subgroupKey)!.push(t);
+              }
+            }
+          }
+
+          // Flatten hierarchical groups for Kanban display (same as regular KanbanView)
+          hierarchicalGroups.forEach((subgroups, primaryGroupName) => {
+            const allTasksInPrimaryGroup: typeof taskNotes = [];
+            subgroups.forEach((tasks) => {
+              allTasksInPrimaryGroup.push(...tasks);
+            });
+            if (allTasksInPrimaryGroup.length > 0) {
+              groups.set(primaryGroupName, allTasksInPrimaryGroup);
+            }
+          });
+        } else {
+          // Standard flat grouping
+          for (const t of tasksForGrouping) {
+            const values = groupCfg.getGroupValues(t.path) || ['none'];
+            for (const v of values) {
+              const key = String(v ?? 'none');
+              if (!groups.has(key)) groups.set(key, []);
+              groups.get(key)!.push(t);
+            }
           }
         }
 
@@ -263,6 +403,9 @@ export function buildTasknotesKanbanViewFactory(plugin: TaskNotesPlugin) {
 
           board.appendChild(column);
         }
+
+        // Add "+New" button after rendering columns
+        addNewTaskButton();
       } catch (error) {
         console.error('[TaskNotes][BasesPOC] Error rendering Kanban:', error);
       }

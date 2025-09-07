@@ -7,7 +7,8 @@ import {
     EVENT_TASK_UPDATED,
     EVENT_DATE_CHANGED,
     FilterQuery,
-    SavedView
+    SavedView,
+    GroupedTasksResult
 } from '../types';
 // No helper functions needed from helpers
 import { perfMonitor } from '../utils/PerformanceMonitor';
@@ -16,6 +17,7 @@ import { FilterBar } from '../ui/FilterBar';
 import { GroupingUtils } from '../utils/GroupingUtils';
 import { FilterHeading } from '../ui/FilterHeading';
 import { GroupCountUtils } from '../utils/GroupCountUtils';
+import { HierarchicalTaskRenderer } from '../ui/HierarchicalTaskRenderer';
 
 export class TaskListView extends ItemView {
     plugin: TaskNotesPlugin;
@@ -318,9 +320,9 @@ export class TaskListView extends ItemView {
             // Save the filter state
             this.plugin.viewStateManager.setFilterState(TASK_LIST_VIEW_TYPE, newQuery);
             // Update expand/collapse buttons visibility
-            const controlsContainer = this.contentEl.querySelector('.filter-heading__controls') as HTMLElement;
-            if (controlsContainer) {
-                this.createExpandCollapseButtons(controlsContainer);
+            const rightContainer = this.contentEl.querySelector('.filter-heading__right') as HTMLElement;
+            if (rightContainer) {
+                this.createExpandCollapseButtons(rightContainer);
             }
             await this.refreshTasks();
         });
@@ -333,15 +335,14 @@ export class TaskListView extends ItemView {
 
         // Create filter heading with integrated controls
         this.filterHeading = new FilterHeading(container);
-        
+
         // Add expand/collapse controls to the heading container
         const headingContainer = container.querySelector('.filter-heading') as HTMLElement;
         if (headingContainer) {
-            const headingContent = headingContainer.querySelector('.filter-heading__content') as HTMLElement;
-            if (headingContent) {
-                // Add controls to the right side of the heading
-                const controlsContainer = headingContent.createDiv({ cls: 'filter-heading__controls' });
-                this.createExpandCollapseButtons(controlsContainer);
+            const rightContainer = headingContainer.querySelector('.filter-heading__right') as HTMLElement;
+            if (rightContainer) {
+                // Add controls to the right side of the heading (before the count)
+                this.createExpandCollapseButtons(rightContainer);
             }
         }
 
@@ -369,9 +370,9 @@ export class TaskListView extends ItemView {
         this.updateLoadingState();
         
         // Update expand/collapse buttons after initial load
-        const controlsContainer = this.contentEl.querySelector('.filter-heading__controls') as HTMLElement;
-        if (controlsContainer) {
-            this.createExpandCollapseButtons(controlsContainer);
+        const rightContainer = this.contentEl.querySelector('.filter-heading__right') as HTMLElement;
+        if (rightContainer) {
+            this.createExpandCollapseButtons(rightContainer);
         }
     }
 
@@ -380,39 +381,80 @@ export class TaskListView extends ItemView {
      */
     private createExpandCollapseButtons(container: HTMLElement): void {
         const isGrouped = (this.currentQuery.groupKey || 'none') !== 'none';
-        
+
+        // Remove existing expand/collapse buttons container but preserve other content (like count)
+        const existingButtonsContainer = container.querySelector('.filter-heading__buttons');
+        if (existingButtonsContainer) {
+            existingButtonsContainer.remove();
+        }
+
         if (!isGrouped) {
-            container.style.display = 'none';
             return;
         }
 
-        container.style.display = 'flex';
-        container.empty();
-        
+        // Find the count element to insert buttons before it
+        const countElement = container.querySelector('.filter-heading__count');
+
+        // Create a container for the buttons
+        const buttonsContainer = document.createElement('div');
+        buttonsContainer.className = 'filter-heading__buttons';
+        buttonsContainer.style.display = 'flex';
+        buttonsContainer.style.alignItems = 'center';
+        buttonsContainer.style.gap = 'var(--tn-spacing-xs)';
+
+        // Insert buttons container before the count
+        if (countElement) {
+            container.insertBefore(buttonsContainer, countElement);
+        } else {
+            container.appendChild(buttonsContainer);
+        }
+
         // Expand all button
-        const expandAllBtn = new ButtonComponent(container)
+        const expandAllBtn = new ButtonComponent(buttonsContainer)
             .setIcon('list-tree')
             .setTooltip('Expand All Groups')
             .setClass('task-view-control-button')
             .onClick(() => {
-                const key = this.currentQuery.groupKey || 'none';
+                const groupKey = this.currentQuery.groupKey || 'none';
+                const subgroupKey = this.currentQuery.subgroupKey;
+
+                // Expand all primary groups
                 this.contentEl.querySelectorAll('.task-group').forEach(section => {
                     section.classList.remove('is-collapsed');
                     const list = (section as HTMLElement).querySelector('.task-cards') as HTMLElement | null;
                     if (list) list.style.display = '';
+                    // Also show subgroups container if it exists
+                    const subgroupsContainer = (section as HTMLElement).querySelector('.task-subgroups-container') as HTMLElement | null;
+                    if (subgroupsContainer) subgroupsContainer.style.display = '';
                 });
-                GroupingUtils.expandAllGroups(TASK_LIST_VIEW_TYPE, key, this.plugin);
+
+                // Expand all subgroups
+                this.contentEl.querySelectorAll('.task-subgroup').forEach(section => {
+                    section.classList.remove('is-collapsed');
+                    const list = (section as HTMLElement).querySelector('.task-cards') as HTMLElement | null;
+                    if (list) list.style.display = '';
+                });
+
+                // Update state in GroupingUtils
+                GroupingUtils.expandAllGroups(TASK_LIST_VIEW_TYPE, groupKey, this.plugin);
+                if (subgroupKey && subgroupKey !== 'none') {
+                    GroupingUtils.expandAllSubgroupsGlobally(TASK_LIST_VIEW_TYPE, subgroupKey, this.plugin);
+                }
             });
         expandAllBtn.buttonEl.addClass('clickable-icon');
 
-        // Collapse all button  
-        const collapseAllBtn = new ButtonComponent(container)
+        // Collapse all button
+        const collapseAllBtn = new ButtonComponent(buttonsContainer)
             .setIcon('list-collapse')
             .setTooltip('Collapse All Groups')
             .setClass('task-view-control-button')
             .onClick(() => {
-                const key = this.currentQuery.groupKey || 'none';
+                const groupKey = this.currentQuery.groupKey || 'none';
+                const subgroupKey = this.currentQuery.subgroupKey;
                 const groupNames: string[] = [];
+                const subgroupData: Array<{primaryGroup: string, subgroupName: string}> = [];
+
+                // Collapse all primary groups
                 this.contentEl.querySelectorAll('.task-group').forEach(section => {
                     const name = (section as HTMLElement).dataset.group;
                     if (name) {
@@ -420,9 +462,29 @@ export class TaskListView extends ItemView {
                         section.classList.add('is-collapsed');
                         const list = (section as HTMLElement).querySelector('.task-cards') as HTMLElement | null;
                         if (list) list.style.display = 'none';
+                        // Also hide subgroups container
+                        const subgroupsContainer = (section as HTMLElement).querySelector('.task-subgroups-container') as HTMLElement | null;
+                        if (subgroupsContainer) subgroupsContainer.style.display = 'none';
                     }
                 });
-                GroupingUtils.collapseAllGroups(TASK_LIST_VIEW_TYPE, key, groupNames, this.plugin);
+
+                // Collapse all subgroups and collect their data
+                this.contentEl.querySelectorAll('.task-subgroup').forEach(section => {
+                    const primaryGroup = (section as HTMLElement).dataset.group;
+                    const subgroupName = (section as HTMLElement).dataset.subgroup;
+                    if (primaryGroup && subgroupName) {
+                        subgroupData.push({primaryGroup, subgroupName});
+                        section.classList.add('is-collapsed');
+                        const list = (section as HTMLElement).querySelector('.task-cards') as HTMLElement | null;
+                        if (list) list.style.display = 'none';
+                    }
+                });
+
+                // Update state in GroupingUtils
+                GroupingUtils.collapseAllGroups(TASK_LIST_VIEW_TYPE, groupKey, groupNames, this.plugin);
+                if (subgroupKey && subgroupKey !== 'none') {
+                    GroupingUtils.collapseAllSubgroupsGlobally(TASK_LIST_VIEW_TYPE, subgroupKey, subgroupData, this.plugin);
+                }
             });
         collapseAllBtn.buttonEl.addClass('clickable-icon');
     }
@@ -435,8 +497,23 @@ export class TaskListView extends ItemView {
 
         try {
             // Get all filtered tasks to calculate completion stats
-            const groupedTasks = await this.plugin.filterService.getGroupedTasks(this.currentQuery);
-            const allTasks = Array.from(groupedTasks.values()).flat();
+            const groupedResult = await this.plugin.filterService.getGroupedTasks(this.currentQuery);
+
+            // Extract all tasks from the result
+            const allTasks: TaskInfo[] = [];
+            if (groupedResult.isHierarchical && groupedResult.hierarchicalGroups) {
+                // Flatten hierarchical groups
+                for (const subgroups of groupedResult.hierarchicalGroups.values()) {
+                    for (const tasks of subgroups.values()) {
+                        allTasks.push(...tasks);
+                    }
+                }
+            } else if (groupedResult.flatGroups) {
+                // Flatten regular groups
+                for (const tasks of groupedResult.flatGroups.values()) {
+                    allTasks.push(...tasks);
+                }
+            }
 
             // Calculate completion stats
             const stats = GroupCountUtils.calculateGroupStats(allTasks, this.plugin);
@@ -464,10 +541,10 @@ export class TaskListView extends ItemView {
             this.updateLoadingState();
             
             // Get grouped tasks from FilterService
-            const groupedTasks = await this.plugin.filterService.getGroupedTasks(this.currentQuery);
-            
-            // Render the grouped tasks
-            this.renderTaskItems(this.taskListContainer, groupedTasks);
+            const groupedResult = await this.plugin.filterService.getGroupedTasks(this.currentQuery);
+
+            // Render the grouped tasks using hierarchical renderer
+            this.renderTaskItems(this.taskListContainer, groupedResult);
             
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : String(error);
@@ -505,11 +582,22 @@ export class TaskListView extends ItemView {
         }
     }
 
-    // Helper method to render task items with grouping support using DOMReconciler or Virtual Scrolling
-    renderTaskItems(container: HTMLElement, groupedTasks: Map<string, TaskInfo[]>) {
-        // Check if there are any tasks across all groups
-        const totalTasks = Array.from(groupedTasks.values()).reduce((total, tasks) => total + tasks.length, 0);
-        
+    // Helper method to render task items with hierarchical grouping support
+    renderTaskItems(container: HTMLElement, groupedResult: GroupedTasksResult) {
+        // Calculate total tasks across all groups
+        let totalTasks = 0;
+        if (groupedResult.isHierarchical && groupedResult.hierarchicalGroups) {
+            for (const subgroups of groupedResult.hierarchicalGroups.values()) {
+                for (const tasks of subgroups.values()) {
+                    totalTasks += tasks.length;
+                }
+            }
+        } else if (groupedResult.flatGroups) {
+            for (const tasks of groupedResult.flatGroups.values()) {
+                totalTasks += tasks.length;
+            }
+        }
+
         if (totalTasks === 0) {
             // Clear everything and show placeholder
             container.empty();
@@ -517,16 +605,18 @@ export class TaskListView extends ItemView {
             container.createEl('p', { text: 'No tasks found for the selected filters.' });
             return;
         }
-        
-        // Handle grouped vs non-grouped rendering differently
-        if (this.currentQuery.groupKey === 'none' && groupedTasks.has('all')) {
-            // Non-grouped: use DOMReconciler for the flat task list
-            const allTasks = groupedTasks.get('all') || [];
-            this.renderTaskListWithReconciler(container, allTasks);
-        } else {
-            // Grouped: render groups normally (groups change less frequently than individual tasks)
-            this.renderGroupedTasksWithReconciler(container, groupedTasks);
-        }
+
+        // Use hierarchical task renderer for all rendering
+        const hierarchicalRenderer = new HierarchicalTaskRenderer(this.plugin, TASK_LIST_VIEW_TYPE);
+
+        hierarchicalRenderer.renderHierarchicalGroups(
+            container,
+            groupedResult,
+            this.currentQuery,
+            this.taskElements,
+            (task) => this.createTaskCardForReconciler(task),
+            (element, task) => this.updateTaskCardForReconciler(element, task)
+        );
     }
 
     /**
@@ -614,8 +704,13 @@ export class TaskListView extends ItemView {
                     cls: 'task-group-header task-list-view__group-header'
                 });
 
+                // Create left side container (toggle + title)
+                const leftContainer = headerElement.createDiv({
+                    cls: 'task-group-header-left'
+                });
+
                 // Create toggle button first (exactly as in preview-all)
-                const toggleBtn = headerElement.createEl('button', { cls: 'task-group-toggle', attr: { 'aria-label': 'Toggle group' } });
+                const toggleBtn = leftContainer.createEl('button', { cls: 'task-group-toggle', attr: { 'aria-label': 'Toggle group' } });
                 try { setIcon(toggleBtn, 'chevron-right'); } catch (_) { /* Ignore setIcon errors */ }
                 const svg = toggleBtn.querySelector('svg');
                 if (svg) { svg.classList.add('chevron'); svg.setAttr('width', '16'); svg.setAttr('height', '16'); }
@@ -624,14 +719,19 @@ export class TaskListView extends ItemView {
                 // Calculate completion stats for this group
                 const groupStats = GroupCountUtils.calculateGroupStats(tasks, this.plugin);
 
+                // Create right side container (count)
+                const rightContainer = headerElement.createDiv({
+                    cls: 'task-group-header-right'
+                });
+
                 // Label: project path -> clickable, else plain text span
                 if (groupingKey === 'project' && this.isClickableProject(groupName)) {
-                    this.createClickableProjectHeader(headerElement, groupName, groupStats);
+                    this.createClickableProjectHeader(leftContainer, rightContainer, groupName, groupStats);
                 } else {
-                    headerElement.createSpan({ text: this.formatGroupName(groupName) });
+                    leftContainer.createSpan({ text: this.formatGroupName(groupName) });
 
                     // Add count with agenda-view__item-count styling
-                    headerElement.createSpan({
+                    rightContainer.createSpan({
                         text: ` ${GroupCountUtils.formatGroupCount(groupStats.completed, groupStats.total).text}`,
                         cls: 'agenda-view__item-count'
                     });
@@ -641,6 +741,7 @@ export class TaskListView extends ItemView {
                 this.registerDomEvent(headerElement, 'click', (e: MouseEvent) => {
                     const target = e.target as HTMLElement;
                     if (target.closest('a')) return;
+                    if (target.closest('.task-group-header-right')) return; // Ignore clicks on right side (count)
                     const willCollapse = !groupSection.hasClass('is-collapsed');
                     this.setGroupCollapsed(groupingKey, groupName, willCollapse);
                     groupSection.toggleClass('is-collapsed', willCollapse);
@@ -877,23 +978,23 @@ export class TaskListView extends ItemView {
     /**
      * Create a clickable project header for project file paths
      */
-    private createClickableProjectHeader(headerElement: HTMLElement, projectName: string, groupStats?: { completed: number; total: number }): void {
+    private createClickableProjectHeader(leftContainer: HTMLElement, rightContainer: HTMLElement, projectName: string, groupStats?: { completed: number; total: number }): void {
         if (!projectName || typeof projectName !== 'string') {
             return;
         }
-        
+
         let filePath = projectName;
         let displayName = projectName;
-        
+
         // Handle wikilink format
         if (projectName.startsWith('[[') && projectName.endsWith(']]')) {
             const linkContent = projectName.slice(2, -2);
             filePath = linkContent;
             displayName = linkContent;
         }
-        
-        // Create a clickable link
-        const linkEl = headerElement.createEl('a', {
+
+        // Create a clickable link in the left container
+        const linkEl = leftContainer.createEl('a', {
             cls: 'internal-link task-list-view__project-link',
             text: displayName
         });
@@ -929,7 +1030,7 @@ export class TaskListView extends ItemView {
 
         // Add count with agenda-view__item-count styling if stats provided
         if (groupStats) {
-            headerElement.createSpan({
+            rightContainer.createSpan({
                 text: ` ${GroupCountUtils.formatGroupCount(groupStats.completed, groupStats.total).text}`,
                 cls: 'agenda-view__item-count'
             });

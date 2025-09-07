@@ -96,6 +96,11 @@ function createMockElement(tagName: string = 'div'): any {
     return this;
   };
 
+  // Mock hasClass method
+  element.hasClass = function(this: any, className: string): boolean {
+    return this.classList.contains(className);
+  };
+
   // Mock toggleClass method
   element.toggleClass = function(this: any, className: string, add?: boolean): any {
     if (add !== undefined) {
@@ -111,6 +116,11 @@ function createMockElement(tagName: string = 'div'): any {
     return this;
   };
 
+  // Minimal setAttr helper to simulate Obsidian HTMLElement extensions
+  (element as any).setAttr = function(this: any, name: string, value: string): any {
+    this.setAttribute(name, value);
+    return this;
+  };
 
   return element;
 }

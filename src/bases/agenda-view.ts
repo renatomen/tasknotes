@@ -1,5 +1,5 @@
 import TaskNotesPlugin from '../main';
-import { TextComponent, debounce, setTooltip, ButtonComponent, setIcon } from 'obsidian';
+import { TextComponent, debounce, setTooltip, ButtonComponent, setIcon, TFile } from 'obsidian';
 import { BasesDataItem, identifyTaskNotesFromBasesData, renderTaskNotesInBasesView } from './helpers';
 import { getTaskNotesTasklistRows } from './tasklist-rows';
 import { buildSearchIndex, filterTasksBySearch } from './search';
@@ -119,6 +119,105 @@ export function buildTasknotesAgendaViewFactory(plugin: TaskNotesPlugin) {
     itemsContainer.className = 'tn-bases-items-container';
     itemsContainer.style.cssText = 'margin-top: 12px;';
     root.appendChild(itemsContainer);
+
+    /**
+     * Add "+New" button to the right side of the controls
+     */
+    const addNewTaskButton = () => {
+      // Remove any existing "+New" button first
+      controls.querySelectorAll('.filter-bar__new-task-button').forEach(el => el.remove());
+
+      const newTaskButton = new ButtonComponent(controls)
+        .setTooltip('Create new task')
+        .setClass('filter-bar__new-task-button')
+        .onClick(() => {
+          createNewTaskWithContext();
+        });
+      newTaskButton.buttonEl.addClass('clickable-icon');
+      newTaskButton.buttonEl.addClass('has-text-icon');
+
+      // Clear any existing content and build manually
+      newTaskButton.buttonEl.empty();
+
+      // Add icon
+      const iconEl = newTaskButton.buttonEl.createSpan({ cls: 'button-icon' });
+      setIcon(iconEl, 'plus');
+
+      // Add text
+      const textEl = newTaskButton.buttonEl.createSpan({ cls: 'button-text', text: 'New' });
+    };
+
+    /**
+     * Context-aware task creation based on workspace position
+     */
+    const createNewTaskWithContext = () => {
+      try {
+        // Detect workspace position and determine context
+        const context = detectWorkspaceContext();
+
+        if (context.isInSidebar) {
+          // Sidebar mode: Use active file as project context
+          const activeFile = plugin.app.workspace.getActiveFile();
+          if (activeFile) {
+            const projectReference = `[[${activeFile.basename}]]`;
+            plugin.openTaskCreationModal({
+              projects: [projectReference]
+            });
+          } else {
+            // No active file, create standalone task
+            plugin.openTaskCreationModal();
+          }
+        } else {
+          // Main content mode: Create standalone task
+          plugin.openTaskCreationModal();
+        }
+      } catch (error) {
+        console.error('[TaskNotes][Bases] Error creating new task:', error);
+        // Fallback to basic task creation
+        plugin.openTaskCreationModal();
+      }
+    };
+
+    /**
+     * Detect if the Bases view is in sidebar vs main content area
+     */
+    const detectWorkspaceContext = () => {
+      try {
+        // Try to find the workspace leaf containing this view
+        const workspace = plugin.app.workspace;
+        let currentLeaf: any = null;
+
+        // Search through all leaves to find the one containing our view
+        workspace.iterateAllLeaves((leaf) => {
+          if (leaf.view && leaf.view.containerEl &&
+              leaf.view.containerEl.contains(viewContainerEl)) {
+            currentLeaf = leaf;
+          }
+        });
+
+        if (!currentLeaf) {
+          // Fallback: assume main content if we can't determine
+          return { isInSidebar: false, leaf: null };
+        }
+
+        // Check if the leaf is in a sidebar by examining its parent structure
+        const leafEl = currentLeaf.containerEl;
+        const isInLeftSidebar = leafEl.closest('.workspace-split.mod-left-split') !== null;
+        const isInRightSidebar = leafEl.closest('.workspace-split.mod-right-split') !== null;
+        const isInSidebar = isInLeftSidebar || isInRightSidebar;
+
+        return {
+          isInSidebar,
+          isInLeftSidebar,
+          isInRightSidebar,
+          leaf: currentLeaf
+        };
+      } catch (error) {
+        console.error('[TaskNotes][Bases] Error detecting workspace context:', error);
+        // Safe fallback
+        return { isInSidebar: false, leaf: null };
+      }
+    };
 
     const extractDataItems = (): BasesDataItem[] => {
       const dataItems: BasesDataItem[] = [];
@@ -241,10 +340,14 @@ export function buildTasknotesAgendaViewFactory(plugin: TaskNotesPlugin) {
           section.className = 'agenda-view__day-section task-group';
           section.setAttribute('data-day', dayKey);
 
-          // Header (similar to AgendaView.createDayHeader)
+          // Header (similar to AgendaView.createDayHeader but with TaskList structure)
           const header = document.createElement('div');
           header.className = 'agenda-view__day-header task-group-header';
           header.setAttribute('data-day', dayKey);
+
+          // Create left side container (toggle + title) - matches TaskList view structure
+          const leftContainer = document.createElement('div');
+          leftContainer.className = 'task-group-header-left';
 
           const toggleBtn = document.createElement('button');
           toggleBtn.className = 'task-group-toggle';
@@ -252,13 +355,13 @@ export function buildTasknotesAgendaViewFactory(plugin: TaskNotesPlugin) {
           try { setIcon(toggleBtn, 'chevron-right'); } catch (_) {}
           const svg = toggleBtn.querySelector('svg');
           if (svg) { svg.classList.add('chevron'); svg.setAttribute('width', '16'); svg.setAttribute('height', '16'); } else { toggleBtn.textContent = '▸'; }
-          header.appendChild(toggleBtn);
+          leftContainer.appendChild(toggleBtn);
 
           // Add a consistent group label span used by tests and for copyable day key
           const labelSpan = document.createElement('span');
           labelSpan.className = 'tn-bases-group-label';
           labelSpan.textContent = dayKey;
-          header.appendChild(labelSpan);
+          leftContainer.appendChild(labelSpan);
 
           const headerText = document.createElement('div');
           headerText.className = 'agenda-view__day-header-text';
@@ -285,14 +388,22 @@ export function buildTasknotesAgendaViewFactory(plugin: TaskNotesPlugin) {
             dateSpan.textContent = ` • ${dateFormatted}`;
             headerText.appendChild(dateSpan);
           }
-          header.appendChild(headerText);
+          leftContainer.appendChild(headerText);
+
+          // Create right side container (controls + count) - matches TaskList view structure
+          const rightContainer = document.createElement('div');
+          rightContainer.className = 'task-group-header-right';
 
           // Count badge (tasks completion)
           const stats = GroupCountUtils.calculateGroupStats(tasks as any, plugin);
           const countSpan = document.createElement('span');
           countSpan.className = 'agenda-view__item-count';
           countSpan.textContent = `${GroupCountUtils.formatGroupCount(stats.completed, stats.total).text}`;
-          header.appendChild(countSpan);
+          rightContainer.appendChild(countSpan);
+
+          // Add containers to header
+          header.appendChild(leftContainer);
+          header.appendChild(rightContainer);
 
           section.appendChild(header);
 
@@ -322,7 +433,128 @@ export function buildTasknotesAgendaViewFactory(plugin: TaskNotesPlugin) {
           header.addEventListener('click', (e) => { const target = e.target as HTMLElement; if (target.closest('a')) return; toggle(); });
           toggleBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); toggle(); });
 
-          await renderTaskNotesInBasesView(list, tasks as any, plugin, { extraPropertiesRows: extraRows as any });
+          // Check for TaskNotes subgroupBy configuration
+          const { getTaskNotesSubgroupBy } = await import('./tasklist-rows');
+          const subgroupBy = getTaskNotesSubgroupBy(basesContainer as any);
+
+          // Debug logging
+          console.log('[TaskNotes][Bases Agenda] subgroupBy:', subgroupBy, 'for day:', dayKey);
+
+          if (subgroupBy && subgroupBy !== 'none') {
+            console.log('[TaskNotes][Bases Agenda] Adding group-specific controls for day:', dayKey);
+            // Add group-specific expand/collapse controls to the day header's right container
+            const rightContainer = header.querySelector('.task-group-header-right') as HTMLElement;
+            if (rightContainer) {
+              addDaySubgroupControlButtons(rightContainer, dayKey, subgroupBy, plugin, root);
+            }
+
+            // Render hierarchical subgroups within this day
+            const subgroupsContainer = list.createDiv({ cls: 'task-subgroups-container' });
+
+            // Group tasks by selected subgroup key for this specific date
+            const { getTaskGroupValues } = await import('./view-factory');
+            const subgroups = new Map<string, typeof tasks>();
+            for (const task of tasks) {
+              const subgroupValues = getTaskGroupValues(task, subgroupBy, plugin);
+              for (const subgroupValue of subgroupValues) {
+                const subgroupKey = String(subgroupValue ?? 'none');
+                if (!subgroups.has(subgroupKey)) subgroups.set(subgroupKey, []);
+                subgroups.get(subgroupKey)!.push(task);
+              }
+            }
+
+            // Render each subgroup
+            for (const [subgroupName, subgroupTasks] of subgroups) {
+              if (subgroupTasks.length === 0) continue;
+
+              // Create subgroup section
+              const subgroupSection = subgroupsContainer.createDiv({ cls: 'task-section task-subgroup' });
+              subgroupSection.setAttribute('data-group', dayKey);
+              subgroupSection.setAttribute('data-subgroup', subgroupName);
+              subgroupSection.setAttribute('data-group-level', 'secondary');
+
+              // Build header with toggle and count
+              const subgroupHeader = subgroupSection.createEl('h4', {
+                cls: 'task-group-header task-subgroup-header'
+              });
+
+              const subgroupToggleBtn = document.createElement('button');
+              subgroupToggleBtn.className = 'task-group-toggle';
+              subgroupToggleBtn.setAttribute('aria-label', 'Toggle subgroup');
+              try { setIcon(subgroupToggleBtn, 'chevron-right'); } catch (_) {}
+              const subgroupSvg = subgroupToggleBtn.querySelector('svg');
+              if (subgroupSvg) {
+                subgroupSvg.classList.add('chevron');
+                subgroupSvg.setAttribute('width', '16');
+                subgroupSvg.setAttribute('height', '16');
+              } else {
+                subgroupToggleBtn.textContent = '▸';
+              }
+              subgroupHeader.appendChild(subgroupToggleBtn);
+
+              const subgroupLabelSpan = document.createElement('span');
+              subgroupLabelSpan.className = 'tn-bases-subgroup-label';
+              subgroupLabelSpan.textContent = subgroupName;
+              subgroupHeader.appendChild(subgroupLabelSpan);
+
+              // Count
+              const { GroupCountUtils } = await import('../utils/GroupCountUtils');
+              const subgroupStats = GroupCountUtils.calculateGroupStats(subgroupTasks, plugin);
+              const subgroupCountSpan = document.createElement('span');
+              subgroupCountSpan.className = 'agenda-view__item-count';
+              subgroupCountSpan.textContent = ` ${GroupCountUtils.formatGroupCount(subgroupStats.completed, subgroupStats.total).text}`;
+              subgroupHeader.appendChild(subgroupCountSpan);
+
+              subgroupSection.appendChild(subgroupHeader);
+
+              // Subgroup tasks container
+              const subgroupTasksContainer = subgroupSection.createDiv({
+                cls: 'tasks-container task-cards'
+              });
+
+              // Apply initial collapsed state for subgroup
+              const { GroupingUtils } = await import('../utils/GroupingUtils');
+              const isSubgroupCollapsed = GroupingUtils.isSubgroupCollapsed(
+                BASES_TASK_LIST_VIEW_TYPE,
+                dayKey,
+                subgroupBy,
+                subgroupName,
+                plugin
+              );
+
+              if (isSubgroupCollapsed) {
+                subgroupSection.classList.add('is-collapsed');
+                subgroupTasksContainer.style.display = 'none';
+              }
+              subgroupToggleBtn.setAttribute('aria-expanded', String(!isSubgroupCollapsed));
+
+              // Toggle behavior for subgroup
+              const subgroupToggle = () => {
+                const willCollapse = !subgroupSection.classList.contains('is-collapsed');
+                GroupingUtils.setSubgroupCollapsed(BASES_TASK_LIST_VIEW_TYPE, dayKey, subgroupBy, subgroupName, willCollapse, plugin);
+                subgroupSection.classList.toggle('is-collapsed', willCollapse);
+                subgroupTasksContainer.style.display = willCollapse ? 'none' : '';
+                subgroupToggleBtn.setAttribute('aria-expanded', String(!willCollapse));
+              };
+              subgroupHeader.addEventListener('click', (e) => {
+                const target = e.target as HTMLElement;
+                if (target.closest('a')) return;
+                if (target.closest('.task-group-header-right')) return;
+                subgroupToggle();
+              });
+              subgroupToggleBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                subgroupToggle();
+              });
+
+              // Render tasks in this subgroup
+              await renderTaskNotesInBasesView(subgroupTasksContainer, subgroupTasks as any, plugin, { extraPropertiesRows: extraRows as any });
+            }
+          } else {
+            // Standard flat rendering when no subgroupBy
+            await renderTaskNotesInBasesView(list, tasks as any, plugin, { extraPropertiesRows: extraRows as any });
+          }
 
           itemsContainer.appendChild(section);
           groupSections.push(section);
@@ -366,6 +598,9 @@ export function buildTasknotesAgendaViewFactory(plugin: TaskNotesPlugin) {
             }
             GroupingUtils.collapseAllGroups(BASES_TASK_LIST_VIEW_TYPE, 'bases:agenda', names, plugin);
           });
+
+          // Add "+New" button after expand/collapse buttons
+          addNewTaskButton();
         } catch (_) { /* ignore */ }
       } catch (error) {
         console.error('[TaskNotes][BasesPOC] Error rendering Bases Agenda:', error);
@@ -387,5 +622,128 @@ export function buildTasknotesAgendaViewFactory(plugin: TaskNotesPlugin) {
 
     return component as any;
   };
+
+  /**
+   * Add group-specific expand/collapse control buttons to day header's right container
+   * Similar to HierarchicalTaskRenderer.addSubgroupControlButtons but for Bases Agenda view
+   */
+  function addDaySubgroupControlButtons(
+    rightContainer: HTMLElement,
+    dayKey: string,
+    subgroupKey: string,
+    plugin: TaskNotesPlugin,
+    rootElement: HTMLElement
+  ): void {
+    // Create container for subgroup control buttons
+    const controlsContainer = document.createElement('div');
+    controlsContainer.className = 'task-group-subgroup-controls';
+
+    // Expand all subgroups button for this day
+    const expandSubgroupsBtn = document.createElement('button');
+    expandSubgroupsBtn.className = 'task-group-subgroup-control-btn task-group-expand-subgroups';
+    expandSubgroupsBtn.setAttribute('aria-label', `Expand all subgroups for ${dayKey}`);
+    expandSubgroupsBtn.setAttribute('title', 'Expand all subgroups');
+
+    try {
+      setIcon(expandSubgroupsBtn, 'list-tree');
+    } catch (_) {
+      expandSubgroupsBtn.textContent = '⊞';
+    }
+
+    // Collapse all subgroups button for this day
+    const collapseSubgroupsBtn = document.createElement('button');
+    collapseSubgroupsBtn.className = 'task-group-subgroup-control-btn task-group-collapse-subgroups';
+    collapseSubgroupsBtn.setAttribute('aria-label', `Collapse all subgroups for ${dayKey}`);
+    collapseSubgroupsBtn.setAttribute('title', 'Collapse all subgroups');
+
+    try {
+      setIcon(collapseSubgroupsBtn, 'list-collapse');
+    } catch (_) {
+      collapseSubgroupsBtn.textContent = '⊟';
+    }
+
+    // Add click handlers
+    expandSubgroupsBtn.addEventListener('click', (e: MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      expandAllSubgroupsForDay(dayKey, subgroupKey, plugin, rootElement);
+    });
+
+    collapseSubgroupsBtn.addEventListener('click', (e: MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      collapseAllSubgroupsForDay(dayKey, subgroupKey, plugin, rootElement);
+    });
+
+    // Add buttons to container
+    controlsContainer.appendChild(expandSubgroupsBtn);
+    controlsContainer.appendChild(collapseSubgroupsBtn);
+
+    // Insert controls before the count span in the right container
+    // This ensures they appear adjacent to the count (controls then count)
+    const countSpan = rightContainer.querySelector('.agenda-view__item-count');
+    if (countSpan) {
+      rightContainer.insertBefore(controlsContainer, countSpan);
+    } else {
+      rightContainer.appendChild(controlsContainer);
+    }
+  }
+
+  /**
+   * Expand all subgroups for a specific day
+   */
+  function expandAllSubgroupsForDay(dayKey: string, subgroupKey: string, plugin: TaskNotesPlugin, rootElement: HTMLElement): void {
+    const { GroupingUtils } = require('../utils/GroupingUtils');
+    const { BASES_TASK_LIST_VIEW_TYPE } = require('../types');
+
+    // Find all subgroup sections for this day
+    const daySection = rootElement.querySelector(`[data-day="${dayKey}"]`);
+    if (!daySection) return;
+
+    const subgroupSections = daySection.querySelectorAll('.task-subgroup');
+    subgroupSections.forEach((subgroupSection: Element) => {
+      subgroupSection.classList.remove('is-collapsed');
+      const taskCards = subgroupSection.querySelector('.task-cards') as HTMLElement | null;
+      if (taskCards) taskCards.style.display = '';
+
+      // Update toggle button state
+      const toggleBtn = subgroupSection.querySelector('.task-group-toggle');
+      if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'true');
+    });
+
+    // Update state - expand all subgroups for this day
+    GroupingUtils.expandAllSubgroups(BASES_TASK_LIST_VIEW_TYPE, dayKey, subgroupKey, plugin);
+  }
+
+  /**
+   * Collapse all subgroups for a specific day
+   */
+  function collapseAllSubgroupsForDay(dayKey: string, subgroupKey: string, plugin: TaskNotesPlugin, rootElement: HTMLElement): void {
+    const { GroupingUtils } = require('../utils/GroupingUtils');
+    const { BASES_TASK_LIST_VIEW_TYPE } = require('../types');
+
+    // Find all subgroup sections for this day
+    const daySection = rootElement.querySelector(`[data-day="${dayKey}"]`);
+    if (!daySection) return;
+
+    const subgroupSections = daySection.querySelectorAll('.task-subgroup');
+    const subgroupNames: string[] = [];
+
+    subgroupSections.forEach((subgroupSection: Element) => {
+      subgroupSection.classList.add('is-collapsed');
+      const taskCards = subgroupSection.querySelector('.task-cards') as HTMLElement | null;
+      if (taskCards) taskCards.style.display = 'none';
+
+      // Update toggle button state
+      const toggleBtn = subgroupSection.querySelector('.task-group-toggle');
+      if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
+
+      const subgroupName = subgroupSection.getAttribute('data-subgroup') || '';
+      if (subgroupName) subgroupNames.push(subgroupName);
+    });
+
+    // Update state - collapse all subgroups for this day
+    GroupingUtils.collapseAllSubgroups(BASES_TASK_LIST_VIEW_TYPE, dayKey, subgroupKey, subgroupNames, plugin);
+  }
 }
 
