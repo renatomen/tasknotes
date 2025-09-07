@@ -426,6 +426,9 @@ export function buildTasknotesAgendaViewFactory(plugin: TaskNotesPlugin) {
           const subgroupBy = getTaskNotesSubgroupBy(basesContainer as any);
 
           if (subgroupBy && subgroupBy !== 'none') {
+            // Add group-specific expand/collapse controls to the day header
+            addDaySubgroupControlButtons(header, dayKey, subgroupBy, plugin, root);
+
             // Render hierarchical subgroups within this day
             const subgroupsContainer = list.createDiv({ cls: 'task-subgroups-container' });
 
@@ -600,5 +603,127 @@ export function buildTasknotesAgendaViewFactory(plugin: TaskNotesPlugin) {
 
     return component as any;
   };
+
+  /**
+   * Add group-specific expand/collapse control buttons to day header
+   * Similar to HierarchicalTaskRenderer.addSubgroupControlButtons but for Bases Agenda view
+   */
+  function addDaySubgroupControlButtons(
+    dayHeader: HTMLElement,
+    dayKey: string,
+    subgroupKey: string,
+    plugin: TaskNotesPlugin,
+    rootElement: HTMLElement
+  ): void {
+    // Create container for subgroup control buttons
+    const controlsContainer = document.createElement('div');
+    controlsContainer.className = 'task-group-subgroup-controls';
+
+    // Expand all subgroups button for this day
+    const expandSubgroupsBtn = document.createElement('button');
+    expandSubgroupsBtn.className = 'task-group-subgroup-control-btn task-group-expand-subgroups';
+    expandSubgroupsBtn.setAttribute('aria-label', `Expand all subgroups for ${dayKey}`);
+    expandSubgroupsBtn.setAttribute('title', 'Expand all subgroups');
+
+    try {
+      setIcon(expandSubgroupsBtn, 'list-tree');
+    } catch (_) {
+      expandSubgroupsBtn.textContent = '⊞';
+    }
+
+    // Collapse all subgroups button for this day
+    const collapseSubgroupsBtn = document.createElement('button');
+    collapseSubgroupsBtn.className = 'task-group-subgroup-control-btn task-group-collapse-subgroups';
+    collapseSubgroupsBtn.setAttribute('aria-label', `Collapse all subgroups for ${dayKey}`);
+    collapseSubgroupsBtn.setAttribute('title', 'Collapse all subgroups');
+
+    try {
+      setIcon(collapseSubgroupsBtn, 'list-collapse');
+    } catch (_) {
+      collapseSubgroupsBtn.textContent = '⊟';
+    }
+
+    // Add click handlers
+    expandSubgroupsBtn.addEventListener('click', (e: MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      expandAllSubgroupsForDay(dayKey, subgroupKey, plugin, rootElement);
+    });
+
+    collapseSubgroupsBtn.addEventListener('click', (e: MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      collapseAllSubgroupsForDay(dayKey, subgroupKey, plugin, rootElement);
+    });
+
+    // Add buttons to container
+    controlsContainer.appendChild(expandSubgroupsBtn);
+    controlsContainer.appendChild(collapseSubgroupsBtn);
+
+    // Insert controls before the count span (same positioning as TaskList view)
+    const countSpan = dayHeader.querySelector('.agenda-view__item-count');
+    if (countSpan) {
+      dayHeader.insertBefore(controlsContainer, countSpan);
+    } else {
+      dayHeader.appendChild(controlsContainer);
+    }
+  }
+
+  /**
+   * Expand all subgroups for a specific day
+   */
+  function expandAllSubgroupsForDay(dayKey: string, subgroupKey: string, plugin: TaskNotesPlugin, rootElement: HTMLElement): void {
+    const { GroupingUtils } = require('../utils/GroupingUtils');
+    const { BASES_TASK_LIST_VIEW_TYPE } = require('../types');
+
+    // Find all subgroup sections for this day
+    const daySection = rootElement.querySelector(`[data-day="${dayKey}"]`);
+    if (!daySection) return;
+
+    const subgroupSections = daySection.querySelectorAll('.task-subgroup');
+    subgroupSections.forEach((subgroupSection: Element) => {
+      subgroupSection.classList.remove('is-collapsed');
+      const taskCards = subgroupSection.querySelector('.task-cards') as HTMLElement | null;
+      if (taskCards) taskCards.style.display = '';
+
+      // Update toggle button state
+      const toggleBtn = subgroupSection.querySelector('.task-group-toggle');
+      if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'true');
+    });
+
+    // Update state - expand all subgroups for this day
+    GroupingUtils.expandAllSubgroups(BASES_TASK_LIST_VIEW_TYPE, dayKey, subgroupKey, plugin);
+  }
+
+  /**
+   * Collapse all subgroups for a specific day
+   */
+  function collapseAllSubgroupsForDay(dayKey: string, subgroupKey: string, plugin: TaskNotesPlugin, rootElement: HTMLElement): void {
+    const { GroupingUtils } = require('../utils/GroupingUtils');
+    const { BASES_TASK_LIST_VIEW_TYPE } = require('../types');
+
+    // Find all subgroup sections for this day
+    const daySection = rootElement.querySelector(`[data-day="${dayKey}"]`);
+    if (!daySection) return;
+
+    const subgroupSections = daySection.querySelectorAll('.task-subgroup');
+    const subgroupNames: string[] = [];
+
+    subgroupSections.forEach((subgroupSection: Element) => {
+      subgroupSection.classList.add('is-collapsed');
+      const taskCards = subgroupSection.querySelector('.task-cards') as HTMLElement | null;
+      if (taskCards) taskCards.style.display = 'none';
+
+      // Update toggle button state
+      const toggleBtn = subgroupSection.querySelector('.task-group-toggle');
+      if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
+
+      const subgroupName = subgroupSection.getAttribute('data-subgroup') || '';
+      if (subgroupName) subgroupNames.push(subgroupName);
+    });
+
+    // Update state - collapse all subgroups for this day
+    GroupingUtils.collapseAllSubgroups(BASES_TASK_LIST_VIEW_TYPE, dayKey, subgroupKey, subgroupNames, plugin);
+  }
 }
 
