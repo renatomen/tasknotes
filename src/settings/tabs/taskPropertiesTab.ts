@@ -21,6 +21,7 @@ import {
 	createCardNumberInput,
 	createCardSelect,
 } from "../components/CardComponent";
+import { createFilterSettingsInputs } from "../components/FilterSettingsComponent";
 // import { ListEditorComponent, ListEditorItem } from '../components/ListEditorComponent';
 
 // interface StatusItem extends ListEditorItem, StatusConfig {}
@@ -801,6 +802,20 @@ function renderUserFieldsList(
 			renderUserFieldsList(container, plugin, save);
 		});
 
+		// Create filter settings container
+		const filterContainer = document.createElement("div");
+		filterContainer.addClass("filter-settings-container");
+
+		createFilterSettingsInputs(
+			filterContainer,
+			field.autosuggestFilter,
+			(updated) => {
+				field.autosuggestFilter = updated;
+				save();
+			},
+			translate
+		);
+
 		createCard(container, {
 			id: field.id,
 			collapsible: true,
@@ -849,6 +864,17 @@ function renderUserFieldsList(
 									"settings.taskProperties.customUserFields.fields.type"
 								),
 								input: typeSelect,
+							},
+						],
+					},
+					{
+						rows: [
+							{
+								label: translate(
+									"settings.taskProperties.customUserFields.autosuggestFilters.header"
+								),
+								input: filterContainer,
+								fullWidth: true,
 							},
 						],
 					},
