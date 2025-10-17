@@ -102,8 +102,9 @@ export class MinimalNativeCache extends Events {
 
 	/**
 	 * Check if a file is a task based on current settings
+	 * Public to allow ProjectSubtasksService to validate task files (issue #953)
 	 */
-	private isTaskFile(frontmatter: any): boolean {
+	isTaskFile(frontmatter: any): boolean {
 		if (!frontmatter) return false;
 
 		if (this.settings.taskIdentificationMethod === "property") {
@@ -1397,18 +1398,19 @@ export class MinimalNativeCache extends Events {
 			metadata = this.app.metadataCache.getFileCache(file);
 		}
 
-		// Early exit: Only process files that are potentially task files
-		if (!metadata?.frontmatter || !this.isTaskFile(metadata.frontmatter)) {
-			// Clean up state caches if file is no longer a task
-			this.lastKnownFrontmatter.delete(file.path);
-			this.lastKnownTaskInfo.delete(file.path);
+		const currentFrontmatter = metadata?.frontmatter;
+		const lastKnownFrontmatter = this.lastKnownFrontmatter.get(file.path);
+
+		// Check if this file was previously a task (even if it's not anymore)
+		const wasTask = this.lastKnownTaskInfo.has(file.path);
+		const isTask = currentFrontmatter && this.isTaskFile(currentFrontmatter);
+
+		// Early exit: Only process if file is currently a task OR was previously a task
+		if (!isTask && !wasTask) {
 			return;
 		}
 
 		// Check if frontmatter actually changed by comparing raw frontmatter objects
-		const currentFrontmatter = metadata.frontmatter;
-		const lastKnownFrontmatter = this.lastKnownFrontmatter.get(file.path);
-
 		if (this.frontmatterEquals(currentFrontmatter, lastKnownFrontmatter)) {
 			// Frontmatter hasn't changed - this was likely just a content change or mtime update
 			return;
@@ -1456,7 +1458,7 @@ export class MinimalNativeCache extends Events {
 			// Re-index the task with fresh metadata
 			await this.indexTaskFile(file, metadata.frontmatter);
 		} else {
-			// No longer a task - clean up state caches
+			// File is no longer a task - clean up cached data (issue #953)
 			this.lastKnownFrontmatter.delete(file.path);
 			this.lastKnownTaskInfo.delete(file.path);
 		}
