@@ -206,6 +206,31 @@ describe('FilterSettingsComponent', () => {
 				propertyValue: 'existing-value',
 			});
 		});
+
+		it('should preserve sequential changes when starting from undefined config', () => {
+			// This tests the bug fix for stale closure issue
+			createFilterSettingsInputs(container, undefined, mockOnChange, mockTranslate);
+
+			const [tagsInput, foldersInput, keyInput] = container.querySelectorAll('input');
+
+			// User makes sequential changes
+			tagsInput.value = 'person';
+			tagsInput.dispatchEvent(new Event('change'));
+
+			foldersInput.value = 'People/';
+			foldersInput.dispatchEvent(new Event('change'));
+
+			keyInput.value = 'role';
+			keyInput.dispatchEvent(new Event('change'));
+
+			// Should preserve all previous changes
+			expect(mockOnChange).toHaveBeenLastCalledWith({
+				requiredTags: ['person'],
+				includeFolders: ['People/'],
+				propertyKey: 'role',
+				propertyValue: '',
+			});
+		});
 	});
 
 	describe('Translation Keys', () => {

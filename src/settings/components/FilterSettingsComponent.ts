@@ -12,7 +12,8 @@ export function createFilterSettingsInputs(
 	onChange: (updated: FileFilterConfig) => void,
 	translate: (key: TranslationKey) => string
 ): void {
-	const config = currentConfig || {
+	// Track current config state to preserve values across sequential updates
+	let config = currentConfig || {
 		requiredTags: [],
 		includeFolders: [],
 		propertyKey: "",
@@ -21,7 +22,8 @@ export function createFilterSettingsInputs(
 
 	// Helper to update config and trigger onChange
 	const updateConfig = (updates: Partial<FileFilterConfig>) => {
-		onChange({ ...config, ...updates });
+		config = { ...config, ...updates };
+		onChange(config);
 	};
 
 	// Required Tags input
