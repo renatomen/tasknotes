@@ -52,7 +52,9 @@ function buildPropertyIdIndex(propsMap: Record<string, any> | undefined): Map<st
  *  - Built-ins: file.basename, file.path, title, due, scheduled, priority
  *  - Any property id from query.properties (note.*)
  *
- * Uses public API (1.10.0+) when available via config.getSort()
+ * NOTE: Sort configuration uses internal API since public API (1.10.0+)
+ * config.getSort() may not be fully reliable. We access internal structures
+ * to ensure consistent sorting behavior.
  */
 export function getBasesSortComparator(
 	basesContainer: any,
@@ -63,26 +65,15 @@ export function getBasesSortComparator(
 		const query = (basesContainer?.query ?? controller?.query) as any;
 		if (!controller) return null;
 
-		// Try public API first (1.10.0+) - config.getSort()
+		// Access internal API for sort configuration
 		let sort: any;
-		if (basesContainer?.config && typeof basesContainer.config.getSort === "function") {
-			try {
-				sort = basesContainer.config.getSort();
-			} catch (_) {
-				// Ignore errors accessing sort config
-			}
+		const fullCfg = controller?.getViewConfig?.() ?? {};
+		try {
+			sort = query?.getViewConfig?.("sort");
+		} catch (_) {
+			// Ignore errors accessing sort config
 		}
-
-		// Fallback to internal API for older versions
-		if (sort == null) {
-			const fullCfg = controller?.getViewConfig?.() ?? {};
-			try {
-				sort = query?.getViewConfig?.("sort");
-			} catch (_) {
-				// Ignore errors accessing sort config
-			}
-			if (sort == null) sort = (fullCfg as any)?.sort;
-		}
+		if (sort == null) sort = (fullCfg as any)?.sort;
 
 		if (!Array.isArray(sort) || sort.length === 0) return null;
 

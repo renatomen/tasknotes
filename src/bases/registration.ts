@@ -8,36 +8,35 @@ import { registerBasesView, unregisterBasesView } from "./api";
 
 /**
  * Register TaskNotes views with Bases plugin
- * Uses public API (1.10.0+) with fallback to internal API
+ * Requires Obsidian 1.10.0+ (public Bases API only)
  */
 export async function registerBasesTaskList(plugin: TaskNotesPlugin): Promise<void> {
 	if (!plugin.settings.enableBases) return;
-	if (!requireApiVersion("1.9.12")) return;
+	// All views now require Obsidian 1.10.0+ (public Bases API only)
+	if (!requireApiVersion("1.10.0")) return;
 
 	const attemptRegistration = async (): Promise<boolean> => {
 		try {
-			// Register Task List view using wrapper
+			// Register Task List view using public API
 			const taskListSuccess = registerBasesView(plugin, "tasknotesTaskList", {
 				name: "TaskNotes Task List",
 				icon: "tasknotes-simple",
 				factory: buildTasknotesTaskListViewFactory(plugin),
 			});
 
-			// Register Kanban view using wrapper
+			// Register Kanban view using public API
 			const kanbanSuccess = registerBasesView(plugin, "tasknotesKanban", {
 				name: "TaskNotes Kanban",
 				icon: "tasknotes-simple",
 				factory: buildTasknotesKanbanViewFactory(plugin),
 			});
 
-			// Register Calendar view (1.10.0+ only - requires public Bases API)
-			let calendarSuccess = false;
-			if (requireApiVersion("1.10.0")) {
-				calendarSuccess = registerBasesView(plugin, "tasknotesCalendar", {
-					name: "TaskNotes Calendar",
-					icon: "tasknotes-simple",
-					factory: buildTasknotesCalendarViewFactory(plugin),
-					options: () => {
+			// Register Calendar view using public API
+			const calendarSuccess = registerBasesView(plugin, "tasknotesCalendar", {
+				name: "TaskNotes Calendar",
+				icon: "tasknotes-simple",
+				factory: buildTasknotesCalendarViewFactory(plugin),
+				options: () => {
 						const calendarSettings = plugin.settings.calendarViewSettings;
 						const t = (key: string) => plugin.i18n.translate(`views.basesCalendar.settings.${key}`);
 
@@ -307,7 +306,6 @@ export async function registerBasesTaskList(plugin: TaskNotesPlugin): Promise<vo
 						return options;
 					},
 				});
-			}
 
 			// Consider it successful if any view registered successfully
 			if (!taskListSuccess && !kanbanSuccess && !calendarSuccess) {

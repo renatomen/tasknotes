@@ -39,13 +39,9 @@ export function buildTasknotesBaseViewFactory(plugin: TaskNotesPlugin, config: V
 		let updateDebounceTimer: number | null = null;
 		let currentTaskElements = new Map<string, HTMLElement>();
 
-		// Detect which API is being used
-		// Public API (1.10.0+): (controller, containerEl)
-		// Legacy API: (container) where container.viewContainerEl exists
+		// Public API (1.10.0+): factory receives (controller, containerEl)
+		// basesContainer is the QueryController/BasesView instance
 		const viewContainerEl = containerEl || (basesContainer as any)?.viewContainerEl;
-
-		// For public API, basesContainer is actually the QueryController/BasesView instance
-		// For legacy API, basesContainer is the BasesContainer
 		const controller = basesContainer as any;
 
 		if (!viewContainerEl) {
@@ -67,13 +63,12 @@ export function buildTasknotesBaseViewFactory(plugin: TaskNotesPlugin, config: V
 		itemsContainer.style.cssText = "margin-top: 12px;";
 		root.appendChild(itemsContainer);
 
-		// Helper to extract items from Bases results
-		// Uses public API (1.10.0+) when available, falls back to internal API
+		// Helper to extract items from Bases results using public API (1.10.0+)
 		const extractDataItems = (viewContext?: any): BasesDataItem[] => {
 			const dataItems: BasesDataItem[] = [];
 			const ctx = viewContext || controller;
 
-			// Try public API first (1.10.0+) - viewContext.data.data contains BasesEntry[]
+			// Use public API (1.10.0+) - viewContext.data.data contains BasesEntry[]
 			if (ctx.data?.data && Array.isArray(ctx.data.data)) {
 				// Use BasesEntry objects from public API
 				for (const entry of ctx.data.data) {
@@ -87,25 +82,6 @@ export function buildTasknotesBaseViewFactory(plugin: TaskNotesPlugin, config: V
 					};
 					dataItems.push(item);
 				}
-				return dataItems;
-			}
-
-			// Fallback to internal API for older versions
-			const results = ctx.results || (basesContainer as any)?.results as Map<any, any> | undefined;
-
-			if (results && results instanceof Map) {
-				for (const [key, value] of results.entries()) {
-					const item = {
-						key,
-						data: value,
-						file: (value as any)?.file,
-						path: (value as any)?.file?.path || (value as any)?.path,
-						properties: (value as any)?.properties || (value as any)?.frontmatter,
-						basesData: value,
-					};
-
-					dataItems.push(item);
-				}
 			}
 
 			return dataItems;
@@ -114,12 +90,11 @@ export function buildTasknotesBaseViewFactory(plugin: TaskNotesPlugin, config: V
 		const render = async function(this: any) {
 			if (!currentRoot) return;
 			try {
-				// For public API (1.10.0+), 'this' is the BasesView with data/config
-				// For legacy API, use controller/basesContainer
+				// Public API (1.10.0+): 'this' is the BasesView with data/config
 				const viewContext = this?.data ? this : controller;
 
 				// Skip rendering if we have no data yet (prevents flickering during data updates)
-				if (!viewContext.data?.data && !viewContext.results) {
+				if (!viewContext.data?.data) {
 					return;
 				}
 

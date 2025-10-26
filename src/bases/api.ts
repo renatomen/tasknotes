@@ -157,14 +157,14 @@ export function isBasesPluginAvailable(app: App): boolean {
 
 /**
  * Safely register a view with the Bases plugin
- * Uses public API (1.10.0+) with fallback to internal API for backward compatibility
+ * Requires Obsidian 1.10.0+ (public Bases API only)
  */
 export function registerBasesView(
 	plugin: Plugin,
 	viewId: string,
 	registration: BasesViewRegistration
 ): boolean {
-	// Try public API first (Obsidian 1.10.0+)
+	// Use public API (Obsidian 1.10.0+)
 	if (typeof (plugin as any).registerBasesView === "function") {
 		try {
 			const success = (plugin as any).registerBasesView(viewId, registration);
@@ -175,8 +175,9 @@ export function registerBasesView(
 				return true;
 			}
 			console.debug(
-				`[TaskNotes][Bases] Public API returned false (Bases may be disabled), trying internal API`
+				`[TaskNotes][Bases] Public API returned false (Bases may be disabled)`
 			);
+			return false;
 		} catch (error: any) {
 			// Check if error is because view already exists - treat as success
 			if (error?.message?.includes("already exists")) {
@@ -186,29 +187,15 @@ export function registerBasesView(
 				return true;
 			}
 			console.warn(
-				`[TaskNotes][Bases] Public API registration failed for ${viewId}, trying internal API:`,
+				`[TaskNotes][Bases] Public API registration failed for ${viewId}:`,
 				error
 			);
+			return false;
 		}
 	}
 
-	// Fallback to internal API for older versions or if public API fails
-	const api = getBasesAPI(plugin.app);
-	if (!api) {
-		console.warn("[TaskNotes][Bases] Cannot register view: Bases plugin not available");
-		return false;
-	}
-
-	try {
-		// Only register if it doesn't already exist
-		if (!api.registrations[viewId]) {
-			api.registrations[viewId] = registration;
-		}
-		return true;
-	} catch (error) {
-		console.error(`[TaskNotes][Bases] Error registering view ${viewId}:`, error);
-		return false;
-	}
+	console.warn("[TaskNotes][Bases] Cannot register view: Bases public API not available (requires Obsidian 1.10.0+)");
+	return false;
 }
 
 /**

@@ -27,13 +27,9 @@ export function buildTasknotesKanbanViewFactory(plugin: TaskNotesPlugin) {
 		let currentRoot: HTMLElement | null = null;
 		let cachedGroupByPropertyId: string | null | undefined = undefined; // undefined = not yet determined
 
-		// Detect which API is being used
-		// Public API (1.10.0+): (controller, containerEl)
-		// Legacy API: (container) where container.viewContainerEl exists
+		// Public API (1.10.0+): factory receives (controller, containerEl)
+		// basesContainer is the QueryController/BasesView instance
 		const viewContainerEl = containerEl || basesContainer.viewContainerEl;
-
-		// For public API, basesContainer is actually the QueryController/BasesView instance
-		// For legacy API, basesContainer is the BasesContainer
 		const controller = basesContainer as any;
 
 		if (!viewContainerEl) {
@@ -65,12 +61,12 @@ export function buildTasknotesKanbanViewFactory(plugin: TaskNotesPlugin) {
 		board.className = "kanban-view__board";
 		root.appendChild(board);
 
-		// Uses public API (1.10.0+) when available, falls back to internal API
+		// Extract items using public API (1.10.0+)
 		const extractDataItems = (viewContext?: any): BasesDataItem[] => {
 			const dataItems: BasesDataItem[] = [];
 			const ctx = viewContext || controller;
 
-			// Try public API first (1.10.0+) - viewContext.data.data contains BasesEntry[]
+			// Use public API (1.10.0+) - viewContext.data.data contains BasesEntry[]
 			if (ctx.data?.data && Array.isArray(ctx.data.data)) {
 				// Use BasesEntry objects from public API
 				for (const entry of ctx.data.data) {
@@ -82,21 +78,6 @@ export function buildTasknotesKanbanViewFactory(plugin: TaskNotesPlugin) {
 						properties: (entry as any).frontmatter || (entry as any).properties,
 					});
 				}
-				return dataItems;
-			}
-
-			// Fallback to internal API for older versions
-			const results = ctx.results || basesContainer.results;
-			if (results && results instanceof Map) {
-				for (const [, value] of results.entries()) {
-					dataItems.push({
-						key: value?.file?.path || value?.path,
-						data: value,
-						file: value?.file,
-						path: value?.file?.path || value?.path,
-						properties: value?.properties || value?.frontmatter,
-					});
-				}
 			}
 			return dataItems;
 		};
@@ -105,8 +86,7 @@ export function buildTasknotesKanbanViewFactory(plugin: TaskNotesPlugin) {
 			if (!currentRoot) return;
 
 			try {
-				// For public API (1.10.0+), 'this' is the BasesView with data/config
-				// For legacy API, use controller/basesContainer
+				// Public API (1.10.0+): 'this' is the BasesView with data/config
 				const viewContext = this?.data ? this : controller;
 				// Capture the BasesView instance for use in async callbacks (like drop handlers)
 				const basesViewInstance = this;
@@ -115,9 +95,8 @@ export function buildTasknotesKanbanViewFactory(plugin: TaskNotesPlugin) {
 				// Check BEFORE any logging or processing
 				const hasGroupedData = !!(viewContext.data?.groupedData && Array.isArray(viewContext.data.groupedData) && viewContext.data.groupedData.length > 0);
 				const hasFlatData = !!(viewContext.data?.data && Array.isArray(viewContext.data.data) && viewContext.data.data.length > 0);
-				const hasLegacyResults = !!(viewContext.results && viewContext.results instanceof Map && viewContext.results.size > 0);
 
-				if (!hasGroupedData && !hasFlatData && !hasLegacyResults) {
+				if (!hasGroupedData && !hasFlatData) {
 					return; // Skip render silently - no data available
 				}
 
