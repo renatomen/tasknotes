@@ -146,9 +146,20 @@ export function buildTasknotesKanbanViewFactory(plugin: TaskNotesPlugin) {
 				// Group tasks
 				const groups = new Map<string, TaskInfo[]>();
 				let groupByPropertyId: string | null = null;
+				let usedFallbackStatusGrouping = false;
 
 				// Try to use public API (1.10.0+) data.groupedData
-				if (viewContext.data?.groupedData && Array.isArray(viewContext.data.groupedData)) {
+				// But skip it if all groups are "none" (meaning no groupBy was configured)
+				const hasValidGrouping = viewContext.data?.groupedData &&
+					Array.isArray(viewContext.data.groupedData) &&
+					viewContext.data.groupedData.some((g: any) => {
+						const keyValue = g.key?.data ?? "none";
+						const keyString = String(keyValue);
+						return keyString !== "none";
+					});
+
+
+				if (hasValidGrouping) {
 					console.debug("[TaskNotes][Bases] Using public API groupedData", {
 						groupCount: viewContext.data.groupedData.length,
 						hasConfig: !!viewContext.config
@@ -283,6 +294,14 @@ export function buildTasknotesKanbanViewFactory(plugin: TaskNotesPlugin) {
 					} else {
 						// Fallback to status grouping when no groupBy is configured
 						groupByPropertyId = "status";
+						usedFallbackStatusGrouping = true;
+
+						// First, create all status columns in the order defined in settings
+						plugin.statusManager.getStatusesByOrder().forEach((status) => {
+							groups.set(status.value, []);
+						});
+
+						// Then populate them with tasks
 						for (const task of taskNotes) {
 							const groupValue = task.status || "open";
 							if (!groups.has(groupValue)) {
@@ -290,13 +309,6 @@ export function buildTasknotesKanbanViewFactory(plugin: TaskNotesPlugin) {
 							}
 							groups.get(groupValue)?.push(task);
 						}
-
-						// Add empty status columns
-						plugin.statusManager.getAllStatuses().forEach((status) => {
-							if (!groups.has(status.value)) {
-								groups.set(status.value, []);
-							}
-						});
 					}
 				}
 
@@ -326,13 +338,19 @@ export function buildTasknotesKanbanViewFactory(plugin: TaskNotesPlugin) {
 				}
 
 				// Get group name ordering
-				const firstSortEntry = sortComparator
-					? { id: groupByPropertyId || "status", direction: "ASC" as const }
-					: null;
-				const groupNameComparator = getGroupNameComparator(firstSortEntry);
-
-				// Create columns with proper ordering
-				const columnIds = Array.from(groups.keys()).sort(groupNameComparator);
+				// When using fallback status grouping, preserve the order from settings
+				let columnIds: string[];
+				if (usedFallbackStatusGrouping) {
+					// Preserve the insertion order from getStatusesByOrder()
+					columnIds = Array.from(groups.keys());
+				} else {
+					// Use normal sorting for Bases-provided grouping
+					const firstSortEntry = sortComparator
+						? { id: groupByPropertyId || "status", direction: "ASC" as const }
+						: null;
+					const groupNameComparator = getGroupNameComparator(firstSortEntry);
+					columnIds = Array.from(groups.keys()).sort(groupNameComparator);
+				}
 
 				for (const columnId of columnIds) {
 					const tasks = groups.get(columnId) || [];
