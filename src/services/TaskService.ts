@@ -552,18 +552,7 @@ export class TaskService {
 
 					// Update completed date when marking as complete (non-recurring tasks only)
 					// FIX: Use freshTask instead of stale task to check recurrence
-					if (!freshTask.recurrence) {
-						const completedDateField =
-							this.plugin.fieldMapper.toUserField("completedDate");
-						if (this.plugin.statusManager.isCompletedStatus(value)) {
-							frontmatter[completedDateField] = getCurrentDateString();
-						} else {
-							// Remove completed date when marking as incomplete
-							if (frontmatter[completedDateField]) {
-								delete frontmatter[completedDateField];
-							}
-						}
-					}
+					this.updateCompletedDateInFrontmatter(frontmatter, value, !!freshTask.recurrence);
 				} else if ((property === "due" || property === "scheduled") && !value) {
 					// Remove empty due/scheduled dates
 					delete frontmatter[fieldName];
@@ -1197,6 +1186,11 @@ export class TaskService {
 					}
 				});
 
+				// Handle completedDate for status changes (non-recurring tasks only)
+				if (updates.status !== undefined) {
+					this.updateCompletedDateInFrontmatter(frontmatter, updates.status, !!originalTask.recurrence);
+				}
+
 				// Handle task identification based on settings
 				if (this.plugin.settings.taskIdentificationMethod === "property") {
 					const propName = this.plugin.settings.taskPropertyName;
@@ -1796,6 +1790,37 @@ export class TaskService {
 
 		// Step 5: Return authoritative data
 		return updatedTask;
+	}
+
+	/**
+	 * Update the completedDate field in frontmatter based on the task's status.
+	 * For non-recurring tasks:
+	 * - Sets completedDate to current date when status becomes completed
+	 * - Removes completedDate when status becomes incomplete
+	 * For recurring tasks, this method does nothing (they don't use completedDate).
+	 *
+	 * @param frontmatter - The frontmatter object to modify
+	 * @param newStatus - The new status value
+	 * @param isRecurring - Whether the task is recurring
+	 */
+	private updateCompletedDateInFrontmatter(
+		frontmatter: Record<string, any>,
+		newStatus: string,
+		isRecurring: boolean
+	): void {
+		if (isRecurring) {
+			return; // Recurring tasks don't use completedDate
+		}
+
+		const completedDateField = this.plugin.fieldMapper.toUserField("completedDate");
+
+		if (this.plugin.statusManager.isCompletedStatus(newStatus)) {
+			frontmatter[completedDateField] = getCurrentDateString();
+		} else {
+			if (frontmatter[completedDateField]) {
+				delete frontmatter[completedDateField];
+			}
+		}
 	}
 
 	/**

@@ -42,6 +42,12 @@ Example:
 
 ## Fixed
 
+- (#903) Fixed Edit Task modal not adding completedDate when marking tasks as done
+  - Edit Task modal now correctly adds completedDate when changing status to completed
+  - Fixed Edit Task modal adding empty contexts and projects arrays to frontmatter
+  - Behavior now consistent with other completion methods (Agenda view, widget context menu, quick actions)
+  - Thanks to @nightroman for reporting
+
 - (#969), (#967) Fixed Bases Kanban layout not displaying correctly when no groupBy is configured
   - All tasks were appearing in a single "None" column
   - Columns now appear in the order defined in TaskNotes settings (not alphabetical)
