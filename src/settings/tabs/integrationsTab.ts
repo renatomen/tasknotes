@@ -129,6 +129,11 @@ export function renderIntegrationsTab(
 			name: 'Open Calendar View',
 			defaultPath: 'TaskNotes/Views/calendar-default.base',
 		},
+		{
+			id: 'project-subtasks',
+			name: 'Project Subtasks Widget',
+			defaultPath: 'TaskNotes/Views/project-subtasks.base',
+		},
 	];
 
 	commandMappings.forEach(({ id, name, defaultPath }) => {

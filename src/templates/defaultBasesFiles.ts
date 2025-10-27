@@ -1,6 +1,6 @@
 /**
  * Default .base file templates for TaskNotes views
- * These are created in /.tasknotes/ directory when the user first uses the commands
+ * These are created in TaskNotes/Views/ directory when the user first uses the commands
  */
 
 export const DEFAULT_BASES_FILES: Record<string, string> = {
@@ -36,5 +36,19 @@ export const DEFAULT_BASES_FILES: Record<string, string> = {
       slotMinTime: "06:00:00"
       slotMaxTime: "22:00:00"
       slotDuration: "00:30:00"
+`,
+
+	'project-subtasks': `# Project Subtasks
+# This view shows all tasks that reference the current file in their projects field
+# Uses the 'this' keyword to reference the current file dynamically
+
+filters: "note.projects.contains(this.file.asLink())"
+
+views:
+  - type: tasknotesTaskList
+    name: "Subtasks"
+    sort:
+      - column: priority
+        direction: DESC
 `,
 };

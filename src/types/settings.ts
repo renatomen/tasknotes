@@ -134,6 +134,7 @@ export interface TaskNotesSettings {
 		'open-kanban-view': string;
 		'open-tasks-view': string;
 		'open-advanced-calendar-view': string;
+		'project-subtasks': string; // Bases file for project subtasks widget
 		[key: string]: string; // Allow string indexing
 	};
 	// Recurring task behavior
