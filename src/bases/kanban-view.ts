@@ -66,6 +66,25 @@ export function buildTasknotesKanbanViewFactory(plugin: TaskNotesPlugin) {
 		board.className = "kanban-view__board";
 		root.appendChild(board);
 
+		// Helper to get column width from config
+		const getColumnWidth = (viewContext: any): number => {
+			const config = viewContext?.config;
+			let columnWidth = 280; // default
+
+			if (config && typeof config.get === "function") {
+				try {
+					const width = config.get("columnWidth");
+					if (typeof width === "number" && width >= 200 && width <= 500) {
+						columnWidth = width;
+					}
+				} catch (_) {
+					// Ignore
+				}
+			}
+
+			return columnWidth;
+		};
+
 		// Extract items using public API (1.10.0+)
 		const extractDataItems = (viewContext?: any): BasesDataItem[] => {
 			const dataItems: BasesDataItem[] = [];
@@ -411,15 +430,16 @@ export function buildTasknotesKanbanViewFactory(plugin: TaskNotesPlugin) {
 
 				// Check if swimlanes are configured
 				const swimLaneConfig = getSwimLaneConfig(viewContext, pathToProps);
+				const columnWidth = getColumnWidth(viewContext);
 
 				if (swimLaneConfig) {
 					// Render with swimlanes (2D grid)
-					renderWithSwimLanes(board, groups, columnIds, swimLaneConfig, groupByPropertyId, visiblePropsIds, basesViewInstance, plugin, taskNotes);
+					renderWithSwimLanes(board, groups, columnIds, swimLaneConfig, groupByPropertyId, visiblePropsIds, basesViewInstance, plugin, taskNotes, columnWidth);
 				} else {
 					// Render traditional single-row kanban
 					for (const columnId of columnIds) {
 						const tasks = groups.get(columnId) || [];
-						const columnEl = createColumnElement(columnId, tasks, groupByPropertyId, visiblePropsIds, basesViewInstance);
+						const columnEl = createColumnElement(columnId, tasks, groupByPropertyId, visiblePropsIds, basesViewInstance, columnWidth);
 						board.appendChild(columnEl);
 					}
 				}
@@ -438,7 +458,8 @@ export function buildTasknotesKanbanViewFactory(plugin: TaskNotesPlugin) {
 			visibleProperties: string[],
 			basesViewInstance: any,
 			plugin: TaskNotesPlugin,
-			allTasks: TaskInfo[]
+			allTasks: TaskInfo[],
+			columnWidth: number
 		) => {
 			// Organize tasks into swimlanes
 			const swimLanes = new Map<string, Map<string, TaskInfo[]>>();
@@ -476,8 +497,9 @@ export function buildTasknotesKanbanViewFactory(plugin: TaskNotesPlugin) {
 				}
 			}
 
-			// Add swimlane class to board
+			// Add swimlane class to board and set column width
 			board.addClass("kanban-view__board--swimlanes");
+			board.style.setProperty("--kanban-column-width", `${columnWidth}px`);
 
 			// Render header row with column titles
 			const headerRow = board.createDiv({ cls: "kanban-view__swimlane-row kanban-view__swimlane-row--header" });
@@ -677,11 +699,15 @@ export function buildTasknotesKanbanViewFactory(plugin: TaskNotesPlugin) {
 			tasks: TaskInfo[],
 			groupByPropertyId: string | null,
 			visibleProperties: string[],
-			basesViewInstance: any
+			basesViewInstance: any,
+			columnWidth: number
 		): HTMLElement => {
 			const columnEl = document.createElement("div");
 			columnEl.className = "kanban-view__column";
 			columnEl.dataset.columnId = columnId;
+			columnEl.style.width = `${columnWidth}px`;
+			columnEl.style.minWidth = `${columnWidth}px`;
+			columnEl.style.flex = `0 0 ${columnWidth}px`;
 
 			// Column header
 			const headerEl = columnEl.createDiv({ cls: "kanban-view__column-header" });

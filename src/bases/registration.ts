@@ -40,6 +40,15 @@ export async function registerBasesTaskList(plugin: TaskNotesPlugin): Promise<vo
 							return prop.startsWith("note.") || prop.startsWith("task.");
 						},
 					},
+					{
+						type: "slider",
+						key: "columnWidth",
+						displayName: "Column Width",
+						default: 280,
+						min: 200,
+						max: 500,
+						step: 20,
+					},
 				],
 			});
 

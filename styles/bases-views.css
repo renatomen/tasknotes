@@ -236,7 +236,8 @@
 .kanban-view__swimlane-row {
     display: grid;
     /* Fixed swimlane label + fixed-width columns (no auto-fit) */
-    grid-auto-columns: 280px;
+    /* Column width is set via CSS variable from view config */
+    grid-auto-columns: var(--kanban-column-width, 280px);
     grid-auto-flow: column;
     gap: 1px;
     background: var(--tn-border-color);
@@ -339,10 +340,6 @@
 
 /* Responsive adjustments for swimlanes */
 @media (max-width: 1200px) {
-    .kanban-view__swimlane-row {
-        grid-auto-columns: 240px;
-    }
-
     .kanban-view__swimlane-row > :first-child {
         width: 150px;
         min-width: 150px;
@@ -354,10 +351,6 @@
 }
 
 @media (max-width: 768px) {
-    .kanban-view__swimlane-row {
-        grid-auto-columns: 200px;
-    }
-
     .kanban-view__swimlane-row > :first-child {
         width: 120px;
         min-width: 120px;
