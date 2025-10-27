@@ -425,8 +425,37 @@ export async function renderGroupedTasksInBasesView(
 
 	// Render each group
 	for (const group of groupedData) {
-		const groupKey = group.key?.data || "Unknown";
-		const groupName = String(groupKey);
+		// Extract value from Bases Value object
+		// Bases returns different structures: { date: Date } for date properties, { data: value } for others
+		const keyObj = group.key;
+		let groupKey: any;
+
+		// Try to extract the actual value from the Bases Value object
+		if (keyObj?.date instanceof Date) {
+			// Date property - use the date field
+			groupKey = keyObj.date;
+		} else if (keyObj?.data !== undefined) {
+			// Other properties - use the data field
+			groupKey = keyObj.data;
+		} else {
+			// Fallback for unknown structures
+			groupKey = keyObj || "Unknown";
+		}
+
+		// Format group name properly - handle Date objects for date-based grouping
+		let groupName: string;
+		if (groupKey instanceof Date) {
+			// Format dates as YYYY-MM-DD for consistency with TaskNotes date handling
+			// Note: Bases returns local Date objects, but we format to YYYY-MM-DD which represents
+			// the calendar date the user sees. This is intentional - group headers should show
+			// the date as the user perceives it (e.g., "2025-06-10" for June 10th in their timezone)
+			const { format } = require("date-fns");
+			groupName = format(groupKey, "yyyy-MM-dd");
+		} else if (groupKey === null || groupKey === undefined || groupKey === "") {
+			groupName = "None";
+		} else {
+			groupName = String(groupKey);
+		}
 		const groupEntries = group.entries || [];
 
 		if (groupEntries.length === 0) continue;
