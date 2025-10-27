@@ -49,6 +49,12 @@ export async function registerBasesTaskList(plugin: TaskNotesPlugin): Promise<vo
 						max: 500,
 						step: 20,
 					},
+					{
+						type: "toggle",
+						key: "hideEmptyColumns",
+						displayName: "Hide Empty Columns",
+						default: false,
+					},
 				],
 			});
 

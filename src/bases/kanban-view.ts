@@ -85,6 +85,25 @@ export function buildTasknotesKanbanViewFactory(plugin: TaskNotesPlugin) {
 			return columnWidth;
 		};
 
+		// Helper to check if empty columns should be hidden
+		const shouldHideEmptyColumns = (viewContext: any): boolean => {
+			const config = viewContext?.config;
+			let hideEmpty = false; // default
+
+			if (config && typeof config.get === "function") {
+				try {
+					const hide = config.get("hideEmptyColumns");
+					if (typeof hide === "boolean") {
+						hideEmpty = hide;
+					}
+				} catch (_) {
+					// Ignore
+				}
+			}
+
+			return hideEmpty;
+		};
+
 		// Extract items using public API (1.10.0+)
 		const extractDataItems = (viewContext?: any): BasesDataItem[] => {
 			const dataItems: BasesDataItem[] = [];
@@ -431,13 +450,23 @@ export function buildTasknotesKanbanViewFactory(plugin: TaskNotesPlugin) {
 				// Check if swimlanes are configured
 				const swimLaneConfig = getSwimLaneConfig(viewContext, pathToProps);
 				const columnWidth = getColumnWidth(viewContext);
+				const hideEmptyColumns = shouldHideEmptyColumns(viewContext);
+
+				// Filter out empty columns if configured
+				let visibleColumnIds = columnIds;
+				if (hideEmptyColumns) {
+					visibleColumnIds = columnIds.filter(columnId => {
+						const tasks = groups.get(columnId) || [];
+						return tasks.length > 0;
+					});
+				}
 
 				if (swimLaneConfig) {
 					// Render with swimlanes (2D grid)
-					renderWithSwimLanes(board, groups, columnIds, swimLaneConfig, groupByPropertyId, visiblePropsIds, basesViewInstance, plugin, taskNotes, columnWidth);
+					renderWithSwimLanes(board, groups, visibleColumnIds, swimLaneConfig, groupByPropertyId, visiblePropsIds, basesViewInstance, plugin, taskNotes, columnWidth, hideEmptyColumns);
 				} else {
 					// Render traditional single-row kanban
-					for (const columnId of columnIds) {
+					for (const columnId of visibleColumnIds) {
 						const tasks = groups.get(columnId) || [];
 						const columnEl = createColumnElement(columnId, tasks, groupByPropertyId, visiblePropsIds, basesViewInstance, columnWidth);
 						board.appendChild(columnEl);
@@ -459,7 +488,8 @@ export function buildTasknotesKanbanViewFactory(plugin: TaskNotesPlugin) {
 			basesViewInstance: any,
 			plugin: TaskNotesPlugin,
 			allTasks: TaskInfo[],
-			columnWidth: number
+			columnWidth: number,
+			hideEmptyColumns: boolean
 		) => {
 			// Organize tasks into swimlanes
 			const swimLanes = new Map<string, Map<string, TaskInfo[]>>();
@@ -512,14 +542,6 @@ export function buildTasknotesKanbanViewFactory(plugin: TaskNotesPlugin) {
 
 			// Render each swimlane row
 			for (const swimLaneId of sortedSwimLaneIds) {
-				const swimLaneRow = board.createDiv({ cls: "kanban-view__swimlane-row" });
-				swimLaneRow.dataset.swimlaneId = swimLaneId;
-
-				// Swimlane label cell
-				const labelCell = swimLaneRow.createDiv({ cls: "kanban-view__swimlane-label" });
-				const swimLaneTitle = getSwimLaneTitle(swimLaneId, swimLaneConfig.propertyId, plugin);
-				labelCell.createEl("div", { cls: "kanban-view__swimlane-title", text: swimLaneTitle });
-
 				// Get tasks for this swimlane
 				const swimLaneTasks = swimLanes.get(swimLaneId) || new Map();
 
@@ -528,6 +550,19 @@ export function buildTasknotesKanbanViewFactory(plugin: TaskNotesPlugin) {
 				for (const tasks of swimLaneTasks.values()) {
 					totalTasks += tasks.length;
 				}
+
+				// Skip empty swimlane rows if hideEmptyColumns is enabled
+				if (hideEmptyColumns && totalTasks === 0) {
+					continue;
+				}
+
+				const swimLaneRow = board.createDiv({ cls: "kanban-view__swimlane-row" });
+				swimLaneRow.dataset.swimlaneId = swimLaneId;
+
+				// Swimlane label cell
+				const labelCell = swimLaneRow.createDiv({ cls: "kanban-view__swimlane-label" });
+				const swimLaneTitle = getSwimLaneTitle(swimLaneId, swimLaneConfig.propertyId, plugin);
+				labelCell.createEl("div", { cls: "kanban-view__swimlane-title", text: swimLaneTitle });
 				labelCell.createEl("div", { cls: "kanban-view__swimlane-count", text: `${totalTasks}` });
 
 				// Render column cells for this swimlane
