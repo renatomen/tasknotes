@@ -3,6 +3,7 @@ import {
 	ButtonComponent,
 	DropdownComponent,
 	Modal,
+	Notice,
 	TextComponent,
 	debounce,
 	setTooltip,
@@ -1038,13 +1039,7 @@ export class FilterBar extends EventEmitter {
 			}
 
 			// Show success notification
-			if (this.plugin.notificationService) {
-				this.plugin.notificationService.show(
-					"success",
-					`Exported "${view.name}" to ${filePath}`,
-					5000
-				);
-			}
+			new Notice(`Exported "${view.name}" to ${filePath}`);
 
 			// Open the file in a new leaf
 			const file = this.app.vault.getAbstractFileByPath(filePath);
@@ -1055,13 +1050,7 @@ export class FilterBar extends EventEmitter {
 			console.error("Error exporting view to Bases:", error);
 
 			// Show error notification
-			if (this.plugin.notificationService) {
-				this.plugin.notificationService.show(
-					"error",
-					`Failed to export view: ${error.message}`,
-					5000
-				);
-			}
+			new Notice(`Failed to export view: ${error.message}`);
 		}
 	}
 
