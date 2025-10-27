@@ -165,28 +165,17 @@ export function getBasesVisibleProperties(basesContainer: any): BasesSelectedPro
 			return idIndex.get(token) || idIndex.get(token.toLowerCase()) || token;
 		};
 
-		// Get visible properties from Bases order configuration
-		// Try public API first (1.10.0+) - config.getOrder()
+		// Get visible properties from Bases order configuration using internal API
+		// Note: Public API config.getOrder() exists but internal API is more reliable
 		let order: string[] | undefined;
-		if (basesContainer?.config && typeof basesContainer.config.getOrder === "function") {
-			try {
-				order = basesContainer.config.getOrder();
-			} catch (_) {
-				// Ignore errors accessing order
-			}
-		}
-
-		// Fallback to internal API for older versions
-		if (!order || !Array.isArray(order) || order.length === 0) {
-			const fullCfg = controller?.getViewConfig?.() ?? {};
-			try {
-				order =
-					(query?.getViewConfig?.("order") as string[] | undefined) ??
-					(fullCfg as any)?.order ??
-					(fullCfg as any)?.columns?.order;
-			} catch (_) {
-				order = (fullCfg as any)?.order ?? (fullCfg as any)?.columns?.order;
-			}
+		const fullCfg = controller?.getViewConfig?.() ?? {};
+		try {
+			order =
+				(query?.getViewConfig?.("order") as string[] | undefined) ??
+				(fullCfg as any)?.order ??
+				(fullCfg as any)?.columns?.order;
+		} catch (_) {
+			order = (fullCfg as any)?.order ?? (fullCfg as any)?.columns?.order;
 		}
 
 		if (!order || !Array.isArray(order) || order.length === 0) return [];
@@ -194,20 +183,8 @@ export function getBasesVisibleProperties(basesContainer: any): BasesSelectedPro
 		const orderedIds: string[] = order.map(normalizeToId).filter((id): id is string => !!id);
 
 		return orderedIds.map((id) => {
-			// Try public API for display name (1.10.0+)
-			let displayName = id;
-			if (basesContainer?.config && typeof basesContainer.config.getDisplayName === "function") {
-				try {
-					const dn = basesContainer.config.getDisplayName(id);
-					if (typeof dn === "string" && dn.trim()) displayName = dn;
-				} catch (_) {
-					// Fall back to internal API
-				}
-			}
-			// Fallback to internal API
-			if (displayName === id) {
-				displayName = propsMap?.[id]?.getDisplayName?.() ?? id;
-			}
+			// Get display name from query properties
+			const displayName = propsMap?.[id]?.getDisplayName?.() ?? id;
 
 			return {
 				id,

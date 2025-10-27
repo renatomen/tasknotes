@@ -8,12 +8,12 @@ import { registerBasesView, unregisterBasesView } from "./api";
 
 /**
  * Register TaskNotes views with Bases plugin
- * Requires Obsidian 1.10.0+ (public Bases API only)
+ * Requires Obsidian 1.10.1+ (public Bases API with groupBy support)
  */
 export async function registerBasesTaskList(plugin: TaskNotesPlugin): Promise<void> {
 	if (!plugin.settings.enableBases) return;
-	// All views now require Obsidian 1.10.0+ (public Bases API only)
-	if (!requireApiVersion("1.10.0")) return;
+	// All views now require Obsidian 1.10.1+ (public Bases API with groupBy support)
+	if (!requireApiVersion("1.10.1")) return;
 
 	const attemptRegistration = async (): Promise<boolean> => {
 		try {
