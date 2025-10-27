@@ -988,6 +988,84 @@ export class FilterBar extends EventEmitter {
 	}
 
 	/**
+	 * Export a saved view as a Bases .base file
+	 */
+	private async exportViewToBases(view: SavedView): Promise<void> {
+		try {
+			// Get the Bases filter converter
+			const converter = this.plugin.basesFilterConverter;
+			if (!converter) {
+				throw new Error("Bases filter converter not available");
+			}
+
+			// Convert the saved view to Bases format
+			const basesContent = converter.convertSavedViewToBasesFile(view);
+
+			// Create a safe filename from the view name
+			const safeFileName = view.name.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+			const fileName = `${safeFileName}.base`;
+
+			// Get the default Bases folder path
+			const defaultBasesFolder = "TaskNotes/Views";
+
+			// Ensure the folder exists
+			const folder = this.app.vault.getAbstractFileByPath(defaultBasesFolder);
+			if (!folder) {
+				await this.app.vault.createFolder(defaultBasesFolder);
+			}
+
+			// Create the file
+			const filePath = `${defaultBasesFolder}/${fileName}`;
+			const existingFile = this.app.vault.getAbstractFileByPath(filePath);
+
+			if (existingFile) {
+				// File exists, ask for confirmation to overwrite
+				const confirmed = await showConfirmationModal(this.app, {
+					title: "File Already Exists",
+					message: `A Bases file named "${fileName}" already exists. Overwrite it?`,
+					isDestructive: false,
+				});
+
+				if (!confirmed) {
+					return;
+				}
+
+				// Overwrite the existing file
+				await this.app.vault.modify(existingFile as any, basesContent);
+			} else {
+				// Create new file
+				await this.app.vault.create(filePath, basesContent);
+			}
+
+			// Show success notification
+			if (this.plugin.notificationService) {
+				this.plugin.notificationService.show(
+					"success",
+					`Exported "${view.name}" to ${filePath}`,
+					5000
+				);
+			}
+
+			// Open the file in a new leaf
+			const file = this.app.vault.getAbstractFileByPath(filePath);
+			if (file) {
+				await this.app.workspace.openLinkText(filePath, "", true);
+			}
+		} catch (error) {
+			console.error("Error exporting view to Bases:", error);
+
+			// Show error notification
+			if (this.plugin.notificationService) {
+				this.plugin.notificationService.show(
+					"error",
+					`Failed to export view: ${error.message}`,
+					5000
+				);
+			}
+		}
+	}
+
+	/**
 	 * Render the view selector dropdown content
 	 */
 	private renderViewSelectorDropdown(): void {
@@ -1044,6 +1122,15 @@ export class FilterBar extends EventEmitter {
 					viewItemButton.buttonEl.classList.add("filter-bar__view-item--active");
 					viewItemContainer.classList.add("filter-bar__view-item-container--active");
 				}
+
+				// Export to Bases button
+				new ButtonComponent(viewItemContainer)
+					.setIcon("download")
+					.setClass("filter-bar__view-export")
+					.setTooltip("Export as Bases file")
+					.onClick(async () => {
+						await this.exportViewToBases(view);
+					});
 
 				new ButtonComponent(viewItemContainer)
 					.setIcon("trash-2")

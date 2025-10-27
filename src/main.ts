@@ -223,6 +223,9 @@ export default class TaskNotesPlugin extends Plugin {
 	// Calendar provider registry for abstraction
 	calendarProviderRegistry: CalendarProviderRegistry;
 
+	// Bases filter converter for exporting saved views
+	basesFilterConverter: import("./services/BasesFilterConverter").BasesFilterConverter;
+
 	// Command localization support
 	private commandDefinitions: TranslatedCommandDefinition[] = [];
 	private registeredCommands = new Map<string, string>();
@@ -350,6 +353,10 @@ export default class TaskNotesPlugin extends Plugin {
 		this.statusBarService = new StatusBarService(this);
 		this.notificationService = new NotificationService(this);
 		this.viewPerformanceService = new ViewPerformanceService(this);
+
+		// Initialize Bases filter converter for saved view export
+		const { BasesFilterConverter } = await import("./services/BasesFilterConverter");
+		this.basesFilterConverter = new BasesFilterConverter(this);
 
 		// Create ICS services early so views can register event listeners
 		// (initialization will be deferred to lazy loading)
