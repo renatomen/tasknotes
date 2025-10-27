@@ -5,7 +5,12 @@ import { getBasesGroupByConfig, BasesGroupByConfig } from "./group-by";
 import { getGroupNameComparator } from "./group-ordering";
 import { getBasesSortComparator } from "./sorting";
 import { createTaskCard } from "../ui/TaskCard";
-// Removed unused imports - using local BasesContainerLike interface for compatibility
+
+interface SwimLaneConfig {
+	propertyId: string;
+	displayName: string;
+	getSwimLaneValue: (task: TaskInfo) => string;
+}
 
 // Use the same interface as base-view-factory for compatibility
 interface BasesContainerLike {
@@ -80,6 +85,79 @@ export function buildTasknotesKanbanViewFactory(plugin: TaskNotesPlugin) {
 				}
 			}
 			return dataItems;
+		};
+
+		// Helper to get swimlane configuration from view config
+		const getSwimLaneConfig = (viewContext: any, pathToProps: Map<string, any>): SwimLaneConfig | null => {
+			try {
+				// Check if swimlane is configured in view config
+				const config = viewContext?.config;
+				let swimLanePropertyId: string | null = null;
+
+				// Try to get from config.get('swimLane')
+				if (config && typeof config.get === "function") {
+					try {
+						swimLanePropertyId = config.get("swimLane");
+					} catch (_) {
+						// Ignore
+					}
+				}
+
+				if (!swimLanePropertyId) {
+					return null;
+				}
+
+				// Normalize the property ID
+				const normalizedId = swimLanePropertyId;
+				const displayName = normalizedId;
+
+				// Create value getter based on property type
+				const getSwimLaneValue = (task: TaskInfo): string => {
+					const props = pathToProps.get(task.path) || {};
+
+					// Check for native TaskNotes properties
+					if (normalizedId === "priority" || normalizedId === "note.priority") {
+						return task.priority || "none";
+					}
+					if (normalizedId === "status" || normalizedId === "note.status") {
+						return task.status || "none";
+					}
+					if (normalizedId === "projects" || normalizedId === "note.projects" || normalizedId === "project" || normalizedId === "note.project") {
+						const projects = task.projects;
+						if (Array.isArray(projects) && projects.length > 0) {
+							return projects[0]; // Use first project
+						}
+						return "none";
+					}
+					if (normalizedId === "contexts" || normalizedId === "note.contexts" || normalizedId === "context" || normalizedId === "note.context") {
+						const contexts = task.contexts;
+						if (Array.isArray(contexts) && contexts.length > 0) {
+							return contexts[0]; // Use first context
+						}
+						return "none";
+					}
+
+					// Check custom properties
+					const value = props[normalizedId] || props[normalizedId.replace("note.", "")] || props[normalizedId.replace("task.", "")];
+					if (value !== undefined && value !== null && value !== "") {
+						if (Array.isArray(value) && value.length > 0) {
+							return String(value[0]);
+						}
+						return String(value);
+					}
+
+					return "none";
+				};
+
+				return {
+					propertyId: normalizedId,
+					displayName,
+					getSwimLaneValue,
+				};
+			} catch (e) {
+				console.debug("[TaskNotes][Bases] Failed to get swimlane config:", e);
+				return null;
+			}
 		};
 
 		const render = async function(this: any) {
@@ -331,13 +409,265 @@ export function buildTasknotesKanbanViewFactory(plugin: TaskNotesPlugin) {
 					columnIds = Array.from(groups.keys()).sort(groupNameComparator);
 				}
 
-				for (const columnId of columnIds) {
-					const tasks = groups.get(columnId) || [];
-					const columnEl = createColumnElement(columnId, tasks, groupByPropertyId, visiblePropsIds, basesViewInstance);
-					board.appendChild(columnEl);
+				// Check if swimlanes are configured
+				const swimLaneConfig = getSwimLaneConfig(viewContext, pathToProps);
+
+				if (swimLaneConfig) {
+					// Render with swimlanes (2D grid)
+					renderWithSwimLanes(board, groups, columnIds, swimLaneConfig, groupByPropertyId, visiblePropsIds, basesViewInstance, plugin, taskNotes);
+				} else {
+					// Render traditional single-row kanban
+					for (const columnId of columnIds) {
+						const tasks = groups.get(columnId) || [];
+						const columnEl = createColumnElement(columnId, tasks, groupByPropertyId, visiblePropsIds, basesViewInstance);
+						board.appendChild(columnEl);
+					}
 				}
 			} catch (error) {
 				console.error("[TaskNotes][Bases] Error rendering Kanban:", error);
+			}
+		};
+
+		// Render kanban with swimlanes (2D grid: columns × swim lanes)
+		const renderWithSwimLanes = (
+			board: HTMLElement,
+			groups: Map<string, TaskInfo[]>,
+			columnIds: string[],
+			swimLaneConfig: SwimLaneConfig,
+			groupByPropertyId: string | null,
+			visibleProperties: string[],
+			basesViewInstance: any,
+			plugin: TaskNotesPlugin,
+			allTasks: TaskInfo[]
+		) => {
+			// Organize tasks into swimlanes
+			const swimLanes = new Map<string, Map<string, TaskInfo[]>>();
+			const swimLaneIds = new Set<string>();
+
+			// First, identify all unique swimlane values
+			for (const task of allTasks) {
+				const swimLaneValue = swimLaneConfig.getSwimLaneValue(task);
+				swimLaneIds.add(swimLaneValue);
+			}
+
+			// Sort swimlane IDs
+			const sortedSwimLaneIds = Array.from(swimLaneIds).sort((a, b) => {
+				// Put "none" at the end
+				if (a === "none") return 1;
+				if (b === "none") return -1;
+				return a.localeCompare(b);
+			});
+
+			// Organize tasks by swimlane and column
+			for (const [columnId, columnTasks] of groups.entries()) {
+				for (const task of columnTasks) {
+					const swimLaneValue = swimLaneConfig.getSwimLaneValue(task);
+
+					if (!swimLanes.has(swimLaneValue)) {
+						swimLanes.set(swimLaneValue, new Map());
+					}
+
+					const swimLane = swimLanes.get(swimLaneValue)!;
+					if (!swimLane.has(columnId)) {
+						swimLane.set(columnId, []);
+					}
+
+					swimLane.get(columnId)!.push(task);
+				}
+			}
+
+			// Add swimlane class to board
+			board.addClass("kanban-view__board--swimlanes");
+
+			// Render header row with column titles
+			const headerRow = board.createDiv({ cls: "kanban-view__swimlane-row kanban-view__swimlane-row--header" });
+			headerRow.createDiv({ cls: "kanban-view__swimlane-label" }); // Empty corner cell
+			for (const columnId of columnIds) {
+				const headerCell = headerRow.createDiv({ cls: "kanban-view__column-header-cell" });
+				const title = getColumnTitle(columnId, groupByPropertyId, plugin);
+				headerCell.createEl("div", { cls: "kanban-view__column-title", text: title });
+			}
+
+			// Render each swimlane row
+			for (const swimLaneId of sortedSwimLaneIds) {
+				const swimLaneRow = board.createDiv({ cls: "kanban-view__swimlane-row" });
+				swimLaneRow.dataset.swimlaneId = swimLaneId;
+
+				// Swimlane label cell
+				const labelCell = swimLaneRow.createDiv({ cls: "kanban-view__swimlane-label" });
+				const swimLaneTitle = getSwimLaneTitle(swimLaneId, swimLaneConfig.propertyId, plugin);
+				labelCell.createEl("div", { cls: "kanban-view__swimlane-title", text: swimLaneTitle });
+
+				// Get tasks for this swimlane
+				const swimLaneTasks = swimLanes.get(swimLaneId) || new Map();
+
+				// Count total tasks in this swimlane
+				let totalTasks = 0;
+				for (const tasks of swimLaneTasks.values()) {
+					totalTasks += tasks.length;
+				}
+				labelCell.createEl("div", { cls: "kanban-view__swimlane-count", text: `${totalTasks}` });
+
+				// Render column cells for this swimlane
+				for (const columnId of columnIds) {
+					const tasks = swimLaneTasks.get(columnId) || [];
+					const columnCell = swimLaneRow.createDiv({ cls: "kanban-view__swimlane-column" });
+					columnCell.dataset.columnId = columnId;
+					columnCell.dataset.swimlaneId = swimLaneId;
+
+					// Render tasks in this cell
+					const tasksContainer = columnCell.createDiv({ cls: "kanban-view__tasks-container" });
+					for (const task of tasks) {
+						const taskCard = createTaskCard(task, plugin, visibleProperties, {
+							showDueDate: true,
+							showCheckbox: false,
+							showTimeTracking: true,
+						});
+
+						// Make draggable
+						taskCard.draggable = true;
+						taskCard.addEventListener("dragstart", (e: DragEvent) => {
+							if (e.dataTransfer) {
+								e.dataTransfer.setData("text/plain", task.path);
+								e.dataTransfer.setData("swimlane", swimLaneId);
+								e.dataTransfer.effectAllowed = "move";
+							}
+						});
+
+						tasksContainer.appendChild(taskCard);
+					}
+
+					// Add drop handlers for this cell
+					addSwimLaneCellDropHandlers(columnCell, swimLaneId, columnId, groupByPropertyId, swimLaneConfig, basesViewInstance, plugin);
+				}
+			}
+		};
+
+		// Get column title based on property type
+		const getColumnTitle = (columnId: string, groupByPropertyId: string | null, plugin: TaskNotesPlugin): string => {
+			if (!groupByPropertyId) {
+				const statusConfig = plugin.statusManager.getStatusConfig(columnId);
+				return statusConfig?.label || columnId;
+			}
+
+			const propertyId = groupByPropertyId.toLowerCase();
+
+			if (propertyId === "status" || propertyId === "note.status") {
+				const statusConfig = plugin.statusManager.getStatusConfig(columnId);
+				return statusConfig?.label || columnId;
+			} else if (propertyId === "priority" || propertyId === "note.priority") {
+				const priorityConfig = plugin.priorityManager.getPriorityConfig(columnId);
+				return priorityConfig?.label || columnId;
+			} else if (propertyId === "projects" || propertyId === "project" || propertyId === "note.projects" || propertyId === "note.project") {
+				return columnId === "none" ? "No Project" : columnId;
+			} else if (propertyId === "contexts" || propertyId === "context" || propertyId === "note.contexts" || propertyId === "note.context") {
+				return columnId === "none" ? "Uncategorized" : `@${columnId}`;
+			} else if (propertyId.includes("tag")) {
+				return columnId === "none" ? "Untagged" : `#${columnId}`;
+			} else {
+				return columnId === "none" ? "None" : columnId;
+			}
+		};
+
+		// Get swimlane title based on property type
+		const getSwimLaneTitle = (swimLaneId: string, propertyId: string, plugin: TaskNotesPlugin): string => {
+			const normalized = propertyId.toLowerCase();
+
+			if (normalized === "priority" || normalized === "note.priority") {
+				const priorityConfig = plugin.priorityManager.getPriorityConfig(swimLaneId);
+				return priorityConfig?.label || swimLaneId;
+			} else if (normalized === "status" || normalized === "note.status") {
+				const statusConfig = plugin.statusManager.getStatusConfig(swimLaneId);
+				return statusConfig?.label || swimLaneId;
+			} else if (normalized === "projects" || normalized === "project" || normalized === "note.projects" || normalized === "note.project") {
+				return swimLaneId === "none" ? "No Project" : swimLaneId;
+			} else if (normalized === "contexts" || normalized === "context" || normalized === "note.contexts" || normalized === "note.context") {
+				return swimLaneId === "none" ? "Uncategorized" : `@${swimLaneId}`;
+			} else {
+				return swimLaneId === "none" ? "None" : swimLaneId;
+			}
+		};
+
+		// Add drop handlers for swimlane cells
+		const addSwimLaneCellDropHandlers = (
+			cell: HTMLElement,
+			swimLaneId: string,
+			columnId: string,
+			groupByPropertyId: string | null,
+			swimLaneConfig: SwimLaneConfig,
+			basesViewInstance: any,
+			plugin: TaskNotesPlugin
+		) => {
+			cell.addEventListener("dragover", (e) => {
+				e.preventDefault();
+				if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+				cell.classList.add("kanban-view__swimlane-column--dragover");
+			});
+
+			cell.addEventListener("dragleave", (e) => {
+				if (!cell.contains(e.relatedTarget as Node)) {
+					cell.classList.remove("kanban-view__swimlane-column--dragover");
+				}
+			});
+
+			cell.addEventListener("drop", async (e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				cell.classList.remove("kanban-view__swimlane-column--dragover");
+
+				const taskPath = e.dataTransfer?.getData("text/plain");
+				if (!taskPath) return;
+
+				try {
+					const task = await plugin.cacheManager.getCachedTaskInfo(taskPath);
+					if (!task) return;
+
+					// Update both the column property (groupBy) and swimlane property
+					// Column property
+					if (groupByPropertyId) {
+						await updateTaskProperty(task, groupByPropertyId, columnId, plugin);
+					}
+
+					// Swimlane property
+					if (swimLaneId !== "none") {
+						await updateTaskProperty(task, swimLaneConfig.propertyId, swimLaneId, plugin);
+					}
+
+					// Refresh view
+					setTimeout(() => {
+						if (basesViewInstance && typeof basesViewInstance.refresh === "function") {
+							basesViewInstance.refresh();
+						}
+					}, 100);
+				} catch (error) {
+					console.error("[TaskNotes][Bases] Swimlane drop failed:", error);
+				}
+			});
+		};
+
+		// Helper to update task property
+		const updateTaskProperty = async (task: TaskInfo, propertyId: string, value: string, plugin: TaskNotesPlugin) => {
+			const normalized = propertyId.toLowerCase();
+
+			if (normalized === "status" || normalized === "note.status") {
+				await plugin.updateTaskProperty(task, "status", value, { silent: false });
+			} else if (normalized === "priority" || normalized === "note.priority") {
+				await plugin.updateTaskProperty(task, "priority", value, { silent: false });
+			} else if (normalized === "projects" || normalized === "project" || normalized === "note.projects" || normalized === "note.project") {
+				await plugin.updateTaskProperty(task, "projects", [value], { silent: false });
+			} else if (normalized === "contexts" || normalized === "context" || normalized === "note.contexts" || normalized === "note.context") {
+				await plugin.updateTaskProperty(task, "contexts", [value], { silent: false });
+			} else {
+				// Custom property - update frontmatter
+				const file = plugin.app.vault.getAbstractFileByPath(task.path);
+				if (file && "stat" in file) {
+					await plugin.app.fileManager.processFrontMatter(file as any, (frontmatter: any) => {
+						const propertyName = propertyId.includes(".")
+							? propertyId.split(".").pop() || propertyId
+							: propertyId;
+						frontmatter[propertyName] = value;
+					});
+				}
 			}
 		};
 

@@ -29,6 +29,18 @@ export async function registerBasesTaskList(plugin: TaskNotesPlugin): Promise<vo
 				name: "TaskNotes Kanban",
 				icon: "tasknotes-simple",
 				factory: buildTasknotesKanbanViewFactory(plugin),
+				options: () => [
+					{
+						type: "property",
+						key: "swimLane",
+						displayName: "Swim Lane",
+						placeholder: "Select property for swim lanes (optional)",
+						filter: (prop: string) => {
+							// Show all note properties that could be used for swimlanes
+							return prop.startsWith("note.") || prop.startsWith("task.");
+						},
+					},
+				],
 			});
 
 			// Register Calendar view using public API
