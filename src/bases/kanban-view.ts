@@ -155,22 +155,22 @@ export function buildTasknotesKanbanViewFactory(plugin: TaskNotesPlugin) {
 
 					// Check for native TaskNotes properties
 					if (normalizedId === "priority" || normalizedId === "note.priority") {
-						return task.priority || "none";
+						return String(task.priority || "none");
 					}
 					if (normalizedId === "status" || normalizedId === "note.status") {
-						return task.status || "none";
+						return String(task.status || "none");
 					}
 					if (normalizedId === "projects" || normalizedId === "note.projects" || normalizedId === "project" || normalizedId === "note.project") {
 						const projects = task.projects;
-						if (Array.isArray(projects) && projects.length > 0) {
-							return projects[0]; // Use first project
+						if (Array.isArray(projects) && projects.length > 0 && projects[0]) {
+							return String(projects[0]); // Use first project, ensure it's a string
 						}
 						return "none";
 					}
 					if (normalizedId === "contexts" || normalizedId === "note.contexts" || normalizedId === "context" || normalizedId === "note.context") {
 						const contexts = task.contexts;
-						if (Array.isArray(contexts) && contexts.length > 0) {
-							return contexts[0]; // Use first context
+						if (Array.isArray(contexts) && contexts.length > 0 && contexts[0]) {
+							return String(contexts[0]); // Use first context, ensure it's a string
 						}
 						return "none";
 					}
@@ -178,10 +178,12 @@ export function buildTasknotesKanbanViewFactory(plugin: TaskNotesPlugin) {
 					// Check custom properties
 					const value = props[normalizedId] || props[normalizedId.replace("note.", "")] || props[normalizedId.replace("task.", "")];
 					if (value !== undefined && value !== null && value !== "") {
-						if (Array.isArray(value) && value.length > 0) {
+						if (Array.isArray(value) && value.length > 0 && value[0] != null) {
 							return String(value[0]);
 						}
-						return String(value);
+						if (value != null) {
+							return String(value);
+						}
 					}
 
 					return "none";
@@ -503,10 +505,14 @@ export function buildTasknotesKanbanViewFactory(plugin: TaskNotesPlugin) {
 
 			// Sort swimlane IDs
 			const sortedSwimLaneIds = Array.from(swimLaneIds).sort((a, b) => {
+				// Handle null/undefined values
+				const aStr = String(a || "none");
+				const bStr = String(b || "none");
+
 				// Put "none" at the end
-				if (a === "none") return 1;
-				if (b === "none") return -1;
-				return a.localeCompare(b);
+				if (aStr === "none") return 1;
+				if (bStr === "none") return -1;
+				return aStr.localeCompare(bStr);
 			});
 
 			// Organize tasks by swimlane and column
