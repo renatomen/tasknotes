@@ -235,11 +235,21 @@
 /* Each swimlane row */
 .kanban-view__swimlane-row {
     display: grid;
-    grid-template-columns: 180px repeat(auto-fit, minmax(250px, 1fr));
+    /* Fixed swimlane label + fixed-width columns (no auto-fit) */
+    grid-auto-columns: 280px;
+    grid-auto-flow: column;
     gap: 1px;
     background: var(--tn-border-color);
     border: 1px solid var(--tn-border-color);
     border-bottom: none;
+    min-width: max-content;
+}
+
+/* First cell (swimlane label) has fixed width */
+.kanban-view__swimlane-row > :first-child {
+    grid-column: 1;
+    width: 180px;
+    min-width: 180px;
 }
 
 /* Last row gets bottom border */
@@ -330,7 +340,12 @@
 /* Responsive adjustments for swimlanes */
 @media (max-width: 1200px) {
     .kanban-view__swimlane-row {
-        grid-template-columns: 150px repeat(auto-fit, minmax(220px, 1fr));
+        grid-auto-columns: 240px;
+    }
+
+    .kanban-view__swimlane-row > :first-child {
+        width: 150px;
+        min-width: 150px;
     }
 
     .kanban-view__swimlane-label {
@@ -340,7 +355,12 @@
 
 @media (max-width: 768px) {
     .kanban-view__swimlane-row {
-        grid-template-columns: 120px repeat(auto-fit, minmax(180px, 1fr));
+        grid-auto-columns: 200px;
+    }
+
+    .kanban-view__swimlane-row > :first-child {
+        width: 120px;
+        min-width: 120px;
     }
 
     .kanban-view__swimlane-title {
