@@ -105,6 +105,80 @@ export function renderIntegrationsTab(
 		},
 	});
 
+	// View Commands Section (v4)
+	createSectionHeader(container, "View Commands");
+	createHelpText(
+		container,
+		"Configure which .base files are opened by view commands. These commands let you continue using familiar shortcuts while working with Bases files."
+	);
+
+	// Command file mappings
+	const commandMappings = [
+		{
+			id: 'open-kanban-view',
+			name: 'Open Kanban View',
+			defaultPath: 'TaskNotes/Views/kanban-default.base',
+		},
+		{
+			id: 'open-tasks-view',
+			name: 'Open Tasks View',
+			defaultPath: 'TaskNotes/Views/tasks-default.base',
+		},
+		{
+			id: 'open-advanced-calendar-view',
+			name: 'Open Calendar View',
+			defaultPath: 'TaskNotes/Views/calendar-default.base',
+		},
+	];
+
+	commandMappings.forEach(({ id, name, defaultPath }) => {
+		const setting = new Setting(container);
+		setting.setName(name);
+		setting.setDesc(`File: ${plugin.settings.commandFileMapping[id]}`);
+
+		// Text input for file path
+		setting.addText(text => {
+			text.setPlaceholder(defaultPath)
+				.setValue(plugin.settings.commandFileMapping[id])
+				.onChange(async (value) => {
+					plugin.settings.commandFileMapping[id] = value;
+					await save();
+					// Update description
+					setting.setDesc(`File: ${value}`);
+				});
+			text.inputEl.style.width = '100%';
+			return text;
+		});
+
+		// Reset button
+		setting.addButton(button => {
+			button.setButtonText('Reset')
+				.setTooltip('Reset to default path')
+				.onClick(async () => {
+					plugin.settings.commandFileMapping[id] = defaultPath;
+					await save();
+					// Refresh the entire settings display
+					if (app.setting.activeTab) {
+						app.setting.openTabById(app.setting.activeTab.id);
+					}
+				});
+			return button;
+		});
+	});
+
+	// Create Default Files button
+	new Setting(container)
+		.setName('Create Default Files')
+		.setDesc('Create the default .base files in TaskNotes/Views/ directory. Existing files will not be overwritten.')
+		.addButton(button => {
+			button.setButtonText('Create Files')
+				.setCta()
+				.onClick(async () => {
+					await plugin.createDefaultBasesFiles();
+				});
+			return button;
+		});
+
 	// OAuth Calendar Integration Section
 	createSectionHeader(container, "OAuth Calendar Integration");
 	createHelpText(

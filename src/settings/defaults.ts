@@ -287,6 +287,12 @@ export const DEFAULT_SETTINGS: TaskNotesSettings = {
 	],
 	// Bases integration defaults
 	enableBases: true,
+	// Command-to-file mappings for view commands (v4)
+	commandFileMapping: {
+		'open-kanban-view': 'TaskNotes/Views/kanban-default.base',
+		'open-tasks-view': 'TaskNotes/Views/tasks-default.base',
+		'open-advanced-calendar-view': 'TaskNotes/Views/calendar-default.base',
+	},
 	// Recurring task behavior defaults
 	maintainDueDateOffsetInRecurring: false,
 	// Frontmatter link format defaults

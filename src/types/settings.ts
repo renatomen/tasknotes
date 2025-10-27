@@ -129,6 +129,13 @@ export interface TaskNotesSettings {
 	defaultVisibleProperties?: string[];
 	// Bases integration settings
 	enableBases: boolean;
+	// Command-to-file mappings for view commands (v4)
+	commandFileMapping: {
+		'open-kanban-view': string;
+		'open-tasks-view': string;
+		'open-advanced-calendar-view': string;
+		[key: string]: string; // Allow string indexing
+	};
 	// Recurring task behavior
 	maintainDueDateOffsetInRecurring: boolean;
 	// Frontmatter link format settings

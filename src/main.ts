@@ -11,6 +11,7 @@ import {
 	Command,
 	Hotkey,
 	getLanguage,
+	normalizePath,
 } from "obsidian";
 import { EditorView } from "@codemirror/view";
 import { format } from "date-fns";
@@ -23,6 +24,7 @@ import {
 import { TaskNotesSettings } from "./types/settings";
 import { DEFAULT_SETTINGS } from "./settings/defaults";
 import { TaskNotesSettingTab } from "./settings/TaskNotesSettingTab";
+import { DEFAULT_BASES_FILES } from "./templates/defaultBasesFiles";
 import {
 	MINI_CALENDAR_VIEW_TYPE,
 	ADVANCED_CALENDAR_VIEW_TYPE,
@@ -365,23 +367,24 @@ export default class TaskNotesPlugin extends Plugin {
 		});
 
 		this.addRibbonIcon("calendar", "Open advanced calendar", async () => {
-			await this.activateAdvancedCalendarView();
+			await this.openBasesFileForCommand('open-advanced-calendar-view');
 		});
 
 		this.addRibbonIcon("check-square", "Open task list", async () => {
-			await this.activateTasksView();
+			await this.openBasesFileForCommand('open-tasks-view');
 		});
 
-		this.addRibbonIcon("sticky-note", "Open notes", async () => {
-			await this.activateNotesView();
-		});
+		// v4: Notes view deprecated - ribbon icon removed
+		// this.addRibbonIcon("sticky-note", "Open notes", async () => {
+		// 	await this.activateNotesView();
+		// });
 
 		this.addRibbonIcon("list", "Open agenda", async () => {
 			await this.activateAgendaView();
 		});
 
 		this.addRibbonIcon("columns-3", "Open kanban board", async () => {
-			await this.activateKanbanView();
+			await this.openBasesFileForCommand('open-kanban-view');
 		});
 
 		this.addRibbonIcon("timer", "Open pomodoro", async () => {
@@ -493,12 +496,15 @@ export default class TaskNotesPlugin extends Plugin {
 
 			// Register view types (now safe after layout ready)
 			this.registerView(MINI_CALENDAR_VIEW_TYPE, (leaf) => new MiniCalendarView(leaf, this));
-			this.registerView(
-				ADVANCED_CALENDAR_VIEW_TYPE,
-				(leaf) => new AdvancedCalendarView(leaf, this)
-			);
-			this.registerView(TASK_LIST_VIEW_TYPE, (leaf) => new TaskListView(leaf, this));
-			this.registerView(NOTES_VIEW_TYPE, (leaf) => new NotesView(leaf, this));
+// v4: Advanced Calendar view migrated to Bases
+			// this.registerView(
+				// ADVANCED_CALENDAR_VIEW_TYPE,
+				// (leaf) => new AdvancedCalendarView(leaf, this)
+			// );
+			// v4: Task List view migrated to Bases
+		// this.registerView(TASK_LIST_VIEW_TYPE, (leaf) => new TaskListView(leaf, this));
+			// v4: Notes view deprecated
+		// this.registerView(NOTES_VIEW_TYPE, (leaf) => new NotesView(leaf, this));
 			this.registerView(AGENDA_VIEW_TYPE, (leaf) => new AgendaView(leaf, this));
 			this.registerView(POMODORO_VIEW_TYPE, (leaf) => new PomodoroView(leaf, this));
 			this.registerView(
@@ -507,7 +513,8 @@ export default class TaskNotesPlugin extends Plugin {
 			);
 			this.registerView(STATS_VIEW_TYPE, (leaf) => new StatsView(leaf, this));
 
-			this.registerView(KANBAN_VIEW_TYPE, (leaf) => new KanbanView(leaf, this));
+			// v4: Kanban view migrated to Bases
+		// this.registerView(KANBAN_VIEW_TYPE, (leaf) => new KanbanView(leaf, this));
 
 			this.registerView(
 				RELEASE_NOTES_VIEW_TYPE,
@@ -1409,23 +1416,24 @@ export default class TaskNotesPlugin extends Plugin {
 				id: "open-advanced-calendar-view",
 				nameKey: "commands.openAdvancedCalendarView",
 				callback: async () => {
-					await this.activateAdvancedCalendarView();
+					await this.openBasesFileForCommand('open-advanced-calendar-view');
 				},
 			},
 			{
 				id: "open-tasks-view",
 				nameKey: "commands.openTasksView",
 				callback: async () => {
-					await this.activateTasksView();
+					await this.openBasesFileForCommand('open-tasks-view');
 				},
 			},
-			{
-				id: "open-notes-view",
-				nameKey: "commands.openNotesView",
-				callback: async () => {
-					await this.activateNotesView();
-				},
-			},
+			// v4: Notes view deprecated - command removed
+// 			{
+// 				id: "open-notes-view",
+// 				nameKey: "commands.openNotesView",
+// 				callback: async () => {
+// 					await this.activateNotesView();
+// 				},
+// 			},
 			{
 				id: "open-agenda-view",
 				nameKey: "commands.openAgendaView",
@@ -1444,7 +1452,7 @@ export default class TaskNotesPlugin extends Plugin {
 				id: "open-kanban-view",
 				nameKey: "commands.openKanbanView",
 				callback: async () => {
-					await this.activateKanbanView();
+					await this.openBasesFileForCommand('open-kanban-view');
 				},
 			},
 			{
@@ -1668,17 +1676,20 @@ export default class TaskNotesPlugin extends Plugin {
 		return this.activateView(MINI_CALENDAR_VIEW_TYPE);
 	}
 
-	async activateAdvancedCalendarView() {
-		return this.activateView(ADVANCED_CALENDAR_VIEW_TYPE);
-	}
+	// v4: Removed - Advanced Calendar now uses Bases
+	// async activateAdvancedCalendarView() {
+	// 	return this.activateView(ADVANCED_CALENDAR_VIEW_TYPE);
+	// }
 
-	async activateTasksView() {
-		return this.activateView(TASK_LIST_VIEW_TYPE);
-	}
+	// v4: Removed - Task List now uses Bases
+	// async activateTasksView() {
+	// 	return this.activateView(TASK_LIST_VIEW_TYPE);
+	// }
 
-	async activateNotesView() {
-		return this.activateView(NOTES_VIEW_TYPE);
-	}
+	// v4: Removed - Notes view deprecated
+	// async activateNotesView() {
+	// 	return this.activateView(NOTES_VIEW_TYPE);
+	// }
 
 	async activateAgendaView() {
 		return this.activateView(AGENDA_VIEW_TYPE);
@@ -1696,12 +1707,103 @@ export default class TaskNotesPlugin extends Plugin {
 		return this.activateView(STATS_VIEW_TYPE);
 	}
 
-	async activateKanbanView() {
-		return this.activateView(KANBAN_VIEW_TYPE);
-	}
+	// v4: Removed - Kanban now uses Bases
+	// async activateKanbanView() {
+	// 	return this.activateView(KANBAN_VIEW_TYPE);
+	// }
 
 	async activateReleaseNotesView() {
 		return this.activateView(RELEASE_NOTES_VIEW_TYPE);
+	}
+
+	/**
+	 * Open a .base file for a command, showing an error if the file doesn't exist
+	 * v4: Commands now route to Bases files instead of native views
+	 */
+	async openBasesFileForCommand(commandId: string): Promise<void> {
+		const filePath = this.settings.commandFileMapping[commandId];
+
+		if (!filePath) {
+			new Notice(`No file configured for command: ${commandId}`);
+			return;
+		}
+
+		// Normalize the path for Obsidian
+		const normalizedPath = normalizePath(filePath);
+
+		// Check if file exists
+		const fileExists = await this.app.vault.adapter.exists(normalizedPath);
+
+		if (!fileExists) {
+			// Show error - user needs to configure a valid file
+			new Notice(
+				`File not found: ${normalizedPath}\n\nPlease configure a valid file in Settings → TaskNotes → View Commands, or use the "Create Default Files" button.`,
+				10000
+			);
+			return;
+		}
+
+		// Open the .base file
+		const file = this.app.vault.getAbstractFileByPath(normalizedPath);
+		if (!file) {
+			new Notice(`File not found in vault: ${normalizedPath}\n\nThe file exists but Obsidian cannot find it. Try reloading the vault.`);
+			return;
+		}
+		if (!(file instanceof TFile)) {
+			new Notice(`Path is not a file: ${normalizedPath}`);
+			return;
+		}
+
+		const leaf = this.app.workspace.getLeaf();
+		await leaf.openFile(file);
+	}
+
+	/**
+	 * Create default .base files in TaskNotes/Views/ directory
+	 * Called from settings UI
+	 */
+	async createDefaultBasesFiles(): Promise<void> {
+		const viewsDir = 'TaskNotes/Views';
+
+		// Ensure directory exists
+		if (!await this.app.vault.adapter.exists(viewsDir)) {
+			// Create both parent and child if needed
+			if (!await this.app.vault.adapter.exists('TaskNotes')) {
+				await this.app.vault.createFolder('TaskNotes');
+			}
+			await this.app.vault.createFolder(viewsDir);
+		}
+
+		// Track which files were created
+		const createdFiles: string[] = [];
+		const skippedFiles: string[] = [];
+
+		// Create each default file
+		for (const [commandId, filePath] of Object.entries(this.settings.commandFileMapping)) {
+			const normalizedPath = normalizePath(filePath);
+			const fileExists = await this.app.vault.adapter.exists(normalizedPath);
+
+			if (!fileExists) {
+				const content = DEFAULT_BASES_FILES[commandId];
+				if (content) {
+					await this.app.vault.create(normalizedPath, content);
+					createdFiles.push(filePath);
+				}
+			} else {
+				skippedFiles.push(filePath);
+			}
+		}
+
+		// Show appropriate notice
+		if (createdFiles.length > 0) {
+			new Notice(
+				`Created ${createdFiles.length} default Bases file(s):\n${createdFiles.join('\n')}`,
+				8000
+			);
+		}
+		if (skippedFiles.length > 0 && createdFiles.length === 0) {
+			new Notice('All default files already exist. No files were created.');
+		}
 	}
 
 	/**
