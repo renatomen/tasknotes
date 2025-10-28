@@ -184,6 +184,55 @@ export function renderIntegrationsTab(
 			return button;
 		});
 
+	// Export All Saved Views button
+	new Setting(container)
+		.setName('Export All Saved Views to Bases')
+		.setDesc('Convert all your saved views into a single .base file with multiple views. Agenda views will use calendar type.')
+		.addButton(button => {
+			button.setButtonText('Export All Views')
+				.onClick(async () => {
+					try {
+						const savedViews = plugin.viewStateManager.getSavedViews();
+
+						if (savedViews.length === 0) {
+							new Notice('No saved views to export');
+							return;
+						}
+
+						const basesContent = plugin.basesFilterConverter.convertAllSavedViewsToBasesFile(savedViews);
+						const fileName = 'all-saved-views.base';
+						const filePath = `TaskNotes/Views/${fileName}`;
+
+						// Create folder if needed
+						const folder = plugin.app.vault.getAbstractFileByPath('TaskNotes/Views');
+						if (!folder) {
+							await plugin.app.vault.createFolder('TaskNotes/Views');
+						}
+
+						// Handle file overwrite confirmation
+						const existingFile = plugin.app.vault.getAbstractFileByPath(filePath);
+						if (existingFile) {
+							const confirmed = await showConfirmationModal(plugin.app, {
+								title: 'File Already Exists',
+								message: `A file named "${fileName}" already exists. Overwrite it?`,
+								isDestructive: false,
+							});
+							if (!confirmed) return;
+							await plugin.app.vault.modify(existingFile as any, basesContent);
+						} else {
+							await plugin.app.vault.create(filePath, basesContent);
+						}
+
+						new Notice(`Exported ${savedViews.length} saved views to ${filePath}`);
+						await plugin.app.workspace.openLinkText(filePath, '', true);
+					} catch (error) {
+						console.error('Error exporting all views to Bases:', error);
+						new Notice(`Failed to export views: ${error.message}`);
+					}
+				});
+			return button;
+		});
+
 	// OAuth Calendar Integration Section
 	createSectionHeader(container, "OAuth Calendar Integration");
 	createHelpText(

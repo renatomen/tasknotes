@@ -15,7 +15,7 @@ import type { UserMappedField } from "../types/settings";
  * Converts TaskNotes FilterQuery structures to Bases filter expressions
  *
  * Bases uses a functional expression syntax like:
- * - note.property === "value"
+ * - note.property == "value"
  * - note.property.contains("value")
  * - note.property && note.property !== ""
  * - (condition1 && condition2) || condition3
@@ -34,19 +34,19 @@ export class BasesFilterConverter {
 	}
 
 	/**
-	 * Convert a TaskNotes FilterQuery to a Bases filter expression string
+	 * Convert a TaskNotes FilterQuery to a Bases filter expression (object notation)
 	 */
-	convertToBasesFilter(query: FilterQuery): string {
+	convertToBasesFilter(query: FilterQuery): any {
 		try {
-			// Convert the root group
-			const filterExpression = this.convertNode(query);
+			// Convert to object notation for YAML
+			const filterObject = this.convertNodeToObject(query);
 
-			// If the filter is empty or just whitespace, return empty string
-			if (!filterExpression || filterExpression.trim() === "") {
-				return "";
+			// If the filter is empty, return empty object
+			if (!filterObject) {
+				return null;
 			}
 
-			return filterExpression;
+			return filterObject;
 		} catch (error) {
 			console.error("Error converting TaskNotes filter to Bases:", error);
 			throw new Error(`Failed to convert filter: ${error.message}`);
@@ -54,55 +54,77 @@ export class BasesFilterConverter {
 	}
 
 	/**
-	 * Convert a FilterNode (group or condition) to Bases expression
+	 * Convert a FilterNode to Bases object notation
 	 */
-	private convertNode(node: FilterNode): string {
-		if (node.type === "group") {
-			return this.convertGroup(node as FilterGroup);
-		} else if (node.type === "condition") {
-			return this.convertCondition(node as FilterCondition);
+	private convertNodeToObject(node: FilterNode): any {
+		if (node.type == "group") {
+			return this.convertGroupToObject(node as FilterGroup);
+		} else if (node.type == "condition") {
+			return this.convertConditionToString(node as FilterCondition);
 		}
-		return "";
+		return null;
 	}
 
 	/**
-	 * Convert a FilterGroup to Bases expression with proper conjunction
+	 * Convert a FilterGroup to Bases object notation
 	 */
-	private convertGroup(group: FilterGroup): string {
+	private convertGroupToObject(group: FilterGroup): any {
 		// Filter out incomplete conditions
 		const completeChildren = group.children.filter((child) => {
-			if (child.type === "condition") {
+			if (child.type == "condition") {
 				return this.isConditionComplete(child as FilterCondition);
 			}
 			return true; // Groups are always evaluated
 		});
 
-		// If no complete children, return empty
-		if (completeChildren.length === 0) {
-			return "";
+		// If no complete children, return null
+		if (completeChildren.length == 0) {
+			return null;
 		}
 
-		// Convert each child to Bases expression
-		const childExpressions = completeChildren
-			.map((child) => this.convertNode(child))
-			.filter((expr) => expr && expr.trim() !== "");
+		// Convert each child
+		const childObjects = completeChildren
+			.map((child) => this.convertNodeToObject(child))
+			.filter((obj) => obj !== null);
 
-		// If no valid expressions, return empty
-		if (childExpressions.length === 0) {
-			return "";
+		// If no valid expressions, return null
+		if (childObjects.length == 0) {
+			return null;
 		}
 
-		// If only one expression, return it directly (no need for parentheses)
-		if (childExpressions.length === 1) {
-			return childExpressions[0];
+		// If only one expression, return it directly
+		if (childObjects.length === 1) {
+			return childObjects[0];
 		}
 
-		// Join with conjunction operator
-		const operator = group.conjunction === "and" ? " && " : " || ";
-
-		// Wrap in parentheses if this is a nested group
-		return `(${childExpressions.join(operator)})`;
+		// Return object notation with and/or key
+		const key = group.conjunction == "and" ? "and" : "or";
+		return { [key]: childObjects };
 	}
+
+	/**
+	 * Convert a FilterCondition to a string expression
+	 */
+	private convertConditionToString(condition: FilterCondition): string {
+		const { property, operator, value } = condition;
+
+		// Handle special property: status.isCompleted
+		if (property == "status.isCompleted") {
+			return this.convertCompletedStatusCondition(operator, value);
+		}
+
+		// Handle user-defined fields (user:<id>)
+		if (property.startsWith("user:")) {
+			return this.convertUserFieldCondition(property, operator, value);
+		}
+
+		// Get the Bases property path (note.property)
+		const basesProperty = this.getBasesPropertyPath(property);
+
+		// Convert based on operator
+		return this.convertOperator(basesProperty, operator, value, property);
+	}
+
 
 	/**
 	 * Check if a condition is complete (has property, operator, and value if needed)
@@ -125,28 +147,6 @@ export class BasesFilterConverter {
 		return value !== null && value !== undefined && value !== "";
 	}
 
-	/**
-	 * Convert a FilterCondition to Bases expression
-	 */
-	private convertCondition(condition: FilterCondition): string {
-		const { property, operator, value } = condition;
-
-		// Handle special property: status.isCompleted
-		if (property === "status.isCompleted") {
-			return this.convertCompletedStatusCondition(operator, value);
-		}
-
-		// Handle user-defined fields (user:<id>)
-		if (property.startsWith("user:")) {
-			return this.convertUserFieldCondition(property, operator, value);
-		}
-
-		// Get the Bases property path (note.property)
-		const basesProperty = this.getBasesPropertyPath(property);
-
-		// Convert based on operator
-		return this.convertOperator(basesProperty, operator, value, property);
-	}
 
 	/**
 	 * Convert status.isCompleted to Bases expression
@@ -154,27 +154,31 @@ export class BasesFilterConverter {
 	 */
 	private convertCompletedStatusCondition(operator: FilterOperator, value: any): string {
 		const completedStatusValues = this.statusManager.getCompletedStatuses();
+		const fieldMapping = this.plugin.settings.fieldMapping;
 
 		// Build expression checking if status is in completed list
 		const statusConditions = completedStatusValues
-			.map((statusValue) => `note.status === "${this.escapeString(statusValue)}"`)
+			.map((statusValue) => `note.status == "${this.escapeString(statusValue)}"`)
 			.join(" || ");
 
-		// For recurring tasks, also check if current instance is completed
-		// Bases would need to evaluate: (status is completed) OR (current date in complete_instances)
-		// For now, we'll focus on the status check
-		// TODO: Add complete_instances check if Bases supports date array operations
-
-		let expression = completedStatusValues.length > 1
+		// Build status check expression
+		let statusExpression = completedStatusValues.length > 1
 			? `(${statusConditions})`
 			: statusConditions;
 
-		// Handle operator
-		if (operator === "is-not-checked" || operator === "is-not") {
-			expression = `!(${expression})`;
+		// For recurring tasks, also check if today's date is in complete_instances array
+		// Use list.map() to convert dates to formatted strings, then check with contains()
+		const completedInstancesCheck = `note.${fieldMapping.completeInstances} && note.${fieldMapping.completeInstances}.map(date(value).format("YYYY-MM-DD")).contains(today().format("YYYY-MM-DD"))`;
+
+		// Combine both conditions: status is completed OR today is in complete_instances
+		const combinedExpression = `(${statusExpression}) || (${completedInstancesCheck})`;
+
+		// Handle operator - wrap in parentheses when negating to ensure proper precedence
+		if (operator == "is-not-checked" || operator == "is-not") {
+			return `!(${combinedExpression})`;
 		}
 
-		return expression;
+		return combinedExpression;
 	}
 
 	/**
@@ -246,7 +250,7 @@ export class BasesFilterConverter {
 				return "file.mtime";
 			case "archived":
 				// Check if task has the archive tag
-				return `file.tags.includes("${this.escapeString(fieldMapping.archiveTag)}")`;
+				return `file.tags.contains("${this.escapeString(fieldMapping.archiveTag)}")`;
 			case "timeEstimate":
 				frontmatterKey = fieldMapping.timeEstimate;
 				break;
@@ -266,7 +270,7 @@ export class BasesFilterConverter {
 			case "dependencies.isBlocking":
 				// These are computed properties based on blockedBy
 				// For now, return a placeholder - proper implementation would need more complex logic
-				return property === "dependencies.isBlocked"
+				return property == "dependencies.isBlocked"
 					? `note.${fieldMapping.blockedBy} && note.${fieldMapping.blockedBy}.length > 0`
 					: "false"; // isBlocking needs reverse lookup, complex to implement
 			default:
@@ -313,16 +317,16 @@ export class BasesFilterConverter {
 				return `${basesProperty} >= "${this.escapeString(String(value))}"`;
 
 			case "is-empty":
-				return `(!${basesProperty} || ${basesProperty} === "" || ${basesProperty} === null)`;
+				return `(!${basesProperty} || ${basesProperty} == "" || ${basesProperty} == null)`;
 
 			case "is-not-empty":
-				return `(${basesProperty} && ${basesProperty} !== "" && ${basesProperty} !== null)`;
+				return `(${basesProperty} && ${basesProperty} != "" && ${basesProperty} != null)`;
 
 			case "is-checked":
-				return `${basesProperty} === true`;
+				return `${basesProperty} == true`;
 
 			case "is-not-checked":
-				return `${basesProperty} !== true`;
+				return `${basesProperty} != true`;
 
 			case "is-greater-than":
 				return `${basesProperty} > ${this.formatNumericValue(value)}`;
@@ -348,39 +352,39 @@ export class BasesFilterConverter {
 	private convertIsOperator(basesProperty: string, value: any, fieldType?: string): string {
 		// Handle array values (for multi-select properties)
 		if (Array.isArray(value)) {
-			if (value.length === 0) {
-				return `(!${basesProperty} || ${basesProperty}.length === 0)`;
+			if (value.length == 0) {
+				return `(!${basesProperty} || ${basesProperty}.length == 0)`;
 			}
 
 			// Check if property contains any of the values
 			const conditions = value.map(
-				(v) => `${basesProperty}.includes("${this.escapeString(String(v))}")`
+				(v) => `${basesProperty}.contains("${this.escapeString(String(v))}")`
 			);
 			return conditions.length > 1 ? `(${conditions.join(" || ")})` : conditions[0];
 		}
 
 		// Handle list-type user fields
-		if (fieldType === "list") {
-			return `${basesProperty}.includes("${this.escapeString(String(value))}")`;
+		if (fieldType == "list") {
+			return `${basesProperty}.contains("${this.escapeString(String(value))}")`;
 		}
 
 		// Handle boolean values
-		if (typeof value === "boolean" || fieldType === "boolean") {
-			return `${basesProperty} === ${value}`;
+		if (typeof value == "boolean" || fieldType == "boolean") {
+			return `${basesProperty} == ${value}`;
 		}
 
 		// Handle numeric values
-		if (typeof value === "number" || fieldType === "number") {
-			return `${basesProperty} === ${value}`;
+		if (typeof value == "number" || fieldType == "number") {
+			return `${basesProperty} == ${value}`;
 		}
 
 		// Handle null/empty
-		if (value === null || value === "") {
-			return `(!${basesProperty} || ${basesProperty} === "" || ${basesProperty} === null)`;
+		if (value == null || value == "") {
+			return `(!${basesProperty} || ${basesProperty} == "" || ${basesProperty} == null)`;
 		}
 
 		// Default: string comparison
-		return `${basesProperty} === "${this.escapeString(String(value))}"`;
+		return `${basesProperty} == "${this.escapeString(String(value))}"`;
 	}
 
 	/**
@@ -395,38 +399,38 @@ export class BasesFilterConverter {
 		const arrayProperties: FilterProperty[] = ["tags", "contexts", "projects"];
 
 		if (arrayProperties.includes(originalProperty)) {
-			// For array properties, use .some() with includes
+			// For array properties, use .contains() method
 			if (Array.isArray(value)) {
 				const conditions = value.map(
-					(v) => `${basesProperty}.includes("${this.escapeString(String(v))}")`
+					(v) => `${basesProperty}.contains("${this.escapeString(String(v))}")`
 				);
 				return conditions.length > 1 ? `(${conditions.join(" || ")})` : conditions[0];
 			}
 
 			// Special handling for projects - match wiki links
-			if (originalProperty === "projects") {
+			if (originalProperty == "projects") {
 				const projectValue = String(value);
 				// Try to match both with and without wiki link brackets
 				if (projectValue.startsWith("[[") && projectValue.endsWith("]]")) {
-					return `${basesProperty}.includes("${this.escapeString(projectValue)}")`;
+					return `${basesProperty}.contains("${this.escapeString(projectValue)}")`;
 				} else {
 					// Try both formats
-					return `(${basesProperty}.includes("[[${this.escapeString(projectValue)}]]") || ${basesProperty}.includes("${this.escapeString(projectValue)}"))`;
+					return `(${basesProperty}.contains("[[${this.escapeString(projectValue)}]]") || ${basesProperty}.contains("${this.escapeString(projectValue)}"))`;
 				}
 			}
 
-			return `${basesProperty}.includes("${this.escapeString(String(value))}")`;
+			return `${basesProperty}.contains("${this.escapeString(String(value))}")`;
 		}
 
-		// For string properties, use substring match
-		return `${basesProperty}.toLowerCase().includes("${this.escapeString(String(value).toLowerCase())}")`;
+		// For string properties, use substring match with Bases methods
+		return `${basesProperty}.lower().contains("${this.escapeString(String(value).toLowerCase())}")`;
 	}
 
 	/**
 	 * Format numeric value for Bases expression (no quotes)
 	 */
 	private formatNumericValue(value: any): string {
-		if (typeof value === "number") {
+		if (typeof value == "number") {
 			return String(value);
 		}
 		const num = parseFloat(String(value));
@@ -446,19 +450,50 @@ export class BasesFilterConverter {
 	}
 
 	/**
+	 * Convert filter object to YAML string
+	 */
+	private filterObjectToYAML(filterObj: any, indent: number = 0): string {
+		const indentStr = "  ".repeat(indent);
+
+		if (typeof filterObj == "string") {
+			// String expression - wrap in single quotes and escape single quotes
+			return `'${filterObj.replace(/'/g, "\\'")}'`;
+		}
+
+		if (Array.isArray(filterObj)) {
+			// Array of conditions
+			return filterObj.map(item => `\n${indentStr}- ${this.filterObjectToYAML(item, indent + 1)}`).join("");
+		}
+
+		if (typeof filterObj == "object" && filterObj !== null) {
+			// Object with and/or/not keys
+			const key = Object.keys(filterObj)[0];
+			const value = filterObj[key];
+
+			if (Array.isArray(value)) {
+				return `\n${indentStr}${key}:${value.map(item => `\n${indentStr}  - ${this.filterObjectToYAML(item, indent + 2)}`).join("")}`;
+			}
+
+			return `\n${indentStr}${key}: ${this.filterObjectToYAML(value, indent + 1)}`;
+		}
+
+		return String(filterObj);
+	}
+
+	/**
 	 * Convert a SavedView to a Bases .base file content
 	 */
 	convertSavedViewToBasesFile(
 		savedView: any,
 		viewType: "tasknotesTaskList" | "tasknotesKanban" | "tasknotesCalendar" = "tasknotesTaskList"
 	): string {
-		const filterExpression = this.convertToBasesFilter(savedView.query);
+		const filterObject = this.convertToBasesFilter(savedView.query);
 
 		// Build the Bases file content
 		let content = `# ${savedView.name}\n\n`;
 
-		if (filterExpression && filterExpression.trim() !== "") {
-			content += `filters: "${filterExpression}"\n\n`;
+		if (filterObject) {
+			content += `filters:${this.filterObjectToYAML(filterObject, 1)}\n\n`;
 		}
 
 		content += `views:\n`;
@@ -482,10 +517,19 @@ export class BasesFilterConverter {
 		}
 
 		// Add view options if present
-		if (savedView.viewOptions) {
+		if (savedView.viewOptions && Object.keys(savedView.viewOptions).length > 0) {
 			content += `    options:\n`;
 			Object.entries(savedView.viewOptions).forEach(([key, value]) => {
-				content += `      ${key}: ${value}\n`;
+				// Format value appropriately based on type
+				let formattedValue: string;
+				if (typeof value == "boolean" || typeof value == "number") {
+					formattedValue = String(value);
+				} else if (typeof value == "string") {
+					formattedValue = `"${this.escapeString(value)}"`;
+				} else {
+					formattedValue = JSON.stringify(value);
+				}
+				content += `      ${key}: ${formattedValue}\n`;
 			});
 		}
 
@@ -533,5 +577,117 @@ export class BasesFilterConverter {
 	private mapGroupKeyToBasesColumn(groupKey: string): string {
 		// Same mapping as sort key
 		return this.mapSortKeyToBasesColumn(groupKey);
+	}
+
+	/**
+	 * Convert all saved views to a single Bases .base file with multiple views
+	 */
+	convertAllSavedViewsToBasesFile(savedViews: any[]): string {
+		if (!savedViews || savedViews.length == 0) {
+			return "";
+		}
+
+		let content = `# All Saved Views\n`;
+		content += `# Converted from TaskNotes saved views\n\n`;
+
+		// Collect all unique filter expressions
+		const allFilters: string[] = [];
+		const viewDefinitions: string[] = [];
+
+		for (const savedView of savedViews) {
+			// Determine view type based on viewOptions
+			const viewType = this.detectViewType(savedView);
+
+			// Convert filter
+			const filterObject = this.convertToBasesFilter(savedView.query);
+
+			// Build view definition
+			let viewDef = `  - type: ${viewType}\n`;
+			viewDef += `    name: "${savedView.name}"\n`;
+
+			// Add filter to this view if present
+			if (filterObject) {
+				viewDef += `    filters:${this.filterObjectToYAML(filterObject, 3)}\n`;
+			}
+
+			// Add sorting if present
+			if (savedView.query.sortKey && savedView.query.sortKey !== "none") {
+				const sortColumn = this.mapSortKeyToBasesColumn(savedView.query.sortKey);
+				const sortDirection = (savedView.query.sortDirection || "asc").toUpperCase();
+				viewDef += `    sort:\n`;
+				viewDef += `      - column: ${sortColumn}\n`;
+				viewDef += `        direction: ${sortDirection}\n`;
+			}
+
+			// Add grouping if present
+			if (savedView.query.groupKey && savedView.query.groupKey !== "none") {
+				const groupColumn = this.mapGroupKeyToBasesColumn(savedView.query.groupKey);
+				viewDef += `    group:\n`;
+				viewDef += `      column: ${groupColumn}\n`;
+			}
+
+			// Add view options if present
+			if (savedView.viewOptions && Object.keys(savedView.viewOptions).length > 0) {
+				viewDef += `    options:\n`;
+				Object.entries(savedView.viewOptions).forEach(([key, value]) => {
+					// Format value appropriately based on type
+					let formattedValue: string;
+					if (typeof value == "boolean" || typeof value == "number") {
+						formattedValue = String(value);
+					} else if (typeof value == "string") {
+						formattedValue = `"${this.escapeString(value)}"`;
+					} else {
+						formattedValue = JSON.stringify(value);
+					}
+					viewDef += `      ${key}: ${formattedValue}\n`;
+				});
+			}
+
+			viewDefinitions.push(viewDef);
+		}
+
+		// Add views section
+		content += `views:\n`;
+		content += viewDefinitions.join("\n");
+
+		return content;
+	}
+
+	/**
+	 * Detect the view type for a saved view based on its viewOptions
+	 */
+	private detectViewType(savedView: any): "tasknotesTaskList" | "tasknotesKanban" | "tasknotesCalendar" {
+		const viewOptions = savedView.viewOptions || {};
+
+		// Check for calendar/agenda specific options
+		const calendarOptions = [
+			"showScheduled",
+			"showDue",
+			"showRecurring",
+			"showTimeEntries",
+			"showTimeblocks",
+			"showPropertyBasedEvents",
+			"calendarView",
+			"customDayCount",
+			"firstDay",
+			"slotMinTime",
+			"slotMaxTime",
+			"slotDuration"
+		];
+
+		const hasCalendarOptions = calendarOptions.some(option => option in viewOptions);
+		if (hasCalendarOptions) {
+			return "tasknotesCalendar";
+		}
+
+		// Check for kanban specific options
+		const kanbanOptions = ["columnWidth", "hideEmptyColumns"];
+		const hasKanbanOptions = kanbanOptions.some(option => option in viewOptions);
+		if (hasKanbanOptions) {
+			return "tasknotesKanban";
+		}
+
+		// Default to task list
+		return "tasknotesTaskList";
 	}
 }
