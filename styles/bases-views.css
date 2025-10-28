@@ -194,6 +194,11 @@
     background: transparent;
 }
 
+/* Override FullCalendar's bright white border color in dark mode */
+.theme-dark #bases-calendar.fc-theme-standard {
+    --fc-border-color: var(--background-modifier-border);
+}
+
 /* Responsive design for Bases views */
 @media (max-width: 768px) {
     .tn-bases-kanban-board {
