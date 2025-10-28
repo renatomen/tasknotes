@@ -156,6 +156,7 @@ export const en: TranslationTree = {
 				year: "Y",
 				list: "L",
 				customDays: "{count}D",
+				listDays: "{count}d List",
 			},
 			settings: {
 				groups: {
@@ -188,6 +189,7 @@ export const en: TranslationTree = {
 				layout: {
 					calendarView: "Calendar view",
 					customDayCount: "Custom day count",
+					listDayCount: "List day count",
 					dayStartTime: "Day start time",
 					dayStartTimePlaceholder: "HH:mm:ss (e.g., 08:00:00)",
 					dayEndTime: "Day end time",

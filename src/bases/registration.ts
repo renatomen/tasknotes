@@ -172,6 +172,15 @@ export async function registerBasesTaskList(plugin: TaskNotesPlugin): Promise<vo
 										step: 1,
 									},
 									{
+										type: "slider",
+										key: "listDayCount",
+										displayName: t("layout.listDayCount"),
+										default: 7,
+										min: 1,
+										max: 30,
+										step: 1,
+									},
+									{
 										type: "text",
 										key: "slotMinTime",
 										displayName: t("layout.dayStartTime"),
