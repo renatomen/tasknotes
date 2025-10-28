@@ -1312,6 +1312,7 @@ export function buildTasknotesCalendarViewFactory(plugin: TaskNotesPlugin) {
 				// Get calendar view and custom day count from config with validation
 				const configView = (currentViewContext?.config?.get('calendarView') as string) ?? calendarSettings.defaultView;
 				const customDayCount = (currentViewContext?.config?.get('customDayCount') as number) ?? calendarSettings.customDayCount ?? 3;
+				const listDayCount = (currentViewContext?.config?.get('listDayCount') as number) ?? 7;
 				const validViews = ['dayGridMonth', 'timeGridWeek', 'timeGridCustom', 'timeGridDay', 'listWeek', 'multiMonthYear'];
 				const defaultView = validViews.includes(configView)
 					? configView
@@ -1383,6 +1384,11 @@ export function buildTasknotesCalendarViewFactory(plugin: TaskNotesPlugin) {
 							type: 'timeGrid',
 							duration: { days: customDayCount },
 							buttonText: plugin.i18n.translate("views.basesCalendar.buttonText.customDays", { count: customDayCount.toString() }),
+						},
+						listWeek: {
+							type: 'list',
+							duration: { days: listDayCount },
+							buttonText: plugin.i18n.translate("views.basesCalendar.buttonText.listDays", { count: listDayCount.toString() }) || `${listDayCount}d List`,
 						},
 					},
 					height: "100%",
@@ -1557,6 +1563,7 @@ export function buildTasknotesCalendarViewFactory(plugin: TaskNotesPlugin) {
 					const configView = viewContext.config.get('calendarView') as string;
 					const currentView = calendar.view?.type;
 					const newCustomDayCount = (viewContext.config.get('customDayCount') as number) ?? plugin.settings.calendarViewSettings.customDayCount ?? 3;
+					const newListDayCount = (viewContext.config.get('listDayCount') as number) ?? 7;
 
 					// Update custom day view configuration if count changed
 					const currentCustomView = (calendar as any).options?.views?.timeGridCustom;
@@ -1575,6 +1582,26 @@ export function buildTasknotesCalendarViewFactory(plugin: TaskNotesPlugin) {
 							}
 						} catch (viewError) {
 							console.debug("[TaskNotes][Bases][Calendar] Error updating custom view:", viewError);
+						}
+					}
+
+					// Update list view configuration if count changed
+					const currentListView = (calendar as any).options?.views?.listWeek;
+					if (currentListView && currentListView.duration?.days !== newListDayCount) {
+						try {
+							calendar.setOption('views', {
+								listWeek: {
+									type: 'list',
+									duration: { days: newListDayCount },
+									buttonText: plugin.i18n.translate("views.basesCalendar.buttonText.listDays", { count: newListDayCount.toString() }) || `${newListDayCount}d List`,
+								},
+							});
+							// Re-render if currently on list view
+							if (currentView === 'listWeek') {
+								calendar.changeView('listWeek');
+							}
+						} catch (viewError) {
+							console.debug("[TaskNotes][Bases][Calendar] Error updating list view:", viewError);
 						}
 					}
 
