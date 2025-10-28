@@ -339,6 +339,48 @@ export async function registerBasesTaskList(plugin: TaskNotesPlugin): Promise<vo
 							}
 						}
 
+						// Add individual toggle for each Google Calendar
+						if (plugin.googleCalendarService) {
+							const availableCalendars = plugin.googleCalendarService.getAvailableCalendars();
+							if (availableCalendars.length > 0) {
+								// Create toggles for Google calendars
+								const googleToggles: any[] = availableCalendars.map(cal => ({
+									type: "toggle",
+									key: `showGoogleCalendar_${cal.id}`,
+									displayName: cal.summary || cal.id,
+									default: true,
+								}));
+
+								// Add as a group
+								options.push({
+									type: "group",
+									displayName: t("groups.googleCalendars") || "Google Calendars",
+									items: googleToggles,
+								});
+							}
+						}
+
+						// Add individual toggle for each Microsoft Calendar
+						if (plugin.microsoftCalendarService) {
+							const availableCalendars = plugin.microsoftCalendarService.getAvailableCalendars();
+							if (availableCalendars.length > 0) {
+								// Create toggles for Microsoft calendars
+								const microsoftToggles: any[] = availableCalendars.map(cal => ({
+									type: "toggle",
+									key: `showMicrosoftCalendar_${cal.id}`,
+									displayName: cal.summary || cal.id,
+									default: true,
+								}));
+
+								// Add as a group
+								options.push({
+									type: "group",
+									displayName: t("groups.microsoftCalendars") || "Microsoft Calendars",
+									items: microsoftToggles,
+								});
+							}
+						}
+
 						return options;
 					},
 				});

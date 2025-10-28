@@ -83,7 +83,13 @@ export class ICSEventInfoModal extends Modal {
 
 		// URL
 		if (this.icsEvent.url) {
-			new Setting(contentEl).setName("URL").setDesc(this.icsEvent.url);
+			const urlSetting = new Setting(contentEl).setName("URL");
+			const link = urlSetting.descEl.createEl("a", {
+				cls: "external-link",
+				href: this.icsEvent.url,
+				text: this.icsEvent.url,
+			});
+			link.setAttribute("target", "_blank");
 		}
 
 		// Related notes section

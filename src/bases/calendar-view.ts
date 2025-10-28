@@ -644,16 +644,8 @@ export function buildTasknotesCalendarViewFactory(plugin: TaskNotesPlugin) {
 						}
 					}
 
-					// Get the target date from the event for proper recurring task completion
-					// Use UTC anchor pattern: FullCalendar gives us a Date object, format to YYYY-MM-DD string then parse to UTC
-					let targetDate: Date;
-					if (arg.event.start) {
-						const dateStr = format(arg.event.start, 'yyyy-MM-dd');
-						targetDate = parseDateToUTC(dateStr);
-					} else {
-						const todayStr = getTodayString();
-						targetDate = parseDateToUTC(todayStr);
-					}
+					// Use shared UTC-anchored target date logic (handles recurring tasks correctly)
+					const targetDate = getTargetDateForEvent(arg);
 
 					cardElement = createTaskCard(enrichedTask, plugin, visibleProperties, {
 						targetDate: targetDate,

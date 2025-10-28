@@ -165,6 +165,8 @@ export const en: TranslationTree = {
 					layout: "Layout",
 					propertyBasedEvents: "Property-based events",
 					calendarSubscriptions: "Calendar subscriptions",
+					googleCalendars: "Google Calendars",
+					microsoftCalendars: "Microsoft Calendars",
 				},
 				dateNavigation: {
 					navigateToDate: "Navigate to date",
