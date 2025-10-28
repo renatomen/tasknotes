@@ -1,26 +1,15 @@
 /**
- * Test for Issue #871: Drag and drop in Kanban for bases changes wrong property
- *
- * When using Bases Kanban view with groupBy set to a custom property (e.g., priority),
- * dragging a task between columns should update the groupBy property, not the status.
- *
- * Bug: When groupByPropertyId is null (cannot be determined), the code falls back
- * to updating the status property (line 492-496 in bases/kanban-view.ts), regardless
- * of what the actual groupBy configuration is in Bases.
+ * Regression coverage for Issue #871: ensure Kanban drag/drop updates
+ * the column's grouping property (or bails) instead of silently mutating status.
  */
 
 import { describe, it, expect } from '@jest/globals';
 
 describe('Issue #871: Bases Kanban drag and drop updates wrong property', () => {
-    /**
-     * Simulates the CURRENT (buggy) drop handler behavior from bases/kanban-view.ts
-     * Lines 404-507
-     */
     function simulateBasesKanbanDrop(
         groupByPropertyId: string | null,
         targetColumnId: string
-    ): { updatedProperty: string; updatedValue: string } {
-        // This simulates the logic at lines 407-503
+    ): { updatedProperty: string | null; updatedValue: string | null } {
         if (groupByPropertyId) {
             const originalPropertyId = groupByPropertyId;
             const propertyId = originalPropertyId.toLowerCase();
@@ -52,15 +41,13 @@ describe('Issue #871: Bases Kanban drag and drop updates wrong property', () => 
                 return { updatedProperty: propertyName, updatedValue: targetColumnId };
             }
         } else {
-            // BUG: Lines 492-496
-            // Fallback to status update when no groupBy config
-            // This is wrong - it should use the actual Bases groupBy configuration
-            return { updatedProperty: "status", updatedValue: targetColumnId };
+            // Updated behavior: if we cannot determine the grouping property we abort the move
+            return { updatedProperty: null, updatedValue: null };
         }
     }
 
-    describe('Current buggy behavior - when groupByPropertyId is null', () => {
-        it('should FAIL: Updates status instead of priority when groupByPropertyId is null', () => {
+    describe('When groupByPropertyId cannot be determined', () => {
+        it('should skip updating priority when groupByPropertyId is null', () => {
             // User has Bases view grouped by priority
             // But groupByPropertyId failed to be determined (is null)
             const groupByPropertyId = null;
@@ -68,13 +55,11 @@ describe('Issue #871: Bases Kanban drag and drop updates wrong property', () => 
 
             const result = simulateBasesKanbanDrop(groupByPropertyId, targetColumnId);
 
-            // BUG: status is updated instead of priority
-            expect(result.updatedProperty).toBe("status"); // This demonstrates the bug
-            expect(result.updatedValue).toBe("high");
-            // Should be: expect(result.updatedProperty).toBe("priority");
+            expect(result.updatedProperty).toBeNull();
+            expect(result.updatedValue).toBeNull();
         });
 
-        it('should FAIL: Updates status instead of custom field when groupByPropertyId is null', () => {
+        it('should skip updating custom field when groupByPropertyId is null', () => {
             // User has Bases view grouped by a custom field "department"
             // But groupByPropertyId failed to be determined (is null)
             const groupByPropertyId = null;
@@ -82,13 +67,11 @@ describe('Issue #871: Bases Kanban drag and drop updates wrong property', () => 
 
             const result = simulateBasesKanbanDrop(groupByPropertyId, targetColumnId);
 
-            // BUG: status is updated instead of the custom field
-            expect(result.updatedProperty).toBe("status"); // This demonstrates the bug
-            expect(result.updatedValue).toBe("engineering");
-            // Should be: expect(result.updatedProperty).toBe("department");
+            expect(result.updatedProperty).toBeNull();
+            expect(result.updatedValue).toBeNull();
         });
 
-        it('should FAIL: Updates status instead of projects when groupByPropertyId is null', () => {
+        it('should skip updating projects when groupByPropertyId is null', () => {
             // User has Bases view grouped by projects
             // But groupByPropertyId failed to be determined (is null)
             const groupByPropertyId = null;
@@ -96,10 +79,8 @@ describe('Issue #871: Bases Kanban drag and drop updates wrong property', () => 
 
             const result = simulateBasesKanbanDrop(groupByPropertyId, targetColumnId);
 
-            // BUG: status is updated instead of projects
-            expect(result.updatedProperty).toBe("status"); // This demonstrates the bug
-            expect(result.updatedValue).toBe("ProjectA");
-            // Should be: expect(result.updatedProperty).toBe("projects");
+            expect(result.updatedProperty).toBeNull();
+            expect(result.updatedValue).toBeNull();
         });
     });
 

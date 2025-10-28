@@ -358,6 +358,9 @@ export default class TaskNotesPlugin extends Plugin {
 		const { BasesFilterConverter } = await import("./services/BasesFilterConverter");
 		this.basesFilterConverter = new BasesFilterConverter(this);
 
+		// Ensure default Bases command files exist so commands work immediately
+		await this.ensureBasesViewFiles();
+
 		// Create ICS services early so views can register event listeners
 		// (initialization will be deferred to lazy loading)
 		this.icsSubscriptionService = new ICSSubscriptionService(this);
@@ -1770,47 +1773,100 @@ export default class TaskNotesPlugin extends Plugin {
 	 * Called from settings UI
 	 */
 	async createDefaultBasesFiles(): Promise<void> {
-		const viewsDir = 'TaskNotes/Views';
+		const { created, skipped } = await this.ensureBasesViewFiles();
 
-		// Ensure directory exists
-		if (!await this.app.vault.adapter.exists(viewsDir)) {
-			// Create both parent and child if needed
-			if (!await this.app.vault.adapter.exists('TaskNotes')) {
-				await this.app.vault.createFolder('TaskNotes');
-			}
-			await this.app.vault.createFolder(viewsDir);
-		}
-
-		// Track which files were created
-		const createdFiles: string[] = [];
-		const skippedFiles: string[] = [];
-
-		// Create each default file
-		for (const [commandId, filePath] of Object.entries(this.settings.commandFileMapping)) {
-			const normalizedPath = normalizePath(filePath);
-			const fileExists = await this.app.vault.adapter.exists(normalizedPath);
-
-			if (!fileExists) {
-				const content = DEFAULT_BASES_FILES[commandId];
-				if (content) {
-					await this.app.vault.create(normalizedPath, content);
-					createdFiles.push(filePath);
-				}
-			} else {
-				skippedFiles.push(filePath);
-			}
-		}
-
-		// Show appropriate notice
-		if (createdFiles.length > 0) {
+		if (created.length > 0) {
 			new Notice(
-				`Created ${createdFiles.length} default Bases file(s):\n${createdFiles.join('\n')}`,
+				`Created ${created.length} default Bases file(s):\n${created.join('\n')}`,
 				8000
 			);
 		}
-		if (skippedFiles.length > 0 && createdFiles.length === 0) {
-			new Notice('All default files already exist. No files were created.');
+
+		if (skipped.length > 0 && created.length === 0) {
+			new Notice(
+				`Default Bases files already exist:\n${skipped.join('\n')}`,
+				8000
+			);
 		}
+	}
+
+	private async ensureFolderHierarchy(folderPath: string): Promise<void> {
+		if (!folderPath) {
+			return;
+		}
+
+		const normalized = normalizePath(folderPath);
+		const adapter = this.app.vault.adapter;
+		const segments = normalized.split("/").filter((segment) => segment.length > 0);
+
+		if (segments.length === 0) {
+			return;
+		}
+
+		let currentPath = "";
+		for (const segment of segments) {
+			currentPath = currentPath ? `${currentPath}/${segment}` : segment;
+
+			// eslint-disable-next-line no-await-in-loop
+			if (await adapter.exists(currentPath)) {
+				continue;
+			}
+
+			try {
+				// eslint-disable-next-line no-await-in-loop
+				await this.app.vault.createFolder(currentPath);
+			} catch (error) {
+				// eslint-disable-next-line no-await-in-loop
+				if (!(await adapter.exists(currentPath))) {
+					throw error;
+				}
+			}
+		}
+	}
+
+	private async ensureBasesViewFiles(): Promise<{ created: string[]; skipped: string[] }> {
+		const created: string[] = [];
+		const skipped: string[] = [];
+
+		try {
+			const adapter = this.app.vault.adapter;
+			const entries = Object.entries(this.settings.commandFileMapping ?? {});
+
+			for (const [commandId, rawPath] of entries) {
+				if (!rawPath) {
+					continue;
+				}
+
+				const normalizedPath = normalizePath(rawPath);
+				const lastSlashIndex = normalizedPath.lastIndexOf("/");
+				const directory = lastSlashIndex >= 0 ? normalizedPath.substring(0, lastSlashIndex) : "";
+
+				if (directory) {
+					// eslint-disable-next-line no-await-in-loop
+					await this.ensureFolderHierarchy(directory);
+				}
+
+				// eslint-disable-next-line no-await-in-loop
+				if (await adapter.exists(normalizedPath)) {
+					skipped.push(rawPath);
+					continue;
+				}
+
+				const template = DEFAULT_BASES_FILES[commandId];
+				if (!template) {
+					skipped.push(rawPath);
+					continue;
+				}
+
+				// eslint-disable-next-line no-await-in-loop
+				await this.app.vault.create(normalizedPath, template);
+				created.push(rawPath);
+			}
+		} catch (error) {
+			console.warn("[TaskNotes][Bases] Failed to ensure Bases command files:", error);
+		}
+
+		return { created, skipped };
 	}
 
 	/**

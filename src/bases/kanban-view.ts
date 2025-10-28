@@ -300,7 +300,7 @@ export function buildTasknotesKanbanViewFactory(plugin: TaskNotesPlugin) {
 
 					// Fallback: try getBasesGroupByConfig
 					if (!groupByPropertyId) {
-						const groupByConfig = getBasesGroupByConfig(viewContext, pathToProps);
+						const groupByConfig = getBasesGroupByConfig(basesContainer, pathToProps);
 						if (groupByConfig) {
 							groupByPropertyId = groupByConfig.normalizedId;
 						}
@@ -921,16 +921,9 @@ export function buildTasknotesKanbanViewFactory(plugin: TaskNotesPlugin) {
 							}
 						}, 100);
 					} else if (task && !groupByPropertyId) {
-						// Fallback to status update when no groupBy config
-						await plugin.updateTaskProperty(task, "status", targetColumnId, {
-							silent: false,
-						});
-						// Trigger refresh after a brief delay
-						setTimeout(() => {
-							if (basesViewInstance && typeof basesViewInstance.refresh === "function") {
-								basesViewInstance.refresh();
-							}
-						}, 100);
+						console.warn(
+							"[TaskNotes][Bases] Unable to determine group-by property for Kanban drop; skipping update."
+						);
 					}
 				} catch (e) {
 					console.error("[TaskNotes][Bases] Move failed:", e);

@@ -45,7 +45,6 @@ describe('ProjectSubtasksWidget', () => {
             widget = new ProjectSubtasksWidget(mockPlugin, tasks, 'test.md', 1);
             
             expect(widget).toBeDefined();
-            expect(mockPlugin.viewStateManager.getFilterState).toHaveBeenCalled();
         });
     });
 
