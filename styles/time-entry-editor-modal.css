@@ -1,0 +1,217 @@
+/* =====================================================================
+   TIME ENTRY EDITOR MODAL
+   ===================================================================== */
+
+.time-entry-editor-modal .modal {
+    width: auto;
+    max-width: 800px;
+}
+
+.time-entry-editor-modal .modal-content {
+    width: 600px;
+    max-width: 90vw;
+}
+
+.time-entry-editor-modal__entries {
+    margin-bottom: var(--size-4-4);
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.time-entry-editor-modal__empty {
+    text-align: center;
+    padding: var(--size-4-8);
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* =====================================================================
+   TIME ENTRY ITEM
+   ===================================================================== */
+
+.time-entry-editor-modal__entry {
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    padding: var(--size-4-3);
+    margin-bottom: var(--size-4-3);
+    background: var(--background-secondary);
+    transition: all 0.2s ease;
+}
+
+.time-entry-editor-modal__entry:hover {
+    border-color: var(--interactive-accent);
+    background: var(--background-primary);
+}
+
+.time-entry-editor-modal__entry-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--size-4-2);
+}
+
+.time-entry-editor-modal__entry-date {
+    font-weight: 600;
+    color: var(--text-normal);
+    font-size: var(--font-ui-medium);
+}
+
+.time-entry-editor-modal__delete-button {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: var(--size-4-1);
+    border-radius: var(--radius-s);
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.time-entry-editor-modal__delete-button:hover {
+    background: var(--background-modifier-error);
+    color: var(--text-error);
+}
+
+.time-entry-editor-modal__delete-button svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* =====================================================================
+   TIME INPUT FIELDS
+   ===================================================================== */
+
+.time-entry-editor-modal__time-container {
+    margin-top: var(--size-4-2);
+}
+
+.time-entry-editor-modal__time-container .setting-item {
+    border: none;
+    padding: var(--size-4-2) 0;
+}
+
+.time-entry-editor-modal__time-container .setting-item-name {
+    font-size: var(--font-ui-small);
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.time-entry-editor-modal__time-container .setting-item-control input,
+.time-entry-editor-modal__time-container .setting-item-control textarea {
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s);
+    padding: var(--size-4-1) var(--size-4-2);
+    font-size: var(--font-ui-medium);
+    transition: all 0.2s ease;
+    width: 100%;
+}
+
+.time-entry-editor-modal__datetime-input {
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s);
+    padding: var(--size-4-1) var(--size-4-2);
+    font-size: var(--font-ui-medium);
+    transition: all 0.2s ease;
+    width: 100%;
+    color: var(--text-normal);
+    font-family: var(--font-interface);
+}
+
+.time-entry-editor-modal__datetime-input:focus {
+    border-color: var(--interactive-accent);
+    outline: none;
+}
+
+.time-entry-editor-modal__time-container .setting-item-control input:focus,
+.time-entry-editor-modal__time-container .setting-item-control textarea:focus {
+    border-color: var(--interactive-accent);
+    outline: none;
+}
+
+.time-entry-editor-modal__time-container .setting-item-control textarea {
+    resize: vertical;
+    font-family: var(--font-text);
+}
+
+.time-entry-editor-modal__duration-info {
+    margin-top: var(--size-4-1);
+    padding: var(--size-4-1) var(--size-4-2);
+    background: var(--background-primary-alt);
+    border-radius: var(--radius-s);
+    font-size: var(--font-ui-small);
+    color: var(--text-muted);
+}
+
+/* =====================================================================
+   FOOTER
+   ===================================================================== */
+
+.time-entry-editor-modal__add-button-container {
+    margin-bottom: var(--size-4-4);
+    padding-bottom: var(--size-4-3);
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.time-entry-editor-modal__footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: var(--size-4-3);
+    border-top: 1px solid var(--background-modifier-border);
+}
+
+.time-entry-editor-modal__total {
+    font-weight: 600;
+    font-size: var(--font-ui-large);
+    color: var(--text-normal);
+}
+
+.time-entry-editor-modal__buttons {
+    display: flex;
+    gap: var(--size-4-2);
+}
+
+.time-entry-editor-modal__buttons button {
+    min-width: 80px;
+}
+
+/* =====================================================================
+   DARK MODE ADJUSTMENTS
+   ===================================================================== */
+
+.theme-dark .time-entry-editor-modal__entry {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.theme-dark .time-entry-editor-modal__entry:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* =====================================================================
+   RESPONSIVE DESIGN
+   ===================================================================== */
+
+@media (max-width: 700px) {
+    .time-entry-editor-modal .modal-content {
+        width: 90vw;
+    }
+
+    .time-entry-editor-modal__footer {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--size-4-3);
+    }
+
+    .time-entry-editor-modal__buttons {
+        width: 100%;
+        flex-direction: column;
+    }
+
+    .time-entry-editor-modal__buttons button {
+        width: 100%;
+    }
+}

@@ -15,7 +15,7 @@ import listPlugin from "@fullcalendar/list";
 import interactionPlugin from "@fullcalendar/interaction";
 import { startOfDay, endOfDay, format } from "date-fns";
 import { getTodayLocal, normalizeCalendarBoundariesToUTC, parseDateToUTC, getTodayString } from "../utils/dateUtils";
-import { generateCalendarEvents, CalendarEvent, generateTaskTooltip, applyRecurringTaskStyling, handleRecurringTaskDrop, getTargetDateForEvent, handleTimeblockCreation, handleTimeblockDrop, handleTimeblockResize, showTimeblockInfoModal, applyTimeblockStyling, generateTimeblockTooltip, handleDateTitleClick, addTaskHoverPreview, createICSEvent } from "./calendar-core";
+import { generateCalendarEvents, CalendarEvent, generateTaskTooltip, applyRecurringTaskStyling, handleRecurringTaskDrop, getTargetDateForEvent, handleTimeblockCreation, handleTimeEntryCreation, handleTimeblockDrop, handleTimeblockResize, showTimeblockInfoModal, applyTimeblockStyling, generateTimeblockTooltip, handleDateTitleClick, addTaskHoverPreview, createICSEvent } from "./calendar-core";
 import { getBasesSortComparator } from "./sorting";
 import { TaskContextMenu } from "../components/TaskContextMenu";
 import { Menu, TFile } from "obsidian";
@@ -186,15 +186,36 @@ export function buildTasknotesCalendarViewFactory(plugin: TaskNotesPlugin) {
 			// Use currentViewContext if available, otherwise fall back to controller
 			const ctx = currentViewContext || controller;
 			const showTimeblocks = (ctx?.config?.get('showTimeblocks') as boolean) ?? false;
+
+			// Debug logging for troubleshooting
+			if (jsEvent && (jsEvent.shiftKey || jsEvent.altKey)) {
+				console.log('[TaskNotes] Date selection with modifier keys:', {
+					shiftKey: jsEvent.shiftKey,
+					altKey: jsEvent.altKey,
+					enableTimeblocking: plugin.settings.calendarViewSettings.enableTimeblocking,
+					showTimeblocks: showTimeblocks,
+					allDay: allDay
+				});
+			}
+
+			// Allow timeblock creation if timeblocking is enabled in settings
+			// Note: We don't require showTimeblocks to be true because you might want to
+			// create timeblocks even if they're currently hidden in the view
 			const isTimeblockMode =
 				plugin.settings.calendarViewSettings.enableTimeblocking &&
-				showTimeblocks &&
 				jsEvent &&
-				jsEvent.shiftKey;
+				jsEvent.shiftKey &&
+				!jsEvent.altKey; // Don't trigger timeblock if alt is also held
+
+			// Check if Alt key is held for time entry creation
+			const isTimeEntryMode = jsEvent && jsEvent.altKey && !jsEvent.shiftKey;
 
 			if (isTimeblockMode) {
 				// Create timeblock
 				handleTimeblockCreation(start, end, allDay, plugin);
+			} else if (isTimeEntryMode) {
+				// Create time entry with task selector
+				handleTimeEntryCreation(start, end, allDay, plugin);
 			} else {
 				// Create task with pre-populated date and duration
 				// Parse slot duration from settings (format: "HH:mm:ss")
@@ -1334,7 +1355,7 @@ export function buildTasknotesCalendarViewFactory(plugin: TaskNotesPlugin) {
 					headerToolbar: {
 						left: "prev,next today refreshCalendars",
 						center: "title",
-						right: "multiMonthYear,dayGridMonth,timeGridWeek,timeGridCustom,timeGridDay,listWeek",
+						right: "multiMonthYear,dayGridMonth,timeGridWeek,timeGridCustom,timeGridDay,listWeekButton",
 					},
 					buttonText: {
 						today: plugin.i18n.translate("views.basesCalendar.today"),
@@ -1346,6 +1367,19 @@ export function buildTasknotesCalendarViewFactory(plugin: TaskNotesPlugin) {
 						refreshCalendars: plugin.i18n.translate("views.basesCalendar.buttonText.refresh") || "Refresh",
 					},
 					customButtons: {
+						listWeekButton: {
+							text: plugin.i18n.translate("views.basesCalendar.buttonText.list"),
+							hint: plugin.i18n.translate("views.basesCalendar.buttonText.list") || "List",
+							click: function() {
+								if (calendar) {
+									const currentView = calendar.view?.type;
+									// Only change view if not already in list view to prevent duplication
+									if (currentView !== 'listWeek') {
+										calendar.changeView('listWeek');
+									}
+								}
+							},
+						},
 						refreshCalendars: {
 							text: plugin.i18n.translate("views.basesCalendar.buttonText.refresh") || "Refresh",
 							hint: plugin.i18n.translate("views.basesCalendar.hints.refresh") || "Refresh calendar subscriptions",
@@ -1481,6 +1515,16 @@ export function buildTasknotesCalendarViewFactory(plugin: TaskNotesPlugin) {
 								// Only update if the view actually changed
 								if (currentConfigView !== newView) {
 									currentViewContext.config.set('calendarView', newView);
+								}
+
+								// Update custom list button active state
+								const listButton = calendarEl.querySelector('.fc-listWeekButton-button');
+								if (listButton) {
+									if (newView === 'listWeek') {
+										listButton.classList.add('fc-button-active');
+									} else {
+										listButton.classList.remove('fc-button-active');
+									}
 								}
 							}
 						} catch (error) {

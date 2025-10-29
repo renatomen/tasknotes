@@ -20,6 +20,7 @@ const CSS_FILES = [
     'styles/task-selector-modal.css', // TaskSelectorModal component with proper BEM scoping
     'styles/unscheduled-tasks-selector-modal.css', // UnscheduledTasksSelectorModal component with proper BEM scoping
     'styles/task-action-palette-modal.css', // TaskActionPaletteModal component with proper BEM scoping
+    'styles/time-entry-editor-modal.css', // TimeEntryEditorModal component with proper BEM scoping
     'styles/project-note-subtasks.css',  // ProjectNoteSubtasks component with proper BEM scoping
     'styles/task-card-note-widget.css',  // TaskCardNoteWidget component with proper BEM scoping
     

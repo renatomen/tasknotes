@@ -902,6 +902,91 @@ export async function handleTimeblockCreation(
 }
 
 /**
+ * Handle time entry creation (Alt+drag to create time entry)
+ */
+export async function handleTimeEntryCreation(
+	start: Date,
+	end: Date,
+	allDay: boolean,
+	plugin: TaskNotesPlugin
+): Promise<void> {
+	const { Notice } = require("obsidian");
+	const { TaskSelectorModal } = require("../modals/TaskSelectorModal");
+
+	// Don't create time entries for all-day selections
+	if (allDay) {
+		new Notice(
+			plugin.i18n.translate("modals.timeEntry.mustHaveSpecificTime")
+		);
+		return;
+	}
+
+	try {
+		// Get all tasks
+		const allTasks = await plugin.cacheManager.getAllTasks();
+		const unarchivedTasks = allTasks.filter((task: any) => !task.archived);
+
+		if (unarchivedTasks.length === 0) {
+			new Notice(plugin.i18n.translate("modals.timeEntry.noTasksAvailable"));
+			return;
+		}
+
+		// Open task selector modal
+		const modal = new TaskSelectorModal(
+			plugin.app,
+			plugin,
+			unarchivedTasks,
+			async (selectedTask: any) => {
+				if (selectedTask) {
+					try {
+						// Calculate duration
+						const durationMinutes = Math.round(
+							(end.getTime() - start.getTime()) / 60000
+						);
+
+						// Create new time entry
+						const newEntry = {
+							startTime: start.toISOString(),
+							endTime: end.toISOString(),
+							description: "",
+							duration: durationMinutes,
+						};
+
+						// Add to task's time entries
+						const updatedTimeEntries = [...(selectedTask.timeEntries || []), newEntry];
+
+						// Save to file
+						const updatedTask = await plugin.taskService.updateTask(selectedTask, {
+							timeEntries: updatedTimeEntries,
+						});
+
+						// Note: updateTask in TaskService already triggers EVENT_TASK_UPDATED internally
+						// We just need to trigger EVENT_DATA_CHANGED
+						const { EVENT_DATA_CHANGED } = require("../types");
+						plugin.emitter.trigger(EVENT_DATA_CHANGED);
+
+						new Notice(
+							plugin.i18n.translate("modals.timeEntry.created", {
+								taskTitle: selectedTask.title,
+								duration: durationMinutes.toString(),
+							})
+						);
+					} catch (error) {
+						console.error("Error creating time entry:", error);
+						new Notice(plugin.i18n.translate("modals.timeEntry.createFailed"));
+					}
+				}
+			}
+		);
+
+		modal.open();
+	} catch (error) {
+		console.error("Error opening task selector for time entry:", error);
+		new Notice(plugin.i18n.translate("modals.timeEntry.createFailed"));
+	}
+}
+
+/**
  * Handle timeblock drop (move to new date/time)
  */
 export async function handleTimeblockDrop(

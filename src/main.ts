@@ -53,6 +53,7 @@ import { KanbanView } from "./views/KanbanView";
 import { TaskCreationModal } from "./modals/TaskCreationModal";
 import { TaskEditModal } from "./modals/TaskEditModal";
 import { TaskSelectorModal } from "./modals/TaskSelectorModal";
+import { TimeEntryEditorModal } from "./modals/TimeEntryEditorModal";
 import { PomodoroService } from "./services/PomodoroService";
 import { formatTime, getActiveTimeEntry } from "./utils/helpers";
 import { convertUTCToLocalCalendarDate } from "./utils/dateUtils";
@@ -1587,6 +1588,20 @@ export default class TaskNotesPlugin extends Plugin {
 					await this.activateReleaseNotesView();
 				},
 			},
+			{
+				id: "start-time-tracking-with-selector",
+				nameKey: "commands.startTimeTrackingWithSelector",
+				callback: async () => {
+					await this.openTaskSelectorForTimeTracking();
+				},
+			},
+			{
+				id: "edit-time-entries",
+				nameKey: "commands.editTimeEntries",
+				callback: async () => {
+					await this.openTaskSelectorForTimeEntryEditor();
+				},
+			},
 		];
 
 		this.registerCommands();
@@ -2479,6 +2494,108 @@ export default class TaskNotesPlugin extends Plugin {
 			console.error("Error inserting tasknote link:", error);
 			new Notice("Failed to insert tasknote link");
 		}
+	}
+
+	/**
+	 * Open task selector to start time tracking for a task
+	 */
+	async openTaskSelectorForTimeTracking(): Promise<void> {
+		try {
+			// Get all tasks
+			const allTasks = await this.cacheManager.getAllTasks();
+			const unarchivedTasks = allTasks.filter((task) => !task.archived);
+
+			// Filter to only show tasks that are not currently being tracked
+			const availableTasks = unarchivedTasks.filter((task) => {
+				const activeEntry = getActiveTimeEntry(task.timeEntries || []);
+				return !activeEntry;
+			});
+
+			if (availableTasks.length === 0) {
+				new Notice(this.i18n.translate("modals.timeTracking.noTasksAvailable"));
+				return;
+			}
+
+			// Open task selector modal
+			const modal = new TaskSelectorModal(this.app, this, availableTasks, async (selectedTask) => {
+				if (selectedTask) {
+					try {
+						await this.startTimeTracking(selectedTask);
+						new Notice(
+							this.i18n.translate("modals.timeTracking.started", {
+								taskTitle: selectedTask.title,
+							})
+						);
+					} catch (error) {
+						console.error("Error starting time tracking:", error);
+						new Notice(this.i18n.translate("modals.timeTracking.startFailed"));
+					}
+				}
+			});
+
+			modal.open();
+		} catch (error) {
+			console.error("Error opening task selector for time tracking:", error);
+			new Notice(this.i18n.translate("modals.timeTracking.startFailed"));
+		}
+	}
+
+	/**
+	 * Open task selector to edit time entries for a task
+	 */
+	async openTaskSelectorForTimeEntryEditor(): Promise<void> {
+		try {
+			// Get all tasks
+			const allTasks = await this.cacheManager.getAllTasks();
+			const unarchivedTasks = allTasks.filter((task) => !task.archived);
+
+			// Filter to only show tasks that have time entries
+			const tasksWithEntries = unarchivedTasks.filter(
+				(task) => task.timeEntries && task.timeEntries.length > 0
+			);
+
+			if (tasksWithEntries.length === 0) {
+				new Notice(this.i18n.translate("modals.timeEntryEditor.noTasksWithEntries"));
+				return;
+			}
+
+			// Open task selector modal
+			const modal = new TaskSelectorModal(this.app, this, tasksWithEntries, (selectedTask) => {
+				if (selectedTask) {
+					this.openTimeEntryEditor(selectedTask);
+				}
+			});
+
+			modal.open();
+		} catch (error) {
+			console.error("Error opening task selector for time entry editor:", error);
+			new Notice(this.i18n.translate("modals.timeEntryEditor.openFailed"));
+		}
+	}
+
+	/**
+	 * Open time entry editor modal for a specific task
+	 */
+	openTimeEntryEditor(task: TaskInfo): void {
+		const modal = new TimeEntryEditorModal(this.app, this, task, async (updatedEntries) => {
+			try {
+				// Save to file
+				await this.taskService.updateTask(task, {
+					timeEntries: updatedEntries,
+				});
+
+				// Note: updateTask in TaskService already triggers EVENT_TASK_UPDATED internally
+				// We just need to trigger EVENT_DATA_CHANGED
+				this.emitter.trigger(EVENT_DATA_CHANGED);
+
+				new Notice(this.i18n.translate("modals.timeEntryEditor.saved"));
+			} catch (error) {
+				console.error("Error saving time entries:", error);
+				new Notice(this.i18n.translate("modals.timeEntryEditor.saveFailed"));
+			}
+		});
+
+		modal.open();
 	}
 
 	/**

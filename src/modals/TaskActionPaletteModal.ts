@@ -165,6 +165,23 @@ export class TaskActionPaletteModal extends FuzzySuggestModal<TaskAction> {
 			},
 		});
 
+		// Edit time entries action (only show if task has time entries)
+		if (this.task.timeEntries && this.task.timeEntries.length > 0) {
+			actions.push({
+				id: "edit-time-entries",
+				title: "Edit time entries",
+				description: "View, edit, or add time entries for this task",
+				icon: "clock",
+				category: "tracking",
+				keywords: ["time", "entries", "edit", "tracking", "history"],
+				isApplicable: () => true,
+				execute: async (task) => {
+					this.plugin.openTimeEntryEditor(task);
+					this.close();
+				},
+			});
+		}
+
 		// Organization actions
 		actions.push({
 			id: "toggle-archive",
