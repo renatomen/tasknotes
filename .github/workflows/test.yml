@@ -127,7 +127,15 @@ jobs:
       timeout-minutes: 5
       
     - name: Build plugin
-      run: npm run build
+      env:
+        GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+        MICROSOFT_OAUTH_CLIENT_ID: ${{ secrets.MICROSOFT_OAUTH_CLIENT_ID }}
+      run: |
+        cat <<EOF > .env
+        GOOGLE_OAUTH_CLIENT_ID=${GOOGLE_OAUTH_CLIENT_ID}
+        MICROSOFT_OAUTH_CLIENT_ID=${MICROSOFT_OAUTH_CLIENT_ID}
+        EOF
+        npm run build
       timeout-minutes: 10
       
     - name: Test built plugin

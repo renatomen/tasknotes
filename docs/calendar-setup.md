@@ -2,13 +2,16 @@
 
 TaskNotes supports Google Calendar and Microsoft Calendar integration via OAuth 2.0.
 
-## Quick Setup (Recommended)
+## Quick Setup
 
-TaskNotes includes built-in OAuth credentials. Simply:
+TaskNotes bundles OAuth client IDs (and the Google client secret) so you can connect without creating your own apps. You'll need an active TaskNotes license to unlock these built-in credentials.
 
-1. Go to Settings → Integrations → Calendar
-2. Click "Connect to Google Calendar" or "Connect to Microsoft Calendar"
-3. Authorize access in your browser
+1. Go to Settings → Integrations → Calendar.
+2. In the license card, ensure **Quick Setup** is selected and enter your Lemon Squeezy license key.
+3. Click **Validate License** (or blur the input) and wait for the success notice.
+4. Use the Google or Microsoft card to click **Connect** and authorize access in your browser.
+   - Google uses the OAuth loopback flow and will reopen to `http://127.0.0.1:<port>` to finish the login.
+   - Microsoft uses the OAuth device-flow and will show you a short code and link.
 
 ## Advanced Setup (Your Own Credentials)
 
@@ -61,7 +64,7 @@ If you prefer to use your own OAuth application:
 
 ## Security Notes
 
-- Quick Setup uses OAuth 2.0 Device Flow (no secrets in plugin code)
+- Google Quick Setup uses an OAuth 2.0 loopback redirect with PKCE; Microsoft Quick Setup uses the OAuth 2.0 device flow (no client secret required).
 - Advanced Setup stores your credentials locally in Obsidian's data folder
 - Tokens are stored securely and refreshed automatically
 - Disconnect at any time to revoke access
@@ -72,6 +75,8 @@ If you prefer to use your own OAuth application:
 
 - Verify Client ID and Secret are correct
 - Check redirect URI is configured: `http://localhost:8080`
+- Check no other services are running on port 8080 
+  - You may need to disable the API integration and restart if it is using port 8080. You will be able to re-enable the API after calendar authorization. 
 - Ensure required API permissions are granted
 
 **"Failed to fetch events"**

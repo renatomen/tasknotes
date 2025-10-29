@@ -6,7 +6,7 @@ on:
       - '*'
 
 env:
-  PLUGIN_NAME: chronosync
+  PLUGIN_NAME: tasknotes
 
 permissions:
   contents: write
@@ -24,6 +24,21 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22.x'
+
+      - name: Update manifest version from tag
+        run: |
+          # Extract version from tag (removes 'v' prefix if present)
+          VERSION="${GITHUB_REF#refs/tags/}"
+          VERSION="${VERSION#v}"
+          echo "Setting version to: $VERSION"
+
+          # Update manifest.json with the tag version
+          jq --arg version "$VERSION" '.version = $version' manifest.json > manifest.tmp
+          mv manifest.tmp manifest.json
+
+          # Verify the change
+          echo "Updated manifest.json:"
+          cat manifest.json
 
       - name: Install Dependencies
         run: npm install
