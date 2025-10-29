@@ -1073,8 +1073,12 @@ export class TaskCreationModal extends TaskModal {
 			.map((t) => t.trim())
 			.filter((t) => t.length > 0);
 
-		// Add the task tag if it's not already present
-		if (this.plugin.settings.taskTag && !tagList.includes(this.plugin.settings.taskTag)) {
+		// Add the task tag if using tag-based identification and it's not already present
+		if (
+			this.plugin.settings.taskIdentificationMethod === 'tag' &&
+			this.plugin.settings.taskTag &&
+			!tagList.includes(this.plugin.settings.taskTag)
+		) {
 			tagList.push(this.plugin.settings.taskTag);
 		}
 

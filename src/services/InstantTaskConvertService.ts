@@ -443,7 +443,8 @@ export class InstantTaskConvertService {
 		let dueDate: string | undefined;
 		let scheduledDate: string | undefined;
 		let contextsArray: string[] = [];
-		let tagsArray = [this.plugin.settings.taskTag];
+		// Only add task tag if using tag-based identification
+		let tagsArray = this.plugin.settings.taskIdentificationMethod === 'tag' ? [this.plugin.settings.taskTag] : [];
 		let timeEstimate: number | undefined;
 		let recurrence: string | import("../types").RecurrenceInfo | undefined;
 
@@ -496,8 +497,8 @@ export class InstantTaskConvertService {
 			// Remove duplicates
 			contextsArray = [...new Set(contextsArray)];
 
-			// Apply tags: start with task tag, add parsed tags, then add default tags
-			tagsArray = [this.plugin.settings.taskTag];
+			// Apply tags: start with task tag (if using tag mode), add parsed tags, then add default tags
+			tagsArray = this.plugin.settings.taskIdentificationMethod === 'tag' ? [this.plugin.settings.taskTag] : [];
 			if (parsedTags.length > 0) {
 				tagsArray.push(...parsedTags);
 			}
@@ -548,8 +549,8 @@ export class InstantTaskConvertService {
 			if (parsedContexts.length > 0) {
 				contextsArray.push(...parsedContexts);
 			}
-			// Apply tags: start with task tag, add parsed tags
-			tagsArray = [this.plugin.settings.taskTag];
+			// Apply tags: start with task tag (if using tag mode), add parsed tags
+			tagsArray = this.plugin.settings.taskIdentificationMethod === 'tag' ? [this.plugin.settings.taskTag] : [];
 			if (parsedTags.length > 0) {
 				tagsArray.push(...parsedTags);
 			}
