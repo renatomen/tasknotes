@@ -130,6 +130,11 @@ export function renderIntegrationsTab(
 			defaultPath: 'TaskNotes/Views/calendar-default.base',
 		},
 		{
+			id: 'open-agenda-view',
+			name: 'Open Agenda View',
+			defaultPath: 'TaskNotes/Views/agenda-default.base',
+		},
+		{
 			id: 'project-subtasks',
 			name: 'Project Subtasks Widget',
 			defaultPath: 'TaskNotes/Views/project-subtasks.base',
@@ -345,6 +350,8 @@ export function renderIntegrationsTab(
 
 				// Validate license
 				if (plugin.licenseService && newKey) {
+					// Clear cache to force fresh validation
+					plugin.licenseService.clearCache();
 					const valid = await plugin.licenseService.validateLicense(newKey);
 					if (valid) {
 						new Notice("License activated successfully!");

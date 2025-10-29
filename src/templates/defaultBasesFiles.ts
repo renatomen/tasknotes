@@ -38,6 +38,15 @@ export const DEFAULT_BASES_FILES: Record<string, string> = {
       slotDuration: "00:30:00"
 `,
 
+	'open-agenda-view': `views:
+  - type: tasknotesCalendar
+    name: "Agenda"
+    calendarView: "listWeek"
+    startDateProperty: file.ctime
+    listDayCount: 7
+    titleProperty: file.basename
+`,
+
 	'project-subtasks': `# Project Subtasks
 # This view shows all tasks that reference the current file in their projects field
 # Uses the 'this' keyword to reference the current file dynamically

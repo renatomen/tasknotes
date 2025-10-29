@@ -292,6 +292,7 @@ export const DEFAULT_SETTINGS: TaskNotesSettings = {
 		'open-kanban-view': 'TaskNotes/Views/kanban-default.base',
 		'open-tasks-view': 'TaskNotes/Views/tasks-default.base',
 		'open-advanced-calendar-view': 'TaskNotes/Views/calendar-default.base',
+		'open-agenda-view': 'TaskNotes/Views/agenda-default.base',
 		'project-subtasks': 'TaskNotes/Views/project-subtasks.base',
 	},
 	// Recurring task behavior defaults

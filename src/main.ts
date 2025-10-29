@@ -390,7 +390,7 @@ export default class TaskNotesPlugin extends Plugin {
 		// });
 
 		this.addRibbonIcon("list", "Open agenda", async () => {
-			await this.activateAgendaView();
+			await this.openBasesFileForCommand('open-agenda-view');
 		});
 
 		this.addRibbonIcon("columns-3", "Open kanban board", async () => {
@@ -1448,7 +1448,7 @@ export default class TaskNotesPlugin extends Plugin {
 				id: "open-agenda-view",
 				nameKey: "commands.openAgendaView",
 				callback: async () => {
-					await this.activateAgendaView();
+					await this.openBasesFileForCommand('open-agenda-view');
 				},
 			},
 			{
