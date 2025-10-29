@@ -14,7 +14,7 @@ TaskNotes v4 migrates all views to the Bases system.
 
 - **Minimum Obsidian version: 1.10.1**
 - **View commands now use Bases files** - Ribbon icons and command palette commands (Calendar, Kanban, Tasks, Agenda, Project Subtasks) now open `.base` files in your vault
-- **Automatic migration** - Saved views convert to `.base` files on first launch. Original settings are preserved.
+- **Manual migration required** - Saved views must be manually converted to `.base` files. Original settings are preserved.
 
 ## Added
 
@@ -44,7 +44,7 @@ TaskNotes v4 migrates all views to the Bases system.
 
 ### View Migration
 
-- Saved filter views convert to `.base` files on first launch
+- Manual conversion service for saved filter views to `.base` files
 - Original settings preserved
 - View files created in `TaskNotes/Views/`
 
@@ -83,10 +83,10 @@ TaskNotes v4 migrates all views to the Bases system.
 
 ## Migration Guide
 
-### First Launch
+### Converting Saved Views
 
-1. Saved filter views convert to `.base` files in `TaskNotes/Views/`
-2. Ribbon and command palette commands open `.base` files
+1. Use the conversion service to manually convert saved filter views to `.base` files in `TaskNotes/Views/`
+2. Ribbon and command palette commands will then open the converted `.base` files
 3. Review Settings → Integrations → Bases Integration to customize view file paths
 
 ### Calendar Integration (Optional)
@@ -100,6 +100,7 @@ TaskNotes v4 migrates all views to the Bases system.
 ## Known Limitations
 
 - Quick OAuth setup is disabled - only advanced setup (your own credentials) is available
+- View migration must be done manually using the conversion service
 - Migration is one-way - downgrading to v3 may require manual reconfiguration
 - OAuth setup requires creating applications with Google/Microsoft
 
