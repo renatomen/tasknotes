@@ -115,6 +115,7 @@ describe('TaskCreationModal - Fixed Implementation', () => {
         defaultTaskPriority: 'normal',
         defaultTaskStatus: 'open',
         taskTag: 'task',
+        taskIdentificationMethod: 'tag', // Default to tag mode for backward compatibility
         taskCreationDefaults: {
           defaultDueDate: 'none',
           defaultScheduledDate: 'today',
