@@ -87,10 +87,10 @@ export class OAuthService {
 	}
 
 	/**
-	 * Loads OAuth client IDs
+	 * Loads OAuth client IDs and secrets
 	 * Priority order:
 	 * 1. User-configured credentials (for standard OAuth flow with client_secret)
-	 * 2. Built-in TaskNotes credentials for Device Flow (public client_id only, no secret)
+	 * 2. Built-in TaskNotes credentials (bundled client_id and client_secret for loopback flow)
 	 */
 	async loadClientIds(): Promise<void> {
 		// Google Calendar
@@ -99,9 +99,10 @@ export class OAuthService {
 			this.configs.google.clientId = this.plugin.settings.googleOAuthClientId;
 			this.configs.google.clientSecret = this.plugin.settings.googleOAuthClientSecret || "";
 		} else {
-			// Use built-in client_id for Device Flow (public, no secret)
+			// Use built-in credentials for loopback flow
+			// Note: client_secret is bundled in code (not truly secret for desktop apps - PKCE provides security)
 			this.configs.google.clientId = process.env.GOOGLE_OAUTH_CLIENT_ID || "";
-			this.configs.google.clientSecret = undefined; // Device Flow doesn't use secret
+			this.configs.google.clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET || undefined;
 		}
 
 		// Microsoft Calendar
@@ -116,7 +117,8 @@ export class OAuthService {
 
 	/**
 	 * Initiates OAuth flow for a provider
-	 * Chooses between Device Flow (licensed, easy) or Standard Flow (user credentials)
+	 * Google: Uses loopback redirect flow (device flow doesn't support Calendar scopes)
+	 * Microsoft: Uses device flow when available, otherwise loopback redirect
 	 */
 	async authenticate(provider: OAuthProvider): Promise<void> {
 		const config = this.configs[provider];
@@ -129,7 +131,7 @@ export class OAuthService {
 		const useAdvancedSetup = this.plugin.settings.oauthSetupMode === "advanced";
 
 		if (useAdvancedSetup) {
-			// Advanced Setup: User provided their own OAuth app credentials - use standard flow
+			// Advanced Setup: User provided their own OAuth app credentials - use loopback flow
 			// Validate that user has actually entered credentials
 			const hasCredentials =
 				(provider === "google" && this.plugin.settings.googleOAuthClientId) ||
@@ -141,7 +143,7 @@ export class OAuthService {
 
 			return await this.authenticateStandard(provider);
 		} else {
-			// Quick Setup: Using built-in TaskNotes client_id - use Device Flow
+			// Quick Setup: Using built-in TaskNotes client_id
 			// Check license validation
 			const hasValidLicense = await this.plugin.licenseService?.canUseBuiltInCredentials();
 
@@ -149,13 +151,19 @@ export class OAuthService {
 				throw new OAuthNotConfiguredError(provider);
 			}
 
-			return await this.authenticateDeviceFlow(provider);
+			// Google: Use loopback redirect flow (device flow doesn't support Calendar API scopes)
+			// Microsoft: Use device flow (supports calendar scopes and is easier for users)
+			if (provider === "google") {
+				return await this.authenticateStandard(provider);
+			} else {
+				return await this.authenticateDeviceFlow(provider);
+			}
 		}
 	}
 
 	/**
-	 * Standard OAuth flow (requires client_id + client_secret)
-	 * Used when user provides their own OAuth credentials
+	 * Standard OAuth flow with loopback redirect (client_id required, client_secret optional)
+	 * Used for desktop applications with PKCE for security
 	 */
 	private async authenticateStandard(provider: OAuthProvider): Promise<void> {
 		try {
@@ -166,9 +174,8 @@ export class OAuthService {
 				throw new Error("OAuth authentication requires the desktop app.");
 			}
 
-			if (!config.clientSecret) {
-				throw new Error(`${provider} OAuth client secret not configured. Please add both Client ID and Client Secret in settings.`);
-			}
+			// Note: client_secret is optional for desktop apps using PKCE
+			// PKCE (Proof Key for Code Exchange) provides security without requiring a secret
 
 			// Generate PKCE code verifier and challenge
 			const codeVerifier = this.generateCodeVerifier();
@@ -648,14 +655,20 @@ export class OAuthService {
 		code: string,
 		codeVerifier: string
 	): Promise<OAuthTokens> {
-		const params = new URLSearchParams({
+		const params: Record<string, string> = {
 			client_id: config.clientId,
-			client_secret: config.clientSecret || "",
 			code: code,
 			code_verifier: codeVerifier,
 			redirect_uri: config.redirectUri,
 			grant_type: "authorization_code"
-		});
+		};
+
+		// Only include client_secret if it exists (optional for public clients)
+		if (config.clientSecret) {
+			params.client_secret = config.clientSecret;
+		}
+
+		const urlParams = new URLSearchParams(params);
 
 		try {
 			const response = await requestUrl({
@@ -665,7 +678,7 @@ export class OAuthService {
 					"Content-Type": "application/x-www-form-urlencoded",
 					"Accept": "application/json"
 				},
-				body: params.toString(),
+				body: urlParams.toString(),
 				throw: false  // Don't throw on error status, let us handle it
 			});
 
@@ -714,12 +727,18 @@ export class OAuthService {
 		}
 
 		const config = this.configs[provider];
-		const params = new URLSearchParams({
+		const params: Record<string, string> = {
 			client_id: config.clientId,
-			client_secret: config.clientSecret || "",
 			refresh_token: connection.tokens.refreshToken,
 			grant_type: "refresh_token"
-		});
+		};
+
+		// Only include client_secret if it exists (optional for public clients)
+		if (config.clientSecret) {
+			params.client_secret = config.clientSecret;
+		}
+
+		const urlParams = new URLSearchParams(params);
 
 		try {
 			const response = await requestUrl({
@@ -729,7 +748,7 @@ export class OAuthService {
 					"Content-Type": "application/x-www-form-urlencoded",
 					"Accept": "application/json"
 				},
-				body: params.toString()
+				body: urlParams.toString()
 			});
 
 			const data = response.json;
