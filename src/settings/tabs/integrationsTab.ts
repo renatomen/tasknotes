@@ -91,9 +91,10 @@ export function renderIntegrationsTab(
 	);
 
 	// TaskNotes License Card (appears before calendar cards)
-	const licenseContainer = container.createDiv("tasknotes-license-container");
+	// TEMPORARILY DISABLED FOR BETA RELEASE
+	// const licenseContainer = container.createDiv("tasknotes-license-container");
 
-	const renderLicenseCard = async () => {
+	/* const renderLicenseCard = async () => {
 		licenseContainer.empty();
 
 		// Setup mode toggle
@@ -334,10 +335,41 @@ export function renderIntegrationsTab(
 
 		// Insert mode toggle before the card
 		licenseContainer.insertBefore(modeToggleContainer, card);
-	};
+	}; */
 
 	// Initial render
-	renderLicenseCard();
+	// TEMPORARILY DISABLED FOR BETA RELEASE
+	// renderLicenseCard();
+
+	// Setup guide link (always visible)
+	const setupGuideContainer = container.createDiv("tasknotes-oauth-setup-guide");
+	setupGuideContainer.style.cssText = `
+		font-size: 0.9em;
+		color: var(--text-muted);
+		line-height: 1.5;
+		padding: 12px;
+		background: var(--background-secondary);
+		border-radius: 6px;
+		border-left: 3px solid var(--interactive-accent);
+		margin-bottom: 16px;
+	`;
+
+	const setupText = setupGuideContainer.createDiv();
+	const strong = setupText.createEl("strong");
+	strong.textContent = "OAuth Setup Required:";
+	setupText.appendText(" You'll need to create OAuth credentials with Google and/or Microsoft to connect your calendars. This takes approximately 15 minutes for initial setup.");
+
+	const setupGuideLink = setupGuideContainer.createEl("a", {
+		text: "View Calendar Setup Guide",
+		href: "https://callumalpass.github.io/tasknotes/calendar-setup",
+		attr: { target: "_blank" }
+	});
+	setupGuideLink.style.cssText = `
+		font-size: 0.9em;
+		color: var(--interactive-accent);
+		margin-top: 8px;
+		display: inline-block;
+	`;
 
 	// Google Calendar container for card-based UI
 	const googleCalendarContainer = container.createDiv("google-calendar-integration-container");
@@ -461,7 +493,8 @@ export function renderIntegrationsTab(
 			];
 
 			// Only show credential inputs in Advanced mode
-			if (plugin.settings.oauthSetupMode === "advanced") {
+			// TEMPORARILY FORCING ADVANCED MODE FOR BETA RELEASE
+			if (true) { // if (plugin.settings.oauthSetupMode === "advanced") {
 				// Create credential input fields
 				const clientIdInput = createCardInput("text", "your-client-id.apps.googleusercontent.com", plugin.settings.googleOAuthClientId);
 				clientIdInput.addEventListener("blur", async () => {
@@ -498,7 +531,8 @@ export function renderIntegrationsTab(
 				});
 			} else {
 				// Quick mode - show reminder about license
-				const quickModeNote = document.createElement("div");
+				// TEMPORARILY DISABLED FOR BETA RELEASE
+				/* const quickModeNote = document.createElement("div");
 				quickModeNote.style.fontSize = "0.85em";
 				quickModeNote.style.color = "var(--text-accent)";
 				quickModeNote.style.fontStyle = "italic";
@@ -511,7 +545,7 @@ export function renderIntegrationsTab(
 					rows: [
 						{ label: "", input: quickModeNote, fullWidth: true }
 					]
-				});
+				}); */
 			}
 
 			createCard(googleCalendarContainer, {
@@ -659,7 +693,8 @@ export function renderIntegrationsTab(
 			];
 
 			// Only show credential inputs in Advanced mode
-			if (plugin.settings.oauthSetupMode === "advanced") {
+			// TEMPORARILY FORCING ADVANCED MODE FOR BETA RELEASE
+			if (true) { // if (plugin.settings.oauthSetupMode === "advanced") {
 				// Create credential input fields
 				const clientIdInput = createCardInput("text", "your-microsoft-client-id", plugin.settings.microsoftOAuthClientId);
 				clientIdInput.addEventListener("blur", async () => {
@@ -696,7 +731,8 @@ export function renderIntegrationsTab(
 				});
 			} else {
 				// Quick mode - show reminder about license
-				const quickModeNote = document.createElement("div");
+				// TEMPORARILY DISABLED FOR BETA RELEASE
+				/* const quickModeNote = document.createElement("div");
 				quickModeNote.style.fontSize = "0.85em";
 				quickModeNote.style.color = "var(--text-accent)";
 				quickModeNote.style.fontStyle = "italic";
@@ -709,7 +745,7 @@ export function renderIntegrationsTab(
 					rows: [
 						{ label: "", input: quickModeNote, fullWidth: true }
 					]
-				});
+				}); */
 			}
 
 			createCard(microsoftCalendarContainer, {

@@ -2,6 +2,7 @@
 
 TaskNotes supports Google Calendar and Microsoft Calendar integration via OAuth 2.0.
 
+<!-- TEMPORARILY DISABLED FOR BETA RELEASE
 ## Quick Setup
 
 TaskNotes bundles OAuth client IDs (and the Google client secret) so you can connect without creating your own apps. You'll need an active TaskNotes license to unlock these built-in credentials.
@@ -12,10 +13,11 @@ TaskNotes bundles OAuth client IDs (and the Google client secret) so you can con
 4. Use the Google or Microsoft card to click **Connect** and authorize access in your browser.
    - Google uses the OAuth loopback flow and will reopen to `http://127.0.0.1:<port>` to finish the login.
    - Microsoft uses the OAuth device-flow and will show you a short code and link.
+-->
 
-## Advanced Setup (Your Own Credentials)
+## Setup (Your Own OAuth Credentials)
 
-If you prefer to use your own OAuth application:
+To connect your calendars, you'll need to create OAuth applications with Google and/or Microsoft.
 
 ### Google Calendar
 
@@ -28,10 +30,9 @@ If you prefer to use your own OAuth application:
 2. **Configure Credentials**
    - Copy Client ID and Client Secret
    - In TaskNotes Settings → Integrations → Calendar:
-     - Select "Advanced Setup"
-     - Paste your Client ID
-     - Paste your Client Secret
-   - Click "Connect to Google Calendar"
+     - Paste your Client ID in the Google Calendar card
+     - Paste your Client Secret in the Google Calendar card
+   - Click "Connect Google Calendar"
 
 ### Microsoft Calendar
 
@@ -57,16 +58,15 @@ If you prefer to use your own OAuth application:
 
 4. **Configure TaskNotes**
    - In TaskNotes Settings → Integrations → Calendar:
-     - Select "Advanced Setup"
-     - Paste your Client ID
-     - Paste your Client Secret
-   - Click "Connect to Microsoft Calendar"
+     - Paste your Client ID in the Microsoft Calendar card
+     - Paste your Client Secret in the Microsoft Calendar card
+   - Click "Connect Microsoft Calendar"
 
 ## Security Notes
 
-- Google Quick Setup uses an OAuth 2.0 loopback redirect with PKCE; Microsoft Quick Setup uses the OAuth 2.0 device flow (no client secret required).
-- Advanced Setup stores your credentials locally in Obsidian's data folder
-- Tokens are stored securely and refreshed automatically
+- Your OAuth credentials are stored locally in Obsidian's data folder
+- Access tokens are stored securely and refreshed automatically
+- Calendar data is synced directly between Obsidian and your calendar provider
 - Disconnect at any time to revoke access
 
 ## Troubleshooting
