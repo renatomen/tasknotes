@@ -1,5 +1,5 @@
 // import { TAbstractFile } from 'obsidian';
-import { Setting } from "obsidian";
+import { Setting, Notice } from "obsidian";
 import TaskNotesPlugin from "../../main";
 import {
 	createSectionHeader,
@@ -9,6 +9,7 @@ import {
 	createHelpText,
 } from "../components/settingHelpers";
 import { TranslationKey } from "../../i18n";
+import { showConfirmationModal } from "../../modals/ConfirmationModal";
 
 /**
  * Renders the General tab - foundational settings for task identification and storage
@@ -199,44 +200,138 @@ export function renderGeneralTab(
 		});
 	}
 
-	// Task Interaction Section
-	createSectionHeader(container, translate("settings.general.taskInteraction.header"));
-	createHelpText(container, translate("settings.general.taskInteraction.description"));
+	// View Commands Section
+	createSectionHeader(container, "View Commands");
+	createHelpText(
+		container,
+		"Configure which .base files are opened by view commands. These commands let you continue using familiar shortcuts while working with Bases files."
+	);
 
-	createDropdownSetting(container, {
-		name: translate("settings.general.taskInteraction.singleClick.name"),
-		desc: translate("settings.general.taskInteraction.singleClick.description"),
-		options: [
-			{ value: "edit", label: translate("settings.general.taskInteraction.actions.edit") },
-			{
-				value: "openNote",
-				label: translate("settings.general.taskInteraction.actions.openNote"),
-			},
-		],
-		getValue: () => plugin.settings.singleClickAction,
-		setValue: async (value: string) => {
-			plugin.settings.singleClickAction = value as "edit" | "openNote";
-			save();
+	// Command file mappings
+	const commandMappings = [
+		{
+			id: 'open-kanban-view',
+			name: 'Open Kanban View',
+			defaultPath: 'TaskNotes/Views/kanban-default.base',
 		},
+		{
+			id: 'open-tasks-view',
+			name: 'Open Tasks View',
+			defaultPath: 'TaskNotes/Views/tasks-default.base',
+		},
+		{
+			id: 'open-advanced-calendar-view',
+			name: 'Open Calendar View',
+			defaultPath: 'TaskNotes/Views/calendar-default.base',
+		},
+		{
+			id: 'open-agenda-view',
+			name: 'Open Agenda View',
+			defaultPath: 'TaskNotes/Views/agenda-default.base',
+		},
+		{
+			id: 'project-subtasks',
+			name: 'Project Subtasks Widget',
+			defaultPath: 'TaskNotes/Views/project-subtasks.base',
+		},
+	];
+
+	commandMappings.forEach(({ id, name, defaultPath }) => {
+		const setting = new Setting(container);
+		setting.setName(name);
+		setting.setDesc(`File: ${plugin.settings.commandFileMapping[id]}`);
+
+		// Text input for file path
+		setting.addText(text => {
+			text.setPlaceholder(defaultPath)
+				.setValue(plugin.settings.commandFileMapping[id])
+				.onChange(async (value) => {
+					plugin.settings.commandFileMapping[id] = value;
+					await save();
+					// Update description
+					setting.setDesc(`File: ${value}`);
+				});
+			text.inputEl.style.width = '100%';
+			return text;
+		});
+
+		// Reset button
+		setting.addButton(button => {
+			button.setButtonText('Reset')
+				.setTooltip('Reset to default path')
+				.onClick(async () => {
+					plugin.settings.commandFileMapping[id] = defaultPath;
+					await save();
+					// Refresh the entire settings display
+					if (app.setting.activeTab) {
+						app.setting.openTabById(app.setting.activeTab.id);
+					}
+				});
+			return button;
+		});
 	});
 
-	createDropdownSetting(container, {
-		name: translate("settings.general.taskInteraction.doubleClick.name"),
-		desc: translate("settings.general.taskInteraction.doubleClick.description"),
-		options: [
-			{ value: "edit", label: translate("settings.general.taskInteraction.actions.edit") },
-			{
-				value: "openNote",
-				label: translate("settings.general.taskInteraction.actions.openNote"),
-			},
-			{ value: "none", label: translate("settings.general.taskInteraction.actions.none") },
-		],
-		getValue: () => plugin.settings.doubleClickAction,
-		setValue: async (value: string) => {
-			plugin.settings.doubleClickAction = value as "edit" | "openNote" | "none";
-			save();
-		},
-	});
+	// Create Default Files button
+	new Setting(container)
+		.setName('Create Default Files')
+		.setDesc('Create the default .base files in TaskNotes/Views/ directory. Existing files will not be overwritten.')
+		.addButton(button => {
+			button.setButtonText('Create Files')
+				.setCta()
+				.onClick(async () => {
+					await plugin.createDefaultBasesFiles();
+				});
+			return button;
+		});
+
+	// Export All Saved Views button
+	new Setting(container)
+		.setName('Export All Saved Views to Bases')
+		.setDesc('Convert all your saved views into a single .base file with multiple views. Agenda views will use calendar type.')
+		.addButton(button => {
+			button.setButtonText('Export All Views')
+				.onClick(async () => {
+					try {
+						const savedViews = plugin.viewStateManager.getSavedViews();
+
+						if (savedViews.length === 0) {
+							new Notice('No saved views to export');
+							return;
+						}
+
+						const basesContent = plugin.basesFilterConverter.convertAllSavedViewsToBasesFile(savedViews);
+						const fileName = 'all-saved-views.base';
+						const filePath = `TaskNotes/Views/${fileName}`;
+
+						// Create folder if needed
+						const folder = plugin.app.vault.getAbstractFileByPath('TaskNotes/Views');
+						if (!folder) {
+							await plugin.app.vault.createFolder('TaskNotes/Views');
+						}
+
+						// Handle file overwrite confirmation
+						const existingFile = plugin.app.vault.getAbstractFileByPath(filePath);
+						if (existingFile) {
+							const confirmed = await showConfirmationModal(plugin.app, {
+								title: 'File Already Exists',
+								message: `A file named "${fileName}" already exists. Overwrite it?`,
+								isDestructive: false,
+							});
+							if (!confirmed) return;
+							await plugin.app.vault.modify(existingFile as any, basesContent);
+						} else {
+							await plugin.app.vault.create(filePath, basesContent);
+						}
+
+						new Notice(`Exported ${savedViews.length} saved views to ${filePath}`);
+						await plugin.app.workspace.openLinkText(filePath, '', true);
+					} catch (error) {
+						console.error('Error exporting all views to Bases:', error);
+						new Notice(`Failed to export views: ${error.message}`);
+					}
+				});
+			return button;
+		});
 
 	// Release Notes Section
 	createSectionHeader(container, translate("settings.general.releaseNotes.header"));

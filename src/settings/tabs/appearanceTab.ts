@@ -767,6 +767,45 @@ export function renderAppearanceTab(
 		},
 	});
 
+	// Task Interaction Section
+	createSectionHeader(container, translate("settings.general.taskInteraction.header"));
+	createHelpText(container, translate("settings.general.taskInteraction.description"));
+
+	createDropdownSetting(container, {
+		name: translate("settings.general.taskInteraction.singleClick.name"),
+		desc: translate("settings.general.taskInteraction.singleClick.description"),
+		options: [
+			{ value: "edit", label: translate("settings.general.taskInteraction.actions.edit") },
+			{
+				value: "openNote",
+				label: translate("settings.general.taskInteraction.actions.openNote"),
+			},
+		],
+		getValue: () => plugin.settings.singleClickAction,
+		setValue: async (value: string) => {
+			plugin.settings.singleClickAction = value as "edit" | "openNote";
+			save();
+		},
+	});
+
+	createDropdownSetting(container, {
+		name: translate("settings.general.taskInteraction.doubleClick.name"),
+		desc: translate("settings.general.taskInteraction.doubleClick.description"),
+		options: [
+			{ value: "edit", label: translate("settings.general.taskInteraction.actions.edit") },
+			{
+				value: "openNote",
+				label: translate("settings.general.taskInteraction.actions.openNote"),
+			},
+			{ value: "none", label: translate("settings.general.taskInteraction.actions.none") },
+		],
+		getValue: () => plugin.settings.doubleClickAction,
+		setValue: async (value: string) => {
+			plugin.settings.doubleClickAction = value as "edit" | "openNote" | "none";
+			save();
+		},
+	});
+
 	// Project Autosuggest Section
 	createSectionHeader(container, translate("settings.appearance.projectAutosuggest.header"));
 	createHelpText(container, translate("settings.appearance.projectAutosuggest.description"));
