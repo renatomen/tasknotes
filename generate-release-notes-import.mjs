@@ -5,9 +5,9 @@ import { execSync } from "child_process";
 const manifest = JSON.parse(readFileSync("manifest.json", "utf8"));
 const currentVersion = manifest.version;
 
-// Parse semantic version
+// Parse semantic version (supports pre-release versions like 4.0.0-beta.0)
 function parseVersion(version) {
-	const match = version.match(/^(\d+)\.(\d+)\.(\d+)$/);
+	const match = version.match(/^(\d+)\.(\d+)\.(\d+)(?:-[\w.]+)?$/);
 	if (!match) return null;
 	return {
 		major: parseInt(match[1]),
