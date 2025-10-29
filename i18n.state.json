@@ -440,6 +440,7 @@
       "source": "aa73278ad78de284702c875cbe2d73ccb8f9c5d3",
       "translation": "17b1f4317dfccc4e2cf4ab36745827154f5ad3f2"
     },
+    "views.basesCalendar.buttonText.listDays": null,
     "views.basesCalendar.settings.groups.dateNavigation": {
       "source": "8487a72e02c205a734e6ec6a5684a99576039cb3",
       "translation": "447a68387740ba7281dd48cc034168c1bb83cb9c"
@@ -460,6 +461,8 @@
       "source": "9b99ca62a8c206aeef3199afeb8c2d6ea70c3c3a",
       "translation": "efa3533c4e46110cb13fbbefc736130b3cb95b22"
     },
+    "views.basesCalendar.settings.groups.googleCalendars": null,
+    "views.basesCalendar.settings.groups.microsoftCalendars": null,
     "views.basesCalendar.settings.dateNavigation.navigateToDate": {
       "source": "2a47407705ef9a77de4778c38853a4122e38b1fd",
       "translation": "b3a01d7806d06830f7d4a4f6723ae639cc0915df"
@@ -524,6 +527,7 @@
       "source": "1aadcb0d4d3400d00e2ad0a4cffa017ad1fac481",
       "translation": "e7d36da2adbcbb1f8a24b00984c812e0c636e5b2"
     },
+    "views.basesCalendar.settings.layout.listDayCount": null,
     "views.basesCalendar.settings.layout.dayStartTime": {
       "source": "0f668f32458bf870e8823e6dd50a7fcc1dc595c7",
       "translation": "78b8eee51d19827b871600dfe2826848c0c4db6d"
@@ -3808,6 +3812,8 @@
       "source": "04c2072af97cf70c22fbf9efa9b62eb2574d23d6",
       "translation": "d69d1c26f388903bba0094ba00f61217c47fa732"
     },
+    "commands.startTimeTrackingWithSelector": null,
+    "commands.editTimeEntries": null,
     "modals.task.titlePlaceholder": {
       "source": "c8196f1d1039c2fb290add52ee990c571173d6f1",
       "translation": "03f97eff6f24910100617f3fcbc4665e2e65cd7e"
@@ -4431,6 +4437,33 @@
       "source": "e3b84e89bc68a5c8f2e36e22ee9857002c4a2545",
       "translation": "d5088628545e4e751596457f295b2c7071d78256"
     },
+    "modals.timeEntryEditor.title": null,
+    "modals.timeEntryEditor.addEntry": null,
+    "modals.timeEntryEditor.noEntries": null,
+    "modals.timeEntryEditor.deleteEntry": null,
+    "modals.timeEntryEditor.startTime": null,
+    "modals.timeEntryEditor.endTime": null,
+    "modals.timeEntryEditor.duration": null,
+    "modals.timeEntryEditor.durationDesc": null,
+    "modals.timeEntryEditor.durationPlaceholder": null,
+    "modals.timeEntryEditor.description": null,
+    "modals.timeEntryEditor.descriptionPlaceholder": null,
+    "modals.timeEntryEditor.calculatedDuration": null,
+    "modals.timeEntryEditor.totalTime": null,
+    "modals.timeEntryEditor.totalMinutes": null,
+    "modals.timeEntryEditor.saved": null,
+    "modals.timeEntryEditor.saveFailed": null,
+    "modals.timeEntryEditor.openFailed": null,
+    "modals.timeEntryEditor.noTasksWithEntries": null,
+    "modals.timeEntryEditor.validation.missingStartTime": null,
+    "modals.timeEntryEditor.validation.endBeforeStart": null,
+    "modals.timeTracking.noTasksAvailable": null,
+    "modals.timeTracking.started": null,
+    "modals.timeTracking.startFailed": null,
+    "modals.timeEntry.mustHaveSpecificTime": null,
+    "modals.timeEntry.noTasksAvailable": null,
+    "modals.timeEntry.created": null,
+    "modals.timeEntry.createFailed": null,
     "contextMenus.task.status": {
       "source": "bae7d5be70820ed56467bd9a63744e23b47bd711",
       "translation": "bae7d5be70820ed56467bd9a63744e23b47bd711"
@@ -6410,6 +6443,7 @@
       "source": "aa73278ad78de284702c875cbe2d73ccb8f9c5d3",
       "translation": "aa73278ad78de284702c875cbe2d73ccb8f9c5d3"
     },
+    "views.basesCalendar.buttonText.listDays": null,
     "views.basesCalendar.settings.groups.dateNavigation": {
       "source": "8487a72e02c205a734e6ec6a5684a99576039cb3",
       "translation": "5cba3a19c4bdca7c7335ef59885db537d31a3571"
@@ -6430,6 +6464,8 @@
       "source": "9b99ca62a8c206aeef3199afeb8c2d6ea70c3c3a",
       "translation": "fb2be6dc29776b765d49d49218dd87ea71dfc715"
     },
+    "views.basesCalendar.settings.groups.googleCalendars": null,
+    "views.basesCalendar.settings.groups.microsoftCalendars": null,
     "views.basesCalendar.settings.dateNavigation.navigateToDate": {
       "source": "2a47407705ef9a77de4778c38853a4122e38b1fd",
       "translation": "fa66602b85f1f973639677da41fcafd2912bfff0"
@@ -6494,6 +6530,7 @@
       "source": "1aadcb0d4d3400d00e2ad0a4cffa017ad1fac481",
       "translation": "c585fec878ba515866da41eb7d674ade38f4a26c"
     },
+    "views.basesCalendar.settings.layout.listDayCount": null,
     "views.basesCalendar.settings.layout.dayStartTime": {
       "source": "0f668f32458bf870e8823e6dd50a7fcc1dc595c7",
       "translation": "a497b916e7f0b2437f82805314e87c9a4567c4fb"
@@ -9778,6 +9815,8 @@
       "source": "04c2072af97cf70c22fbf9efa9b62eb2574d23d6",
       "translation": "6b3d99d1c66a1ab48efa9303a68404ff95c10897"
     },
+    "commands.startTimeTrackingWithSelector": null,
+    "commands.editTimeEntries": null,
     "modals.task.titlePlaceholder": {
       "source": "c8196f1d1039c2fb290add52ee990c571173d6f1",
       "translation": "dee0035d1027b937237c8bbdd6e77288df356ff4"
@@ -10401,6 +10440,33 @@
       "source": "e3b84e89bc68a5c8f2e36e22ee9857002c4a2545",
       "translation": "710dff33842bc2252a35666052fa038d11b31a14"
     },
+    "modals.timeEntryEditor.title": null,
+    "modals.timeEntryEditor.addEntry": null,
+    "modals.timeEntryEditor.noEntries": null,
+    "modals.timeEntryEditor.deleteEntry": null,
+    "modals.timeEntryEditor.startTime": null,
+    "modals.timeEntryEditor.endTime": null,
+    "modals.timeEntryEditor.duration": null,
+    "modals.timeEntryEditor.durationDesc": null,
+    "modals.timeEntryEditor.durationPlaceholder": null,
+    "modals.timeEntryEditor.description": null,
+    "modals.timeEntryEditor.descriptionPlaceholder": null,
+    "modals.timeEntryEditor.calculatedDuration": null,
+    "modals.timeEntryEditor.totalTime": null,
+    "modals.timeEntryEditor.totalMinutes": null,
+    "modals.timeEntryEditor.saved": null,
+    "modals.timeEntryEditor.saveFailed": null,
+    "modals.timeEntryEditor.openFailed": null,
+    "modals.timeEntryEditor.noTasksWithEntries": null,
+    "modals.timeEntryEditor.validation.missingStartTime": null,
+    "modals.timeEntryEditor.validation.endBeforeStart": null,
+    "modals.timeTracking.noTasksAvailable": null,
+    "modals.timeTracking.started": null,
+    "modals.timeTracking.startFailed": null,
+    "modals.timeEntry.mustHaveSpecificTime": null,
+    "modals.timeEntry.noTasksAvailable": null,
+    "modals.timeEntry.created": null,
+    "modals.timeEntry.createFailed": null,
     "contextMenus.task.status": {
       "source": "bae7d5be70820ed56467bd9a63744e23b47bd711",
       "translation": "87cf2a843e2e43a05edc326327fca7e1388bc196"
@@ -12380,6 +12446,7 @@
       "source": "aa73278ad78de284702c875cbe2d73ccb8f9c5d3",
       "translation": "5de56b1ab2623758e2b533e17cb8ac608d6a9013"
     },
+    "views.basesCalendar.buttonText.listDays": null,
     "views.basesCalendar.settings.groups.dateNavigation": {
       "source": "8487a72e02c205a734e6ec6a5684a99576039cb3",
       "translation": "df5980b4f6dea6e9889ba9f95cbae73f350a0f21"
@@ -12400,6 +12467,8 @@
       "source": "9b99ca62a8c206aeef3199afeb8c2d6ea70c3c3a",
       "translation": "8fa5a0c55c39ccd6b214a4910bcdb42bd577aafe"
     },
+    "views.basesCalendar.settings.groups.googleCalendars": null,
+    "views.basesCalendar.settings.groups.microsoftCalendars": null,
     "views.basesCalendar.settings.dateNavigation.navigateToDate": {
       "source": "2a47407705ef9a77de4778c38853a4122e38b1fd",
       "translation": "4ae8748fca0ca5203f2c6498dc5055d9b6fd2d4f"
@@ -12464,6 +12533,7 @@
       "source": "1aadcb0d4d3400d00e2ad0a4cffa017ad1fac481",
       "translation": "90710f98bfb77e7d3787746a23f0412835a8495c"
     },
+    "views.basesCalendar.settings.layout.listDayCount": null,
     "views.basesCalendar.settings.layout.dayStartTime": {
       "source": "0f668f32458bf870e8823e6dd50a7fcc1dc595c7",
       "translation": "e3180159c9a136fc28c11d5da31bd36e7df6097f"
@@ -15748,6 +15818,8 @@
       "source": "04c2072af97cf70c22fbf9efa9b62eb2574d23d6",
       "translation": "e8e1d32313d229666301e29a37df418032835142"
     },
+    "commands.startTimeTrackingWithSelector": null,
+    "commands.editTimeEntries": null,
     "modals.task.titlePlaceholder": {
       "source": "c8196f1d1039c2fb290add52ee990c571173d6f1",
       "translation": "4ad6efca173a22d4bf622d5729c3ad13612e6902"
@@ -16350,6 +16422,33 @@
       "source": "e3b84e89bc68a5c8f2e36e22ee9857002c4a2545",
       "translation": "766daf2c2c291eb0b785e3a79c8600a358cb8935"
     },
+    "modals.timeEntryEditor.title": null,
+    "modals.timeEntryEditor.addEntry": null,
+    "modals.timeEntryEditor.noEntries": null,
+    "modals.timeEntryEditor.deleteEntry": null,
+    "modals.timeEntryEditor.startTime": null,
+    "modals.timeEntryEditor.endTime": null,
+    "modals.timeEntryEditor.duration": null,
+    "modals.timeEntryEditor.durationDesc": null,
+    "modals.timeEntryEditor.durationPlaceholder": null,
+    "modals.timeEntryEditor.description": null,
+    "modals.timeEntryEditor.descriptionPlaceholder": null,
+    "modals.timeEntryEditor.calculatedDuration": null,
+    "modals.timeEntryEditor.totalTime": null,
+    "modals.timeEntryEditor.totalMinutes": null,
+    "modals.timeEntryEditor.saved": null,
+    "modals.timeEntryEditor.saveFailed": null,
+    "modals.timeEntryEditor.openFailed": null,
+    "modals.timeEntryEditor.noTasksWithEntries": null,
+    "modals.timeEntryEditor.validation.missingStartTime": null,
+    "modals.timeEntryEditor.validation.endBeforeStart": null,
+    "modals.timeTracking.noTasksAvailable": null,
+    "modals.timeTracking.started": null,
+    "modals.timeTracking.startFailed": null,
+    "modals.timeEntry.mustHaveSpecificTime": null,
+    "modals.timeEntry.noTasksAvailable": null,
+    "modals.timeEntry.created": null,
+    "modals.timeEntry.createFailed": null,
     "contextMenus.task.status": {
       "source": "bae7d5be70820ed56467bd9a63744e23b47bd711",
       "translation": "659499f38a5647a0d307be6f23a5d367a167fbf7"
@@ -18284,6 +18383,7 @@
       "source": "aa73278ad78de284702c875cbe2d73ccb8f9c5d3",
       "translation": "0753dde3fefe6f6187fc84f9baa52a674c1fe120"
     },
+    "views.basesCalendar.buttonText.listDays": null,
     "views.basesCalendar.settings.groups.dateNavigation": {
       "source": "8487a72e02c205a734e6ec6a5684a99576039cb3",
       "translation": "4e0b207c74b14cd8a4e6a275afa1418c8c38767e"
@@ -18304,6 +18404,8 @@
       "source": "9b99ca62a8c206aeef3199afeb8c2d6ea70c3c3a",
       "translation": "2287d63241f1d8aa5eadaf7392c317a92cf7866d"
     },
+    "views.basesCalendar.settings.groups.googleCalendars": null,
+    "views.basesCalendar.settings.groups.microsoftCalendars": null,
     "views.basesCalendar.settings.dateNavigation.navigateToDate": {
       "source": "2a47407705ef9a77de4778c38853a4122e38b1fd",
       "translation": "54ceab04071c47bd8194d1bc48240748c089c7d2"
@@ -18368,6 +18470,7 @@
       "source": "1aadcb0d4d3400d00e2ad0a4cffa017ad1fac481",
       "translation": "a8c383e51fd4cf53dac4c9993fd8a661d073b006"
     },
+    "views.basesCalendar.settings.layout.listDayCount": null,
     "views.basesCalendar.settings.layout.dayStartTime": {
       "source": "0f668f32458bf870e8823e6dd50a7fcc1dc595c7",
       "translation": "50901883f5d93cbd0c3b975dd65390685cb978bd"
@@ -21646,6 +21749,8 @@
       "source": "04c2072af97cf70c22fbf9efa9b62eb2574d23d6",
       "translation": "2add1152032ee15c68c3fc05a7923fc50d2d0c31"
     },
+    "commands.startTimeTrackingWithSelector": null,
+    "commands.editTimeEntries": null,
     "modals.task.titlePlaceholder": {
       "source": "c8196f1d1039c2fb290add52ee990c571173d6f1",
       "translation": "0e65840f941f2c5e030cf553e4e5a3cc315fe73d"
@@ -22221,6 +22326,33 @@
       "source": "e3b84e89bc68a5c8f2e36e22ee9857002c4a2545",
       "translation": "1d6dd7e4008faf0ab81f38a900e4a311ca5db621"
     },
+    "modals.timeEntryEditor.title": null,
+    "modals.timeEntryEditor.addEntry": null,
+    "modals.timeEntryEditor.noEntries": null,
+    "modals.timeEntryEditor.deleteEntry": null,
+    "modals.timeEntryEditor.startTime": null,
+    "modals.timeEntryEditor.endTime": null,
+    "modals.timeEntryEditor.duration": null,
+    "modals.timeEntryEditor.durationDesc": null,
+    "modals.timeEntryEditor.durationPlaceholder": null,
+    "modals.timeEntryEditor.description": null,
+    "modals.timeEntryEditor.descriptionPlaceholder": null,
+    "modals.timeEntryEditor.calculatedDuration": null,
+    "modals.timeEntryEditor.totalTime": null,
+    "modals.timeEntryEditor.totalMinutes": null,
+    "modals.timeEntryEditor.saved": null,
+    "modals.timeEntryEditor.saveFailed": null,
+    "modals.timeEntryEditor.openFailed": null,
+    "modals.timeEntryEditor.noTasksWithEntries": null,
+    "modals.timeEntryEditor.validation.missingStartTime": null,
+    "modals.timeEntryEditor.validation.endBeforeStart": null,
+    "modals.timeTracking.noTasksAvailable": null,
+    "modals.timeTracking.started": null,
+    "modals.timeTracking.startFailed": null,
+    "modals.timeEntry.mustHaveSpecificTime": null,
+    "modals.timeEntry.noTasksAvailable": null,
+    "modals.timeEntry.created": null,
+    "modals.timeEntry.createFailed": null,
     "contextMenus.task.status": {
       "source": "bae7d5be70820ed56467bd9a63744e23b47bd711",
       "translation": "0a409cee235c7f6064ee84956d3cbb8e45973ca3"
@@ -24107,6 +24239,7 @@
       "source": "aa73278ad78de284702c875cbe2d73ccb8f9c5d3",
       "translation": "e9509356398612ae229f35f7002b841eff235692"
     },
+    "views.basesCalendar.buttonText.listDays": null,
     "views.basesCalendar.settings.groups.dateNavigation": {
       "source": "8487a72e02c205a734e6ec6a5684a99576039cb3",
       "translation": "57bf0f6969699757d18f7b4453086a172f435690"
@@ -24127,6 +24260,8 @@
       "source": "9b99ca62a8c206aeef3199afeb8c2d6ea70c3c3a",
       "translation": "033b97980f8cfe564611b9a179dd1d63d41f91ac"
     },
+    "views.basesCalendar.settings.groups.googleCalendars": null,
+    "views.basesCalendar.settings.groups.microsoftCalendars": null,
     "views.basesCalendar.settings.dateNavigation.navigateToDate": {
       "source": "2a47407705ef9a77de4778c38853a4122e38b1fd",
       "translation": "a19547af0ba78583a6a456399f0ccd71cf31e442"
@@ -24191,6 +24326,7 @@
       "source": "1aadcb0d4d3400d00e2ad0a4cffa017ad1fac481",
       "translation": "8023fa493fbdceefae07500f67148b562ca8a575"
     },
+    "views.basesCalendar.settings.layout.listDayCount": null,
     "views.basesCalendar.settings.layout.dayStartTime": {
       "source": "0f668f32458bf870e8823e6dd50a7fcc1dc595c7",
       "translation": "ad7076c8fea6ae68bb0ce52b47c635c5861d80a7"
@@ -27442,6 +27578,8 @@
       "source": "04c2072af97cf70c22fbf9efa9b62eb2574d23d6",
       "translation": "060c1aa179717a8ebedce8eeae250cf12307291d"
     },
+    "commands.startTimeTrackingWithSelector": null,
+    "commands.editTimeEntries": null,
     "modals.task.titlePlaceholder": {
       "source": "c8196f1d1039c2fb290add52ee990c571173d6f1",
       "translation": "fb99b9f5be8916e4a7b038e3d1d9d9087f8a5653"
@@ -28044,6 +28182,33 @@
       "source": "e3b84e89bc68a5c8f2e36e22ee9857002c4a2545",
       "translation": "9d86119b219ea2949c06eae6a3f294e251790da7"
     },
+    "modals.timeEntryEditor.title": null,
+    "modals.timeEntryEditor.addEntry": null,
+    "modals.timeEntryEditor.noEntries": null,
+    "modals.timeEntryEditor.deleteEntry": null,
+    "modals.timeEntryEditor.startTime": null,
+    "modals.timeEntryEditor.endTime": null,
+    "modals.timeEntryEditor.duration": null,
+    "modals.timeEntryEditor.durationDesc": null,
+    "modals.timeEntryEditor.durationPlaceholder": null,
+    "modals.timeEntryEditor.description": null,
+    "modals.timeEntryEditor.descriptionPlaceholder": null,
+    "modals.timeEntryEditor.calculatedDuration": null,
+    "modals.timeEntryEditor.totalTime": null,
+    "modals.timeEntryEditor.totalMinutes": null,
+    "modals.timeEntryEditor.saved": null,
+    "modals.timeEntryEditor.saveFailed": null,
+    "modals.timeEntryEditor.openFailed": null,
+    "modals.timeEntryEditor.noTasksWithEntries": null,
+    "modals.timeEntryEditor.validation.missingStartTime": null,
+    "modals.timeEntryEditor.validation.endBeforeStart": null,
+    "modals.timeTracking.noTasksAvailable": null,
+    "modals.timeTracking.started": null,
+    "modals.timeTracking.startFailed": null,
+    "modals.timeEntry.mustHaveSpecificTime": null,
+    "modals.timeEntry.noTasksAvailable": null,
+    "modals.timeEntry.created": null,
+    "modals.timeEntry.createFailed": null,
     "contextMenus.task.status": {
       "source": "bae7d5be70820ed56467bd9a63744e23b47bd711",
       "translation": "f7f293b5c58cf8a1508319db3e59577951e44343"
@@ -29978,6 +30143,7 @@
       "source": "aa73278ad78de284702c875cbe2d73ccb8f9c5d3",
       "translation": "5c5b4fd5ba33a15949b29d65fe325a8bbb0b476b"
     },
+    "views.basesCalendar.buttonText.listDays": null,
     "views.basesCalendar.settings.groups.dateNavigation": {
       "source": "8487a72e02c205a734e6ec6a5684a99576039cb3",
       "translation": "9418cc43710bff3818e4d2251de159c0df30c7b9"
@@ -29998,6 +30164,8 @@
       "source": "9b99ca62a8c206aeef3199afeb8c2d6ea70c3c3a",
       "translation": "9dab5527fc38aa92f2fb093e2ac87f54532d5788"
     },
+    "views.basesCalendar.settings.groups.googleCalendars": null,
+    "views.basesCalendar.settings.groups.microsoftCalendars": null,
     "views.basesCalendar.settings.dateNavigation.navigateToDate": {
       "source": "2a47407705ef9a77de4778c38853a4122e38b1fd",
       "translation": "c0efa068855bb9fb623f36c52244cdd39eb55b04"
@@ -30062,6 +30230,7 @@
       "source": "1aadcb0d4d3400d00e2ad0a4cffa017ad1fac481",
       "translation": "4fb424df11ed00a6944983a5e08350220fe6ad5c"
     },
+    "views.basesCalendar.settings.layout.listDayCount": null,
     "views.basesCalendar.settings.layout.dayStartTime": {
       "source": "0f668f32458bf870e8823e6dd50a7fcc1dc595c7",
       "translation": "99e69a099befe98c44d4e0955be7e2043bc76429"
@@ -33331,6 +33500,8 @@
       "source": "04c2072af97cf70c22fbf9efa9b62eb2574d23d6",
       "translation": "524c479f706f46cb1f6e70be920671d9ed610e5c"
     },
+    "commands.startTimeTrackingWithSelector": null,
+    "commands.editTimeEntries": null,
     "modals.task.titlePlaceholder": {
       "source": "c8196f1d1039c2fb290add52ee990c571173d6f1",
       "translation": "37d9b0a0a59872345ce5e206027f8eccf793e6fa"
@@ -33906,6 +34077,33 @@
       "source": "e3b84e89bc68a5c8f2e36e22ee9857002c4a2545",
       "translation": "7727b4c3e9161bbd7263da14ad0d107af1347c21"
     },
+    "modals.timeEntryEditor.title": null,
+    "modals.timeEntryEditor.addEntry": null,
+    "modals.timeEntryEditor.noEntries": null,
+    "modals.timeEntryEditor.deleteEntry": null,
+    "modals.timeEntryEditor.startTime": null,
+    "modals.timeEntryEditor.endTime": null,
+    "modals.timeEntryEditor.duration": null,
+    "modals.timeEntryEditor.durationDesc": null,
+    "modals.timeEntryEditor.durationPlaceholder": null,
+    "modals.timeEntryEditor.description": null,
+    "modals.timeEntryEditor.descriptionPlaceholder": null,
+    "modals.timeEntryEditor.calculatedDuration": null,
+    "modals.timeEntryEditor.totalTime": null,
+    "modals.timeEntryEditor.totalMinutes": null,
+    "modals.timeEntryEditor.saved": null,
+    "modals.timeEntryEditor.saveFailed": null,
+    "modals.timeEntryEditor.openFailed": null,
+    "modals.timeEntryEditor.noTasksWithEntries": null,
+    "modals.timeEntryEditor.validation.missingStartTime": null,
+    "modals.timeEntryEditor.validation.endBeforeStart": null,
+    "modals.timeTracking.noTasksAvailable": null,
+    "modals.timeTracking.started": null,
+    "modals.timeTracking.startFailed": null,
+    "modals.timeEntry.mustHaveSpecificTime": null,
+    "modals.timeEntry.noTasksAvailable": null,
+    "modals.timeEntry.created": null,
+    "modals.timeEntry.createFailed": null,
     "contextMenus.task.status": {
       "source": "bae7d5be70820ed56467bd9a63744e23b47bd711",
       "translation": "62e951a692ff8f4e8a0e9049d726f42685237d0d"
