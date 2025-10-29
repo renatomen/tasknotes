@@ -28,9 +28,9 @@ function getVersionDate(version) {
 	}
 }
 
-// Get all release note files and bundle versions since last minor
+// Get all release note files and bundle versions since last minor (includes pre-release versions)
 const releaseFiles = readdirSync("docs/releases")
-	.filter(f => f.match(/^\d+\.\d+\.\d+\.md$/))
+	.filter(f => f.match(/^\d+\.\d+\.\d+(?:-[\w.]+)?\.md$/))
 	.map(f => f.replace('.md', ''))
 	.map(v => parseVersion(v))
 	.filter(v => v !== null)
