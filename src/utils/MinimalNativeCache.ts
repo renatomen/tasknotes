@@ -1376,7 +1376,7 @@ export class MinimalNativeCache extends Events {
 	/**
 	 * Debounced version of handleFileChanged to prevent excessive updates during typing
 	 */
-	private handleFileChangedDebounced(file: TFile, cache: any): void {
+	private async handleFileChangedDebounced(file: TFile, cache: any): Promise<void> {
 		// Clear any existing timeout for this file FIRST to prevent orphaned timeouts
 		const existingTimeout = this.debouncedHandlers.get(file.path);
 		if (existingTimeout) {
@@ -1384,8 +1384,17 @@ export class MinimalNativeCache extends Events {
 			this.debouncedHandlers.delete(file.path);
 		}
 
+		// Check for metadata availability - wait briefly if not immediately available
+		// This prevents race conditions where we might misclassify tasks during metadata updates
+		let metadata = this.app.metadataCache.getFileCache(file);
+		if (!metadata?.frontmatter) {
+			// Metadata not immediately available - wait briefly for it to be ready
+			// Use a shorter wait than the full waitForFreshData since we're in the hot path
+			await this.waitForFreshData(file, 3); // Only wait up to 3 attempts (~200ms max)
+			metadata = this.app.metadataCache.getFileCache(file);
+		}
+
 		// Early exit: Only process files that are potentially task files
-		const metadata = this.app.metadataCache.getFileCache(file);
 		if (!metadata?.frontmatter || !this.isTaskFile(metadata.frontmatter)) {
 			// Clean up state caches if file is no longer a task
 			this.lastKnownFrontmatter.delete(file.path);
