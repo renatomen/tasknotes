@@ -18,7 +18,6 @@ Example:
 
 - (#768) Fixed calendar view appearing empty in week and day views due to invalid time configuration values
   - Added time validation in settings UI with proper error messages and debouncing
-  - Added runtime sanitization in calendar with safe defaults (00:00:00, 24:00:00, 08:00:00)
   - Prevents "Cannot read properties of null (reading 'years')" error from FullCalendar
   - Thanks to @userhandle for reporting and help debugging
 ```
@@ -26,6 +25,12 @@ Example:
 -->
 
 ## Fixed
+
+- (#1013) Fixed inability to subscribe to Apple iCloud calendars
+  - Calendar URLs copied from Apple Calendar (starting with webcal://) can now be pasted directly
+  - Previously required manually changing the URL format before it would be accepted
+  - Works with both standard and secure calendar URLs (webcal:// and webcals://)
+  - Thanks to @nickbirch51 for reporting
 
 - (#1022) Fixed tasks randomly disappearing from views and not being recognized
   - Tasks would appear initially but disappear after a few seconds, especially during long sessions
