@@ -239,10 +239,19 @@ export async function renderTaskNotesInBasesView(
 					// User has a custom field mapping for this property
 					// Map it to the internal TaskNotes property name for proper rendering
 					mappedId = internalFieldName;
+
+					// Special case: if user mapped timeEntries, show totalTrackedTime instead
+					if (mappedId === "timeEntries") {
+						mappedId = "totalTrackedTime";
+					}
 				}
 				// Handle dotted properties like task.due -> due
 				else if (propId.startsWith("task.")) {
 					mappedId = propId.substring(5);
+					// Special case: timeEntries should show as totalTrackedTime in card views
+					if (mappedId === "timeEntries") {
+						mappedId = "totalTrackedTime";
+					}
 				}
 				// Handle note properties like note.projects -> projects
 				else if (propId.startsWith("note.")) {
@@ -252,12 +261,21 @@ export async function renderTaskNotesInBasesView(
 					const strippedInternalFieldName = plugin.fieldMapper?.fromUserField(stripped);
 					if (strippedInternalFieldName) {
 						mappedId = strippedInternalFieldName;
+						// Special case: timeEntries should show as totalTrackedTime
+						if (mappedId === "timeEntries") {
+							mappedId = "totalTrackedTime";
+						}
 					}
 					// Map specific note properties to TaskNotes property names
 					else if (stripped === "dateCreated") mappedId = "dateCreated";
 					else if (stripped === "dateModified") mappedId = "dateModified";
 					else if (stripped === "completedDate") mappedId = "completedDate";
+					else if (stripped === "timeEntries") mappedId = "totalTrackedTime"; // Show total instead of array
 					else mappedId = stripped; // projects, contexts, tags, and any other arbitrary properties
+				}
+				// Handle direct timeEntries property
+				else if (propId === "timeEntries") {
+					mappedId = "totalTrackedTime"; // Show total instead of array
 				}
 				// Handle file properties
 				else if (propId === "file.ctime") mappedId = "dateCreated";
@@ -372,17 +390,32 @@ export async function renderGroupedTasksInBasesView(
 			const internalFieldName = plugin.fieldMapper?.fromUserField(propId);
 			if (internalFieldName) {
 				mappedId = internalFieldName;
+				// Special case: timeEntries should show as totalTrackedTime
+				if (mappedId === "timeEntries") {
+					mappedId = "totalTrackedTime";
+				}
 			} else if (propId.startsWith("task.")) {
 				mappedId = propId.substring(5);
+				// Special case: timeEntries should show as totalTrackedTime
+				if (mappedId === "timeEntries") {
+					mappedId = "totalTrackedTime";
+				}
 			} else if (propId.startsWith("note.")) {
 				const stripped = propId.substring(5);
 				const strippedInternalFieldName = plugin.fieldMapper?.fromUserField(stripped);
 				if (strippedInternalFieldName) {
 					mappedId = strippedInternalFieldName;
+					// Special case: timeEntries should show as totalTrackedTime
+					if (mappedId === "timeEntries") {
+						mappedId = "totalTrackedTime";
+					}
 				} else if (stripped === "dateCreated") mappedId = "dateCreated";
 				else if (stripped === "dateModified") mappedId = "dateModified";
 				else if (stripped === "completedDate") mappedId = "completedDate";
+				else if (stripped === "timeEntries") mappedId = "totalTrackedTime"; // Show total instead of array
 				else mappedId = stripped;
+			} else if (propId === "timeEntries") {
+				mappedId = "totalTrackedTime"; // Show total instead of array
 			} else if (propId === "file.ctime") mappedId = "dateCreated";
 			else if (propId === "file.mtime") mappedId = "dateModified";
 			else if (propId === "file.name") mappedId = "title";
