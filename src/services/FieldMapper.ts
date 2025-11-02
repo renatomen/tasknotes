@@ -160,14 +160,6 @@ export class FieldMapper {
 			mapped.archived = frontmatter.tags.includes(this.mapping.archiveTag);
 		}
 
-		// Handle time entries
-		if (frontmatter.timeEntries !== undefined) {
-			// Ensure timeEntries is always an array
-			mapped.timeEntries = Array.isArray(frontmatter.timeEntries)
-				? frontmatter.timeEntries
-				: [];
-		}
-
 		return mapped;
 	}
 
@@ -281,11 +273,6 @@ export class FieldMapper {
 
 		if (tags.length > 0) {
 			frontmatter.tags = tags;
-		}
-
-		// Handle time entries
-		if (taskData.timeEntries !== undefined) {
-			frontmatter.timeEntries = taskData.timeEntries;
 		}
 
 		return frontmatter;
