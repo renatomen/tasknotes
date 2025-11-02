@@ -8,15 +8,22 @@
 
 import { format } from "date-fns";
 import TaskNotesPlugin from "../main";
-import { TaskInfo, ICSEvent, TimeBlock } from "../types";
+import { TaskInfo, ICSEvent, TimeBlock, EVENT_DATA_CHANGED } from "../types";
 import {
 	hasTimeComponent,
 	getDatePart,
 	getTimePart,
 	parseDateToLocal,
 	formatDateForStorage,
+	parseDateToUTC,
+	getTodayLocal,
 } from "../utils/dateUtils";
-import { generateRecurringInstances } from "../utils/helpers";
+import { generateRecurringInstances, extractTimeblocksFromNote, updateTimeblockInDailyNote } from "../utils/helpers";
+import { Notice } from "obsidian";
+import { getAllDailyNotes, getDailyNote, appHasDailyNotesPluginLoaded, createDailyNote } from "obsidian-daily-notes-interface";
+import { TimeblockCreationModal } from "../modals/TimeblockCreationModal";
+import { TaskSelectorModal } from "../modals/TaskSelectorModal";
+import { TimeblockInfoModal } from "../modals/TimeblockInfoModal";
 
 export interface CalendarEvent {
 	id: string;
@@ -318,8 +325,6 @@ export async function handleRecurringTaskDrop(
  * Uses the same UTC-anchored logic as AdvancedCalendarView
  */
 export function getTargetDateForEvent(eventArg: any): Date {
-	const { format } = require("date-fns");
-	const { parseDateToUTC, getTodayLocal } = require("../utils/dateUtils");
 
 	// Extract from eventArg.event if it's an event mount arg, or directly if it's the event
 	const event = eventArg.event || eventArg;
@@ -747,9 +752,6 @@ export async function generateTimeblockEvents(
 
 	try {
 		// Lazy import daily notes plugin
-		const { getAllDailyNotes, getDailyNote } = require("obsidian-daily-notes-interface");
-		const { extractTimeblocksFromNote } = require("../utils/helpers");
-		const { formatDateForStorage } = require("../utils/dateUtils");
 
 		const allDailyNotes = getAllDailyNotes();
 
@@ -874,9 +876,6 @@ export async function handleTimeblockCreation(
 	allDay: boolean,
 	plugin: TaskNotesPlugin
 ): Promise<void> {
-	const { Notice } = require("obsidian");
-	const { TimeblockCreationModal } = require("../modals/TimeblockCreationModal");
-	const { format } = require("date-fns");
 
 	// Don't create timeblocks for all-day selections
 	if (allDay) {
@@ -908,8 +907,6 @@ export async function handleTimeEntryCreation(
 	allDay: boolean,
 	plugin: TaskNotesPlugin
 ): Promise<void> {
-	const { Notice } = require("obsidian");
-	const { TaskSelectorModal } = require("../modals/TaskSelectorModal");
 
 	// Don't create time entries for all-day selections
 	if (allDay) {
@@ -960,8 +957,7 @@ export async function handleTimeEntryCreation(
 
 						// Note: updateTask in TaskService already triggers EVENT_TASK_UPDATED internally
 						// We just need to trigger EVENT_DATA_CHANGED
-						const { EVENT_DATA_CHANGED } = require("../types");
-						plugin.emitter.trigger(EVENT_DATA_CHANGED);
+							plugin.emitter.trigger(EVENT_DATA_CHANGED);
 
 						new Notice(
 							plugin.i18n.translate("modals.timeEntry.created", {
@@ -993,9 +989,6 @@ export async function handleTimeblockDrop(
 	originalDate: string,
 	plugin: TaskNotesPlugin
 ): Promise<void> {
-	const { Notice } = require("obsidian");
-	const { format } = require("date-fns");
-	const { updateTimeblockInDailyNote } = require("../utils/helpers");
 
 	try {
 		const newStart = dropInfo.event.start;
@@ -1033,9 +1026,6 @@ export async function handleTimeblockResize(
 	originalDate: string,
 	plugin: TaskNotesPlugin
 ): Promise<void> {
-	const { Notice } = require("obsidian");
-	const { format } = require("date-fns");
-	const { updateTimeblockInDailyNote } = require("../utils/helpers");
 
 	try {
 		const start = resizeInfo.event.start;
@@ -1077,7 +1067,6 @@ export async function showTimeblockInfoModal(
 	originalDate: string | undefined,
 	plugin: TaskNotesPlugin
 ): Promise<void> {
-	const { TimeblockInfoModal } = require("../modals/TimeblockInfoModal");
 
 	const modal = new TimeblockInfoModal(
 		plugin.app,
@@ -1138,14 +1127,6 @@ export function addTaskHoverPreview(
  * Handle clicking on a date title to open/create daily note
  */
 export async function handleDateTitleClick(date: Date, plugin: TaskNotesPlugin): Promise<void> {
-	const { Notice } = require("obsidian");
-	const {
-		appHasDailyNotesPluginLoaded,
-		getAllDailyNotes,
-		getDailyNote,
-		createDailyNote,
-	} = require("obsidian-daily-notes-interface");
-
 	try {
 		// Check if Daily Notes plugin is enabled
 		if (!appHasDailyNotesPluginLoaded()) {

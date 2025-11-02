@@ -15,11 +15,13 @@ import listPlugin from "@fullcalendar/list";
 import interactionPlugin from "@fullcalendar/interaction";
 import { startOfDay, endOfDay, format } from "date-fns";
 import { getTodayLocal, normalizeCalendarBoundariesToUTC, parseDateToUTC, getTodayString } from "../utils/dateUtils";
-import { generateCalendarEvents, CalendarEvent, generateTaskTooltip, applyRecurringTaskStyling, handleRecurringTaskDrop, getTargetDateForEvent, handleTimeblockCreation, handleTimeEntryCreation, handleTimeblockDrop, handleTimeblockResize, showTimeblockInfoModal, applyTimeblockStyling, generateTimeblockTooltip, handleDateTitleClick, addTaskHoverPreview, createICSEvent } from "./calendar-core";
+import { generateCalendarEvents, CalendarEvent, generateTaskTooltip, applyRecurringTaskStyling, handleRecurringTaskDrop, getTargetDateForEvent, handleTimeblockCreation, handleTimeEntryCreation, handleTimeblockDrop, handleTimeblockResize, showTimeblockInfoModal, applyTimeblockStyling, generateTimeblockTooltip, handleDateTitleClick, addTaskHoverPreview, createICSEvent, calculateTaskCreationValues } from "./calendar-core";
 import { getBasesSortComparator } from "./sorting";
 import { TaskContextMenu } from "../components/TaskContextMenu";
-import { Menu, TFile } from "obsidian";
+import { ICSEventContextMenu } from "../components/ICSEventContextMenu";
+import { Menu, TFile, setIcon, setTooltip } from "obsidian";
 import { ICSEventInfoModal } from "../modals/ICSEventInfoModal";
+import { TaskCreationModal } from "../modals/TaskCreationModal";
 import { handleCalendarTaskClick } from "../utils/clickHandlers";
 import { createTaskCard } from "../ui/TaskCard";
 import { createICSEventCard } from "../ui/ICSCard";
@@ -224,7 +226,6 @@ export function buildTasknotesCalendarViewFactory(plugin: TaskNotesPlugin) {
 				const slotDurationMinutes = (hours * 60) + minutes;
 
 				// Use shared logic to calculate task creation values
-				const { calculateTaskCreationValues } = require("./calendar-core");
 				const prePopulatedValues = calculateTaskCreationValues(
 					start,
 					end,
@@ -232,7 +233,6 @@ export function buildTasknotesCalendarViewFactory(plugin: TaskNotesPlugin) {
 					slotDurationMinutes
 				);
 
-				const { TaskCreationModal } = require("../modals/TaskCreationModal");
 				const modal = new TaskCreationModal(plugin.app, plugin, {
 					prePopulatedValues,
 				});
@@ -667,8 +667,7 @@ export function buildTasknotesCalendarViewFactory(plugin: TaskNotesPlugin) {
 						iconContainer.style.alignItems = 'center';
 
 						// Add Lucide calendar icon
-						const { setIcon } = require('obsidian');
-						const iconEl = document.createElement('span');
+							const iconEl = document.createElement('span');
 						iconEl.style.width = '12px';
 						iconEl.style.height = '12px';
 						iconEl.style.display = 'inline-flex';
@@ -819,7 +818,6 @@ export function buildTasknotesCalendarViewFactory(plugin: TaskNotesPlugin) {
 				}
 
 				// Add tooltip
-				const { setTooltip } = require("obsidian");
 				const tooltipText = generateTimeblockTooltip(timeblock);
 				setTooltip(arg.el, tooltipText, { placement: "top" });
 
@@ -862,7 +860,6 @@ export function buildTasknotesCalendarViewFactory(plugin: TaskNotesPlugin) {
 			}
 
 			// Add hover tooltip for tasks and ICS events
-			const { setTooltip } = require("obsidian");
 			if (taskInfo) {
 				const tooltipText = generateTaskTooltip(taskInfo, plugin);
 				setTooltip(arg.el, tooltipText);
@@ -909,8 +906,7 @@ export function buildTasknotesCalendarViewFactory(plugin: TaskNotesPlugin) {
 					e.preventDefault();
 					e.stopPropagation();
 
-					const { ICSEventContextMenu } = require("../components/ICSEventContextMenu");
-					const subscriptionName = arg.event.extendedProps.subscriptionName;
+						const subscriptionName = arg.event.extendedProps.subscriptionName;
 
 					const contextMenu = new ICSEventContextMenu({
 						icsEvent: icsEvent,
