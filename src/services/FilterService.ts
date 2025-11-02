@@ -11,7 +11,7 @@ import {
 	FilterOperator,
 } from "../types";
 import { parseLinktext } from "obsidian";
-import { MinimalNativeCache } from "../utils/MinimalNativeCache";
+import { TaskManager } from "../utils/TaskManager";
 import { StatusManager } from "./StatusManager";
 import { PriorityManager } from "./PriorityManager";
 import { EventEmitter } from "../utils/EventEmitter";
@@ -45,7 +45,7 @@ import { TranslationKey } from "../i18n";
  */
 export class FilterService extends EventEmitter {
 	private static lastInstance: FilterService | null = null;
-	private cacheManager: MinimalNativeCache;
+	private cacheManager: TaskManager;
 	private statusManager: StatusManager;
 	private priorityManager: PriorityManager;
 
@@ -64,7 +64,7 @@ export class FilterService extends EventEmitter {
 	private currentSortKey?: TaskSortKey;
 	private currentSortDirection?: SortDirection;
 	constructor(
-		cacheManager: MinimalNativeCache,
+		cacheManager: TaskManager,
 		statusManager: StatusManager,
 		priorityManager: PriorityManager,
 		private plugin?: any // Plugin reference for accessing settings

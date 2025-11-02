@@ -369,9 +369,7 @@ export class TaskService {
 			try {
 				// Wait for the metadata cache to have the updated data for new tasks
 				if (this.plugin.cacheManager.waitForFreshTaskData) {
-					await this.plugin.cacheManager.waitForFreshTaskData(file, {
-						title: taskInfo.title,
-					});
+					await this.plugin.cacheManager.waitForFreshTaskData(file);
 				}
 				this.plugin.cacheManager.updateTaskInfoInCache(file.path, taskInfo);
 			} catch (cacheError) {
@@ -569,9 +567,7 @@ export class TaskService {
 			try {
 				// Wait for the metadata cache to have the updated data
 				if (this.plugin.cacheManager.waitForFreshTaskData) {
-					await this.plugin.cacheManager.waitForFreshTaskData(file, {
-						[property]: value,
-					});
+					await this.plugin.cacheManager.waitForFreshTaskData(file);
 				}
 				this.plugin.cacheManager.updateTaskInfoInCache(
 					task.path,
@@ -852,9 +848,7 @@ export class TaskService {
 		try {
 			// Wait for the metadata cache to have the updated data
 			if (movedFile instanceof TFile && this.plugin.cacheManager.waitForFreshTaskData) {
-				await this.plugin.cacheManager.waitForFreshTaskData(movedFile, {
-					archived: updatedTask.archived,
-				});
+				await this.plugin.cacheManager.waitForFreshTaskData(movedFile);
 			}
 			this.plugin.cacheManager.updateTaskInfoInCache(updatedTask.path, updatedTask);
 		} catch (cacheError) {
@@ -936,9 +930,7 @@ export class TaskService {
 		try {
 			// Wait for the metadata cache to have the updated time entries
 			if (this.plugin.cacheManager.waitForFreshTaskData) {
-				await this.plugin.cacheManager.waitForFreshTaskData(file, {
-					timeEntries: updatedTask.timeEntries,
-				});
+				await this.plugin.cacheManager.waitForFreshTaskData(file);
 			}
 			this.plugin.cacheManager.updateTaskInfoInCache(task.path, updatedTask);
 		} catch (cacheError) {
@@ -1022,9 +1014,7 @@ export class TaskService {
 		try {
 			// Wait for the metadata cache to have the updated time entries
 			if (this.plugin.cacheManager.waitForFreshTaskData) {
-				await this.plugin.cacheManager.waitForFreshTaskData(file, {
-					timeEntries: updatedTask.timeEntries,
-				});
+				await this.plugin.cacheManager.waitForFreshTaskData(file);
 			}
 			this.plugin.cacheManager.updateTaskInfoInCache(task.path, updatedTask);
 		} catch (cacheError) {
@@ -1318,7 +1308,7 @@ export class TaskService {
 					if (updates.status !== undefined) keyChanges.status = updates.status;
 					if (updates.priority !== undefined) keyChanges.priority = updates.priority;
 					if (Object.keys(keyChanges).length > 0) {
-						await this.plugin.cacheManager.waitForFreshTaskData(finalFile, keyChanges);
+						await this.plugin.cacheManager.waitForFreshTaskData(finalFile);
 					}
 				}
 				this.plugin.cacheManager.updateTaskInfoInCache(newPath, updatedTask);
@@ -1698,7 +1688,7 @@ export class TaskService {
 				if (updatedTask.due !== freshTask.due) {
 					expectedChanges.due = updatedTask.due;
 				}
-				await this.plugin.cacheManager.waitForFreshTaskData(file, expectedChanges);
+				await this.plugin.cacheManager.waitForFreshTaskData(file);
 			}
 			this.plugin.cacheManager.updateTaskInfoInCache(freshTask.path, updatedTask);
 		} catch (cacheError) {
@@ -1772,9 +1762,7 @@ export class TaskService {
 		try {
 			// Wait for the metadata cache to have the updated time entries
 			if (this.plugin.cacheManager.waitForFreshTaskData) {
-				await this.plugin.cacheManager.waitForFreshTaskData(file, {
-					timeEntries: updatedTask.timeEntries,
-				});
+				await this.plugin.cacheManager.waitForFreshTaskData(file);
 			}
 			this.plugin.cacheManager.updateTaskInfoInCache(task.path, updatedTask);
 		} catch (cacheError) {

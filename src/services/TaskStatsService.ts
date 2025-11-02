@@ -1,9 +1,9 @@
 /* eslint-disable no-console */
-import { MinimalNativeCache } from "../utils/MinimalNativeCache";
+import { TaskManager } from "../utils/TaskManager";
 import { TaskInfo } from "../types";
 
 export class TaskStatsService {
-	constructor(private cache: MinimalNativeCache) {}
+	constructor(private cache: TaskManager) {}
 
 	/**
 	 * Aggregates the time estimate of tasks within a given date range.

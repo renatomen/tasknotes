@@ -4,7 +4,7 @@ import { parse } from "url";
 import { IWebhookNotifier } from "../types";
 import { TaskService } from "./TaskService";
 import { FilterService } from "./FilterService";
-import { MinimalNativeCache } from "../utils/MinimalNativeCache";
+import { TaskManager } from "../utils/TaskManager";
 import { NaturalLanguageParser } from "./NaturalLanguageParser";
 import { StatusManager } from "./StatusManager";
 import TaskNotesPlugin from "../main";
@@ -33,7 +33,7 @@ export class HTTPAPIService implements IWebhookNotifier {
 		plugin: TaskNotesPlugin,
 		taskService: TaskService,
 		filterService: FilterService,
-		cacheManager: MinimalNativeCache
+		cacheManager: TaskManager
 	) {
 		this.plugin = plugin;
 

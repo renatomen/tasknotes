@@ -57,7 +57,8 @@ import { TimeEntryEditorModal } from "./modals/TimeEntryEditorModal";
 import { PomodoroService } from "./services/PomodoroService";
 import { formatTime, getActiveTimeEntry } from "./utils/helpers";
 import { convertUTCToLocalCalendarDate } from "./utils/dateUtils";
-import { MinimalNativeCache } from "./utils/MinimalNativeCache";
+import { TaskManager } from "./utils/TaskManager";
+import { DependencyCache } from "./utils/DependencyCache";
 import { RequestDeduplicator, PredictivePrefetcher } from "./utils/RequestDeduplicator";
 import { DOMReconciler, UIStateManager } from "./utils/DOMReconciler";
 import { perfMonitor } from "./utils/PerformanceMonitor";
@@ -153,9 +154,12 @@ export default class TaskNotesPlugin extends Plugin {
 	// Initialize with UTC anchor for today's calendar date
 	selectedDate: Date = createUTCDateFromLocalCalendarDate(getTodayLocal());
 
-	// Minimal native cache manager (also handles events)
-	cacheManager: MinimalNativeCache;
-	emitter: MinimalNativeCache;
+	// Task manager for just-in-time task lookups (also handles events)
+	cacheManager: TaskManager;
+	emitter: TaskManager;
+
+	// Dependency cache for relationships that need indexing
+	dependencyCache: DependencyCache;
 
 	// Performance optimization utilities
 	requestDeduplicator: RequestDeduplicator;
@@ -330,11 +334,22 @@ export default class TaskNotesPlugin extends Plugin {
 		this.domReconciler = new DOMReconciler();
 		this.uiStateManager = new UIStateManager();
 
-		// Initialize minimal native cache manager
-		this.cacheManager = new MinimalNativeCache(this.app, this.settings, this.fieldMapper);
+		// Initialize task manager for just-in-time task lookups
+		this.cacheManager = new TaskManager(this.app, this.settings, this.fieldMapper);
 
 		// Use same instance for event emitting
 		this.emitter = this.cacheManager;
+
+		// Initialize dependency cache for relationships
+		this.dependencyCache = new DependencyCache(
+			this.app,
+			this.settings,
+			this.fieldMapper,
+			(frontmatter: any) => this.cacheManager.isTaskFile(frontmatter)
+		);
+
+		// Connect dependency cache to task manager
+		this.cacheManager.setDependencyCache(this.dependencyCache);
 
 		// Initialize business logic services (lightweight constructors)
 		this.taskService = new TaskService(this);
@@ -544,8 +559,11 @@ export default class TaskNotesPlugin extends Plugin {
 			// Register reading mode task link processor
 			this.registerMarkdownPostProcessor(createReadingModeTaskLinkProcessor(this));
 
-			// Initialize native cache system (lightweight - no index building)
+			// Initialize task manager (lightweight - no index building)
 			this.cacheManager.initialize();
+
+			// Initialize dependency cache (lightweight - lazy index building)
+			this.dependencyCache.initialize();
 
 			// Initialize FilterService and set up event listeners (lightweight)
 			this.filterService.initialize();
@@ -1224,9 +1242,14 @@ export default class TaskNotesPlugin extends Plugin {
 			this.notificationService.destroy();
 		}
 
-		// Clean up native cache manager
+		// Clean up task manager
 		if (this.cacheManager) {
 			this.cacheManager.destroy();
+		}
+
+		// Clean up dependency cache
+		if (this.dependencyCache) {
+			this.dependencyCache.destroy();
 		}
 
 		// Clean up request deduplicator
@@ -1378,13 +1401,7 @@ export default class TaskNotesPlugin extends Plugin {
 		// Only update cache manager if cache-related settings actually changed
 		if (cacheSettingsChanged) {
 			console.debug("Cache-related settings changed, updating cache configuration");
-			this.cacheManager.updateConfig(
-				this.settings.taskTag,
-				this.settings.excludedFolders,
-				this.fieldMapper,
-				this.settings.disableNoteIndexing,
-				this.settings.storeTitleInFilename
-			);
+			this.cacheManager.updateConfig(this.settings);
 
 			// Update our tracking of cache settings
 			this.updatePreviousCacheSettings();

@@ -4,7 +4,7 @@ import { BaseController } from "./BaseController";
 import { TaskInfo, TaskCreationData, FilterQuery, IWebhookNotifier } from "../types";
 import { TaskService } from "../services/TaskService";
 import { FilterService } from "../services/FilterService";
-import { MinimalNativeCache } from "../utils/MinimalNativeCache";
+import { TaskManager } from "../utils/TaskManager";
 import { StatusManager } from "../services/StatusManager";
 import TaskNotesPlugin from "../main";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -34,7 +34,7 @@ export class TasksController extends BaseController {
 		private plugin: TaskNotesPlugin,
 		private taskService: TaskService,
 		private filterService: FilterService,
-		private cacheManager: MinimalNativeCache,
+		private cacheManager: TaskManager,
 		private statusManager: StatusManager,
 		private webhookNotifier: IWebhookNotifier
 	) {

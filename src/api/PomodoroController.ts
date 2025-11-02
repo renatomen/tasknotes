@@ -1,7 +1,7 @@
 import { IncomingMessage, ServerResponse } from "http";
 import { parse } from "url";
 import { BaseController } from "./BaseController";
-import { MinimalNativeCache } from "../utils/MinimalNativeCache";
+import { TaskManager } from "../utils/TaskManager";
 import TaskNotesPlugin from "../main";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Get, Post } from "../utils/OpenAPIDecorators";
@@ -9,7 +9,7 @@ import { Get, Post } from "../utils/OpenAPIDecorators";
 export class PomodoroController extends BaseController {
 	constructor(
 		private plugin: TaskNotesPlugin,
-		private cacheManager: MinimalNativeCache
+		private cacheManager: TaskManager
 	) {
 		super();
 	}

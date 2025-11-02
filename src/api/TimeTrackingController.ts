@@ -3,7 +3,7 @@ import { parse } from "url";
 import { BaseController } from "./BaseController";
 import { IWebhookNotifier } from "../types";
 import { TaskService } from "../services/TaskService";
-import { MinimalNativeCache } from "../utils/MinimalNativeCache";
+import { TaskManager } from "../utils/TaskManager";
 import { StatusManager } from "../services/StatusManager";
 import TaskNotesPlugin from "../main";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -13,7 +13,7 @@ export class TimeTrackingController extends BaseController {
 	constructor(
 		private plugin: TaskNotesPlugin,
 		private taskService: TaskService,
-		private cacheManager: MinimalNativeCache,
+		private cacheManager: TaskManager,
 		private statusManager: StatusManager,
 		private webhookNotifier: IWebhookNotifier
 	) {
