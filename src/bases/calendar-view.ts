@@ -877,8 +877,8 @@ export function buildTasknotesCalendarViewFactory(plugin: TaskNotesPlugin) {
 				addTaskHoverPreview(arg.el, taskInfo, plugin, "tasknotes-bases-calendar");
 			}
 
-			// Add context menu for tasks (right-click)
-			if (taskInfo && eventType !== "timeEntry") {
+			// Add context menu for tasks (right-click) - includes time entries
+			if (taskInfo) {
 				arg.el.addEventListener("contextmenu", (e: MouseEvent) => {
 					e.preventDefault();
 					e.stopPropagation();
@@ -893,6 +893,30 @@ export function buildTasknotesCalendarViewFactory(plugin: TaskNotesPlugin) {
 						targetDate: targetDate,
 						onUpdate: () => {
 							// Refresh calendar events when task is updated
+							if (calendar) {
+								calendar.refetchEvents();
+							}
+						},
+					});
+					contextMenu.show(e);
+				});
+			}
+
+			// Add context menu for ICS events (right-click) - includes Google/Microsoft Calendar
+			if (icsEvent && eventType === "ics") {
+				arg.el.addEventListener("contextmenu", (e: MouseEvent) => {
+					e.preventDefault();
+					e.stopPropagation();
+
+					const { ICSEventContextMenu } = require("../components/ICSEventContextMenu");
+					const subscriptionName = arg.event.extendedProps.subscriptionName;
+
+					const contextMenu = new ICSEventContextMenu({
+						icsEvent: icsEvent,
+						plugin: plugin,
+						subscriptionName: subscriptionName,
+						onUpdate: () => {
+							// Refresh calendar events when ICS event is updated
 							if (calendar) {
 								calendar.refetchEvents();
 							}
@@ -1570,6 +1594,12 @@ export function buildTasknotesCalendarViewFactory(plugin: TaskNotesPlugin) {
 							if (eventType === "timeblock" && timeblock) {
 								const originalDate = format(info.event.start, "yyyy-MM-dd");
 								showTimeblockInfoModal(timeblock, info.event.start, originalDate, plugin);
+								return;
+							}
+
+							// Handle time entry click - left click opens time entry modal
+							if (eventType === "timeEntry" && taskInfo && jsEvent.button === 0) {
+								plugin.openTimeEntryEditor(taskInfo);
 								return;
 							}
 
