@@ -243,49 +243,54 @@ export class TaskManager extends Events {
 	 * Extract task info from native frontmatter
 	 */
 	private extractTaskInfoFromNative(path: string, frontmatter: any): TaskInfo | null {
-		if (!frontmatter) return null;
+		if (!frontmatter || !this.fieldMapper) return null;
 
-		// Get mapped field values
-		const statusField = this.fieldMapper?.toUserField("status") || "status";
-		const priorityField = this.fieldMapper?.toUserField("priority") || "priority";
-		const scheduledField = this.fieldMapper?.toUserField("scheduled") || "scheduled";
-		const dueField = this.fieldMapper?.toUserField("due") || "due";
-		const timeEstimateField = this.fieldMapper?.toUserField("timeEstimate") || "timeEstimate";
-		const projectField = this.fieldMapper?.toUserField("projects") || "project";
-		const contextField = this.fieldMapper?.toUserField("contexts") || "context";
-		const dependenciesField = this.fieldMapper?.toUserField("blockedBy") || "blockedBy";
+		// Validate that the file is actually a task
+		if (!this.isTaskFile(frontmatter)) return null;
 
-		const status = frontmatter[statusField];
-		const priority = frontmatter[priorityField];
-		const scheduled = frontmatter[scheduledField];
-		const due = frontmatter[dueField];
-		const timeEstimate = frontmatter[timeEstimateField];
-		const project = frontmatter[projectField];
-		const context = frontmatter[contextField];
-		const dependencies = frontmatter[dependenciesField];
+		try {
+			// Use FieldMapper to properly map all fields from frontmatter
+			const mappedTask = this.fieldMapper.mapFromFrontmatter(
+				frontmatter,
+				path,
+				this.storeTitleInFilename
+			);
 
-		// Basic validation - at least status should exist
-		if (!status) return null;
+			// Calculate total tracked time from time entries
+			const totalTrackedTime = mappedTask.timeEntries
+				? calculateTotalTimeSpent(mappedTask.timeEntries)
+				: 0;
 
-		const taskInfo: TaskInfo = {
-			path,
-			status,
-			priority,
-			scheduled,
-			due,
-			timeEstimate,
-			project,
-			context,
-			dependencies,
-			title: this.storeTitleInFilename ? path.split('/').pop()?.replace('.md', '') : frontmatter.title,
-			dateCreated: frontmatter.dateCreated,
-			dateModified: frontmatter.dateModified,
-			tags: frontmatter.tags || [],
-			// Add any other fields from frontmatter
-			...frontmatter,
-		};
-
-		return taskInfo;
+			return {
+				id: path, // Add id field for API consistency
+				title: mappedTask.title || "Untitled task",
+				status: mappedTask.status || "open",
+				priority: mappedTask.priority || "normal",
+				due: mappedTask.due,
+				scheduled: mappedTask.scheduled,
+				path,
+				archived: mappedTask.archived || false,
+				tags: Array.isArray(mappedTask.tags) ? mappedTask.tags : [],
+				contexts: Array.isArray(mappedTask.contexts) ? mappedTask.contexts : [],
+				projects: Array.isArray(mappedTask.projects) ? mappedTask.projects : [],
+				recurrence: mappedTask.recurrence,
+				complete_instances: mappedTask.complete_instances,
+				completedDate: mappedTask.completedDate,
+				timeEstimate: mappedTask.timeEstimate,
+				timeEntries: mappedTask.timeEntries,
+				totalTrackedTime: totalTrackedTime,
+				dateCreated: mappedTask.dateCreated,
+				dateModified: mappedTask.dateModified,
+				reminders: mappedTask.reminders,
+				blockedBy: mappedTask.blockedBy,
+				blocking: mappedTask.blocking,
+				isBlocked: false, // Will be calculated by DependencyCache when needed
+				isBlocking: false, // Will be calculated by DependencyCache when needed
+			};
+		} catch (error) {
+			console.error(`Error extracting task info from native metadata for ${path}:`, error);
+			return null;
+		}
 	}
 
 	/**
