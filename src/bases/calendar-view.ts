@@ -822,6 +822,17 @@ export function buildTasknotesCalendarViewFactory(plugin: TaskNotesPlugin) {
 				const { setTooltip } = require("obsidian");
 				const tooltipText = generateTimeblockTooltip(timeblock);
 				setTooltip(arg.el, tooltipText, { placement: "top" });
+
+				// Add context menu for timeblocks (right-click)
+				arg.el.addEventListener("contextmenu", (e: MouseEvent) => {
+					e.preventDefault();
+					e.stopPropagation();
+
+					// Show timeblock info modal on right-click
+					const originalDate = arg.event.start ? format(arg.event.start, "yyyy-MM-dd") : undefined;
+					showTimeblockInfoModal(timeblock, arg.event.start, originalDate, plugin);
+				});
+
 				return;
 			}
 
