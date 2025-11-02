@@ -79,6 +79,7 @@ nav:
     - Timezone Quick Reference: TIMEZONE_QUICK_REFERENCE.md
   - Release Notes: releases.md
   - Troubleshooting: troubleshooting.md
+  - Privacy Policy: privacy.md
 
 markdown_extensions:
   - admonition
