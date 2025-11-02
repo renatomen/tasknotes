@@ -4,6 +4,7 @@ import TaskNotesPlugin from "../main";
 import { ICSEvent, NoteInfo } from "../types";
 import { format } from "date-fns";
 import { SafeAsync } from "../utils/safeAsync";
+import { TranslationKey } from "../i18n";
 
 export interface ICSNoteCreationOptions {
 	icsEvent: ICSEvent;
@@ -18,6 +19,7 @@ export class ICSNoteCreationModal extends Modal {
 	private folder = "";
 	private template = "";
 	private useTemplate = false;
+	private translate: (key: TranslationKey, variables?: Record<string, any>) => string;
 
 	// UI elements
 	private titleInput: HTMLInputElement;
@@ -30,6 +32,7 @@ export class ICSNoteCreationModal extends Modal {
 		super(app);
 		this.plugin = plugin;
 		this.options = options;
+		this.translate = plugin.i18n.translate.bind(plugin.i18n);
 
 		// Set initial values
 		this.title = this.generateDefaultTitle();
@@ -52,7 +55,7 @@ export class ICSNoteCreationModal extends Modal {
 
 		// Modal header
 		const header = contentEl.createDiv("modal-header");
-		header.createEl("h2", { text: "Create from ICS Event" });
+		header.createEl("h2", { text: this.translate("modals.icsNoteCreation.heading") });
 
 		// Event info preview
 		const eventPreview = contentEl.createDiv("ics-event-preview");
@@ -62,8 +65,8 @@ export class ICSNoteCreationModal extends Modal {
 
 		// Title input
 		new Setting(contentEl)
-			.setName("Title")
-			.setDesc("Title for the new content")
+			.setName(this.translate("modals.icsNoteCreation.titleLabel"))
+			.setDesc(this.translate("modals.icsNoteCreation.titleDesc"))
 			.addText((text) => {
 				this.titleInput = text.inputEl;
 				text.setValue(this.title).onChange((value) => {
@@ -74,12 +77,12 @@ export class ICSNoteCreationModal extends Modal {
 
 		// Folder input
 		new Setting(contentEl)
-			.setName("Folder")
-			.setDesc("Destination folder (leave empty for vault root)")
+			.setName(this.translate("modals.icsNoteCreation.folderLabel"))
+			.setDesc(this.translate("modals.icsNoteCreation.folderDesc"))
 			.addText((text) => {
 				this.folderInput = text.inputEl;
 				text.setValue(this.folder)
-					.setPlaceholder("folder/subfolder")
+					.setPlaceholder(this.translate("modals.icsNoteCreation.folderPlaceholder"))
 					.onChange((value) => {
 						this.folder = value;
 						this.updatePreview();
@@ -98,7 +101,7 @@ export class ICSNoteCreationModal extends Modal {
 		const buttonContainer = contentEl.createDiv("modal-button-container");
 
 		const createButton = buttonContainer.createEl("button", {
-			text: "Create",
+			text: this.translate("modals.icsNoteCreation.createButton"),
 			cls: "mod-cta",
 		});
 		createButton.onclick = (e) => {
@@ -109,7 +112,7 @@ export class ICSNoteCreationModal extends Modal {
 		};
 
 		const cancelButton = buttonContainer.createEl("button", {
-			text: "Cancel",
+			text: this.translate("common.cancel"),
 		});
 		cancelButton.onclick = (e) => {
 			e.preventDefault();
@@ -136,7 +139,7 @@ export class ICSNoteCreationModal extends Modal {
 				: icsEvent.start;
 			const startDate = new Date(startDateStr);
 			const startDiv = details.createDiv();
-			startDiv.createEl("strong", { text: "Start: " });
+			startDiv.createEl("strong", { text: this.translate("modals.icsNoteCreation.startLabel") });
 			startDiv.appendText(format(startDate, "PPPp"));
 		}
 
@@ -146,18 +149,18 @@ export class ICSNoteCreationModal extends Modal {
 				: icsEvent.end;
 			const endDate = new Date(endDateStr);
 			const endDiv = details.createDiv();
-			endDiv.createEl("strong", { text: "End: " });
+			endDiv.createEl("strong", { text: this.translate("modals.icsNoteCreation.endLabel") });
 			endDiv.appendText(format(endDate, "PPPp"));
 		}
 
 		if (icsEvent.location) {
 			const locationDiv = details.createDiv();
-			locationDiv.createEl("strong", { text: "Location: " });
+			locationDiv.createEl("strong", { text: this.translate("modals.icsNoteCreation.locationLabel") });
 			locationDiv.appendText(icsEvent.location);
 		}
 
 		const calendarDiv = details.createDiv();
-		calendarDiv.createEl("strong", { text: "Calendar: " });
+		calendarDiv.createEl("strong", { text: this.translate("modals.icsNoteCreation.calendarLabel") });
 		calendarDiv.appendText(subscriptionName);
 	}
 
@@ -165,8 +168,8 @@ export class ICSNoteCreationModal extends Modal {
 		this.templateContainer.empty();
 
 		new Setting(this.templateContainer)
-			.setName("Use Template")
-			.setDesc("Apply a template when creating the content")
+			.setName(this.translate("modals.icsNoteCreation.useTemplateLabel"))
+			.setDesc(this.translate("modals.icsNoteCreation.useTemplateDesc"))
 			.addToggle((toggle) => {
 				toggle.setValue(this.useTemplate).onChange((value) => {
 					this.useTemplate = value;
@@ -177,12 +180,12 @@ export class ICSNoteCreationModal extends Modal {
 
 		if (this.useTemplate) {
 			new Setting(this.templateContainer)
-				.setName("Template Path")
-				.setDesc("Path to the template file")
+				.setName(this.translate("modals.icsNoteCreation.templatePathLabel"))
+				.setDesc(this.translate("modals.icsNoteCreation.templatePathDesc"))
 				.addText((text) => {
 					this.templateInput = text.inputEl;
 					text.setValue(this.template)
-						.setPlaceholder("templates/ics-note-template.md")
+						.setPlaceholder(this.translate("modals.icsNoteCreation.templatePathPlaceholder"))
 						.onChange((value) => {
 							this.template = value;
 							this.updatePreview();

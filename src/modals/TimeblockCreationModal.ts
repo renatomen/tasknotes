@@ -19,6 +19,7 @@ import {
 	getAllDailyNotes,
 	appHasDailyNotesPluginLoaded,
 } from "obsidian-daily-notes-interface";
+import { TranslationKey } from "../i18n";
 
 export interface TimeblockCreationOptions {
 	date: string; // YYYY-MM-DD format
@@ -30,6 +31,7 @@ export interface TimeblockCreationOptions {
 export class TimeblockCreationModal extends Modal {
 	plugin: TaskNotesPlugin;
 	options: TimeblockCreationOptions;
+	private translate: (key: TranslationKey, variables?: Record<string, any>) => string;
 
 	// Form fields
 	private titleInput: HTMLInputElement;
@@ -46,6 +48,7 @@ export class TimeblockCreationModal extends Modal {
 		super(app);
 		this.plugin = plugin;
 		this.options = options;
+		this.translate = plugin.i18n.translate.bind(plugin.i18n);
 	}
 
 	onOpen() {
@@ -53,22 +56,22 @@ export class TimeblockCreationModal extends Modal {
 		contentEl.empty();
 		contentEl.addClass("timeblock-creation-modal");
 
-		new Setting(contentEl).setName("Create timeblock").setHeading();
+		new Setting(contentEl).setName(this.translate("modals.timeblockCreation.heading")).setHeading();
 
 		// Date display (read-only)
 		const dateDisplay = contentEl.createDiv({ cls: "timeblock-date-display" });
-		dateDisplay.createEl("strong", { text: "Date: " });
+		dateDisplay.createEl("strong", { text: this.translate("modals.timeblockCreation.dateLabel") });
 		// Parse the date string to get a proper date object for display (using local for UI)
 		const dateObj = parseDateAsLocal(this.options.date);
 		dateDisplay.createSpan({ text: dateObj.toLocaleDateString() });
 
 		// Title field
 		new Setting(contentEl)
-			.setName("Title")
-			.setDesc("Title for your timeblock")
+			.setName(this.translate("modals.timeblockCreation.titleLabel"))
+			.setDesc(this.translate("modals.timeblockCreation.titleDesc"))
 			.addText((text) => {
 				this.titleInput = text.inputEl;
-				text.setPlaceholder("e.g., Deep work session")
+				text.setPlaceholder(this.translate("modals.timeblockCreation.titlePlaceholder"))
 					.setValue(this.options.prefilledTitle || "")
 					.onChange(() => this.validateForm());
 				// Focus on title input
@@ -79,22 +82,22 @@ export class TimeblockCreationModal extends Modal {
 		const timeContainer = contentEl.createDiv({ cls: "timeblock-time-container" });
 
 		new Setting(timeContainer)
-			.setName("Start time")
-			.setDesc("When the timeblock starts")
+			.setName(this.translate("modals.timeblockCreation.startTimeLabel"))
+			.setDesc(this.translate("modals.timeblockCreation.startTimeDesc"))
 			.addText((text) => {
 				this.startTimeInput = text.inputEl;
-				text.setPlaceholder("09:00")
+				text.setPlaceholder(this.translate("modals.timeblockCreation.startTimePlaceholder"))
 					.setValue(this.options.startTime || "")
 					.onChange(() => this.validateForm());
 				this.startTimeInput.type = "time";
 			});
 
 		new Setting(timeContainer)
-			.setName("End time")
-			.setDesc("When the timeblock ends")
+			.setName(this.translate("modals.timeblockCreation.endTimeLabel"))
+			.setDesc(this.translate("modals.timeblockCreation.endTimeDesc"))
 			.addText((text) => {
 				this.endTimeInput = text.inputEl;
-				text.setPlaceholder("11:00")
+				text.setPlaceholder(this.translate("modals.timeblockCreation.endTimePlaceholder"))
 					.setValue(this.options.endTime || "")
 					.onChange(() => this.validateForm());
 				this.endTimeInput.type = "time";
@@ -102,32 +105,32 @@ export class TimeblockCreationModal extends Modal {
 
 		// Description (optional)
 		new Setting(contentEl)
-			.setName("Description")
-			.setDesc("Optional description for the timeblock")
+			.setName(this.translate("modals.timeblockCreation.descriptionLabel"))
+			.setDesc(this.translate("modals.timeblockCreation.descriptionDesc"))
 			.addTextArea((text) => {
 				this.descriptionInput = text.inputEl;
-				text.setPlaceholder("Focus on new features, no interruptions").setValue("");
+				text.setPlaceholder(this.translate("modals.timeblockCreation.descriptionPlaceholder")).setValue("");
 				this.descriptionInput.rows = 3;
 			});
 
 		// Color (optional)
 		new Setting(contentEl)
-			.setName("Color")
-			.setDesc("Optional color for the timeblock")
+			.setName(this.translate("modals.timeblockCreation.colorLabel"))
+			.setDesc(this.translate("modals.timeblockCreation.colorDesc"))
 			.addText((text) => {
 				this.colorInput = text.inputEl;
-				text.setPlaceholder("#3b82f6").setValue("#6366f1"); // Default indigo color
+				text.setPlaceholder(this.translate("modals.timeblockCreation.colorPlaceholder")).setValue("#6366f1"); // Default indigo color
 				this.colorInput.type = "color";
 			});
 
 		// Attachments (optional)
 		new Setting(contentEl)
-			.setName("Attachments")
-			.setDesc("Files or notes to link to this timeblock")
+			.setName(this.translate("modals.timeblockCreation.attachmentsLabel"))
+			.setDesc(this.translate("modals.timeblockCreation.attachmentsDesc"))
 			.addButton((button) => {
 				button
-					.setButtonText("Add Attachment")
-					.setTooltip("Select a file or note using fuzzy search")
+					.setButtonText(this.translate("modals.timeblockCreation.addAttachmentButton"))
+					.setTooltip(this.translate("modals.timeblockCreation.addAttachmentTooltip"))
 					.onClick(() => {
 						const modal = new AttachmentSelectModal(this.app, this.plugin, (file) => {
 							this.addAttachment(file);
@@ -143,11 +146,11 @@ export class TimeblockCreationModal extends Modal {
 		// Buttons
 		const buttonContainer = contentEl.createDiv({ cls: "timeblock-modal-buttons" });
 
-		const cancelButton = buttonContainer.createEl("button", { text: "Cancel" });
+		const cancelButton = buttonContainer.createEl("button", { text: this.translate("common.cancel") });
 		cancelButton.addEventListener("click", () => this.close());
 
 		const createButton = buttonContainer.createEl("button", {
-			text: "Create timeblock",
+			text: this.translate("modals.timeblockCreation.createButton"),
 			cls: "mod-cta timeblock-create-button",
 		});
 		createButton.addEventListener("click", () => this.handleSubmit());
@@ -194,7 +197,7 @@ export class TimeblockCreationModal extends Modal {
 			const description = this.descriptionInput.value.trim();
 			const color = this.colorInput.value;
 			if (!title || !startTime || !endTime) {
-				new Notice("Please fill in all required fields");
+				new Notice(this.translate("notices.timeblockRequiredFieldsMissing"));
 				return;
 			}
 
@@ -308,13 +311,13 @@ export class TimeblockCreationModal extends Modal {
 	private addAttachment(file: TAbstractFile): void {
 		// Avoid duplicates
 		if (this.selectedAttachments.some((existing) => existing.path === file.path)) {
-			new Notice(`"${file.name}" is already attached`);
+			new Notice(this.translate("notices.timeblockAttachmentExists", { fileName: file.name }));
 			return;
 		}
 
 		this.selectedAttachments.push(file);
 		this.renderAttachmentsList();
-		new Notice(`Added "${file.name}" as attachment`);
+		new Notice(this.translate("notices.timeblockAttachmentAdded", { fileName: file.name }));
 	}
 
 	private removeAttachment(file: TAbstractFile): void {
@@ -322,7 +325,7 @@ export class TimeblockCreationModal extends Modal {
 			(existing) => existing.path !== file.path
 		);
 		this.renderAttachmentsList();
-		new Notice(`Removed "${file.name}" from attachments`);
+		new Notice(this.translate("notices.timeblockAttachmentRemoved", { fileName: file.name }));
 	}
 
 	private renderAttachmentsList(): void {

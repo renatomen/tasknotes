@@ -1,4 +1,6 @@
 import { Modal, App, setIcon } from "obsidian";
+import TaskNotesPlugin from "../main";
+import { TranslationKey } from "../i18n";
 
 interface DeviceCodeInfo {
 	userCode: string;
@@ -11,20 +13,25 @@ interface DeviceCodeInfo {
  * Modal that displays the OAuth Device Flow code and instructions
  */
 export class DeviceCodeModal extends Modal {
+	private plugin: TaskNotesPlugin;
 	private deviceCode: DeviceCodeInfo;
 	private onCancel: () => void;
 	private countdownInterval?: NodeJS.Timeout;
 	private expiresAt: number;
+	private translate: (key: TranslationKey, variables?: Record<string, any>) => string;
 
 	constructor(
 		app: App,
+		plugin: TaskNotesPlugin,
 		deviceCode: DeviceCodeInfo,
 		onCancel: () => void
 	) {
 		super(app);
+		this.plugin = plugin;
 		this.deviceCode = deviceCode;
 		this.onCancel = onCancel;
 		this.expiresAt = Date.now() + (deviceCode.expiresIn * 1000);
+		this.translate = plugin.i18n.translate.bind(plugin.i18n);
 	}
 
 	onOpen(): void {
@@ -36,40 +43,40 @@ export class DeviceCodeModal extends Modal {
 		const header = contentEl.createDiv({ cls: "tasknotes-device-code-header" });
 		const headerIcon = header.createSpan({ cls: "tasknotes-device-code-icon" });
 		setIcon(headerIcon, "shield-check");
-		header.createEl("h2", { text: "Google Calendar Authorization", cls: "tasknotes-device-code-title" });
+		header.createEl("h2", { text: this.translate("modals.deviceCode.title"), cls: "tasknotes-device-code-title" });
 
 		// Instructions
 		const instructions = contentEl.createDiv({ cls: "tasknotes-device-code-instructions" });
 		instructions.createEl("p", {
-			text: "To connect your Google Calendar, please follow these steps:",
+			text: this.translate("modals.deviceCode.instructions.intro"),
 		});
 
 		// Steps
 		const stepsList = instructions.createEl("ol", { cls: "tasknotes-device-code-steps" });
 
 		const step1 = stepsList.createEl("li");
-		step1.createSpan({ text: "Open " });
+		step1.createSpan({ text: this.translate("modals.deviceCode.steps.open") + " " });
 		const linkSpan = step1.createEl("a", {
 			text: this.deviceCode.verificationUrl,
 			href: this.deviceCode.verificationUrl,
 			cls: "tasknotes-device-code-link"
 		});
 		linkSpan.setAttribute("target", "_blank");
-		step1.createSpan({ text: " in your browser" });
+		step1.createSpan({ text: " " + this.translate("modals.deviceCode.steps.inBrowser") });
 
 		const step2 = stepsList.createEl("li");
-		step2.createSpan({ text: "Enter this code when prompted:" });
+		step2.createSpan({ text: this.translate("modals.deviceCode.steps.enterCode") });
 
 		const step3 = stepsList.createEl("li");
-		step3.createSpan({ text: "Sign in with your Google account and grant access" });
+		step3.createSpan({ text: this.translate("modals.deviceCode.steps.signIn") });
 
 		const step4 = stepsList.createEl("li");
-		step4.createSpan({ text: "Return to Obsidian (this window will close automatically)" });
+		step4.createSpan({ text: this.translate("modals.deviceCode.steps.returnToObsidian") });
 
 		// Code display
 		const codeContainer = contentEl.createDiv({ cls: "tasknotes-device-code-container" });
 		const codeLabel = codeContainer.createEl("div", {
-			text: "Your Code:",
+			text: this.translate("modals.deviceCode.codeLabel"),
 			cls: "tasknotes-device-code-label"
 		});
 
@@ -81,7 +88,7 @@ export class DeviceCodeModal extends Modal {
 
 		const copyIcon = codeBox.createEl("button", {
 			cls: "tasknotes-device-code-copy",
-			attr: { "aria-label": "Copy code" }
+			attr: { "aria-label": this.translate("modals.deviceCode.copyCodeAriaLabel") }
 		});
 		setIcon(copyIcon, "copy");
 		copyIcon.addEventListener("click", () => {
@@ -120,7 +127,7 @@ export class DeviceCodeModal extends Modal {
 		setIcon(statusIcon, "loader");
 		statusIcon.addClass("tasknotes-device-code-spinner");
 		statusContainer.createEl("span", {
-			text: "Waiting for authorization...",
+			text: this.translate("modals.deviceCode.waitingForAuthorization"),
 			cls: "tasknotes-device-code-status-text"
 		});
 
@@ -129,7 +136,7 @@ export class DeviceCodeModal extends Modal {
 
 		// Open browser button
 		const openButton = buttonContainer.createEl("button", {
-			text: "Open Browser",
+			text: this.translate("modals.deviceCode.openBrowserButton"),
 			cls: "mod-cta"
 		});
 		const openIcon = openButton.createSpan({ cls: "tasknotes-device-code-button-icon" });
@@ -142,7 +149,7 @@ export class DeviceCodeModal extends Modal {
 
 		// Cancel button
 		const cancelButton = buttonContainer.createEl("button", {
-			text: "Cancel",
+			text: this.translate("modals.deviceCode.cancelButton"),
 			cls: "tasknotes-device-code-cancel"
 		});
 		const cancelIcon = cancelButton.createSpan({ cls: "tasknotes-device-code-button-icon" });
@@ -378,9 +385,9 @@ export class DeviceCodeModal extends Modal {
 		const seconds = Math.floor((remaining % 60000) / 1000);
 
 		if (minutes > 0) {
-			return `Code expires in ${minutes}m ${seconds}s`;
+			return this.translate("modals.deviceCode.expiresMinutesSeconds", { minutes, seconds });
 		} else {
-			return `Code expires in ${seconds}s`;
+			return this.translate("modals.deviceCode.expiresSeconds", { seconds });
 		}
 	}
 }

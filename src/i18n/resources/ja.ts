@@ -156,6 +156,7 @@ export const ja: TranslationTree = {
 				year: "年",
 				list: "一覧",
 				customDays: "{count}日",
+				listDays: "{count}日一覧",
 			},
 			settings: {
 				groups: {
@@ -164,6 +165,8 @@ export const ja: TranslationTree = {
 					layout: "レイアウト",
 					propertyBasedEvents: "プロパティベースのイベント",
 					calendarSubscriptions: "カレンダー購読",
+					googleCalendars: "Google Calendars",
+					microsoftCalendars: "Microsoft Calendars",
 				},
 				dateNavigation: {
 					navigateToDate: "日付に移動",
@@ -188,6 +191,7 @@ export const ja: TranslationTree = {
 				layout: {
 					calendarView: "カレンダービュー",
 					customDayCount: "カスタム日数",
+					listDayCount: "一覧表示日数",
 					dayStartTime: "1日の開始時刻",
 					dayStartTimePlaceholder: "HH:mm:ss（例：08:00:00）",
 					dayEndTime: "1日の終了時刻",
@@ -673,7 +677,8 @@ export const ja: TranslationTree = {
 				},
 				archiveFolder: {
 					name: "アーカイブフォルダー",
-					description: "アーカイブ時にタスクを移動するフォルダー",
+					description:
+						"アーカイブ時にタスクを移動するフォルダー。{{year}}、{{month}}、{{priority}}などのテンプレート変数をサポートします。",
 				},
 			},
 			taskIdentification: {
@@ -691,6 +696,11 @@ export const ja: TranslationTree = {
 					name: "タスクタグ",
 					description: "ノートをタスクとして識別するタグ（#なし）",
 				},
+				hideIdentifyingTags: {
+					name: "タスクカードで識別タグを非表示",
+					description:
+						"有効にすると、タスク識別タグに一致するタグ（'task/project'のような階層的一致を含む）がタスクカード表示から非表示になります",
+				},
 				taskProperty: {
 					name: "タスクプロパティ名",
 					description: 'フロントマタープロパティ名（例："category"）',
@@ -705,6 +715,14 @@ export const ja: TranslationTree = {
 				excludedFolders: {
 					name: "除外フォルダー",
 					description: "ノートタブから除外するフォルダーのカンマ区切りリスト",
+				},
+			},
+			frontmatter: {
+				header: "Frontmatter",
+				description: "frontmatterプロパティでのリンクのフォーマット方法を設定します。",
+				useMarkdownLinks: {
+					name: "frontmatterでmarkdownリンクを使用",
+					description: "frontmatterプロパティでwikilink（[[link]]）の代わりにmarkdownリンク（[text](path)）を生成します。\n\n⚠️ 正しく機能するには'obsidian-frontmatter-markdown-links'プラグインが必要です。",
 				},
 			},
 			taskInteraction: {
@@ -896,6 +914,11 @@ export const ja: TranslationTree = {
 					noKey: "no-key",
 				},
 				deleteTooltip: "フィールドを削除",
+				autosuggestFilters: {
+					header: "自動提案フィルター",
+					description:
+						"タスク作成時にカスタムユーザーフィールドの自動提案をフィルターします。各フィールドに対して、提案される値を特定のタグ、フォルダー、またはプロパティ値を持つノートに制限できます。",
+				},
 			},
 		},
 		appearance: {
@@ -1086,6 +1109,10 @@ export const ja: TranslationTree = {
 				showTrackedTasksInStatusBar: {
 					name: "ステータスバーに追跡タスクを表示",
 					description: "Obsidianのステータスバーに現在追跡中のタスクを表示",
+				},
+				showTaskCardInNote: {
+					name: "ノート内にタスクカードを表示",
+					description: "タスクノートを開いたときにタスクプロパティを表示するインタラクティブカードを表示",
 				},
 				showProjectSubtasksWidget: {
 					name: "プロジェクトサブタスクウィジェットを表示",
@@ -1637,6 +1664,8 @@ export const ja: TranslationTree = {
 		refreshCache: "キャッシュを更新",
 		exportAllTasksIcs: "すべてのタスクをICSファイルとしてエクスポート",
 		viewReleaseNotes: "リリースノートを表示",
+		startTimeTrackingWithSelector: "時間追跡を開始（タスクを選択）",
+		editTimeEntries: "時間エントリを編集（タスクを選択）",
 	},
 	modals: {
 		task: {
@@ -1655,6 +1684,28 @@ export const ja: TranslationTree = {
 			tagsPlaceholder: "tag1, tag2",
 			timeEstimateLabel: "時間見積もり（分）",
 			timeEstimatePlaceholder: "30",
+			dependencies: {
+				blockedBy: "ブロック元",
+				blocking: "ブロックしている",
+				placeholder: "[[タスクノート]]",
+				addTaskButton: "タスクを追加",
+				selectTaskTooltip: "ファジー検索を使用してタスクノートを選択",
+				removeTaskTooltip: "タスクを削除",
+			},
+			organization: {
+				projects: "プロジェクト",
+				subtasks: "サブタスク",
+				addToProject: "プロジェクトに追加",
+				addToProjectButton: "プロジェクトに追加",
+				addSubtasks: "サブタスクを追加",
+				addSubtasksButton: "サブタスクを追加",
+				addSubtasksTooltip: "このタスクのサブタスクにするタスクを選択",
+				removeSubtaskTooltip: "サブタスクを削除",
+				notices: {
+					noEligibleSubtasks: "サブタスクとして割り当て可能なタスクがありません",
+					subtaskSelectFailed: "サブタスクセレクターを開けませんでした",
+				},
+			},
 			customFieldsLabel: "カスタムフィールド",
 			actions: {
 				due: "期限日を設定",
@@ -1706,6 +1757,22 @@ export const ja: TranslationTree = {
 				ordinal: "{number}{suffix}",
 			},
 		},
+		taskSelector: {
+			title: "タスクを選択",
+			placeholder: "タスクを検索...",
+			instructions: {
+				navigate: "移動",
+				select: "選択",
+				dismiss: "キャンセル",
+			},
+			notices: {
+				noteNotFound: 'ノート"{name}"が見つかりませんでした',
+			},
+			dueDate: {
+				overdue: "期限：{date}（期限切れ）",
+				today: "期限：今日",
+			},
+		},
 		taskCreation: {
 			title: "タスクを作成",
 			actions: {
@@ -1720,6 +1787,7 @@ export const ja: TranslationTree = {
 				successShortened:
 					'タスク"{title}"が正常に作成されました（長さのためファイル名が短縮されました）',
 				failure: "タスクの作成に失敗しました：{message}",
+				blockingUnresolved: "解決できませんでした：{entries}",
 			},
 		},
 		taskEdit: {
@@ -1743,6 +1811,8 @@ export const ja: TranslationTree = {
 				noChanges: "保存する変更がありません",
 				updateSuccess: 'タスク"{title}"が正常に更新されました',
 				updateFailure: "タスクの更新に失敗しました：{message}",
+				dependenciesUpdateSuccess: "依存関係が更新されました",
+				blockingUnresolved: "解決できませんでした：{entries}",
 				fileMissing: "タスクファイルが見つかりませんでした：{path}",
 				openNoteFailure: "タスクノートを開けませんでした",
 				archiveSuccess: "タスクが正常に{action}されました",
@@ -1855,6 +1925,41 @@ export const ja: TranslationTree = {
 				updateFailed: "予定日の更新に失敗しました。再試行してください。",
 			},
 		},
+		timeEntryEditor: {
+			title: "時間エントリ - {taskTitle}",
+			addEntry: "時間エントリを追加",
+			noEntries: "まだ時間エントリがありません",
+			deleteEntry: "エントリを削除",
+			startTime: "開始時刻",
+			endTime: "終了時刻（実行中の場合は空白のまま）",
+			duration: "時間（分）",
+			durationDesc: "計算された時間を上書き",
+			durationPlaceholder: "時間を分単位で入力",
+			description: "説明",
+			descriptionPlaceholder: "何に取り組みましたか？",
+			calculatedDuration: "計算：{minutes}分",
+			totalTime: "合計{hours}時間{minutes}分",
+			totalMinutes: "合計{minutes}分",
+			saved: "時間エントリが保存されました",
+			saveFailed: "時間エントリの保存に失敗しました",
+			openFailed: "時間エントリエディターを開けませんでした",
+			noTasksWithEntries: "編集する時間エントリを持つタスクがありません",
+			validation: {
+				missingStartTime: "開始時刻は必須です",
+				endBeforeStart: "終了時刻は開始時刻より後である必要があります",
+			},
+		},
+		timeTracking: {
+			noTasksAvailable: "時間を追跡できるタスクがありません",
+			started: "時間追跡を開始しました：{taskTitle}",
+			startFailed: "時間追跡の開始に失敗しました",
+		},
+		timeEntry: {
+			mustHaveSpecificTime: "時間エントリには具体的な時間が必要です。週表示または日表示で時間範囲を選択してください。",
+			noTasksAvailable: "時間エントリを作成できるタスクがありません",
+			created: "{taskTitle}の時間エントリを作成しました（{duration}分）",
+			createFailed: "時間エントリの作成に失敗しました",
+		},
 	},
 	contextMenus: {
 		task: {
@@ -1897,6 +2002,45 @@ export const ja: TranslationTree = {
 			clearRecurrence: "繰り返しをクリア",
 			customRecurrence: "カスタム繰り返し...",
 			createSubtask: "サブタスクを作成",
+			dependencies: {
+				title: "依存関係",
+				addBlockedBy: "「ブロック元」を追加…",
+				addBlockedByTitle: "このタスクが依存するタスクを追加",
+				addBlocking: "「ブロックしている」を追加…",
+				addBlockingTitle: "このタスクがブロックするタスクを追加",
+				removeBlockedBy: "ブロック元を削除…",
+				removeBlocking: "ブロックしているを削除…",
+				inputPlaceholder: "[[タスクノート]]",
+				notices: {
+					noEntries: "少なくとも1つのタスクを入力してください",
+					blockedByAdded: "{count}件の依存関係が追加されました",
+					blockedByRemoved: "依存関係が削除されました",
+					blockingAdded: "{count}件の依存タスクが追加されました",
+					blockingRemoved: "依存タスクが削除されました",
+					unresolved: "解決できませんでした：{entries}",
+					noEligibleTasks: "一致するタスクが利用できません",
+					updateFailed: "依存関係の更新に失敗しました",
+				},
+			},
+			organization: {
+				title: "組織",
+				projects: "プロジェクト",
+				addToProject: "プロジェクトに追加…",
+				subtasks: "サブタスク",
+				addSubtasks: "サブタスクを追加…",
+				notices: {
+					alreadyInProject: "タスクは既にこのプロジェクトに含まれています",
+					alreadySubtask: "タスクは既にこのタスクのサブタスクです",
+					addedToProject: "プロジェクトに追加されました：{project}",
+					addedAsSubtask: "{subtask}を{parent}のサブタスクとして追加しました",
+					addToProjectFailed: "タスクをプロジェクトに追加できませんでした",
+					addAsSubtaskFailed: "タスクをサブタスクとして追加できませんでした",
+					projectSelectFailed: "プロジェクトセレクターを開けませんでした",
+					subtaskSelectFailed: "サブタスクセレクターを開けませんでした",
+					noEligibleSubtasks: "サブタスクとして割り当て可能なタスクがありません",
+					currentTaskNotFound: "現在のタスクファイルが見つかりませんでした",
+				},
+			},
 			subtasks: {
 				loading: "サブタスクを読み込み中...",
 				noSubtasks: "サブタスクが見つかりません",
@@ -2221,6 +2365,7 @@ export const ja: TranslationTree = {
 				dueDate: "期限日",
 				scheduledDate: "予定日",
 				tags: "タグ",
+				completedDate: "完了日",
 			},
 			notices: {
 				propertiesMenuFailed: "プロパティメニューの表示に失敗しました",

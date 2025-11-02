@@ -754,7 +754,7 @@ export class TaskListView extends ItemView implements OptimizedView {
 		if (totalTasks === 0) {
 			container.empty();
 			this.taskElements.clear();
-			container.createEl("p", { text: "No tasks found for the selected filters." });
+			container.createEl("p", { text: this.plugin.i18n.translate("views.taskList.noTasksFound") });
 			return;
 		}
 

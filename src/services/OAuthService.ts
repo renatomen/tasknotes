@@ -280,6 +280,7 @@ export class OAuthService {
 			let cancelled = false;
 			const modal = new DeviceCodeModal(
 				this.plugin.app,
+				this.plugin,
 				{
 					userCode: user_code,
 					verificationUrl: verification_uri,
