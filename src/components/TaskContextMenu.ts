@@ -1206,18 +1206,18 @@ export class TaskContextMenu {
 		const today = new Date();
 		const dayNames = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
 		const monthNames = [
-			"January",
-			"February",
-			"March",
-			"April",
-			"May",
-			"June",
-			"July",
-			"August",
-			"September",
-			"October",
-			"November",
-			"December",
+			plugin.i18n.translate("common.months.january"),
+			plugin.i18n.translate("common.months.february"),
+			plugin.i18n.translate("common.months.march"),
+			plugin.i18n.translate("common.months.april"),
+			plugin.i18n.translate("common.months.may"),
+			plugin.i18n.translate("common.months.june"),
+			plugin.i18n.translate("common.months.july"),
+			plugin.i18n.translate("common.months.august"),
+			plugin.i18n.translate("common.months.september"),
+			plugin.i18n.translate("common.months.october"),
+			plugin.i18n.translate("common.months.november"),
+			plugin.i18n.translate("common.months.december"),
 		];
 		const currentDay = dayNames[today.getDay()];
 		const currentDate = today.getDate();

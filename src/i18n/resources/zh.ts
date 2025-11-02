@@ -112,14 +112,13 @@ export const zh: TranslationTree = {
 				icsServiceNotAvailable: "ICS订阅服务不可用",
 				calendarRefreshedAll: "所有日历订阅已成功刷新",
 				refreshFailed: "刷新部分日历订阅失败",
-				timeblockSpecificTime:
-					"时间块必须有具体时间。请在周视图或日视图中选择时间范围。",
-				timeblockMoved: '时间块"{title}"已移动到{date}',
-				timeblockUpdated: '时间块"{title}"的时间已更新',
+				timeblockSpecificTime: "时间块必须有具体时间。请在周视图或日视图中选择时间范围。",
+				timeblockMoved: "时间块\"{title}\"已移动到{date}",
+				timeblockUpdated: "时间块\"{title}\"的时间已更新",
 				timeblockMoveFailed: "移动时间块失败：{message}",
-				timeblockResized: '时间块"{title}"的持续时间已更新',
+				timeblockResized: "时间块\"{title}\"的持续时间已更新",
 				timeblockResizeFailed: "调整时间块大小失败：{message}",
-				taskScheduled: '任务"{title}"已安排到{date}',
+				taskScheduled: "任务\"{title}\"已安排到{date}",
 				scheduleTaskFailed: "安排任务失败",
 				endTimeAfterStart: "结束时间必须晚于开始时间",
 				timeEntryNotFound: "未找到时间条目",
@@ -140,8 +139,7 @@ export const zh: TranslationTree = {
 				openTask: "打开任务",
 				deleteTimeEntry: "删除时间条目",
 				deleteTimeEntryTitle: "删除时间条目",
-				deleteTimeEntryConfirm:
-					"确定要删除此时间条目{duration}吗？此操作无法撤销。",
+				deleteTimeEntryConfirm: "确定要删除此时间条目{duration}吗？此操作无法撤销。",
 				deleteButton: "删除",
 				cancelButton: "取消",
 			},
@@ -156,6 +154,7 @@ export const zh: TranslationTree = {
 				year: "年",
 				list: "列表",
 				customDays: "{count}天",
+				listDays: "{count}天 列表",
 			},
 			settings: {
 				groups: {
@@ -164,6 +163,8 @@ export const zh: TranslationTree = {
 					layout: "布局",
 					propertyBasedEvents: "基于属性的事件",
 					calendarSubscriptions: "日历订阅",
+					googleCalendars: "Google 日历",
+					microsoftCalendars: "Microsoft 日历",
 				},
 				dateNavigation: {
 					navigateToDate: "导航到日期",
@@ -207,6 +208,7 @@ export const zh: TranslationTree = {
 					initialScrollTime: "初始滚动时间",
 					initialScrollTimePlaceholder: "HH:mm:ss（例如：08:00:00）",
 					minimumEventHeight: "最小事件高度（px）",
+					listDayCount: "列表天数",
 				},
 				propertyBasedEvents: {
 					startDateProperty: "开始日期属性",
@@ -228,7 +230,7 @@ export const zh: TranslationTree = {
 			noTasks: "没有任务",
 			notices: {
 				loadFailed: "看板加载失败",
-				movedTask: '任务已移动到"{0}"',
+				movedTask: "任务已移动到\"{0}\"",
 			},
 			errors: {
 				loadingBoard: "加载看板时出错。",
@@ -476,8 +478,7 @@ export const zh: TranslationTree = {
 			},
 			timeblocking: {
 				header: "时间块",
-				description:
-					"配置时间块功能，在日记中进行轻量级调度。在高级日历视图中，按住Shift + 点击并拖拽创建时间块。",
+				description: "配置时间块功能，在日记中进行轻量级调度。在高级日历视图中，按住Shift + 点击并拖拽创建时间块。",
 				enableName: "启用时间块",
 				enableDesc: "启用时间块功能，在日记中进行轻量级调度",
 				showBlocksName: "显示时间块",
@@ -608,8 +609,7 @@ export const zh: TranslationTree = {
 				},
 				bodyTemplateFile: {
 					name: "正文模板文件",
-					description:
-						"任务正文内容的模板文件路径。支持模板变量如{{title}}、{{date}}、{{time}}、{{priority}}、{{status}}等。",
+					description: "任务正文内容的模板文件路径。支持模板变量如{{title}}、{{date}}、{{time}}、{{priority}}、{{status}}等。",
 					placeholder: "Templates/Task Template.md",
 					ariaLabel: "正文模板文件路径",
 				},
@@ -658,7 +658,7 @@ export const zh: TranslationTree = {
 				},
 				archiveFolder: {
 					name: "归档文件夹",
-					description: "归档时移动任务到的文件夹",
+					description: "归档时将任务移动到的文件夹。支持模板变量，如 {{year}}、{{month}}、{{priority}} 等。",
 				},
 			},
 			taskIdentification: {
@@ -678,11 +678,15 @@ export const zh: TranslationTree = {
 				},
 				taskProperty: {
 					name: "任务属性名称",
-					description: '前置属性名称（例如，"category"）',
+					description: "前置属性名称（例如，\"category\"）",
 				},
 				taskPropertyValue: {
 					name: "任务属性值",
-					description: '识别笔记为任务的值（例如，"task"）',
+					description: "识别笔记为任务的值（例如，\"task\"）",
+				},
+				hideIdentifyingTags: {
+					name: "在任务卡片中隐藏识别标签",
+					description: "启用后，与任务识别标签匹配的标签（包括层次匹配，如 'task/project'）将在任务卡片显示中隐藏",
 				},
 			},
 			folderManagement: {
@@ -722,16 +726,23 @@ export const zh: TranslationTree = {
 					buttonText: "查看版本说明",
 				},
 			},
+			frontmatter: {
+				header: "Frontmatter",
+				description: "配置 frontmatter 属性中链接的格式。",
+				useMarkdownLinks: {
+					name: "在 frontmatter 中使用 markdown 链接",
+					description: "在 frontmatter 属性中生成 markdown 链接 ([文本](路径)) 而不是 wikilinks ([[链接]])。\\n\\n⚠️ 需要 'obsidian-frontmatter-markdown-links' 插件才能正常工作。",
+				},
+			},
 		},
 		taskProperties: {
 			taskStatuses: {
 				header: "任务状态",
-				description:
-					"自定义任务可用的状态选项。这些状态控制任务生命周期并确定何时任务被视为完成。",
+				description: "自定义任务可用的状态选项。这些状态控制任务生命周期并确定何时任务被视为完成。",
 				howTheyWork: {
 					title: "状态如何工作：",
-					value: '值：存储在任务文件中的内部标识符（例如，"进行中"）',
-					label: '标签：在界面中显示的显示名称（例如，"进行中"）',
+					value: "值：存储在任务文件中的内部标识符（例如，\"进行中\"）",
+					label: "标签：在界面中显示的显示名称（例如，\"进行中\"）",
 					color: "颜色：状态点和徽章的视觉指示器颜色",
 					completed: "已完成：选中时，具有此状态的任务被视为已完成，可能以不同方式过滤",
 					autoArchive: "自动归档：启用时，任务将在指定延迟后自动归档（1-1440分钟）",
@@ -742,7 +753,7 @@ export const zh: TranslationTree = {
 					description: "为您的任务创建新的状态选项",
 					buttonText: "添加状态",
 				},
-				validationNote: '注意：您必须至少有2个状态，并且至少一个状态必须标记为"已完成"。',
+				validationNote: "注意：您必须至少有2个状态，并且至少一个状态必须标记为\"已完成\"。",
 				emptyState: "未配置自定义状态。添加状态以开始。",
 				emptyStateButton: "添加状态",
 				fields: {
@@ -760,20 +771,18 @@ export const zh: TranslationTree = {
 				badges: {
 					completed: "已完成",
 				},
-				deleteConfirm: '您确定要删除状态"{label}"吗？',
+				deleteConfirm: "您确定要删除状态\"{label}\"吗？",
 			},
 			taskPriorities: {
 				header: "任务优先级",
-				description:
-					"自定义任务可用的优先级级别。优先级权重确定任务视图中的排序顺序和视觉层次。",
+				description: "自定义任务可用的优先级级别。优先级权重确定任务视图中的排序顺序和视觉层次。",
 				howTheyWork: {
 					title: "优先级如何工作：",
-					value: '值：存储在任务文件中的内部标识符（例如，"高"）',
-					label: '显示标签：在界面中显示的显示名称（例如，"高优先级"）',
+					value: "值：存储在任务文件中的内部标识符（例如，\"高\"）",
+					label: "显示标签：在界面中显示的显示名称（例如，\"高优先级\"）",
 					color: "颜色：优先级点和徽章的视觉指示器颜色",
 					weight: "权重：用于排序的数值（权重高的优先出现在列表中）",
-					weightNote:
-						"任务按优先级权重降序自动排序（最高权重优先）。权重可以是任何正数。",
+					weightNote: "任务按优先级权重降序自动排序（最高权重优先）。权重可以是任何正数。",
 				},
 				addNew: {
 					name: "添加新优先级",
@@ -799,8 +808,7 @@ export const zh: TranslationTree = {
 			},
 			fieldMapping: {
 				header: "字段映射",
-				warning:
-					"⚠️ 警告：TaskNotes将使用这些属性名称进行读取和写入。在创建任务后更改这些可能导致不一致。",
+				warning: "⚠️ 警告：TaskNotes将使用这些属性名称进行读取和写入。在创建任务后更改这些可能导致不一致。",
 				description: "配置TaskNotes应为每个字段使用的前置属性。",
 				resetButton: {
 					name: "重置字段映射",
@@ -841,8 +849,7 @@ export const zh: TranslationTree = {
 			},
 			customUserFields: {
 				header: "自定义用户字段",
-				description:
-					"定义自定义前置属性，作为类型感知过滤选项出现在各个视图中。每行：显示名称、属性名称、类型。",
+				description: "定义自定义前置属性，作为类型感知过滤选项出现在各个视图中。每行：显示名称、属性名称、类型。",
 				addNew: {
 					name: "添加新用户字段",
 					description: "创建将出现在过滤器和视图中的新自定义字段",
@@ -871,6 +878,10 @@ export const zh: TranslationTree = {
 					noKey: "无键",
 				},
 				deleteTooltip: "删除字段",
+				autosuggestFilters: {
+					header: "自动建议过滤器（高级）",
+					description: "过滤在此字段的自动完成建议中显示的文件",
+				},
 			},
 		},
 		appearance: {
@@ -923,11 +934,9 @@ export const zh: TranslationTree = {
 				},
 				customTemplate: {
 					name: "自定义文件名模板",
-					description:
-						"自定义文件名的模板。可用变量：{title}、{titleLower}、{titleUpper}、{titleSnake}、{titleKebab}、{titleCamel}、{titlePascal}、{date}、{shortDate}、{time}、{time12}、{time24}、{timestamp}、{dateTime}、{year}、{month}、{monthName}、{monthNameShort}、{day}、{dayName}、{dayNameShort}、{hour}、{hour12}、{minute}、{second}、{milliseconds}、{ms}、{ampm}、{week}、{quarter}、{unix}、{unixMs}、{timezone}、{timezoneShort}、{utcOffset}、{utcOffsetShort}、{utcZ}、{zettel}、{nano}、{priority}、{priorityShort}、{status}、{statusShort}、{dueDate}、{scheduledDate}",
+					description: "自定义文件名的模板。可用变量：{title}、{titleLower}、{titleUpper}、{titleSnake}、{titleKebab}、{titleCamel}、{titlePascal}、{date}、{shortDate}、{time}、{time12}、{time24}、{timestamp}、{dateTime}、{year}、{month}、{monthName}、{monthNameShort}、{day}、{dayName}、{dayNameShort}、{hour}、{hour12}、{minute}、{second}、{milliseconds}、{ms}、{ampm}、{week}、{quarter}、{unix}、{unixMs}、{timezone}、{timezoneShort}、{utcOffset}、{utcOffsetShort}、{utcZ}、{zettel}、{nano}、{priority}、{priorityShort}、{status}、{statusShort}、{dueDate}、{scheduledDate}",
 					placeholder: "{date}-{title}-{dueDate}",
-					helpText:
-						"注意：{dueDate}和{scheduledDate}格式为YYYY-MM-DD，如果未设置则为空。",
+					helpText: "注意：{dueDate}和{scheduledDate}格式为YYYY-MM-DD，如果未设置则为空。",
 				},
 			},
 			displayFormatting: {
@@ -987,15 +996,13 @@ export const zh: TranslationTree = {
 				},
 				calendarLocale: {
 					name: "日历区域设置",
-					description:
-						'日期格式和日历系统的日历区域设置（例如，"en"、"fa"表示波斯语/波斯文、"de"表示德语）。留空以从浏览器自动检测。',
+					description: "日期格式和日历系统的日历区域设置（例如，\"en\"、\"fa\"表示波斯语/波斯文、\"de\"表示德语）。留空以从浏览器自动检测。",
 					placeholder: "自动检测",
 				},
 			},
 			defaultEventVisibility: {
 				header: "默认事件可见性",
-				description:
-					"配置打开高级日历时默认可见的事件类型。用户仍可在日历视图中切换这些开/关。",
+				description: "配置打开高级日历时默认可见的事件类型。用户仍可在日历视图中切换这些开/关。",
 				showScheduledTasks: {
 					name: "显示安排的任务",
 					description: "默认显示有安排日期的任务",
@@ -1048,6 +1055,11 @@ export const zh: TranslationTree = {
 					description: "打开时间线视图时滚动到的时间（HH:MM格式）",
 					placeholder: "09:00",
 				},
+				eventMinHeight: {
+					name: "事件最小高度",
+					description: "时间轴视图中事件的最小高度（像素）",
+					placeholder: "15",
+				},
 			},
 			uiElements: {
 				header: "界面元素",
@@ -1088,6 +1100,10 @@ export const zh: TranslationTree = {
 						right: "右侧",
 					},
 				},
+				showTaskCardInNote: {
+					name: "在笔记中显示任务卡片",
+					description: "在任务笔记顶部显示任务卡片小部件，显示任务详情和操作",
+				},
 			},
 			projectAutosuggest: {
 				header: "项目自动建议",
@@ -1124,14 +1140,12 @@ export const zh: TranslationTree = {
 				displayRows: {
 					row1: {
 						name: "第1行",
-						description:
-							"格式：{property|flags}。属性：title、aliases、file.path、file.parent。标志：n(Label)显示标签，s使其可搜索。示例：{title|n(Title)|s}",
+						description: "格式：{property|flags}。属性：title、aliases、file.path、file.parent。标志：n(Label)显示标签，s使其可搜索。示例：{title|n(Title)|s}",
 						placeholder: "{title|n(Title)}",
 					},
 					row2: {
 						name: "第2行（可选）",
-						description:
-							"常见模式：{aliases|n(Aliases)}、{file.parent|n(Folder)}、literal:自定义文本",
+						description: "常见模式：{aliases|n(Aliases)}、{file.parent|n(Folder)}、literal:自定义文本",
 						placeholder: "{aliases|n(Aliases)}",
 					},
 					row3: {
@@ -1143,7 +1157,7 @@ export const zh: TranslationTree = {
 				quickReference: {
 					header: "快速参考",
 					properties: "可用属性：title、aliases、file.path、file.parent或任何前置字段",
-					labels: '添加标签：{title|n(Title)} → "Title: My Project"',
+					labels: "添加标签：{title|n(Title)} → \"Title: My Project\"",
 					searchable: "使其可搜索：{description|s}在+搜索中包含描述",
 					staticText: "静态文本：literal:My Custom Label",
 					alwaysSearchable: "文件名、标题和别名默认始终可搜索。",
@@ -1178,12 +1192,10 @@ export const zh: TranslationTree = {
 		integrations: {
 			basesIntegration: {
 				header: "Bases集成",
-				description:
-					"配置与Obsidian Bases插件的集成。这是一个实验性功能，目前依赖于未记录的Obsidian API。行为可能会改变或中断。",
+				description: "配置与Obsidian Bases插件的集成。这是一个实验性功能，目前依赖于未记录的Obsidian API。行为可能会改变或中断。",
 				enable: {
 					name: "启用Bases集成",
-					description:
-						"启用TaskNotes视图在Obsidian Bases插件中使用。必须启用Bases插件才能工作。",
+					description: "启用TaskNotes视图在Obsidian Bases插件中使用。必须启用Bases插件才能工作。",
 				},
 				notices: {
 					enabled: "Bases集成已启用。请重启Obsidian以完成设置。",
@@ -1240,10 +1252,10 @@ export const zh: TranslationTree = {
 					refreshSuccess: "所有日历订阅刷新成功",
 					refreshFailure: "刷新某些日历订阅失败",
 					updateFailure: "更新订阅失败",
-					deleteSuccess: '删除订阅"{name}"',
+					deleteSuccess: "删除订阅\"{name}\"",
 					deleteFailure: "删除订阅失败",
 					enableFirst: "请先启用订阅",
-					refreshSubscriptionSuccess: '刷新"{name}"',
+					refreshSubscriptionSuccess: "刷新\"{name}\"",
 					refreshSubscriptionFailure: "刷新订阅失败",
 				},
 				labels: {
@@ -1281,7 +1293,7 @@ export const zh: TranslationTree = {
 				},
 				confirmDelete: {
 					title: "删除订阅",
-					message: '您确定要删除订阅"{name}"吗？此操作无法撤销。',
+					message: "您确定要删除订阅\"{name}\"吗？此操作无法撤销。",
 					confirmText: "删除",
 				},
 			},
@@ -1489,8 +1501,7 @@ export const zh: TranslationTree = {
 						},
 						customHeaders: {
 							name: "包含自定义标头",
-							description:
-								"包含TaskNotes标头（事件类型、签名、交付ID）。对于Discord、Slack和其他具有严格CORS策略的服务，请关闭。",
+							description: "包含TaskNotes标头（事件类型、签名、交付ID）。对于Discord、Slack和其他具有严格CORS策略的服务，请关闭。",
 						},
 						buttons: {
 							cancel: "取消",
@@ -1517,8 +1528,7 @@ export const zh: TranslationTree = {
 						},
 						customHeaders: {
 							name: "包含自定义标头",
-							description:
-								"包含TaskNotes标头（事件类型、签名、交付ID）。对于Discord、Slack和其他具有严格CORS策略的服务，请关闭。",
+							description: "包含TaskNotes标头（事件类型、签名、交付ID）。对于Discord、Slack和其他具有严格CORS策略的服务，请关闭。",
 						},
 						transformHelp: {
 							title: "转换文件允许您自定义webhook载荷：",
@@ -1582,6 +1592,8 @@ export const zh: TranslationTree = {
 		refreshCache: "刷新缓存",
 		exportAllTasksIcs: "导出所有任务为ICS文件",
 		viewReleaseNotes: "查看版本说明",
+		startTimeTrackingWithSelector: "开始时间跟踪（选择任务）",
+		editTimeEntries: "编辑时间条目（选择任务）",
 	},
 	modals: {
 		task: {
@@ -1650,6 +1662,28 @@ export const zh: TranslationTree = {
 				untilSuffix: "直到{date}",
 				ordinal: "{number}{suffix}",
 			},
+			dependencies: {
+				blockedBy: "被阻塞",
+				blocking: "阻塞中",
+				placeholder: "[[任务笔记]]",
+				addTaskButton: "添加任务",
+				selectTaskTooltip: "使用模糊搜索选择任务笔记",
+				removeTaskTooltip: "删除任务",
+			},
+			organization: {
+				projects: "项目",
+				subtasks: "子任务",
+				addToProject: "添加到项目",
+				addToProjectButton: "添加到项目",
+				addSubtasks: "添加子任务",
+				addSubtasksButton: "添加子任务",
+				addSubtasksTooltip: "选择任务将其设为此任务的子任务",
+				removeSubtaskTooltip: "删除子任务",
+				notices: {
+					noEligibleSubtasks: "没有可用的任务可指定为子任务",
+					subtaskSelectFailed: "无法打开子任务选择器",
+				},
+			},
 		},
 		taskCreation: {
 			title: "创建任务",
@@ -1661,9 +1695,10 @@ export const zh: TranslationTree = {
 			nlPlaceholder: "明天下午3点@家买杂货 #差事\n\n在这里添加详情...",
 			notices: {
 				titleRequired: "请输入任务标题",
-				success: '任务"{title}"创建成功',
-				successShortened: '任务"{title}"创建成功（因长度而缩短文件名）',
+				success: "任务\"{title}\"创建成功",
+				successShortened: "任务\"{title}\"创建成功（因长度而缩短文件名）",
 				failure: "创建任务失败：{message}",
+				blockingUnresolved: "无法解析：{entries}",
 			},
 		},
 		taskEdit: {
@@ -1685,12 +1720,14 @@ export const zh: TranslationTree = {
 			notices: {
 				titleRequired: "请输入任务标题",
 				noChanges: "没有要保存的更改",
-				updateSuccess: '任务"{title}"更新成功',
+				updateSuccess: "任务\"{title}\"更新成功",
 				updateFailure: "更新任务失败：{message}",
 				fileMissing: "找不到任务文件：{path}",
 				openNoteFailure: "打开任务笔记失败",
 				archiveSuccess: "任务{action}成功",
 				archiveFailure: "归档任务失败",
+				dependenciesUpdateSuccess: "依赖关系已更新",
+				blockingUnresolved: "无法解析：{entries}",
 			},
 			archiveAction: {
 				archived: "已归档",
@@ -1703,8 +1740,7 @@ export const zh: TranslationTree = {
 				switch: "切换到日记存储？",
 			},
 			message: {
-				migrate:
-					"这将把现有的番茄钟会话数据迁移到日记前置数据。数据将按日期分组并存储在每个日记中。",
+				migrate: "这将把现有的番茄钟会话数据迁移到日记前置数据。数据将按日期分组并存储在每个日记中。",
 				switch: "番茄钟会话数据将存储在日记前置数据中，而不是插件数据文件中。",
 			},
 			whatThisMeans: "这意味着：",
@@ -1798,6 +1834,57 @@ export const zh: TranslationTree = {
 				updateFailed: "更新安排日期失败。请重试。",
 			},
 		},
+		taskSelector: {
+			title: "选择任务",
+			placeholder: "输入以搜索任务...",
+			instructions: {
+				navigate: "导航",
+				select: "选择",
+				dismiss: "取消",
+			},
+			notices: {
+				noteNotFound: "找不到笔记 \"{name}\"",
+			},
+			dueDate: {
+				overdue: "截止日期：{date}（逾期）",
+				today: "截止日期：今天",
+			},
+		},
+		timeEntryEditor: {
+			title: "时间条目 - {taskTitle}",
+			addEntry: "添加时间条目",
+			noEntries: "暂无时间条目",
+			deleteEntry: "删除条目",
+			startTime: "开始时间",
+			endTime: "结束时间（如仍在进行则留空）",
+			duration: "持续时间（分钟）",
+			durationDesc: "覆盖计算的持续时间",
+			durationPlaceholder: "输入持续时间（分钟）",
+			description: "描述",
+			descriptionPlaceholder: "你在做什么？",
+			calculatedDuration: "计算结果：{minutes} 分钟",
+			totalTime: "总计 {hours}小时 {minutes}分钟",
+			totalMinutes: "总计 {minutes}分钟",
+			saved: "时间条目已保存",
+			saveFailed: "无法保存时间条目",
+			openFailed: "无法打开时间条目编辑器",
+			noTasksWithEntries: "没有任务有时间条目可供编辑",
+			validation: {
+				missingStartTime: "需要开始时间",
+				endBeforeStart: "结束时间必须在开始时间之后",
+			},
+		},
+		timeTracking: {
+			noTasksAvailable: "没有可用的任务进行时间跟踪",
+			started: "开始跟踪时间：{taskTitle}",
+			startFailed: "无法开始时间跟踪",
+		},
+		timeEntry: {
+			mustHaveSpecificTime: "时间条目必须有具体时间。请在周视图或日视图中选择时间范围。",
+			noTasksAvailable: "没有可用的任务创建时间条目",
+			created: "已为 {taskTitle} 创建时间条目（{duration} 分钟）",
+			createFailed: "无法创建时间条目",
+		},
 	},
 	contextMenus: {
 		task: {
@@ -1824,7 +1911,7 @@ export const zh: TranslationTree = {
 			renamePlaceholder: "输入新名称",
 			delete: "删除",
 			deleteTitle: "删除文件",
-			deleteMessage: '您确定要删除"{name}"吗？',
+			deleteMessage: "您确定要删除\"{name}\"吗？",
 			deleteConfirm: "删除",
 			copyPath: "复制路径",
 			copyUrl: "复制Obsidian URL",
@@ -1864,11 +1951,50 @@ export const zh: TranslationTree = {
 				archiveFailure: "切换任务归档失败：{message}",
 				copyTitleSuccess: "任务标题已复制到剪贴板",
 				copyFailure: "复制到剪贴板失败",
-				renameSuccess: '重命名为"{name}"',
+				renameSuccess: "重命名为\"{name}\"",
 				renameFailure: "重命名文件失败",
 				copyPathSuccess: "文件路径已复制到剪贴板",
 				copyUrlSuccess: "Obsidian URL已复制到剪贴板",
 				updateRecurrenceFailure: "更新任务重复失败：{message}",
+			},
+			dependencies: {
+				title: "依赖关系",
+				addBlockedBy: "添加\"被阻塞\"…",
+				addBlockedByTitle: "添加此任务依赖的任务",
+				addBlocking: "添加\"阻塞中\"…",
+				addBlockingTitle: "添加此任务阻塞的任务",
+				removeBlockedBy: "删除\"被阻塞\"…",
+				removeBlocking: "删除\"阻塞中\"…",
+				inputPlaceholder: "[[任务笔记]]",
+				notices: {
+					noEntries: "请至少输入一个任务",
+					blockedByAdded: "已添加 {count} 个依赖关系",
+					blockedByRemoved: "已删除依赖关系",
+					blockingAdded: "已添加 {count} 个被依赖的任务",
+					blockingRemoved: "已删除被依赖的任务",
+					unresolved: "无法解析：{entries}",
+					noEligibleTasks: "没有匹配的可用任务",
+					updateFailed: "无法更新依赖关系",
+				},
+			},
+			organization: {
+				title: "组织",
+				projects: "项目",
+				addToProject: "添加到项目…",
+				subtasks: "子任务",
+				addSubtasks: "添加子任务…",
+				notices: {
+					alreadyInProject: "任务已在此项目中",
+					alreadySubtask: "任务已是此任务的子任务",
+					addedToProject: "已添加到项目：{project}",
+					addedAsSubtask: "已将 {subtask} 添加为 {parent} 的子任务",
+					addToProjectFailed: "无法将任务添加到项目",
+					addAsSubtaskFailed: "无法将任务添加为子任务",
+					projectSelectFailed: "无法打开项目选择器",
+					subtaskSelectFailed: "无法打开子任务选择器",
+					noEligibleSubtasks: "没有可用的任务可指定为子任务",
+					currentTaskNotFound: "找不到当前任务文件",
+				},
 			},
 		},
 		ics: {
@@ -1891,7 +2017,7 @@ export const zh: TranslationTree = {
 				taskCreateFailure: "从事件创建任务失败",
 				noteCreated: "笔记创建成功",
 				creationFailure: "打开创建模态框失败",
-				linkSuccess: '已将笔记"{name}"链接到事件',
+				linkSuccess: "已将笔记\"{name}\"链接到事件",
 				linkFailure: "链接笔记失败",
 				linkSelectionFailure: "打开笔记选择失败",
 			},
@@ -1949,12 +2075,10 @@ export const zh: TranslationTree = {
 		},
 		icsSubscription: {
 			notices: {
-				calendarNotFound:
-					'找不到日历"{name}"（404）。请检查ICS URL是否正确且日历可公开访问。',
-				calendarAccessDenied:
-					'日历"{name}"访问被拒绝（500）。这可能是由于Microsoft Outlook服务器限制。尝试从日历设置重新生成ICS URL。',
-				fetchRemoteFailed: '获取远程日历"{name}"失败：{error}',
-				readLocalFailed: '读取本地日历"{name}"失败：{error}',
+				calendarNotFound: "找不到日历\"{name}\"（404）。请检查ICS URL是否正确且日历可公开访问。",
+				calendarAccessDenied: "日历\"{name}\"访问被拒绝（500）。这可能是由于Microsoft Outlook服务器限制。尝试从日历设置重新生成ICS URL。",
+				fetchRemoteFailed: "获取远程日历\"{name}\"失败：{error}",
+				readLocalFailed: "读取本地日历\"{name}\"失败：{error}",
 			},
 		},
 		calendarExport: {
@@ -2000,8 +2124,7 @@ export const zh: TranslationTree = {
 				noCheckboxTasks: "在当前笔记中未找到复选框任务。",
 				convertingTasks: "正在转换{count}个任务{plural}...",
 				conversionSuccess: "✅ 成功将{count}个任务{plural}转换为TaskNotes！",
-				partialConversion:
-					"转换了{successCount}个任务{successPlural}。{failureCount}个失败。",
+				partialConversion: "转换了{successCount}个任务{successPlural}。{failureCount}个失败。",
 				batchConversionFailed: "批量转换失败。请重试。",
 				invalidParameters: "无效的输入参数。",
 				emptyLine: "当前行为空或不包含有效内容。",
@@ -2009,7 +2132,7 @@ export const zh: TranslationTree = {
 				invalidTaskData: "无效的任务数据。",
 				replaceLineFailed: "替换任务行失败。",
 				conversionComplete: "任务已转换：{title}",
-				conversionCompleteShortened: '任务已转换："{title}"（因长度而缩短文件名）',
+				conversionCompleteShortened: "任务已转换：\"{title}\"（因长度而缩短文件名）",
 				fileExists: "此名称的文件已存在。请重试或重命名任务。",
 				conversionFailed: "转换任务失败。请重试。",
 			},
@@ -2035,8 +2158,6 @@ export const zh: TranslationTree = {
 		},
 		notification: {
 			notices: {
-				// NotificationService使用Notice进行应用内通知
-				// 但消息来自提醒内容，所以没有硬编码字符串需要翻译
 			},
 		},
 	},
@@ -2133,7 +2254,7 @@ export const zh: TranslationTree = {
 			loadSavedView: "加载保存的视图：{name}",
 			deleteView: "删除视图",
 			deleteViewTitle: "删除视图",
-			deleteViewMessage: '您确定要删除视图"{name}"吗？',
+			deleteViewMessage: "您确定要删除视图\"{name}\"吗？",
 			manageAllReminders: "管理所有提醒...",
 			clearAllReminders: "清除所有提醒",
 			customRecurrence: "自定义重复...",
@@ -2158,6 +2279,7 @@ export const zh: TranslationTree = {
 				dueDate: "到期日期",
 				scheduledDate: "安排日期",
 				tags: "标签",
+				completedDate: "完成日期",
 			},
 			notices: {
 				propertiesMenuFailed: "显示属性菜单失败",

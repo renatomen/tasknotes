@@ -166,7 +166,7 @@ export class StatsView extends ItemView {
 		// Refresh button
 		const refreshButton = header.createEl("button", {
 			cls: "stats-refresh-button stats-view__refresh-button",
-			text: "Refresh",
+			text: this.plugin.i18n.translate("views.stats.refreshButton"),
 		});
 		this.registerDomEvent(refreshButton, "click", () => {
 			this.refreshStats();
@@ -643,9 +643,10 @@ export class StatsView extends ItemView {
 		}
 
 		// Sort by total time spent descending, with "No Project" at the end (like FilterService)
+		const noProjectLabel = this.plugin.i18n.translate("views.stats.noProject");
 		projectStats.sort((a, b) => {
-			if (a.projectName === "No Project") return 1;
-			if (b.projectName === "No Project") return -1;
+			if (a.projectName === noProjectLabel) return 1;
+			if (b.projectName === noProjectLabel) return -1;
 			return b.totalTimeSpent - a.totalTimeSpent;
 		});
 
@@ -672,11 +673,11 @@ export class StatsView extends ItemView {
 			cls: "stats-view__filter-select",
 		});
 		const dateOptions = [
-			{ value: "all", text: "All Time" },
-			{ value: "7days", text: "Last 7 Days" },
-			{ value: "30days", text: "Last 30 Days" },
-			{ value: "90days", text: "Last 90 Days" },
-			{ value: "custom", text: "Custom Range" },
+			{ value: "all", text: this.plugin.i18n.translate("views.stats.timeRanges.allTime") },
+			{ value: "7days", text: this.plugin.i18n.translate("views.stats.timeRanges.last7Days") },
+			{ value: "30days", text: this.plugin.i18n.translate("views.stats.timeRanges.last30Days") },
+			{ value: "90days", text: this.plugin.i18n.translate("views.stats.timeRanges.last90Days") },
+			{ value: "custom", text: this.plugin.i18n.translate("views.stats.timeRanges.customRange") },
 		];
 
 		for (const option of dateOptions) {
@@ -723,7 +724,7 @@ export class StatsView extends ItemView {
 
 		const resetButton = buttonsContainer.createEl("button", {
 			cls: "stats-view__filter-button stats-view__filter-button--reset",
-			text: "Reset Filters",
+			text: this.plugin.i18n.translate("views.stats.resetFiltersButton"),
 		});
 
 		this.registerDomEvent(resetButton, "click", () => {
@@ -752,7 +753,7 @@ export class StatsView extends ItemView {
 			const startDateContainer = customDatesContainer.createDiv({
 				cls: "stats-view__date-input-container",
 			});
-			startDateContainer.createDiv({ cls: "stats-view__date-label", text: "From" });
+			startDateContainer.createDiv({ cls: "stats-view__date-label", text: this.plugin.i18n.translate("views.stats.dateRangeFrom") });
 			const startInput = startDateContainer.createEl("input", {
 				cls: "stats-view__date-input",
 				type: "date",
@@ -762,7 +763,7 @@ export class StatsView extends ItemView {
 			const endDateContainer = customDatesContainer.createDiv({
 				cls: "stats-view__date-input-container",
 			});
-			endDateContainer.createDiv({ cls: "stats-view__date-label", text: "To" });
+			endDateContainer.createDiv({ cls: "stats-view__date-label", text: this.plugin.i18n.translate("views.stats.dateRangeTo") });
 			const endInput = endDateContainer.createEl("input", {
 				cls: "stats-view__date-input",
 				type: "date",
@@ -817,7 +818,7 @@ export class StatsView extends ItemView {
 	private getTaskProjects(task: TaskInfo): string[] {
 		try {
 			if (!task || !Array.isArray(task.projects)) {
-				return ["No Project"];
+				return [this.plugin.i18n.translate("views.stats.noProject")];
 			}
 
 			const filteredProjects = filterEmptyProjects(task.projects);
@@ -826,9 +827,9 @@ export class StatsView extends ItemView {
 					.map((project) => this.consolidateProjectName(project))
 					.filter((project) => typeof project === "string" && project.length > 0);
 			}
-			return ["No Project"];
+			return [this.plugin.i18n.translate("views.stats.noProject")];
 		} catch (error) {
-			return ["No Project"];
+			return [this.plugin.i18n.translate("views.stats.noProject")];
 		}
 	}
 
@@ -892,7 +893,7 @@ export class StatsView extends ItemView {
 		totalTimeValue.textContent = `${formatTime(stats.totalTimeSpent)} / ${formatTime(stats.totalTimeEstimate)}`;
 		totalTimeCard.createDiv({
 			cls: "overview-label stats-view__overview-label",
-			text: "Time Tracked / Estimated",
+			text: this.plugin.i18n.translate("views.stats.cards.timeTrackedEstimated"),
 		});
 
 		// Total Tasks
@@ -905,7 +906,7 @@ export class StatsView extends ItemView {
 		totalTasksValue.textContent = stats.totalTasks.toString();
 		totalTasksCard.createDiv({
 			cls: "overview-label stats-view__overview-label",
-			text: "Total Tasks",
+			text: this.plugin.i18n.translate("views.stats.cards.totalTasks"),
 		});
 
 		// Completion Rate
@@ -918,7 +919,7 @@ export class StatsView extends ItemView {
 		completionValue.textContent = `${Math.round(stats.completionRate)}%`;
 		completionCard.createDiv({
 			cls: "overview-label stats-view__overview-label",
-			text: "Completion Rate",
+			text: this.plugin.i18n.translate("views.stats.cards.completionRate"),
 		});
 
 		// Active Projects
@@ -931,7 +932,7 @@ export class StatsView extends ItemView {
 		projectsValue.textContent = stats.activeProjects.toString();
 		projectsCard.createDiv({
 			cls: "overview-label stats-view__overview-label",
-			text: "Active Projects",
+			text: this.plugin.i18n.translate("views.stats.cards.activeProjects"),
 		});
 
 		// Average Time per Task
@@ -944,7 +945,7 @@ export class StatsView extends ItemView {
 		avgTimeValue.textContent = formatTime(stats.avgTimePerTask);
 		avgTimeCard.createDiv({
 			cls: "overview-label stats-view__overview-label",
-			text: "Avg Time per Task",
+			text: this.plugin.i18n.translate("views.stats.cards.avgTimePerTask"),
 		});
 	}
 
@@ -966,7 +967,7 @@ export class StatsView extends ItemView {
 		});
 		timeCard.createDiv({
 			cls: "stat-label stats-view__stat-label",
-			text: "Time Tracked / Estimated",
+			text: this.plugin.i18n.translate("views.stats.cards.timeTrackedEstimated"),
 		});
 
 		// Tasks
@@ -975,7 +976,7 @@ export class StatsView extends ItemView {
 			cls: "stat-value stats-view__stat-value",
 			text: stats.overall.totalTasks.toString(),
 		});
-		tasksCard.createDiv({ cls: "stat-label stats-view__stat-label", text: "Tasks" });
+		tasksCard.createDiv({ cls: "stat-label stats-view__stat-label", text: this.plugin.i18n.translate("views.stats.labels.tasks") });
 
 		// Completed
 		const completedCard = container.createDiv({ cls: "stats-stat-card stats-view__stat-card" });
@@ -983,7 +984,7 @@ export class StatsView extends ItemView {
 			cls: "stat-value stats-view__stat-value",
 			text: stats.overall.completedTasks.toString(),
 		});
-		completedCard.createDiv({ cls: "stat-label stats-view__stat-label", text: "Completed" });
+		completedCard.createDiv({ cls: "stat-label stats-view__stat-label", text: this.plugin.i18n.translate("views.stats.labels.completed") });
 
 		// Projects
 		const projectsCard = container.createDiv({ cls: "stats-stat-card stats-view__stat-card" });
@@ -991,7 +992,7 @@ export class StatsView extends ItemView {
 			cls: "stat-value stats-view__stat-value",
 			text: stats.overall.activeProjects.toString(),
 		});
-		projectsCard.createDiv({ cls: "stat-label stats-view__stat-label", text: "Projects" });
+		projectsCard.createDiv({ cls: "stat-label stats-view__stat-label", text: this.plugin.i18n.translate("views.stats.labels.projects") });
 	}
 
 	private async renderProjectStats(container: HTMLElement, projects: ProjectStats[]) {
@@ -1000,7 +1001,7 @@ export class StatsView extends ItemView {
 		if (projects.length === 0) {
 			container.createDiv({
 				cls: "stats-no-data stats-view__no-data",
-				text: "No project data available",
+				text: this.plugin.i18n.translate("views.stats.noProjectData"),
 			});
 			return;
 		}
@@ -1013,12 +1014,12 @@ export class StatsView extends ItemView {
 		};
 
 		const formatDate = (dateString?: string): string => {
-			if (!dateString) return "N/A";
+			if (!dateString) return this.plugin.i18n.translate("views.stats.notAvailable");
 			try {
 				const date = new Date(dateString);
 				return format(date, "MMM d, yyyy");
 			} catch {
-				return "N/A";
+				return this.plugin.i18n.translate("views.stats.notAvailable");
 			}
 		};
 
@@ -1030,7 +1031,7 @@ export class StatsView extends ItemView {
 			];
 
 			// Add special class for "No Project" items
-			if (project.projectName === "No Project") {
+			if (project.projectName === this.plugin.i18n.translate("views.stats.noProject")) {
 				projectClasses.push("stats-view__project-item--no-project");
 			}
 
@@ -1319,7 +1320,7 @@ export class StatsView extends ItemView {
 
 		// Modal content
 		const content = modal.createDiv({ cls: "stats-view__modal-content" });
-		content.textContent = "Loading...";
+		content.textContent = this.plugin.i18n.translate("views.stats.loading");
 
 		// Event handlers
 		this.registerDomEvent(closeBtn, "click", () => this.closeDrilldownModal());
@@ -1343,7 +1344,7 @@ export class StatsView extends ItemView {
 			this.renderDrilldownContent(content, drilldownData);
 		} catch (error) {
 			console.error("Error loading drill-down data:", error);
-			content.textContent = "Error loading project details.";
+			content.textContent = this.plugin.i18n.translate("notices.statsLoadingFailed");
 		}
 	}
 
@@ -1568,9 +1569,9 @@ export class StatsView extends ItemView {
 		// Add filter controls for tasks
 		const taskFilters = tasksHeaderContainer.createDiv({ cls: "stats-view__task-filters" });
 		const statusFilter = taskFilters.createEl("select", { cls: "stats-view__filter-select" });
-		statusFilter.createEl("option", { value: "all", text: "All Tasks" });
-		statusFilter.createEl("option", { value: "active", text: "Active Only" });
-		statusFilter.createEl("option", { value: "completed", text: "Completed Only" });
+		statusFilter.createEl("option", { value: "all", text: this.plugin.i18n.translate("views.stats.filters.allTasks") });
+		statusFilter.createEl("option", { value: "active", text: this.plugin.i18n.translate("views.stats.filters.activeOnly") });
+		statusFilter.createEl("option", { value: "completed", text: this.plugin.i18n.translate("views.stats.filters.completedOnly") });
 
 		const taskList = tasksSection.createDiv({ cls: "stats-view__task-list" });
 
@@ -1612,7 +1613,7 @@ export class StatsView extends ItemView {
 			});
 
 			if (filteredTasks.length === 0) {
-				taskList.createDiv({ cls: "stats-view__no-data", text: "No tasks found" });
+				taskList.createDiv({ cls: "stats-view__no-data", text: this.plugin.i18n.translate("views.stats.noTasks") });
 				return;
 			}
 

@@ -660,7 +660,7 @@ export class AgendaView extends ItemView implements OptimizedView {
 			{ value: "7", text: "7 days" },
 			{ value: "14", text: "14 days" },
 			{ value: "30", text: "30 days" },
-			{ value: "week", text: "This week" },
+			{ value: "week", text: this.translate("views.agenda.periods.thisWeek") },
 		];
 
 		periods.forEach((period) => {
@@ -1258,10 +1258,10 @@ export class AgendaView extends ItemView implements OptimizedView {
 				cls: "agenda-view__empty-description",
 			});
 			const tipMessage = emptyMessage.createEl("p", { cls: "agenda-view__empty-tip" });
-			tipMessage.createEl("span", { text: "Tip: " });
+			tipMessage.createEl("span", { text: this.translate("views.agenda.tipPrefix") });
 			tipMessage.appendChild(
 				document.createTextNode(
-					"Create tasks with due or scheduled dates, or add notes to see them here."
+					this.translate("views.agenda.empty.helpText")
 				)
 			);
 			return;

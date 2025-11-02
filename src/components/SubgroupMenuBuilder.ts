@@ -1,5 +1,6 @@
 import { Menu } from "obsidian";
 import { FilterOptions, FilterQuery, TaskGroupKey } from "../types";
+import type TaskNotesPlugin from "../main";
 
 /**
  * Builder for the SUBGROUP section of the sort/group context menu.
@@ -12,18 +13,19 @@ export class SubgroupMenuBuilder {
 	 */
 	static buildOptions(
 		primaryKey: TaskGroupKey,
-		filterOptions: FilterOptions
+		filterOptions: FilterOptions,
+		plugin: TaskNotesPlugin
 	): Record<string, string> {
 		const builtIn: Record<TaskGroupKey, string> = {
-			none: "None",
-			status: "Status",
-			priority: "Priority",
-			context: "Context",
-			project: "Project",
-			due: "Due Date",
-			scheduled: "Scheduled Date",
-			tags: "Tags",
-			completedDate: "Completed Date",
+			none: plugin.i18n.translate("ui.filterBar.group.none"),
+			status: plugin.i18n.translate("ui.filterBar.group.status"),
+			priority: plugin.i18n.translate("ui.filterBar.group.priority"),
+			context: plugin.i18n.translate("ui.filterBar.group.context"),
+			project: plugin.i18n.translate("ui.filterBar.group.project"),
+			due: plugin.i18n.translate("ui.filterBar.group.dueDate"),
+			scheduled: plugin.i18n.translate("ui.filterBar.group.scheduledDate"),
+			tags: plugin.i18n.translate("ui.filterBar.group.tags"),
+			completedDate: plugin.i18n.translate("ui.filterBar.group.completedDate"),
 		} as const;
 
 		const options: Record<string, string> = {};
@@ -59,16 +61,17 @@ export class SubgroupMenuBuilder {
 		menu: Menu,
 		currentQuery: Pick<FilterQuery, "groupKey" | "subgroupKey">,
 		filterOptions: FilterOptions,
-		onSelect: (key: TaskGroupKey) => void
+		onSelect: (key: TaskGroupKey) => void,
+		plugin: TaskNotesPlugin
 	): void {
 		const primary = (currentQuery.groupKey || "none") as TaskGroupKey;
 		const subKey = (currentQuery.subgroupKey || "none") as TaskGroupKey;
-		const options = SubgroupMenuBuilder.buildOptions(primary, filterOptions);
+		const options = SubgroupMenuBuilder.buildOptions(primary, filterOptions, plugin);
 
 		// Visual separator and header
 		menu.addSeparator();
 		menu.addItem((item: any) => {
-			item.setTitle("SUBGROUP");
+			item.setTitle(plugin.i18n.translate("ui.filterBar.subgroupLabel"));
 			if (typeof item.setDisabled === "function") item.setDisabled(true);
 		});
 

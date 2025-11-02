@@ -126,11 +126,11 @@ export class NotesView extends ItemView {
 
 		// Add refresh button
 		const refreshButton = actionsContainer.createEl("button", {
-			text: "Refresh",
+			text: this.plugin.i18n.translate("views.notes.refreshButton"),
 			cls: "notes-view__refresh-button",
 			attr: {
-				"aria-label": "Refresh notes list",
-				title: "Refresh notes list",
+				"aria-label": this.plugin.i18n.translate("views.notes.refreshButtonAriaLabel"),
+				title: this.plugin.i18n.translate("views.notes.refreshButtonAriaLabel"),
 			},
 		});
 
@@ -141,7 +141,7 @@ export class NotesView extends ItemView {
 			refreshButton.classList.add("is-loading");
 			refreshButton.disabled = true;
 			const originalText = refreshButton.textContent;
-			refreshButton.textContent = this.plugin.i18n.translate("views.notes.refreshButton");
+			refreshButton.textContent = this.plugin.i18n.translate("views.notes.refreshingButton");
 
 			try {
 				// Force refresh through CacheManager
@@ -160,7 +160,7 @@ export class NotesView extends ItemView {
 
 		// Add loading indicator
 		this.loadingIndicator = notesList.createDiv({ cls: "notes-view__loading is-hidden" });
-		this.loadingIndicator.createSpan({ text: "Loading notes..." });
+		this.loadingIndicator.createSpan({ text: this.plugin.i18n.translate("views.notes.loading") });
 
 		// Show loading state
 		this.isNotesLoading = true;
@@ -192,7 +192,7 @@ export class NotesView extends ItemView {
 					.setName(this.plugin.i18n.translate("views.notes.empty.noNotesFound"))
 					.setHeading();
 				emptyState.createEl("p", {
-					text: "No notes found for the selected date. Try selecting a different date in the Mini Calendar view or create some notes.",
+					text: this.plugin.i18n.translate("views.notes.empty.helpText"),
 					cls: "notes-view__empty-description",
 				});
 			}

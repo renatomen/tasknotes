@@ -2172,7 +2172,8 @@ export class FilterBar extends EventEmitter {
 					(this.currentQuery as any).subgroupKey = key as any;
 					this.emitImmediateQueryChange();
 					this.updateDisplaySection();
-				}
+				},
+				this.plugin
 			);
 
 			// Show menu at mouse position

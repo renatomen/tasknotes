@@ -1158,7 +1158,7 @@ export class KanbanView extends ItemView implements OptimizedView {
 				"no-date",
 			];
 			if (sentinelValues.includes(id)) {
-				return "Uncategorized";
+				return this.plugin.i18n.translate("views.kanban.uncategorized");
 			}
 			return id;
 		}
@@ -1169,10 +1169,10 @@ export class KanbanView extends ItemView implements OptimizedView {
 			case "priority":
 				return this.plugin.priorityManager.getPriorityConfig(id)?.label || id;
 			case "context":
-				return id === "uncategorized" ? "Uncategorized" : `@${id}`;
+				return id === "uncategorized" ? this.plugin.i18n.translate("views.kanban.uncategorized") : `@${id}`;
 			case "project":
 				if (id === "No Project") {
-					return "No Project";
+					return this.plugin.i18n.translate("views.kanban.noProject");
 				}
 				// For project paths, display the absolute path
 				return id;

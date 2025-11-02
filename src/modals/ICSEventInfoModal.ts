@@ -5,6 +5,7 @@ import { ICSEvent, TaskInfo, NoteInfo } from "../types";
 import { ICSNoteCreationModal } from "./ICSNoteCreationModal";
 import { ICSNoteLinkModal } from "./ICSNoteLinkModal";
 import { SafeAsync } from "../utils/safeAsync";
+import { TranslationKey } from "../i18n";
 
 /**
  * Modal for displaying ICS event information with note/task creation capabilities
@@ -14,12 +15,14 @@ export class ICSEventInfoModal extends Modal {
 	private icsEvent: ICSEvent;
 	private subscriptionName?: string;
 	private relatedNotes: (TaskInfo | NoteInfo)[] = [];
+	private translate: (key: TranslationKey, variables?: Record<string, any>) => string;
 
 	constructor(app: App, plugin: TaskNotesPlugin, icsEvent: ICSEvent, subscriptionName?: string) {
 		super(app);
 		this.plugin = plugin;
 		this.icsEvent = icsEvent;
 		this.subscriptionName = subscriptionName;
+		this.translate = plugin.i18n.translate.bind(plugin.i18n);
 	}
 
 	async onOpen() {
@@ -34,14 +37,14 @@ export class ICSEventInfoModal extends Modal {
 		await this.loadRelatedNotes();
 
 		// Header
-		new Setting(contentEl).setName("Calendar Event").setHeading();
+		new Setting(contentEl).setName(this.translate("modals.icsEventInfo.calendarEventHeading")).setHeading();
 
 		// Event title
-		new Setting(contentEl).setName("Title").setDesc(this.icsEvent.title || "Untitled Event");
+		new Setting(contentEl).setName(this.translate("modals.icsEventInfo.titleLabel")).setDesc(this.icsEvent.title || this.translate("ui.icsCard.untitledEvent"));
 
 		// Calendar source
 		if (this.subscriptionName) {
-			new Setting(contentEl).setName("Calendar").setDesc(this.subscriptionName);
+			new Setting(contentEl).setName(this.translate("modals.icsEventInfo.calendarLabel")).setDesc(this.subscriptionName);
 		}
 
 		// Date/time
@@ -69,21 +72,21 @@ export class ICSEventInfoModal extends Modal {
 			}
 		}
 
-		new Setting(contentEl).setName("Date & Time").setDesc(dateText);
+		new Setting(contentEl).setName(this.translate("modals.icsEventInfo.dateTimeLabel")).setDesc(dateText);
 
 		// Location
 		if (this.icsEvent.location) {
-			new Setting(contentEl).setName("Location").setDesc(this.icsEvent.location);
+			new Setting(contentEl).setName(this.translate("modals.icsEventInfo.locationLabel")).setDesc(this.icsEvent.location);
 		}
 
 		// Description
 		if (this.icsEvent.description) {
-			new Setting(contentEl).setName("Description").setDesc(this.icsEvent.description);
+			new Setting(contentEl).setName(this.translate("modals.icsEventInfo.descriptionLabel")).setDesc(this.icsEvent.description);
 		}
 
 		// URL
 		if (this.icsEvent.url) {
-			const urlSetting = new Setting(contentEl).setName("URL");
+			const urlSetting = new Setting(contentEl).setName(this.translate("modals.icsEventInfo.urlLabel"));
 			const link = urlSetting.descEl.createEl("a", {
 				cls: "external-link",
 				href: this.icsEvent.url,
@@ -93,16 +96,17 @@ export class ICSEventInfoModal extends Modal {
 		}
 
 		// Related notes section
-		new Setting(contentEl).setName("Related Notes & Tasks").setHeading();
+		new Setting(contentEl).setName(this.translate("modals.icsEventInfo.relatedNotesHeading")).setHeading();
 
 		if (this.relatedNotes.length === 0) {
-			new Setting(contentEl).setDesc("No related notes or tasks found for this event.");
+			new Setting(contentEl).setDesc(this.translate("modals.icsEventInfo.noRelatedItems"));
 		} else {
 			this.relatedNotes.forEach((note) => {
 				const isTask = this.isTaskNote(note);
+				const typeLabel = isTask ? this.translate("modals.icsEventInfo.typeTask") : this.translate("modals.icsEventInfo.typeNote");
 				new Setting(contentEl)
 					.setName(note.title)
-					.setDesc(`Type: ${isTask ? "Task" : "Note"}`)
+					.setDesc(`Type: ${typeLabel}`)
 					.addButton((button) => {
 						button.setButtonText("Open").onClick(async () => {
 							await this.safeOpenFile(note.path);
@@ -113,11 +117,11 @@ export class ICSEventInfoModal extends Modal {
 		}
 
 		// Actions section
-		new Setting(contentEl).setName("Actions").setHeading();
+		new Setting(contentEl).setName(this.translate("modals.icsEventInfo.actionsHeading")).setHeading();
 
 		new Setting(contentEl)
-			.setName("Create from Event")
-			.setDesc("Create a new note or task from this calendar event")
+			.setName(this.translate("modals.icsEventInfo.createFromEventLabel"))
+			.setDesc(this.translate("modals.icsEventInfo.createFromEventDesc"))
 			.addButton((button) => {
 				button.setButtonText("Create Note").onClick(() => {
 					console.log("Create Note clicked");
@@ -132,8 +136,8 @@ export class ICSEventInfoModal extends Modal {
 			});
 
 		new Setting(contentEl)
-			.setName("Link Existing")
-			.setDesc("Link an existing note to this calendar event")
+			.setName(this.translate("modals.icsEventInfo.linkExistingLabel"))
+			.setDesc(this.translate("modals.icsEventInfo.linkExistingDesc"))
 			.addButton((button) => {
 				button.setButtonText("Link Note").onClick(() => {
 					console.log("Link Note clicked");
@@ -167,7 +171,7 @@ export class ICSEventInfoModal extends Modal {
 				icsEvent: this.icsEvent,
 				subscriptionName: this.subscriptionName || "Unknown Calendar",
 				onContentCreated: async (file: TFile, info: NoteInfo) => {
-					new Notice("Note created successfully");
+					new Notice(this.translate("notices.icsNoteCreatedSuccess"));
 					this.refreshRelatedNotes();
 					await this.safeOpenFile(file.path);
 				},
@@ -176,7 +180,7 @@ export class ICSEventInfoModal extends Modal {
 			modal.open();
 		} catch (error) {
 			console.error("Error opening creation modal:", error);
-			new Notice("Failed to open creation modal");
+			new Notice(this.translate("notices.icsCreationModalOpenFailed"));
 		}
 	}
 
@@ -191,7 +195,7 @@ export class ICSEventInfoModal extends Modal {
 								file.path,
 								this.icsEvent
 							);
-							new Notice(`Linked note "${file.name}" to ICS event`);
+							new Notice(this.translate("notices.icsNoteLinkSuccess", { fileName: file.name }));
 							this.refreshRelatedNotes();
 						},
 						{
@@ -211,7 +215,7 @@ export class ICSEventInfoModal extends Modal {
 		await SafeAsync.execute(
 			async () => {
 				const result = await this.plugin.icsNoteService.createTaskFromICS(this.icsEvent);
-				new Notice(`Task created: ${result.taskInfo.title}`);
+				new Notice(this.translate("notices.icsTaskCreatedSuccess", { taskTitle: result.taskInfo.title }));
 
 				// Open the created task file
 				await this.safeOpenFile(result.file.path);
@@ -230,7 +234,7 @@ export class ICSEventInfoModal extends Modal {
 			async () => {
 				await this.loadRelatedNotes();
 				await this.renderContent();
-				new Notice("Related notes refreshed");
+				new Notice(this.translate("notices.icsRelatedItemsRefreshed"));
 			},
 			{
 				errorMessage: "Failed to refresh related notes",
@@ -256,12 +260,12 @@ export class ICSEventInfoModal extends Modal {
 			if (file instanceof TFile) {
 				await this.app.workspace.getLeaf().openFile(file);
 			} else {
-				new Notice("File not found or invalid");
+				new Notice(this.translate("notices.icsFileNotFound"));
 				console.error("Invalid file path or file not found:", filePath);
 			}
 		} catch (error) {
 			console.error("Error opening file:", error);
-			new Notice("Failed to open file");
+			new Notice(this.translate("notices.icsFileOpenFailed"));
 		}
 	}
 
