@@ -25,3 +25,15 @@ Example:
 
 -->
 
+## Fixed
+
+- (#1022) Fixed tasks randomly disappearing from views and not being recognized
+  - Tasks would appear initially but disappear after a few seconds, especially during long sessions
+  - Restarting Obsidian or using "Refresh Cache" would only temporarily fix the issue
+  - Thanks to @seepage87 for reporting and @alejandrospoz for help debugging
+
+- (#953) Fixed non-task notes incorrectly appearing as subtasks in views
+  - Notes with Parent or project properties but no task tag/property no longer show up as tasks
+  - Views now update correctly when task tags are removed from files
+  - Improved performance for large vaults by optimizing cache invalidation
+  - Thanks to @renatomen for reporting and submitting PR #955
