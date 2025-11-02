@@ -1398,19 +1398,18 @@ export class MinimalNativeCache extends Events {
 			metadata = this.app.metadataCache.getFileCache(file);
 		}
 
-		const currentFrontmatter = metadata?.frontmatter;
-		const lastKnownFrontmatter = this.lastKnownFrontmatter.get(file.path);
-
-		// Check if this file was previously a task (even if it's not anymore)
-		const wasTask = this.lastKnownTaskInfo.has(file.path);
-		const isTask = currentFrontmatter && this.isTaskFile(currentFrontmatter);
-
-		// Early exit: Only process if file is currently a task OR was previously a task
-		if (!isTask && !wasTask) {
+		// Early exit: Only process files that are currently task files
+		if (!metadata?.frontmatter || !this.isTaskFile(metadata.frontmatter)) {
+			// Clean up state caches if file is no longer a task
+			this.lastKnownFrontmatter.delete(file.path);
+			this.lastKnownTaskInfo.delete(file.path);
 			return;
 		}
 
 		// Check if frontmatter actually changed by comparing raw frontmatter objects
+		const currentFrontmatter = metadata.frontmatter;
+		const lastKnownFrontmatter = this.lastKnownFrontmatter.get(file.path);
+
 		if (this.frontmatterEquals(currentFrontmatter, lastKnownFrontmatter)) {
 			// Frontmatter hasn't changed - this was likely just a content change or mtime update
 			return;
