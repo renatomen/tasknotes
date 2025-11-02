@@ -54,6 +54,7 @@ git commit -m "feat: add French translations for feature X"
 | `npm run i18n:verify` | Check for missing/stale translations | Before releasing (fails on issues) |
 | `npm run i18n:status` | Show translation coverage summary | To check overall progress |
 | `npm run i18n:check-usage` | Find translation keys used in code | To verify all keys in code exist in en.ts |
+| `npm run i18n:generate-template <locale>` | Generate translation template | Creating/updating translations for a locale |
 
 ## 🔍 How It Works
 
@@ -183,6 +184,38 @@ npm run i18n:check-usage
 
 # 5. Optional: Run /translate-missing in Claude Code to auto-translate
 # This will translate the new keys to all other locales
+```
+
+### Generating Translation Templates
+
+```bash
+# Generate a template for an existing locale (preserves existing translations)
+npm run i18n:generate-template fr
+
+# Output:
+# ✅ Template generated: src/i18n/resources/fr.template.ts
+# 📊 Statistics:
+#   Total keys: 1540
+#   Already translated: 1467
+#   Need translation: 73
+
+# The template will have:
+# - Up-to-date translations preserved as-is
+# - Missing translations marked as "TODO: English text"
+# - Stale translations marked as "STALE: old translation" (English changed)
+
+# Search for TODO to find what needs translation
+grep "TODO:" src/i18n/resources/fr.template.ts
+
+# Search for STALE to find outdated translations
+grep "STALE:" src/i18n/resources/fr.template.ts
+
+# Translate the TODO items, then replace the original file
+mv src/i18n/resources/fr.template.ts src/i18n/resources/fr.ts
+
+# Or create a new locale from scratch
+npm run i18n:generate-template it
+# All values will be "TODO: <English text>"
 ```
 
 ## 🛠️ Technical Details

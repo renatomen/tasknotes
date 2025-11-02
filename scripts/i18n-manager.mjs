@@ -287,6 +287,149 @@ async function verify() {
     }
 }
 
+/** `generate-template`: Generates a translation template from en.ts for a target locale */
+async function generateTemplate() {
+    const targetLocale = process.argv[3];
+
+    if (!targetLocale) {
+        console.error('❌ Error: Please specify a target locale');
+        console.error('Usage: npm run i18n:generate-template <locale>');
+        console.error('Example: npm run i18n:generate-template fr');
+        process.exit(1);
+    }
+
+    console.log(`Generating translation template for locale: ${targetLocale}\n`);
+
+    // Load manifest and state to use same logic as verify
+    const manifest = loadJson(MANIFEST_PATH);
+    const state = loadJson(STATE_PATH);
+
+    if (Object.keys(manifest).length === 0) {
+        console.error('❌ Error: No manifest found. Run "npm run i18n:sync" first.');
+        process.exit(1);
+    }
+
+    // Load the English source for values
+    const sourceMap = await getLocaleMap(SOURCE_LOCALE);
+    if (Object.keys(sourceMap).length === 0) {
+        console.error(`❌ Error: Could not load source locale "${SOURCE_LOCALE}"`);
+        process.exit(1);
+    }
+
+    // Load existing translations if available
+    let existingMap = {};
+    const targetPath = path.join(RESOURCES_DIR, `${targetLocale}.ts`);
+    if (fs.existsSync(targetPath)) {
+        existingMap = await getLocaleMap(targetLocale);
+        console.log(`📝 Found existing ${targetLocale}.ts with ${Object.keys(existingMap).length} keys`);
+    } else {
+        console.log(`📝 Creating new ${targetLocale}.ts`);
+    }
+
+    // Check state for this locale
+    const localeState = state[targetLocale] || {};
+
+    // Build nested structure from flat keys
+    function buildNestedObject(flatMap, existingFlatMap, manifest, localeState) {
+        const result = {};
+        let missingCount = 0;
+        let staleCount = 0;
+
+        for (const [key, value] of Object.entries(flatMap)) {
+            const parts = key.split('.');
+            let current = result;
+
+            for (let i = 0; i < parts.length - 1; i++) {
+                const part = parts[i];
+                if (!current[part]) {
+                    current[part] = {};
+                }
+                current = current[part];
+            }
+
+            const lastPart = parts[parts.length - 1];
+            const sourceHash = manifest[key];
+            const entry = normalizeStateEntry(localeState[key]);
+
+            // Check if translation is missing or stale using same logic as verify
+            const isMissing = !localeState[key] || !entry.translation;
+            const isStale = !isMissing && entry.source !== sourceHash;
+
+            if (isMissing) {
+                current[lastPart] = `TODO: ${value}`;
+                missingCount++;
+            } else if (isStale) {
+                current[lastPart] = `STALE: ${existingFlatMap[key] || value}`;
+                staleCount++;
+            } else {
+                current[lastPart] = existingFlatMap[key];
+            }
+        }
+
+        return { result, missingCount, staleCount };
+    }
+
+    const { result: nestedStructure, missingCount, staleCount } = buildNestedObject(sourceMap, existingMap, manifest, localeState);
+
+    // Convert to TypeScript code
+    function objectToTypeScript(obj, indent = 0) {
+        const indentStr = '\t'.repeat(indent);
+        const lines = [];
+
+        for (const [key, value] of Object.entries(obj)) {
+            if (typeof value === 'object' && value !== null) {
+                lines.push(`${indentStr}${key}: {`);
+                lines.push(objectToTypeScript(value, indent + 1));
+                lines.push(`${indentStr}},`);
+            } else {
+                // Escape quotes and handle multiline strings
+                const escapedValue = value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+                lines.push(`${indentStr}${key}: "${escapedValue}",`);
+            }
+        }
+
+        return lines.join('\n');
+    }
+
+    const tsContent = `import { Translation } from "../types";
+
+export const ${targetLocale}: Translation = {
+${objectToTypeScript(nestedStructure, 1)}
+};
+`;
+
+    // Write to file
+    const outputPath = path.join(RESOURCES_DIR, `${targetLocale}.template.ts`);
+    fs.writeFileSync(outputPath, tsContent);
+
+    console.log(`\n✅ Template generated: ${outputPath}`);
+    console.log(`\n📋 Next steps:`);
+    console.log(`  1. Review the template: ${outputPath}`);
+    console.log(`  2. Replace all "TODO: ..." values with actual translations`);
+    console.log(`  3. Rename to ${targetLocale}.ts (or merge with existing file)`);
+    console.log(`  4. Run: npm run i18n:sync`);
+
+    // Show statistics
+    const totalKeys = Object.keys(sourceMap).length;
+    const upToDateKeys = totalKeys - missingCount - staleCount;
+
+    console.log(`\n📊 Statistics:`);
+    console.log(`  Total keys: ${totalKeys}`);
+    console.log(`  Up-to-date: ${upToDateKeys}`);
+    console.log(`  Missing: ${missingCount}`);
+    console.log(`  Stale: ${staleCount}`);
+
+    if (missingCount > 0 || staleCount > 0) {
+        console.log(`\n💡 Tips:`);
+        if (missingCount > 0) {
+            console.log(`  - Search for "TODO:" to find ${missingCount} keys that need translation`);
+        }
+        if (staleCount > 0) {
+            console.log(`  - Search for "STALE:" to find ${staleCount} keys that need updating (English changed)`);
+        }
+    }
+}
+
 /** `check-duplicates`: Checks for duplicate keys in translation files */
 async function checkDuplicates() {
     console.log('Checking for duplicate translation keys...\n');
@@ -579,15 +722,18 @@ const command = process.argv[2];
             await findUnused();
         } else if (command === 'check-duplicates') {
             await checkDuplicates();
+        } else if (command === 'generate-template') {
+            await generateTemplate();
         } else {
             console.error(`Unknown command: ${command}`);
             console.error('Available commands:');
-            console.error('  sync             - Update manifest and state files');
-            console.error('  verify           - Check for missing or stale translations (fails on issues)');
-            console.error('  status           - Show translation status summary (non-failing)');
-            console.error('  check-usage      - Find t() calls in code and verify keys exist in en.ts');
-            console.error('  find-unused      - Find keys in en.ts that are not used in source code');
-            console.error('  check-duplicates - Check for duplicate keys in translation files');
+            console.error('  sync                  - Update manifest and state files');
+            console.error('  verify                - Check for missing or stale translations (fails on issues)');
+            console.error('  status                - Show translation status summary (non-failing)');
+            console.error('  check-usage           - Find t() calls in code and verify keys exist in en.ts');
+            console.error('  find-unused           - Find keys in en.ts that are not used in source code');
+            console.error('  check-duplicates      - Check for duplicate keys in translation files');
+            console.error('  generate-template <locale> - Generate translation template from en.ts');
             process.exit(1);
         }
     } catch (error) {

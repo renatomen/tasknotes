@@ -28,7 +28,8 @@
 		"i18n:status": "node scripts/i18n-manager.mjs status",
 		"i18n:check-usage": "node scripts/i18n-manager.mjs check-usage",
 		"i18n:find-unused": "node scripts/i18n-manager.mjs find-unused",
-		"i18n:check-duplicates": "node scripts/i18n-manager.mjs check-duplicates"
+		"i18n:check-duplicates": "node scripts/i18n-manager.mjs check-duplicates",
+		"i18n:generate-template": "node scripts/i18n-manager.mjs generate-template"
 	},
 	"keywords": [],
 	"author": "",
