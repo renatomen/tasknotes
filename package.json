@@ -25,7 +25,10 @@
 		"typecheck": "tsc --noEmit",
 		"i18n:sync": "node scripts/i18n-manager.mjs sync",
 		"i18n:verify": "node scripts/i18n-manager.mjs verify",
-		"i18n:status": "node scripts/i18n-manager.mjs status"
+		"i18n:status": "node scripts/i18n-manager.mjs status",
+		"i18n:check-usage": "node scripts/i18n-manager.mjs check-usage",
+		"i18n:find-unused": "node scripts/i18n-manager.mjs find-unused",
+		"i18n:check-duplicates": "node scripts/i18n-manager.mjs check-duplicates"
 	},
 	"keywords": [],
 	"author": "",

@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import { execSync } from 'child_process';
 
 // --- Configuration ---
 const SOURCE_LOCALE = 'en';
@@ -259,10 +260,7 @@ async function verify() {
 
         for (const [locale, keys] of Object.entries(byLocale)) {
             console.error(`  [${locale}] ${keys.length} missing keys:`);
-            keys.slice(0, 10).forEach(key => console.error(`    - ${key}`));
-            if (keys.length > 10) {
-                console.error(`    ... and ${keys.length - 10} more`);
-            }
+            keys.forEach(key => console.error(`    - ${key}`));
         }
     }
 
@@ -276,10 +274,7 @@ async function verify() {
 
         for (const [locale, keys] of Object.entries(byLocale)) {
             console.error(`  [${locale}] ${keys.length} stale keys:`);
-            keys.slice(0, 10).forEach(key => console.error(`    - ${key}`));
-            if (keys.length > 10) {
-                console.error(`    ... and ${keys.length - 10} more`);
-            }
+            keys.forEach(key => console.error(`    - ${key}`));
         }
     }
 
@@ -289,6 +284,60 @@ async function verify() {
     } else {
         console.error(`\nPlease update translations and run 'npm run i18n:sync' to mark them as current.`);
         process.exit(1);
+    }
+}
+
+/** `check-duplicates`: Checks for duplicate keys in translation files */
+async function checkDuplicates() {
+    console.log('Checking for duplicate translation keys...\n');
+
+    const allLocales = getAvailableLocales();
+    let foundDuplicates = false;
+
+    for (const locale of allLocales) {
+        console.log(`Checking ${locale}.ts...`);
+
+        const filePath = path.join(RESOURCES_DIR, `${locale}.ts`);
+        const content = fs.readFileSync(filePath, 'utf8');
+
+        // Find all string keys in the file (e.g., "key": "value")
+        // This regex looks for quoted keys in object notation
+        const keyPattern = /["']([a-zA-Z0-9_.]+)["']\s*:/g;
+        const keys = [];
+        let match;
+
+        while ((match = keyPattern.exec(content)) !== null) {
+            keys.push(match[1]);
+        }
+
+        // Find duplicates
+        const keyCounts = {};
+        keys.forEach(key => {
+            keyCounts[key] = (keyCounts[key] || 0) + 1;
+        });
+
+        const duplicates = Object.entries(keyCounts)
+            .filter(([_, count]) => count > 1)
+            .map(([key, count]) => ({ key, count }));
+
+        if (duplicates.length > 0) {
+            foundDuplicates = true;
+            console.log(`  ❌ Found ${duplicates.length} duplicate key(s):`);
+            duplicates.forEach(({ key, count }) => {
+                console.log(`    - "${key}" appears ${count} times`);
+            });
+        } else {
+            console.log(`  ✅ No duplicates found`);
+        }
+        console.log('');
+    }
+
+    if (foundDuplicates) {
+        console.error('\n❌ Duplicate keys found! This will cause issues.');
+        console.error('Please remove duplicate keys from the translation files.');
+        process.exit(1);
+    } else {
+        console.log('✅ No duplicate keys found in any locale!');
     }
 }
 
@@ -338,6 +387,181 @@ async function status() {
     }
 }
 
+/** `find-unused`: Finds translation keys in en.ts that are not used in the source code */
+async function findUnused() {
+    console.log('Finding unused translation keys...\n');
+
+    const manifest = loadJson(MANIFEST_PATH);
+
+    if (Object.keys(manifest).length === 0) {
+        console.error('❌ Error: No manifest found. Run "npm run i18n:sync" first.');
+        process.exit(1);
+    }
+
+    // Get all keys from manifest
+    const allKeys = Object.keys(manifest);
+
+    // Find all translation function calls in the codebase
+    const patterns = [
+        `rg --no-filename --no-heading --no-line-number '\\bt\\(["\\x27]([^"\\x27]+)["\\x27]\\)' -o -r '\$1' src/`,
+        `rg --no-filename --no-heading --no-line-number 'i18n\\.translate\\(["\\x27]([^"\\x27]+)["\\x27]' -o -r '\$1' src/`,
+        `rg --no-filename --no-heading --no-line-number 'this\\.t\\(["\\x27]([^"\\x27]+)["\\x27]' -o -r '\$1' src/`,
+        `rg --no-filename --no-heading --no-line-number 'this\\.translate\\(["\\x27]([^"\\x27]+)["\\x27]' -o -r '\$1' src/`,
+        `rg --no-filename --no-heading --no-line-number '\\btranslate\\(["\\x27]([^"\\x27]+)["\\x27]' -o -r '\$1' src/`
+    ];
+
+    const usedKeys = new Set();
+
+    for (const pattern of patterns) {
+        try {
+            const output = execSync(pattern, { encoding: 'utf8', shell: '/bin/bash' });
+            output.trim().split('\n').filter(Boolean).forEach(key => usedKeys.add(key));
+        } catch (error) {
+            // No matches is fine
+        }
+    }
+
+    // Find keys in manifest but not used in source
+    const unusedKeys = allKeys.filter(key => !usedKeys.has(key));
+
+    console.log(`📊 Statistics:`);
+    console.log(`  Total keys in en.ts: ${allKeys.length}`);
+    console.log(`  Keys found in source code: ${usedKeys.size}`);
+    console.log(`  Potentially unused keys: ${unusedKeys.length}`);
+    console.log(`  Coverage: ${Math.round((usedKeys.size / allKeys.length) * 100)}%\n`);
+
+    if (unusedKeys.length > 0) {
+        console.log('⚠️  Potentially unused keys (not found in source code):\n');
+
+        // Group by prefix for easier reading
+        const grouped = {};
+        unusedKeys.forEach(key => {
+            const prefix = key.split('.')[0];
+            if (!grouped[prefix]) grouped[prefix] = [];
+            grouped[prefix].push(key);
+        });
+
+        for (const [prefix, keys] of Object.entries(grouped).sort()) {
+            console.log(`[${prefix}] ${keys.length} keys:`);
+            keys.forEach(key => console.log(`  - ${key}`));
+            console.log('');
+        }
+
+        console.log('⚠️  Note: These keys might be:');
+        console.log('  - Dynamically constructed (e.g., `common.weekdays.${day}`)');
+        console.log('  - Used in external files or configurations');
+        console.log('  - Reserved for future features');
+        console.log('  - Truly unused and can be removed');
+        console.log('\nManually review before deleting!');
+    } else {
+        console.log('✅ All keys in en.ts are used in source code!');
+    }
+}
+
+/** `check-usage`: Finds translation calls in source code and checks if keys exist in en.ts */
+async function checkUsage() {
+    console.log('Checking i18n key usage in source code...\n');
+
+    const manifest = loadJson(MANIFEST_PATH);
+
+    if (Object.keys(manifest).length === 0) {
+        console.error('❌ Error: No manifest found. Run "npm run i18n:sync" first.');
+        process.exit(1);
+    }
+
+    // Find all translation function calls in the codebase using ripgrep
+    // Matches: t("key"), translate("key"), this.t("key"), this.translate("key"), and plugin.i18n.translate("key")
+    let grepOutput1 = '';
+    let grepOutput2 = '';
+    let grepOutput3 = '';
+    let grepOutput4 = '';
+    let grepOutput5 = '';
+
+    try {
+        // Pattern 1: t("key") - standalone function
+        grepOutput1 = execSync(
+            `rg --no-filename --no-heading --no-line-number '\\bt\\(["\\x27]([^"\\x27]+)["\\x27]\\)' -o -r '\$1' src/`,
+            { encoding: 'utf8', shell: '/bin/bash' }
+        );
+    } catch (error) {
+        if (error.status !== 1) throw error;
+        // No matches is fine
+    }
+
+    try {
+        // Pattern 2: plugin.i18n.translate("key") or i18n.translate("key")
+        grepOutput2 = execSync(
+            `rg --no-filename --no-heading --no-line-number 'i18n\\.translate\\(["\\x27]([^"\\x27]+)["\\x27]' -o -r '\$1' src/`,
+            { encoding: 'utf8', shell: '/bin/bash' }
+        );
+    } catch (error) {
+        if (error.status !== 1) throw error;
+        // No matches is fine
+    }
+
+    try {
+        // Pattern 3: this.t("key")
+        grepOutput3 = execSync(
+            `rg --no-filename --no-heading --no-line-number 'this\\.t\\(["\\x27]([^"\\x27]+)["\\x27]' -o -r '\$1' src/`,
+            { encoding: 'utf8', shell: '/bin/bash' }
+        );
+    } catch (error) {
+        if (error.status !== 1) throw error;
+        // No matches is fine
+    }
+
+    try {
+        // Pattern 4: this.translate("key")
+        grepOutput4 = execSync(
+            `rg --no-filename --no-heading --no-line-number 'this\\.translate\\(["\\x27]([^"\\x27]+)["\\x27]' -o -r '\$1' src/`,
+            { encoding: 'utf8', shell: '/bin/bash' }
+        );
+    } catch (error) {
+        if (error.status !== 1) throw error;
+        // No matches is fine
+    }
+
+    try {
+        // Pattern 5: translate("key") - standalone function (used in settings)
+        grepOutput5 = execSync(
+            `rg --no-filename --no-heading --no-line-number '\\btranslate\\(["\\x27]([^"\\x27]+)["\\x27]' -o -r '\$1' src/`,
+            { encoding: 'utf8', shell: '/bin/bash' }
+        );
+    } catch (error) {
+        if (error.status !== 1) throw error;
+        // No matches is fine
+    }
+
+    const allMatches = [...grepOutput1.split('\n'), ...grepOutput2.split('\n'), ...grepOutput3.split('\n'), ...grepOutput4.split('\n'), ...grepOutput5.split('\n')].filter(Boolean);
+
+    if (allMatches.length === 0) {
+        console.log('✅ No translation function calls found in source code.');
+        return;
+    }
+
+    const uniqueKeys = [...new Set(allMatches)];
+
+    console.log(`📊 Found ${uniqueKeys.length} unique translation keys in source code\n`);
+
+    const missingKeys = [];
+
+    for (const key of uniqueKeys) {
+        if (!manifest[key]) {
+            missingKeys.push(key);
+        }
+    }
+
+    if (missingKeys.length > 0) {
+        console.error('❌ Keys used in code but missing from en.ts:\n');
+        missingKeys.forEach(key => console.error(`  - ${key}`));
+        console.error(`\n${missingKeys.length} missing key(s) found.`);
+        console.error('Add these keys to src/i18n/resources/en.ts and run "npm run i18n:sync".');
+        process.exit(1);
+    } else {
+        console.log('✅ All keys used in source code exist in en.ts');
+    }
+}
+
 // --- Main Execution ---
 const command = process.argv[2];
 
@@ -349,12 +573,21 @@ const command = process.argv[2];
             await verify();
         } else if (command === 'status') {
             await status();
+        } else if (command === 'check-usage') {
+            await checkUsage();
+        } else if (command === 'find-unused') {
+            await findUnused();
+        } else if (command === 'check-duplicates') {
+            await checkDuplicates();
         } else {
             console.error(`Unknown command: ${command}`);
             console.error('Available commands:');
-            console.error('  sync   - Update manifest and state files');
-            console.error('  verify - Check for missing or stale translations (fails on issues)');
-            console.error('  status - Show translation status summary (non-failing)');
+            console.error('  sync             - Update manifest and state files');
+            console.error('  verify           - Check for missing or stale translations (fails on issues)');
+            console.error('  status           - Show translation status summary (non-failing)');
+            console.error('  check-usage      - Find t() calls in code and verify keys exist in en.ts');
+            console.error('  find-unused      - Find keys in en.ts that are not used in source code');
+            console.error('  check-duplicates - Check for duplicate keys in translation files');
             process.exit(1);
         }
     } catch (error) {
