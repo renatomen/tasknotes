@@ -457,10 +457,8 @@ export function createTimeEntryEvents(task: TaskInfo, plugin: TaskNotesPlugin): 
 			start: entry.startTime,
 			end: entry.endTime!,
 			allDay: false,
-			backgroundColor: "var(--color-base-50)",
-			borderColor: "var(--color-base-40)",
-			textColor: "var(--color-base-40)",
-			editable: false,
+			// Colors are handled by CSS via data-event-type="timeEntry"
+			editable: true, // Allow drag and resize
 			extendedProps: {
 				taskInfo: task,
 				eventType: "timeEntry" as const,

@@ -270,6 +270,15 @@ export class TaskContextMenu {
 			});
 		});
 
+		// Edit Time Entries
+		this.menu.addItem((item) => {
+			item.setTitle(this.t("contextMenus.task.editTimeEntries"));
+			item.setIcon("clock");
+			item.onClick(() => {
+				plugin.openTimeEntryEditor(task);
+			});
+		});
+
 		// Archive/Unarchive
 		this.menu.addItem((item) => {
 			item.setTitle(

@@ -383,8 +383,59 @@ export function buildTasknotesCalendarViewFactory(plugin: TaskNotesPlugin) {
 				}
 			}
 
-			// Only allow scheduled and recurring events to be moved (block ICS subscriptions)
-			if (eventType === "timeEntry" || eventType === "ics" || eventType === "due") {
+			// Handle time entry drops
+			if (eventType === "timeEntry") {
+				const timeEntryIndex = dropInfo.event.extendedProps.timeEntryIndex;
+				if (typeof timeEntryIndex !== "number") {
+					dropInfo.revert();
+					return;
+				}
+
+				try {
+					const newStart = dropInfo.event.start;
+					const newEnd = dropInfo.event.end;
+
+					if (!newStart || !newEnd) {
+						dropInfo.revert();
+						return;
+					}
+
+					// Calculate time shift
+					const oldStart = dropInfo.oldEvent.start;
+					const timeDiffMs = newStart.getTime() - oldStart.getTime();
+
+					// Update the time entry
+					const updatedEntries = [...(taskInfo.timeEntries || [])];
+					const entry = updatedEntries[timeEntryIndex];
+
+					if (entry) {
+						// Shift both start and end time by the same amount
+						const oldStartDate = new Date(entry.startTime);
+						const oldEndDate = new Date(entry.endTime!);
+
+						entry.startTime = new Date(oldStartDate.getTime() + timeDiffMs).toISOString();
+						entry.endTime = new Date(oldEndDate.getTime() + timeDiffMs).toISOString();
+
+						// Recalculate duration
+						entry.duration = Math.round(
+							(new Date(entry.endTime).getTime() - new Date(entry.startTime).getTime()) / 60000
+						);
+
+						await plugin.taskService.updateTask(taskInfo, {
+							timeEntries: updatedEntries,
+						});
+
+						// Calendar will refresh automatically via event system
+					}
+				} catch (error) {
+					console.error("Error updating time entry:", error);
+					dropInfo.revert();
+				}
+				return;
+			}
+
+			// Only allow scheduled and recurring events to be moved (block ICS subscriptions and due dates)
+			if (eventType === "ics" || eventType === "due") {
 				dropInfo.revert();
 				return;
 			}
@@ -419,7 +470,50 @@ export function buildTasknotesCalendarViewFactory(plugin: TaskNotesPlugin) {
 				return;
 			}
 
-			const { taskInfo, timeblock, eventType, filePath } = resizeInfo.event.extendedProps;
+			const { taskInfo, timeblock, eventType, filePath, timeEntryIndex } = resizeInfo.event.extendedProps;
+
+			// Handle time entry resize
+			if (eventType === "timeEntry") {
+				if (typeof timeEntryIndex !== "number") {
+					resizeInfo.revert();
+					return;
+				}
+
+				try {
+					const newStart = resizeInfo.event.start;
+					const newEnd = resizeInfo.event.end;
+
+					if (!newStart || !newEnd) {
+						resizeInfo.revert();
+						return;
+					}
+
+					// Update the time entry
+					const updatedEntries = [...(taskInfo.timeEntries || [])];
+					const entry = updatedEntries[timeEntryIndex];
+
+					if (entry) {
+						// Update start and end times
+						entry.startTime = newStart.toISOString();
+						entry.endTime = newEnd.toISOString();
+
+						// Recalculate duration
+						entry.duration = Math.round(
+							(newEnd.getTime() - newStart.getTime()) / 60000
+						);
+
+						await plugin.taskService.updateTask(taskInfo, {
+							timeEntries: updatedEntries,
+						});
+
+						// Calendar will refresh automatically via event system
+					}
+				} catch (error) {
+					console.error("Error resizing time entry:", error);
+					resizeInfo.revert();
+				}
+				return;
+			}
 
 			// Handle timeblock resize
 			if (eventType === "timeblock") {
@@ -751,10 +845,10 @@ export function buildTasknotesCalendarViewFactory(plugin: TaskNotesPlugin) {
 					switch (eventType) {
 						case "scheduled":
 						case "recurring":
+						case "timeEntry":
 							arg.event.setProp("editable", true);
 							break;
 						case "due":
-						case "timeEntry":
 							arg.event.setProp("editable", false);
 							break;
 						default:

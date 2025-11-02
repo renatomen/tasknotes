@@ -78,6 +78,51 @@
     transform: translateY(-1px);
 }
 
+/* Time Entry Events - Recorded time with distinctive dashed border */
+.fc-event[data-event-type="timeEntry"] {
+    opacity: 0.9;
+    border-radius: 4px;
+    border-width: 2px !important;
+    border-style: dashed !important; /* Dashed border to differentiate from solid timeblocks */
+    background: repeating-linear-gradient(
+        45deg,
+        rgba(16, 185, 129, 0.08),
+        rgba(16, 185, 129, 0.08) 10px,
+        rgba(16, 185, 129, 0.15) 10px,
+        rgba(16, 185, 129, 0.15) 20px
+    ) !important; /* Subtle diagonal stripes in green */
+    border-color: #10b981 !important; /* Green to indicate "completed/recorded" time */
+}
+
+.fc-event[data-event-type="timeEntry"] .fc-event-time,
+.fc-event[data-event-type="timeEntry"] .fc-event-title {
+    color: #059669 !important; /* Darker green for better readability */
+    font-weight: 500;
+}
+
+.fc-event[data-event-type="timeEntry"]:hover {
+    opacity: 1;
+    box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+    border-style: solid !important; /* Solid border on hover for clarity */
+}
+
+/* Dark mode adjustments for time entries */
+.theme-dark .fc-event[data-event-type="timeEntry"] {
+    background: repeating-linear-gradient(
+        45deg,
+        rgba(52, 211, 153, 0.1),
+        rgba(52, 211, 153, 0.1) 10px,
+        rgba(52, 211, 153, 0.18) 10px,
+        rgba(52, 211, 153, 0.18) 20px
+    ) !important;
+    border-color: #34d399 !important; /* Lighter green for dark mode */
+}
+
+.theme-dark .fc-event[data-event-type="timeEntry"] .fc-event-time,
+.theme-dark .fc-event[data-event-type="timeEntry"] .fc-event-title {
+    color: #6ee7b7 !important; /* Even lighter green for text in dark mode */
+}
+
 /* Task Events */
 .fc-task-event {
     border-radius: 4px;
