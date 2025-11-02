@@ -24,21 +24,3 @@ Example:
 
 -->
 
-## Fixed
-
-- (#1013) Fixed inability to subscribe to Apple iCloud calendars
-  - Calendar URLs copied from Apple Calendar (starting with webcal://) can now be pasted directly
-  - Previously required manually changing the URL format before it would be accepted
-  - Works with both standard and secure calendar URLs (webcal:// and webcals://)
-  - Thanks to @nickbirch51 for reporting
-
-- (#1022) Fixed tasks randomly disappearing from views and not being recognized
-  - Tasks would appear initially but disappear after a few seconds, especially during long sessions
-  - Restarting Obsidian or using "Refresh Cache" would only temporarily fix the issue
-  - Thanks to @seepage87 for reporting and @alejandrospoz for help debugging
-
-- (#953) Fixed non-task notes incorrectly appearing as subtasks in views
-  - Notes with Parent or project properties but no task tag/property no longer show up as tasks
-  - Views now update correctly when task tags are removed from files
-  - Improved performance for large vaults by optimizing cache invalidation
-  - Thanks to @renatomen for reporting and submitting PR #955
