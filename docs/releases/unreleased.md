@@ -18,7 +18,6 @@ Example:
 
 - (#768) Fixed calendar view appearing empty in week and day views due to invalid time configuration values
   - Added time validation in settings UI with proper error messages and debouncing
-  - Added runtime sanitization in calendar with safe defaults (00:00:00, 24:00:00, 08:00:00)
   - Prevents "Cannot read properties of null (reading 'years')" error from FullCalendar
   - Thanks to @userhandle for reporting and help debugging
 ```

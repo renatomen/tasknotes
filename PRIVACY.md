@@ -28,6 +28,7 @@ You can delete your data at any time:
 TaskNotes operates locally by default, but includes optional features that make network requests when you enable them:
 
 **Optional network features:**
+
 - **OAuth Calendar Integration**: If you connect Google Calendar or Microsoft Calendar, TaskNotes:
   - Uses OAuth 2.0 to authenticate with Google/Microsoft
   - Stores encrypted access tokens locally in your Obsidian vault
@@ -45,17 +46,20 @@ TaskNotes operates locally by default, but includes optional features that make 
   - Does not send any personal information except what's associated with your license key
 
 **OAuth Credentials:**
+
 - TaskNotes bundles OAuth client credentials (client ID and client secret) for easy setup
 - These credentials are public (visible in the plugin code) and identify the app to Google/Microsoft
 - Your actual authentication and calendar data remain secure through OAuth access tokens
 - You can optionally provide your own OAuth credentials in Advanced Setup mode
 
 **Third-Party Services:**
+
 - **Lemon Squeezy**: License validation only (https://www.lemonsqueezy.com/privacy)
 - **Google**: OAuth authentication and Calendar API access (https://policies.google.com/privacy)
 - **Microsoft**: OAuth authentication and Calendar API access (https://privacy.microsoft.com/privacystatement)
 
 **What we never do:**
+
 - No analytics or tracking beyond license validation
 - No telemetry data collection
 - No access to your notes or task data

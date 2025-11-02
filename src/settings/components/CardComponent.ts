@@ -648,12 +648,49 @@ export function createCardNumberInput(
 }
 
 /**
- * Creates a URL input with validation styling
+ * Normalizes calendar URLs by converting webcal:// and webcals:// protocols
+ * to their http:// and https:// equivalents.
+ *
+ * This allows users to paste Apple Calendar URLs (and other calendar URLs)
+ * that use the webcal:// protocol, which is the standard protocol for
+ * iCalendar subscriptions.
+ *
+ * @param url - The URL to normalize
+ * @returns The normalized URL with http:// or https:// protocol
+ *
+ * @example
+ * normalizeCalendarUrl("webcal://example.com/calendar.ics")
+ * // returns "http://example.com/calendar.ics"
+ *
+ * normalizeCalendarUrl("webcals://example.com/calendar.ics")
+ * // returns "https://example.com/calendar.ics"
+ */
+export function normalizeCalendarUrl(url: string): string {
+	if (!url) return url;
+
+	return url
+		.replace(/^webcal:\/\//i, 'http://')
+		.replace(/^webcals:\/\//i, 'https://');
+}
+
+/**
+ * Creates a URL input with validation styling.
+ *
+ * Accepts http://, https://, webcal://, and webcals:// protocols.
+ * The webcal protocols are commonly used for calendar subscriptions
+ * (especially Apple Calendar) and are automatically normalized to
+ * http/https when the URL is saved.
  */
 export function createCardUrlInput(placeholder?: string, value?: string): HTMLInputElement {
 	const input = document.createElement("input");
-	input.type = "url";
+	// Use type="text" instead of type="url" to allow webcal:// and webcals:// protocols
+	// HTML5 type="url" validation only accepts http://, https://, and ftp://
+	input.type = "text";
 	input.addClass("tasknotes-settings__card-input");
+
+	// Add pattern validation to accept calendar URL protocols
+	input.pattern = "^(https?|webcals?)://.*";
+	input.title = "Enter an http://, https://, webcal://, or webcals:// URL";
 
 	if (placeholder) {
 		input.placeholder = placeholder;

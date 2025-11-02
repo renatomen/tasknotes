@@ -24,6 +24,7 @@ import {
 	createCardNumberInput,
 	createInfoBadge,
 	showCardEmptyState,
+	normalizeCalendarUrl,
 } from "../components/CardComponent";
 
 // interface WebhookItem extends ListEditorItem, WebhookConfig {}
@@ -1345,7 +1346,9 @@ function renderICSSubscriptionsList(
 					newSourceInput.addEventListener("blur", () => {
 						const value = (newSourceInput as HTMLInputElement).value.trim();
 						if (subscription.type === "remote") {
-							updateSubscription({ url: value });
+							// Normalize webcal:// and webcals:// URLs to http:// and https://
+							const normalizedUrl = normalizeCalendarUrl(value);
+							updateSubscription({ url: normalizedUrl });
 						} else {
 							updateSubscription({ filePath: value });
 						}
@@ -1385,7 +1388,9 @@ function renderICSSubscriptionsList(
 		sourceInput.addEventListener("blur", () => {
 			const value = (sourceInput as HTMLInputElement).value.trim();
 			if (subscription.type === "remote") {
-				updateSubscription({ url: value });
+				// Normalize webcal:// and webcals:// URLs to http:// and https://
+				const normalizedUrl = normalizeCalendarUrl(value);
+				updateSubscription({ url: normalizedUrl });
 			} else {
 				updateSubscription({ filePath: value });
 			}

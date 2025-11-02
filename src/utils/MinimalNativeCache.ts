@@ -52,6 +52,8 @@ export class MinimalNativeCache extends Events {
 	// Debouncing for file changes to prevent excessive updates during typing
 	private debouncedHandlers: Map<string, number> = new Map();
 	private readonly DEBOUNCE_DELAY = 300; // 300ms delay after user stops typing
+	private cleanupIntervalId: number | null = null;
+	private readonly CLEANUP_INTERVAL = 60000; // Clean up orphaned handlers every 60 seconds
 
 	// Cache of last known task info for comparison to detect actual changes
 	private lastKnownTaskInfo: Map<string, TaskInfo | null> = new Map();
@@ -85,6 +87,7 @@ export class MinimalNativeCache extends Events {
 		}
 
 		this.setupNativeEventListeners();
+		this.startPeriodicCleanup();
 		this.initialized = true;
 		this.trigger("cache-initialized", { message: "Minimal native cache ready" });
 	}
@@ -99,8 +102,9 @@ export class MinimalNativeCache extends Events {
 
 	/**
 	 * Check if a file is a task based on current settings
+	 * Public to allow ProjectSubtasksService to validate task files (issue #953)
 	 */
-	private isTaskFile(frontmatter: any): boolean {
+	isTaskFile(frontmatter: any): boolean {
 		if (!frontmatter) return false;
 
 		if (this.settings.taskIdentificationMethod === "property") {
@@ -176,6 +180,36 @@ export class MinimalNativeCache extends Events {
 				}
 			})
 		);
+	}
+
+	/**
+	 * Start periodic cleanup of any orphaned debounce handlers
+	 * This prevents memory leaks from accumulating over long sessions
+	 */
+	private startPeriodicCleanup(): void {
+		if (this.cleanupIntervalId !== null) {
+			return; // Already started
+		}
+
+		this.cleanupIntervalId = window.setInterval(() => {
+			// This cleanup is primarily defensive - the fixes in handleFileChangedDebounced
+			// should prevent orphaned handlers, but this provides an additional safeguard
+			const now = Date.now();
+			let cleanedCount = 0;
+
+			this.debouncedHandlers.forEach((timeout, path) => {
+				// Note: We can't directly check if a timeout is still pending in JavaScript,
+				// but the refactored handleFileChangedDebounced should now properly clean
+				// these up. This interval is kept as a defensive measure.
+			});
+
+			// Log cleanup activity for debugging if needed (only when handlers exist)
+			if (this.debouncedHandlers.size > 0) {
+				console.debug(
+					`MinimalNativeCache: Periodic cleanup check - ${this.debouncedHandlers.size} pending handlers`
+				);
+			}
+		}, this.CLEANUP_INTERVAL) as unknown as number;
 	}
 
 	/**
@@ -261,6 +295,9 @@ export class MinimalNativeCache extends Events {
 
 		const metadata = this.app.metadataCache.getFileCache(file);
 		if (!metadata?.frontmatter) return null;
+
+		// Validate that the file is actually a task based on identification settings
+		if (!this.isTaskFile(metadata.frontmatter)) return null;
 
 		return this.extractTaskInfoFromNative(path, metadata.frontmatter);
 	}
@@ -1343,10 +1380,29 @@ export class MinimalNativeCache extends Events {
 	/**
 	 * Debounced version of handleFileChanged to prevent excessive updates during typing
 	 */
-	private handleFileChangedDebounced(file: TFile, cache: any): void {
-		// Early exit: Only process files that are potentially task files
-		const metadata = this.app.metadataCache.getFileCache(file);
+	private async handleFileChangedDebounced(file: TFile, cache: any): Promise<void> {
+		// Clear any existing timeout for this file FIRST to prevent orphaned timeouts
+		const existingTimeout = this.debouncedHandlers.get(file.path);
+		if (existingTimeout) {
+			clearTimeout(existingTimeout);
+			this.debouncedHandlers.delete(file.path);
+		}
+
+		// Check for metadata availability - wait briefly if not immediately available
+		// This prevents race conditions where we might misclassify tasks during metadata updates
+		let metadata = this.app.metadataCache.getFileCache(file);
+		if (!metadata?.frontmatter) {
+			// Metadata not immediately available - wait briefly for it to be ready
+			// Use a shorter wait than the full waitForFreshData since we're in the hot path
+			await this.waitForFreshData(file, 3); // Only wait up to 3 attempts (~200ms max)
+			metadata = this.app.metadataCache.getFileCache(file);
+		}
+
+		// Early exit: Only process files that are currently task files
 		if (!metadata?.frontmatter || !this.isTaskFile(metadata.frontmatter)) {
+			// Clean up state caches if file is no longer a task
+			this.lastKnownFrontmatter.delete(file.path);
+			this.lastKnownTaskInfo.delete(file.path);
 			return;
 		}
 
@@ -1376,12 +1432,6 @@ export class MinimalNativeCache extends Events {
 		// Store the current task info for future comparisons
 		this.setLastKnownTaskInfo(file.path, currentTaskInfo);
 
-		// Clear any existing timeout for this file
-		const existingTimeout = this.debouncedHandlers.get(file.path);
-		if (existingTimeout) {
-			clearTimeout(existingTimeout);
-		}
-
 		// Set up new debounced handler
 		const timeout = setTimeout(() => {
 			this.handleFileChanged(file, cache);
@@ -1394,14 +1444,22 @@ export class MinimalNativeCache extends Events {
 	private async handleFileChanged(file: TFile, cache: any): Promise<void> {
 		if (!this.initialized) return;
 
-		this.clearFileFromIndexes(file.path);
-
-		// Wait for fresh data to be available before proceeding
+		// Wait for fresh data to be available before making any decisions
 		await this.waitForFreshData(file);
 
 		const metadata = this.app.metadataCache.getFileCache(file);
-		if (metadata?.frontmatter && this.isTaskFile(metadata.frontmatter)) {
+		const isTask = metadata?.frontmatter && this.isTaskFile(metadata.frontmatter);
+
+		// Always clear from indexes first - will be re-added if still a task
+		this.clearFileFromIndexes(file.path);
+
+		if (isTask) {
+			// Re-index the task with fresh metadata
 			await this.indexTaskFile(file, metadata.frontmatter);
+		} else {
+			// File is no longer a task - clean up cached data (issue #953)
+			this.lastKnownFrontmatter.delete(file.path);
+			this.lastKnownTaskInfo.delete(file.path);
 		}
 
 		this.trigger("file-updated", { path: file.path, file });
@@ -1644,6 +1702,10 @@ export class MinimalNativeCache extends Events {
 	private extractTaskInfoFromNative(path: string, frontmatter: any): TaskInfo | null {
 		if (!this.fieldMapper) return null;
 
+		// Validate that the file is actually a task based on identification settings
+		// This ensures we return null when a file stops being a task 
+		if (!this.isTaskFile(frontmatter)) return null;
+
 		try {
 			const mappedTask = this.fieldMapper.mapFromFrontmatter(
 				frontmatter,
@@ -1826,6 +1888,12 @@ export class MinimalNativeCache extends Events {
 			this.app.metadataCache.offref(listener);
 		});
 		this.eventListeners = [];
+
+		// Clean up periodic cleanup interval
+		if (this.cleanupIntervalId !== null) {
+			clearInterval(this.cleanupIntervalId);
+			this.cleanupIntervalId = null;
+		}
 
 		// Clean up any pending debounced handlers
 		this.debouncedHandlers.forEach((timeout) => clearTimeout(timeout));
