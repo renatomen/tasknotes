@@ -18,7 +18,7 @@ import {
 	parseDateToUTC,
 	getTodayLocal,
 } from "../utils/dateUtils";
-import { generateRecurringInstances, extractTimeblocksFromNote, updateTimeblockInDailyNote } from "../utils/helpers";
+import { generateRecurringInstances, extractTimeblocksFromNote, updateTimeblockInDailyNote, addDTSTARTToRecurrenceRuleWithDraggedTime } from "../utils/helpers";
 import { Notice } from "obsidian";
 import { getAllDailyNotes, getDailyNote, appHasDailyNotesPluginLoaded, createDailyNote } from "obsidian-daily-notes-interface";
 import { TimeblockCreationModal } from "../modals/TimeblockCreationModal";
@@ -201,10 +201,6 @@ export async function handlePatternInstanceDrop(
 	allDay: boolean,
 	plugin: TaskNotesPlugin
 ): Promise<void> {
-	const { Notice } = await import("obsidian");
-	const { addDTSTARTToRecurrenceRuleWithDraggedTime } = await import("../utils/helpers");
-	const { format } = await import("date-fns");
-
 	try {
 		if (!taskInfo.recurrence || typeof taskInfo.recurrence !== "string") {
 			throw new Error("Task does not have a valid RRULE string");
@@ -272,10 +268,6 @@ export async function handleRecurringTaskDrop(
 	taskInfo: TaskInfo,
 	plugin: TaskNotesPlugin
 ): Promise<void> {
-	const { Notice } = await import("obsidian");
-	const { format } = await import("date-fns");
-	const { getDatePart } = await import("../utils/dateUtils");
-
 	const {
 		isRecurringInstance,
 		isNextScheduledOccurrence,
