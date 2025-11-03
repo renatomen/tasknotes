@@ -6,7 +6,7 @@
  */
 
 import TaskNotesPlugin from "../main";
-import { BasesDataItem, identifyTaskNotesFromBasesData } from "./helpers";
+import { BasesDataItem, identifyTaskNotesFromBasesData, mapBasesPropertyToTaskCardProperty } from "./helpers";
 import { Calendar } from "@fullcalendar/core";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
@@ -694,18 +694,10 @@ export function buildTasknotesCalendarViewFactory(plugin: TaskNotesPlugin) {
 				const ctx = currentViewContext || controller;
 				if (ctx?.config?.getOrder) {
 					const basesProperties = ctx.config.getOrder();
-					visibleProperties = basesProperties.map((propId: string) => {
-						// Map Bases property IDs to TaskCard property IDs
-						if (propId.startsWith('note.')) {
-							const userPropertyName = propId.substring(5); // Remove "note." prefix
-							// Use FieldMapper to convert user property names back to internal field names
-							// E.g., if user configured status as "status_test", this converts "status_test" → "status"
-							const internalFieldName = plugin.fieldMapper.fromUserField(userPropertyName);
-							return internalFieldName || userPropertyName; // Fall back to user name if not in mapping
-						}
-						// Keep file properties, formulas, and user properties as-is
-						return propId;
-					});
+					// Use shared mapping function from helpers
+					visibleProperties = basesProperties.map((propId: string) =>
+						mapBasesPropertyToTaskCardProperty(propId, plugin)
+					);
 				}
 
 				// Render task events with TaskCard

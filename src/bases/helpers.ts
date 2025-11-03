@@ -14,6 +14,89 @@ export interface BasesDataItem {
 }
 
 /**
+ * Map Bases property IDs to TaskCard-compatible property names.
+ *
+ * Handles various Bases property naming conventions:
+ * - Custom field mappings (e.g., "status_custom" → "status")
+ * - Dotted prefixes (task.*, note.*, file.*)
+ * - Special transformations (timeEntries → totalTrackedTime, blockedBy → blocked)
+ * - Formula properties (formula.NAME)
+ *
+ * @param propId - The property ID from Bases (e.g., "note.blockedBy", "task.due")
+ * @param plugin - TaskNotes plugin instance for FieldMapper access
+ * @returns Mapped property ID suitable for TaskCard rendering
+ */
+export function mapBasesPropertyToTaskCardProperty(
+	propId: string,
+	plugin?: TaskNotesPlugin
+): string {
+	let mappedId = propId;
+
+	// Step 1: Try custom field mapping first (highest priority)
+	if (plugin?.fieldMapper) {
+		const internalFieldName = plugin.fieldMapper.fromUserField(propId);
+		if (internalFieldName) {
+			mappedId = internalFieldName;
+			return applySpecialTransformations(mappedId);
+		}
+	}
+
+	// Step 2: Handle dotted prefixes
+	if (propId.startsWith("task.")) {
+		mappedId = propId.substring(5);
+		return applySpecialTransformations(mappedId);
+	}
+
+	if (propId.startsWith("note.")) {
+		const stripped = propId.substring(5);
+
+		// Try custom field mapping on stripped name
+		if (plugin?.fieldMapper) {
+			const internalFieldName = plugin.fieldMapper.fromUserField(stripped);
+			if (internalFieldName) {
+				return applySpecialTransformations(internalFieldName);
+			}
+		}
+
+		// Map known note properties
+		if (stripped === "dateCreated") return "dateCreated";
+		if (stripped === "dateModified") return "dateModified";
+		if (stripped === "completedDate") return "completedDate";
+
+		// Apply special transformations to stripped name
+		return applySpecialTransformations(stripped);
+	}
+
+	if (propId.startsWith("file.")) {
+		if (propId === "file.ctime") return "dateCreated";
+		if (propId === "file.mtime") return "dateModified";
+		if (propId === "file.name") return "title";
+	}
+
+	// Step 3: Keep formula properties unchanged
+	if (propId.startsWith("formula.")) {
+		return propId;
+	}
+
+	// Step 4: Apply special transformations to direct properties
+	return applySpecialTransformations(propId);
+}
+
+/**
+ * Apply special property transformations for TaskCard rendering.
+ *
+ * Transformations:
+ * - timeEntries → totalTrackedTime (show computed total instead of raw array)
+ * - blockedBy → blocked (show status pill instead of dependency list)
+ * - All other properties pass through unchanged
+ */
+function applySpecialTransformations(propId: string): string {
+	if (propId === "timeEntries") return "totalTrackedTime";
+	if (propId === "blockedBy") return "blocked";
+	return propId;
+}
+
+/**
  * Create TaskInfo object from a single Bases data item
  */
 function createTaskInfoFromProperties(
@@ -254,88 +337,10 @@ export async function renderTaskNotesInBasesView(
 			// Extract just the property IDs for TaskCard
 			visibleProperties = basesVisibleProperties.map((p) => p.id);
 
-			// Map common property names to TaskNotes property names
-			visibleProperties = visibleProperties.map((propId) => {
-				let mappedId = propId;
-
-				// First, try reverse field mapping for user's custom property names
-				const internalFieldName = plugin.fieldMapper?.fromUserField(propId);
-				if (internalFieldName) {
-					// User has a custom field mapping for this property
-					// Map it to the internal TaskNotes property name for proper rendering
-					mappedId = internalFieldName;
-
-					// Special case: if user mapped timeEntries, show totalTrackedTime instead
-					if (mappedId === "timeEntries") {
-						mappedId = "totalTrackedTime";
-					}
-					// Special case: if user mapped blockedBy, show blocked pill
-					if (mappedId === "blockedBy") {
-						mappedId = "blocked";
-					}
-				}
-				// Handle dotted properties like task.due -> due
-				else if (propId.startsWith("task.")) {
-					mappedId = propId.substring(5);
-					// Special case: timeEntries should show as totalTrackedTime in card views
-					if (mappedId === "timeEntries") {
-						mappedId = "totalTrackedTime";
-					}
-					// Special case: blockedBy should show as blocked pill
-					if (mappedId === "blockedBy") {
-						mappedId = "blocked";
-					}
-				}
-				// Handle note properties like note.projects -> projects
-				else if (propId.startsWith("note.")) {
-					const stripped = propId.substring(5);
-
-					// Try reverse field mapping on the stripped property name
-					const strippedInternalFieldName = plugin.fieldMapper?.fromUserField(stripped);
-					if (strippedInternalFieldName) {
-						mappedId = strippedInternalFieldName;
-						// Special case: timeEntries should show as totalTrackedTime
-						if (mappedId === "timeEntries") {
-							mappedId = "totalTrackedTime";
-						}
-						// Special case: blockedBy should show as blocked pill
-						if (mappedId === "blockedBy") {
-							mappedId = "blocked";
-						}
-					}
-					// Map specific note properties to TaskNotes property names
-					else if (stripped === "dateCreated") mappedId = "dateCreated";
-					else if (stripped === "dateModified") mappedId = "dateModified";
-					else if (stripped === "completedDate") mappedId = "completedDate";
-					else if (stripped === "timeEntries") mappedId = "totalTrackedTime"; // Show total instead of array
-					else if (stripped === "blockedBy") mappedId = "blocked"; // Show "Blocked (n)" pill
-					else mappedId = stripped; // projects, contexts, tags, and any other arbitrary properties
-				}
-				// Handle direct timeEntries property
-				else if (propId === "timeEntries") {
-					mappedId = "totalTrackedTime"; // Show total instead of array
-				}
-				// Handle dependency properties - show pill format instead of detailed lists
-				else if (propId === "blockedBy") {
-					mappedId = "blocked"; // Show "Blocked (n)" pill instead of detailed list
-				}
-				else if (propId === "blocking") {
-					mappedId = "blocking"; // Show "Blocking (n)" pill instead of detailed list
-				}
-				// Handle file properties
-				else if (propId === "file.ctime") mappedId = "dateCreated";
-				else if (propId === "file.mtime") mappedId = "dateModified";
-				else if (propId === "file.name")
-					mappedId = "title"; // Map file name to title
-				// Handle formula properties like formula.TESTST -> formula.TESTST (keep as-is for now)
-				else if (propId.startsWith("formula.")) {
-					mappedId = propId; // Keep the full formula.TESTST format for property lookup
-				}
-
-				// Pass through arbitrary properties unchanged
-				// These will be handled by the generic property renderer in TaskCard
-				return mappedId;
-			});
+			// Map Bases property IDs to TaskCard-compatible property names
+			visibleProperties = visibleProperties.map((propId) =>
+				mapBasesPropertyToTaskCardProperty(propId, plugin)
+			);
 		}
 	}
 
@@ -347,8 +352,6 @@ export async function renderTaskNotesInBasesView(
 			"projects",
 			"contexts",
 			"tags",
-			"blocked",
-			"blocking",
 		];
 	}
 
@@ -429,63 +432,10 @@ export async function renderGroupedTasksInBasesView(
 
 	if (basesVisibleProperties.length > 0) {
 		visibleProperties = basesVisibleProperties.map((p) => p.id);
-		// Map properties (same logic as renderTaskNotesInBasesView)
-		visibleProperties = visibleProperties.map((propId) => {
-			let mappedId = propId;
-			const internalFieldName = plugin.fieldMapper?.fromUserField(propId);
-			if (internalFieldName) {
-				mappedId = internalFieldName;
-				// Special case: timeEntries should show as totalTrackedTime
-				if (mappedId === "timeEntries") {
-					mappedId = "totalTrackedTime";
-				}
-				// Special case: blockedBy should show as blocked pill
-				if (mappedId === "blockedBy") {
-					mappedId = "blocked";
-				}
-			} else if (propId.startsWith("task.")) {
-				mappedId = propId.substring(5);
-				// Special case: timeEntries should show as totalTrackedTime
-				if (mappedId === "timeEntries") {
-					mappedId = "totalTrackedTime";
-				}
-				// Special case: blockedBy should show as blocked pill
-				if (mappedId === "blockedBy") {
-					mappedId = "blocked";
-				}
-			} else if (propId.startsWith("note.")) {
-				const stripped = propId.substring(5);
-				const strippedInternalFieldName = plugin.fieldMapper?.fromUserField(stripped);
-				if (strippedInternalFieldName) {
-					mappedId = strippedInternalFieldName;
-					// Special case: timeEntries should show as totalTrackedTime
-					if (mappedId === "timeEntries") {
-						mappedId = "totalTrackedTime";
-					}
-					// Special case: blockedBy should show as blocked pill
-					if (mappedId === "blockedBy") {
-						mappedId = "blocked";
-					}
-				} else if (stripped === "dateCreated") mappedId = "dateCreated";
-				else if (stripped === "dateModified") mappedId = "dateModified";
-				else if (stripped === "completedDate") mappedId = "completedDate";
-				else if (stripped === "timeEntries") mappedId = "totalTrackedTime"; // Show total instead of array
-				else if (stripped === "blockedBy") mappedId = "blocked"; // Show "Blocked (n)" pill
-				else mappedId = stripped;
-			} else if (propId === "timeEntries") {
-				mappedId = "totalTrackedTime"; // Show total instead of array
-			} else if (propId === "blockedBy") {
-				mappedId = "blocked"; // Show "Blocked (n)" pill instead of detailed list
-			} else if (propId === "blocking") {
-				mappedId = "blocking"; // Show "Blocking (n)" pill instead of detailed list
-			} else if (propId === "file.ctime") mappedId = "dateCreated";
-			else if (propId === "file.mtime") mappedId = "dateModified";
-			else if (propId === "file.name") mappedId = "title";
-			else if (propId.startsWith("formula.")) {
-				mappedId = propId;
-			}
-			return mappedId;
-		});
+		// Map Bases property IDs to TaskCard-compatible property names
+		visibleProperties = visibleProperties.map((propId) =>
+			mapBasesPropertyToTaskCardProperty(propId, plugin)
+		);
 	}
 
 	// Use plugin default properties if no Bases properties available
@@ -496,8 +446,6 @@ export async function renderGroupedTasksInBasesView(
 			"projects",
 			"contexts",
 			"tags",
-			"blocked",
-			"blocking",
 		];
 	}
 
