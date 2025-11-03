@@ -39,9 +39,21 @@ Example:
   - Consolidated all imports at module top level
   - Improves code maintainability, makes dependencies explicit, and follows modern TypeScript best practices
 - Time entry events now show task context menu on right-click (previously had no context menu)
+- Replaced MinimalNativeCache with just-in-time TaskManager for improved reliability
+  - Removed complex index synchronization in favor of direct MetadataCache queries
+  - Eliminated 7 internal indexes (tasksByDate, tasksByStatus, overdueTasks, etc.)
+  - Added minimal DependencyCache for task dependencies and project references only
+  - Reduced codebase by 38.5% (736 fewer lines)
+  - Zero startup time (no index building required)
+  - Always provides fresh, accurate task data from Obsidian's MetadataCache
 
 ## Fixed
 
+- (#1022, #684) Fixed tasks randomly disappearing when Smart Connections plugin is enabled
+  - Eliminated race condition caused by index synchronization delays
+  - TaskManager now reads directly from Obsidian's MetadataCache instead of maintaining separate indexes
+  - No more timing-sensitive code that could conflict with other plugins' metadata processing
+  - Tasks will always be visible regardless of other plugins' processing times
 - (#992) Fixed "Failed to resolve module specifier 'obsidian'" error when moving recurring task instances in calendar
   - Removed unnecessary dynamic imports that were causing module resolution failures
   - Consolidated imports at top of calendar-core.ts module
