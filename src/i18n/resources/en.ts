@@ -9,6 +9,7 @@ export const en: TranslationTree = {
 		save: "Save",
 		language: "Language",
 		systemDefault: "System default",
+		loading: "Loading...",
 		languages: {
 			en: "English",
 			fr: "French",
@@ -171,6 +172,10 @@ export const en: TranslationTree = {
 				list: "L",
 				customDays: "{count}D",
 				listDays: "{count}d List",
+				refresh: "Refresh",
+			},
+			hints: {
+				refresh: "Refresh calendar subscriptions",
 			},
 			settings: {
 				groups: {
@@ -500,6 +505,10 @@ export const en: TranslationTree = {
 				name: "Pomodoro data storage",
 				description: "Configure where pomodoro session data is stored and how it's managed.",
 				dailyNotes: "Daily notes",
+				pluginData: "Plugin data",
+				notices: {
+					locationChanged: "Pomodoro storage location changed to {location}",
+				},
 			},
 			notifications: {
 				header: "Notifications",
@@ -1396,6 +1405,7 @@ export const en: TranslationTree = {
 					refreshNow: "Refresh Now",
 					deleteSubscription: "Delete subscription",
 				},
+				refreshNow: "Refresh Now",
 				confirmDelete: {
 					title: "Delete Subscription",
 					message:
@@ -1432,6 +1442,7 @@ export const en: TranslationTree = {
 					noExports: "No exports yet",
 					notScheduled: "Not scheduled",
 					notInitialized: "Auto export service not initialized - please restart Obsidian",
+					serviceNotInitialized: "Service not initialized - please restart Obsidian",
 				},
 				notices: {
 					reloadRequired:
@@ -1501,6 +1512,7 @@ export const en: TranslationTree = {
 					editEvents: "Edit Events",
 					delete: "Delete",
 				},
+				editEvents: "Edit Events",
 				notices: {
 					urlUpdated: "Webhook URL updated",
 					enabled: "Webhook enabled",
@@ -1836,6 +1848,58 @@ export const en: TranslationTree = {
 			templatePathDesc: "Path to the template file",
 			templatePathPlaceholder: "templates/ics-note-template.md",
 		},
+		unscheduledTasksSelector: {
+			title: "Unscheduled Tasks",
+			placeholder: "Type to search for unscheduled tasks...",
+			instructions: {
+				navigate: "to navigate",
+				schedule: "to schedule",
+				dismiss: "to dismiss",
+			},
+		},
+		migration: {
+			title: "Migrate to New Recurrence System",
+			description: "TaskNotes has a new recurrence system that uses industry-standard patterns for better compatibility and more powerful scheduling options.",
+			tasksFound: "{count} task(s) with old recurrence patterns detected",
+			noMigrationNeeded: "No tasks require migration",
+			warnings: {
+				title: "Before you proceed:",
+				backup: "Back up your vault before migrating",
+				conversion: "Old recurrence patterns will be converted to new format",
+				normalUsage: "You can continue using TaskNotes normally during migration",
+				permanent: "This change is permanent and cannot be automatically undone",
+			},
+			benefits: {
+				title: "Benefits of the new system:",
+				powerfulPatterns: "More powerful recurrence patterns (e.g., 'every 2nd Tuesday')",
+				performance: "Better performance with recurring tasks",
+				compatibility: "Standard recurrence format compatible with other apps",
+				nlp: "Enhanced natural language processing support",
+			},
+			progress: {
+				title: "Migration Progress",
+				preparing: "Preparing migration...",
+				completed: "Migration completed successfully",
+				failed: "Migration failed",
+			},
+			buttons: {
+				migrate: "Start Migration",
+				completed: "Close",
+			},
+			errors: {
+				title: "Errors during migration:",
+			},
+			notices: {
+				completedWithErrors: "Migration completed with some errors. Check the error list above.",
+				success: "All tasks migrated successfully!",
+				failed: "Migration failed. Please check the console for details.",
+			},
+			prompt: {
+				message: "TaskNotes detected tasks using the old recurrence format. Would you like to migrate them to the new system now?",
+				migrateNow: "Migrate Now",
+				remindLater: "Remind Me Later",
+			},
+		},
 		task: {
 				titlePlaceholder: "What needs to be done?",
 				titleLabel: "Title",
@@ -2144,6 +2208,7 @@ export const en: TranslationTree = {
 			clearReminders: "Clear all reminders",
 			startTimeTracking: "Start time tracking",
 			stopTimeTracking: "Stop time tracking",
+			editTimeEntries: "Edit time entries",
 			archive: "Archive",
 			unarchive: "Unarchive",
 			openNote: "Open note",

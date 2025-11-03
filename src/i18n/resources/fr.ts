@@ -9,6 +9,7 @@ export const fr: TranslationTree = {
 		save: "Enregistrer",
 		language: "Langue",
 		systemDefault: "Langue du système",
+		loading: "Chargement...",
 		languages: {
 			en: "Anglais",
 			fr: "Français",
@@ -126,14 +127,13 @@ export const fr: TranslationTree = {
 				icsServiceNotAvailable: "Service d'abonnement ICS non disponible",
 				calendarRefreshedAll: "Tous les abonnements aux calendriers ont été actualisés avec succès",
 				refreshFailed: "Échec de l'actualisation de certains abonnements aux calendriers",
-				timeblockSpecificTime:
-					"Les blocs de temps doivent avoir des heures spécifiques. Veuillez sélectionner une plage horaire dans la vue semaine ou jour.",
-				timeblockMoved: 'Bloc de temps "{title}" déplacé vers {date}',
-				timeblockUpdated: 'Horaire du bloc de temps "{title}" mis à jour',
+				timeblockSpecificTime: "Les blocs de temps doivent avoir des heures spécifiques. Veuillez sélectionner une plage horaire dans la vue semaine ou jour.",
+				timeblockMoved: "Bloc de temps \"{title}\" déplacé vers {date}",
+				timeblockUpdated: "Horaire du bloc de temps \"{title}\" mis à jour",
 				timeblockMoveFailed: "Échec du déplacement du bloc de temps : {message}",
-				timeblockResized: 'Durée du bloc de temps "{title}" mise à jour',
+				timeblockResized: "Durée du bloc de temps \"{title}\" mise à jour",
 				timeblockResizeFailed: "Échec du redimensionnement du bloc de temps : {message}",
-				taskScheduled: 'Tâche "{title}" planifiée pour {date}',
+				taskScheduled: "Tâche \"{title}\" planifiée pour {date}",
 				scheduleTaskFailed: "Échec de la planification de la tâche",
 				endTimeAfterStart: "L'heure de fin doit être après l'heure de début",
 				timeEntryNotFound: "Entrée de temps introuvable",
@@ -154,8 +154,7 @@ export const fr: TranslationTree = {
 				openTask: "Ouvrir la tâche",
 				deleteTimeEntry: "Supprimer l'entrée de temps",
 				deleteTimeEntryTitle: "Supprimer l'entrée de temps",
-				deleteTimeEntryConfirm:
-					"Êtes-vous sûr de vouloir supprimer cette entrée de temps{duration} ? Cette action ne peut pas être annulée.",
+				deleteTimeEntryConfirm: "Êtes-vous sûr de vouloir supprimer cette entrée de temps{duration} ? Cette action ne peut pas être annulée.",
 				deleteButton: "Supprimer",
 				cancelButton: "Annuler",
 			},
@@ -171,6 +170,10 @@ export const fr: TranslationTree = {
 				list: "L",
 				customDays: "{count}J",
 				listDays: "{count}j Liste",
+				refresh: "Actualiser",
+			},
+			hints: {
+				refresh: "Actualiser les abonnements calendrier",
 			},
 			settings: {
 				groups: {
@@ -248,7 +251,7 @@ export const fr: TranslationTree = {
 			noProject: "Aucun projet",
 			notices: {
 				loadFailed: "Échec du chargement du tableau Kanban",
-				movedTask: 'Tâche déplacée vers "{0}"',
+				movedTask: "Tâche déplacée vers \"{0}\"",
 			},
 			errors: {
 				loadingBoard: "Erreur lors du chargement du tableau.",
@@ -405,57 +408,47 @@ export const fr: TranslationTree = {
 		features: {
 			inlineTasks: {
 				header: "Tâches dans les notes",
-				description:
-					"Configurez les fonctionnalités de tâches intégrées pour gérer vos tâches directement dans vos notes.",
+				description: "Configurez les fonctionnalités de tâches intégrées pour gérer vos tâches directement dans vos notes.",
 			},
 			overlays: {
 				taskLinkToggle: {
 					name: "Survol des liens de tâches",
-					description:
-						"Afficher des superpositions interactives lorsque la souris passe sur les liens de tâches",
+					description: "Afficher des superpositions interactives lorsque la souris passe sur les liens de tâches",
 				},
 			},
 			instantConvert: {
 				toggle: {
 					name: "Afficher le bouton de conversion à côté des cases à cocher",
-					description:
-						"Afficher un bouton en ligne à côté des cases à cocher Markdown qui les convertit en TaskNotes",
+					description: "Afficher un bouton en ligne à côté des cases à cocher Markdown qui les convertit en TaskNotes",
 				},
 				folder: {
 					name: "Dossier pour les tâches converties",
-					description:
-						"Dossier où les tâches converties depuis les cases à cocher seront créées. Utilisez {{currentNotePath}} pour un chemin relatif à la note actuelle, {{currentNoteTitle}} pour le titre de la note actuelle",
+					description: "Dossier où les tâches converties depuis les cases à cocher seront créées. Utilisez {{currentNotePath}} pour un chemin relatif à la note actuelle, {{currentNoteTitle}} pour le titre de la note actuelle",
 				},
 			},
 			nlp: {
 				header: "Traitement du langage naturel",
-				description:
-					"Activez l'analyse intelligente des détails des tâches depuis le langage naturel.",
+				description: "Activez l'analyse intelligente des détails des tâches depuis le langage naturel.",
 				enable: {
 					name: "Activer la saisie en langage naturel",
-					description:
-						"Analyser les dates, priorités et contextes lors de la création de tâches",
+					description: "Analyser les dates, priorités et contextes lors de la création de tâches",
 				},
 				defaultToScheduled: {
 					name: "Planifié par défaut",
-					description:
-						"Si une date est détectée sans contexte, la considérer comme planifiée plutôt qu'échéance",
+					description: "Si une date est détectée sans contexte, la considérer comme planifiée plutôt qu'échéance",
 				},
 				language: {
 					name: "Langue du NLP",
-					description:
-						"Langue utilisée pour les modèles de traitement du langage naturel et l'analyse des dates",
+					description: "Langue utilisée pour les modèles de traitement du langage naturel et l'analyse des dates",
 				},
 				statusTrigger: {
 					name: "Déclencheur des statuts suggérés",
-					description:
-						"Texte qui déclenche les suggestions de statut (laisser vide pour désactiver)",
+					description: "Texte qui déclenche les suggestions de statut (laisser vide pour désactiver)",
 				},
 			},
 			pomodoro: {
 				header: "Minuteur Pomodoro",
-				description:
-					"Minuteur Pomodoro intégré pour gérer le temps et suivre votre productivité.",
+				description: "Minuteur Pomodoro intégré pour gérer le temps et suivre votre productivité.",
 				workDuration: {
 					name: "Durée de travail",
 					description: "Durée des sessions de travail en minutes",
@@ -474,8 +467,7 @@ export const fr: TranslationTree = {
 				},
 				autoStartBreaks: {
 					name: "Lancer automatiquement les pauses",
-					description:
-						"Démarrer automatiquement les pauses après chaque session de travail",
+					description: "Démarrer automatiquement les pauses après chaque session de travail",
 				},
 				autoStartWork: {
 					name: "Reprise automatique du travail",
@@ -483,8 +475,7 @@ export const fr: TranslationTree = {
 				},
 				notifications: {
 					name: "Notifications Pomodoro",
-					description:
-						"Afficher une notification lorsque les sessions Pomodoro se terminent",
+					description: "Afficher une notification lorsque les sessions Pomodoro se terminent",
 				},
 			},
 			uiLanguage: {
@@ -492,8 +483,7 @@ export const fr: TranslationTree = {
 				description: "Modifiez la langue des menus, notifications et vues de TaskNotes.",
 				dropdown: {
 					name: "Langue de l'interface",
-					description:
-						"Sélectionnez la langue utilisée pour le texte de l'interface TaskNotes",
+					description: "Sélectionnez la langue utilisée pour le texte de l'interface TaskNotes",
 				},
 			},
 			pomodoroSound: {
@@ -506,6 +496,10 @@ export const fr: TranslationTree = {
 				name: "Stockage des données Pomodoro",
 				description: "Configurez où les données de session pomodoro sont stockées et comment elles sont gérées.",
 				dailyNotes: "Notes quotidiennes",
+				pluginData: "Données du plugin",
+				notices: {
+					locationChanged: "Emplacement de stockage Pomodoro changé vers {location}",
+				},
 			},
 			notifications: {
 				header: "Notifications",
@@ -523,8 +517,7 @@ export const fr: TranslationTree = {
 			},
 			indexing: {
 				disableName: "Désactiver l'indexation des notes",
-				disableDesc:
-					"Désactiver l'indexation automatique du contenu des notes pour de meilleures performances",
+				disableDesc: "Désactiver l'indexation automatique du contenu des notes pour de meilleures performances",
 			},
 			suggestions: {
 				debounceName: "Délai des suggestions",
@@ -532,25 +525,19 @@ export const fr: TranslationTree = {
 			},
 			timeTracking: {
 				autoStopName: "Arrêt automatique du suivi du temps",
-				autoStopDesc:
-					"Arrêter automatiquement le suivi du temps lorsqu'une tâche est marquée comme terminée",
+				autoStopDesc: "Arrêter automatiquement le suivi du temps lorsqu'une tâche est marquée comme terminée",
 				stopNotificationName: "Notification d'arrêt du suivi du temps",
-				stopNotificationDesc:
-					"Afficher une notification lorsque le suivi du temps est automatiquement arrêté",
+				stopNotificationDesc: "Afficher une notification lorsque le suivi du temps est automatiquement arrêté",
 			},
 			recurring: {
-				maintainOffsetName:
-					"Maintenir le décalage de date d'échéance dans les tâches récurrentes",
-				maintainOffsetDesc:
-					"Conserver le décalage entre la date d'échéance et la date planifiée lors de l'achèvement des tâches récurrentes",
+				maintainOffsetName: "Maintenir le décalage de date d'échéance dans les tâches récurrentes",
+				maintainOffsetDesc: "Conserver le décalage entre la date d'échéance et la date planifiée lors de l'achèvement des tâches récurrentes",
 			},
 			timeblocking: {
 				header: "Planification par blocs",
-				description:
-					"Configurez la fonctionnalité de planification par blocs pour une programmation légère dans les notes quotidiennes. Dans la vue calendrier avancée, maintenez Shift + clic et glissez pour créer des blocs de temps.",
+				description: "Configurez la fonctionnalité de planification par blocs pour une programmation légère dans les notes quotidiennes. Dans la vue calendrier avancée, maintenez Shift + clic et glissez pour créer des blocs de temps.",
 				enableName: "Activer la planification par blocs",
-				enableDesc:
-					"Activer la fonctionnalité de planification par blocs pour une programmation légère dans les notes quotidiennes",
+				enableDesc: "Activer la fonctionnalité de planification par blocs pour une programmation légère dans les notes quotidiennes",
 				showBlocksName: "Afficher les blocs de temps",
 				showBlocksDesc: "Afficher les blocs de temps des notes quotidiennes par défaut",
 				usage: "Utilisation : Dans la vue calendrier avancée, maintenez Shift + glissez pour créer des blocs de temps. Glissez pour déplacer les blocs existants. Ajustez les bords pour modifier la durée.",
@@ -577,16 +564,11 @@ export const fr: TranslationTree = {
 				instantTaskConversion: "Conversion instantanée en tâche",
 			},
 			description: {
-				basicDefaults:
-					"Définir les valeurs par défaut pour les nouvelles tâches afin d'accélérer la création.",
-				dateDefaults:
-					"Définir les dates d'échéance et de planification par défaut pour les nouvelles tâches.",
-				defaultReminders:
-					"Configurer les rappels par défaut qui seront ajoutés aux nouvelles tâches.",
-				bodyTemplate:
-					"Configurer un fichier modèle à utiliser pour le contenu des nouvelles tâches.",
-				instantTaskConversion:
-					"Configurer le comportement lors de la conversion instantanée de texte en tâches.",
+				basicDefaults: "Définir les valeurs par défaut pour les nouvelles tâches afin d'accélérer la création.",
+				dateDefaults: "Définir les dates d'échéance et de planification par défaut pour les nouvelles tâches.",
+				defaultReminders: "Configurer les rappels par défaut qui seront ajoutés aux nouvelles tâches.",
+				bodyTemplate: "Configurer un fichier modèle à utiliser pour le contenu des nouvelles tâches.",
+				instantTaskConversion: "Configurer le comportement lors de la conversion instantanée de texte en tâches.",
 			},
 			basicDefaults: {
 				defaultStatus: {
@@ -599,8 +581,7 @@ export const fr: TranslationTree = {
 				},
 				defaultContexts: {
 					name: "Contextes par défaut",
-					description:
-						"Liste de contextes par défaut séparés par des virgules (ex. @maison, @travail)",
+					description: "Liste de contextes par défaut séparés par des virgules (ex. @maison, @travail)",
 					placeholder: "@maison, @travail",
 				},
 				defaultTags: {
@@ -617,13 +598,11 @@ export const fr: TranslationTree = {
 				},
 				useParentNoteAsProject: {
 					name: "Utiliser la note parent comme projet lors de la conversion instantanée",
-					description:
-						"Lier automatiquement la note parent comme projet lors de la conversion instantanée de tâche",
+					description: "Lier automatiquement la note parent comme projet lors de la conversion instantanée de tâche",
 				},
 				defaultTimeEstimate: {
 					name: "Estimation de temps par défaut",
-					description:
-						"Estimation de temps par défaut en minutes (0 = aucune par défaut)",
+					description: "Estimation de temps par défaut en minutes (0 = aucune par défaut)",
 					placeholder: "60",
 				},
 				defaultRecurrence: {
@@ -644,12 +623,10 @@ export const fr: TranslationTree = {
 			reminders: {
 				addReminder: {
 					name: "Ajouter un rappel par défaut",
-					description:
-						"Créer un nouveau rappel par défaut qui sera ajouté à toutes les nouvelles tâches",
+					description: "Créer un nouveau rappel par défaut qui sera ajouté à toutes les nouvelles tâches",
 					buttonText: "Ajouter un rappel",
 				},
-				emptyState:
-					"Aucun rappel par défaut configuré. Ajoutez un rappel pour être automatiquement notifié des nouvelles tâches.",
+				emptyState: "Aucun rappel par défaut configuré. Ajoutez un rappel pour être automatiquement notifié des nouvelles tâches.",
 				emptyStateButton: "Ajouter un rappel",
 				reminderDescription: "Description du rappel",
 				unnamedReminder: "Rappel sans nom",
@@ -689,8 +666,7 @@ export const fr: TranslationTree = {
 				},
 				bodyTemplateFile: {
 					name: "Fichier modèle de contenu",
-					description:
-						"Chemin vers le fichier modèle pour le contenu du corps de la tâche. Prend en charge les variables comme {{title}}, {{date}}, {{time}}, {{priority}}, {{status}}, etc.",
+					description: "Chemin vers le fichier modèle pour le contenu du corps de la tâche. Prend en charge les variables comme {{title}}, {{date}}, {{time}}, {{priority}}, {{status}}, etc.",
 					placeholder: "Templates/Modèle de tâche.md",
 					ariaLabel: "Chemin vers le fichier modèle de contenu",
 				},
@@ -710,8 +686,7 @@ export const fr: TranslationTree = {
 			instantConversion: {
 				useDefaultsOnInstantConvert: {
 					name: "Utiliser les paramètres par défaut lors de la conversion instantanée",
-					description:
-						"Appliquer les paramètres de tâche par défaut lors de la conversion instantanée de texte en tâches",
+					description: "Appliquer les paramètres de tâche par défaut lors de la conversion instantanée de texte en tâches",
 				},
 			},
 			options: {
@@ -729,21 +704,18 @@ export const fr: TranslationTree = {
 		general: {
 			taskStorage: {
 				header: "Stockage des tâches",
-				description:
-					"Configurez où les tâches sont stockées et comment elles sont identifiées.",
+				description: "Configurez où les tâches sont stockées et comment elles sont identifiées.",
 				defaultFolder: {
 					name: "Dossier par défaut des tâches",
 					description: "Emplacement par défaut pour les nouvelles tâches",
 				},
 				moveArchived: {
 					name: "Déplacer les tâches archivées vers un dossier",
-					description:
-						"Déplacer automatiquement les tâches archivées vers un dossier d'archive",
+					description: "Déplacer automatiquement les tâches archivées vers un dossier d'archive",
 				},
 				archiveFolder: {
 					name: "Dossier d'archive",
-					description:
-						"Dossier vers lequel déplacer les tâches lorsqu'elles sont archivées. Supporte les variables de modèle comme {{year}}, {{month}}, {{priority}}, etc.",
+					description: "Dossier vers lequel déplacer les tâches lorsqu'elles sont archivées. Supporte les variables de modèle comme {{year}}, {{month}}, {{priority}}, etc.",
 				},
 			},
 			taskIdentification: {
@@ -751,8 +723,7 @@ export const fr: TranslationTree = {
 				description: "Choisissez comment TaskNotes identifie les notes comme des tâches.",
 				identifyBy: {
 					name: "Identifier les tâches par",
-					description:
-						"Choisissez d'identifier les tâches par tag ou par une propriété frontmatter",
+					description: "Choisissez d'identifier les tâches par tag ou par une propriété frontmatter",
 					options: {
 						tag: "Étiquette",
 						property: "Propriété",
@@ -764,24 +735,22 @@ export const fr: TranslationTree = {
 				},
 				hideIdentifyingTags: {
 					name: "Masquer les tags d'identification dans les cartes de tâches",
-					description:
-						"Lorsque activé, les tags correspondant au tag d'identification de tâche (y compris les correspondances hiérarchiques comme 'task/project') seront masqués dans l'affichage des cartes de tâches",
+					description: "Lorsque activé, les tags correspondant au tag d'identification de tâche (y compris les correspondances hiérarchiques comme 'task/project') seront masqués dans l'affichage des cartes de tâches",
 				},
 				taskProperty: {
 					name: "Nom de la propriété de tâche",
-					description: 'Le nom de la propriété frontmatter (ex. "category")',
+					description: "Le nom de la propriété frontmatter (ex. \"category\")",
 				},
 				taskPropertyValue: {
 					name: "Valeur de la propriété de tâche",
-					description: 'La valeur qui identifie une note comme une tâche (ex. "task")',
+					description: "La valeur qui identifie une note comme une tâche (ex. \"task\")",
 				},
 			},
 			folderManagement: {
 				header: "Gestion des dossiers",
 				excludedFolders: {
 					name: "Dossiers exclus",
-					description:
-						"Liste séparée par des virgules des dossiers à exclure de l'onglet Notes",
+					description: "Liste séparée par des virgules des dossiers à exclure de l'onglet Notes",
 				},
 			},
 			frontmatter: {
@@ -826,29 +795,23 @@ export const fr: TranslationTree = {
 		taskProperties: {
 			taskStatuses: {
 				header: "Statuts des tâches",
-				description:
-					"Personnalisez les options de statut disponibles pour vos tâches. Ces statuts contrôlent le cycle de vie des tâches et déterminent quand les tâches sont considérées comme terminées.",
+				description: "Personnalisez les options de statut disponibles pour vos tâches. Ces statuts contrôlent le cycle de vie des tâches et déterminent quand les tâches sont considérées comme terminées.",
 				howTheyWork: {
 					title: "Comment fonctionnent les statuts :",
-					value: 'Valeur : L\'identifiant interne stocké dans vos fichiers de tâches (ex. "in-progress")',
-					label: 'Label : Le nom affiché dans l\'interface (ex. "En cours")',
+					value: "Valeur : L'identifiant interne stocké dans vos fichiers de tâches (ex. \"in-progress\")",
+					label: "Label : Le nom affiché dans l'interface (ex. \"En cours\")",
 					color: "Couleur : Couleur d'indicateur visuel pour les points et badges de statut",
-					completed:
-						"Terminé : Quand coché, les tâches avec ce statut sont considérées comme finies et peuvent être filtrées différemment",
-					autoArchive:
-						"Archivage auto : Quand activé, les tâches seront automatiquement archivées après le délai spécifié (1-1440 minutes)",
-					orderNote:
-						"L'ordre ci-dessous détermine la séquence lors du passage d'un statut à l'autre en cliquant sur les badges de statut des tâches.",
+					completed: "Terminé : Quand coché, les tâches avec ce statut sont considérées comme finies et peuvent être filtrées différemment",
+					autoArchive: "Archivage auto : Quand activé, les tâches seront automatiquement archivées après le délai spécifié (1-1440 minutes)",
+					orderNote: "L'ordre ci-dessous détermine la séquence lors du passage d'un statut à l'autre en cliquant sur les badges de statut des tâches.",
 				},
 				addNew: {
 					name: "Ajouter un nouveau statut",
 					description: "Créer une nouvelle option de statut pour vos tâches",
 					buttonText: "Ajouter un statut",
 				},
-				validationNote:
-					'Note : Vous devez avoir au moins 2 statuts, et au moins un statut doit être marqué comme "Terminé".',
-				emptyState:
-					"Aucun statut personnalisé configuré. Ajoutez un statut pour commencer.",
+				validationNote: "Note : Vous devez avoir au moins 2 statuts, et au moins un statut doit être marqué comme \"Terminé\".",
+				emptyState: "Aucun statut personnalisé configuré. Ajoutez un statut pour commencer.",
 				emptyStateButton: "Ajouter un statut",
 				fields: {
 					value: "Valeur :",
@@ -865,30 +828,26 @@ export const fr: TranslationTree = {
 				badges: {
 					completed: "Terminé",
 				},
-				deleteConfirm: 'Voulez-vous vraiment supprimer le statut "{label}" ?',
+				deleteConfirm: "Voulez-vous vraiment supprimer le statut \"{label}\" ?",
 			},
 			taskPriorities: {
 				header: "Priorités des tâches",
-				description:
-					"Personnalisez les niveaux de priorité disponibles pour vos tâches. Les poids de priorité déterminent l'ordre de tri et la hiérarchie visuelle dans vos vues de tâches.",
+				description: "Personnalisez les niveaux de priorité disponibles pour vos tâches. Les poids de priorité déterminent l'ordre de tri et la hiérarchie visuelle dans vos vues de tâches.",
 				howTheyWork: {
 					title: "Comment fonctionnent les priorités :",
-					value: 'Valeur : L\'identifiant interne stocké dans vos fichiers de tâches (ex. "high")',
+					value: "Valeur : L'identifiant interne stocké dans vos fichiers de tâches (ex. \"high\")",
 					label: "Label d'affichage : Le nom affiché dans l'interface (ex. \"Priorité élevée\")",
 					color: "Couleur : Couleur d'indicateur visuel pour les points et badges de priorité",
 					weight: "Poids : Valeur numérique pour le tri (les poids plus élevés apparaissent en premier dans les listes)",
-					weightNote:
-						"Les tâches sont automatiquement triées par poids de priorité en ordre décroissant (le poids le plus élevé en premier). Les poids peuvent être n'importe quel nombre positif.",
+					weightNote: "Les tâches sont automatiquement triées par poids de priorité en ordre décroissant (le poids le plus élevé en premier). Les poids peuvent être n'importe quel nombre positif.",
 				},
 				addNew: {
 					name: "Ajouter une nouvelle priorité",
 					description: "Créer un nouveau niveau de priorité pour vos tâches",
 					buttonText: "Ajouter une priorité",
 				},
-				validationNote:
-					"Note : Vous devez avoir au moins 1 priorité. Les poids plus élevés prennent la précédence dans le tri et la hiérarchie visuelle.",
-				emptyState:
-					"Aucune priorité personnalisée configurée. Ajoutez une priorité pour commencer.",
+				validationNote: "Note : Vous devez avoir au moins 1 priorité. Les poids plus élevés prennent la précédence dans le tri et la hiérarchie visuelle.",
+				emptyState: "Aucune priorité personnalisée configurée. Ajoutez une priorité pour commencer.",
 				emptyStateButton: "Ajouter une priorité",
 				fields: {
 					value: "Valeur :",
@@ -906,10 +865,8 @@ export const fr: TranslationTree = {
 			},
 			fieldMapping: {
 				header: "Mappage des champs",
-				warning:
-					"⚠️ Attention : TaskNotes lira ET écrira en utilisant ces noms de propriétés. Les changer après avoir créé des tâches peut causer des incohérences.",
-				description:
-					"Configurez quelles propriétés frontmatter TaskNotes doit utiliser pour chaque champ.",
+				warning: "⚠️ Attention : TaskNotes lira ET écrira en utilisant ces noms de propriétés. Les changer après avoir créé des tâches peut causer des incohérences.",
+				description: "Configurez quelles propriétés frontmatter TaskNotes doit utiliser pour chaque champ.",
 				resetButton: {
 					name: "Réinitialiser les mappages de champs",
 					description: "Réinitialiser tous les mappages de champs aux valeurs par défaut",
@@ -918,8 +875,7 @@ export const fr: TranslationTree = {
 				notices: {
 					resetSuccess: "Mappages de champs réinitialisés aux défauts",
 					resetFailure: "Échec de la réinitialisation des mappages de champs",
-					updateFailure:
-						"Échec de la mise à jour du mappage de champ pour {label}. Veuillez réessayer.",
+					updateFailure: "Échec de la mise à jour du mappage de champ pour {label}. Veuillez réessayer.",
 				},
 				table: {
 					fieldHeader: "Champ TaskNotes",
@@ -950,16 +906,13 @@ export const fr: TranslationTree = {
 			},
 			customUserFields: {
 				header: "Champs utilisateur personnalisés",
-				description:
-					"Définissez des propriétés frontmatter personnalisées pour qu'elles apparaissent comme options de filtrage conscientes du type dans toutes les vues. Chaque ligne : Nom d'affichage, Nom de propriété, Type.",
+				description: "Définissez des propriétés frontmatter personnalisées pour qu'elles apparaissent comme options de filtrage conscientes du type dans toutes les vues. Chaque ligne : Nom d'affichage, Nom de propriété, Type.",
 				addNew: {
 					name: "Ajouter un nouveau champ utilisateur",
-					description:
-						"Créer un nouveau champ personnalisé qui apparaîtra dans les filtres et vues",
+					description: "Créer un nouveau champ personnalisé qui apparaîtra dans les filtres et vues",
 					buttonText: "Ajouter un champ utilisateur",
 				},
-				emptyState:
-					"Aucun champ utilisateur personnalisé configuré. Ajoutez un champ pour créer des propriétés personnalisées pour vos tâches.",
+				emptyState: "Aucun champ utilisateur personnalisé configuré. Ajoutez un champ pour créer des propriétés personnalisées pour vos tâches.",
 				emptyStateButton: "Ajouter un champ utilisateur",
 				fields: {
 					displayName: "Nom d'affichage :",
@@ -984,8 +937,7 @@ export const fr: TranslationTree = {
 				deleteTooltip: "Supprimer le champ",
 				autosuggestFilters: {
 					header: "Filtres d'auto-suggestion (Avancé)",
-					description:
-						"Filtrer quels fichiers apparaissent dans les suggestions d'auto-complétion pour ce champ",
+					description: "Filtrer quels fichiers apparaissent dans les suggestions d'auto-complétion pour ce champ",
 				},
 			},
 		},
@@ -995,8 +947,7 @@ export const fr: TranslationTree = {
 				description: "Configurez l'affichage des cartes de tâches dans toutes les vues.",
 				defaultVisibleProperties: {
 					name: "Propriétés visibles par défaut",
-					description:
-						"Choisissez quelles propriétés apparaissent sur les cartes de tâches par défaut.",
+					description: "Choisissez quelles propriétés apparaissent sur les cartes de tâches par défaut.",
 				},
 				propertyGroups: {
 					coreProperties: "PROPRIÉTÉS PRINCIPALES",
@@ -1023,12 +974,10 @@ export const fr: TranslationTree = {
 			},
 			taskFilenames: {
 				header: "Noms de fichiers des tâches",
-				description:
-					"Configurez comment les fichiers de tâches sont nommés lors de leur création.",
+				description: "Configurez comment les fichiers de tâches sont nommés lors de leur création.",
 				storeTitleInFilename: {
 					name: "Stocker le titre dans le nom de fichier",
-					description:
-						"Utiliser le titre de la tâche comme nom de fichier. Le nom de fichier sera mis à jour quand le titre de la tâche changera (Recommandé).",
+					description: "Utiliser le titre de la tâche comme nom de fichier. Le nom de fichier sera mis à jour quand le titre de la tâche changera (Recommandé).",
 				},
 				filenameFormat: {
 					name: "Format du nom de fichier",
@@ -1042,21 +991,17 @@ export const fr: TranslationTree = {
 				},
 				customTemplate: {
 					name: "Modèle de nom de fichier personnalisé",
-					description:
-						"Modèle pour les noms de fichiers personnalisés. Variables disponibles : {title}, {titleLower}, {titleUpper}, {titleSnake}, {titleKebab}, {titleCamel}, {titlePascal}, {date}, {shortDate}, {time}, {time12}, {time24}, {timestamp}, {dateTime}, {year}, {month}, {monthName}, {monthNameShort}, {day}, {dayName}, {dayNameShort}, {hour}, {hour12}, {minute}, {second}, {milliseconds}, {ms}, {ampm}, {week}, {quarter}, {unix}, {unixMs}, {timezone}, {timezoneShort}, {utcOffset}, {utcOffsetShort}, {utcZ}, {zettel}, {nano}, {priority}, {priorityShort}, {status}, {statusShort}, {dueDate}, {scheduledDate}",
+					description: "Modèle pour les noms de fichiers personnalisés. Variables disponibles : {title}, {titleLower}, {titleUpper}, {titleSnake}, {titleKebab}, {titleCamel}, {titlePascal}, {date}, {shortDate}, {time}, {time12}, {time24}, {timestamp}, {dateTime}, {year}, {month}, {monthName}, {monthNameShort}, {day}, {dayName}, {dayNameShort}, {hour}, {hour12}, {minute}, {second}, {milliseconds}, {ms}, {ampm}, {week}, {quarter}, {unix}, {unixMs}, {timezone}, {timezoneShort}, {utcOffset}, {utcOffsetShort}, {utcZ}, {zettel}, {nano}, {priority}, {priorityShort}, {status}, {statusShort}, {dueDate}, {scheduledDate}",
 					placeholder: "{date}-{title}-{dueDate}",
-					helpText:
-						"Note : {dueDate} et {scheduledDate} sont au format AAAA-MM-JJ et seront vides s'ils ne sont pas définis.",
+					helpText: "Note : {dueDate} et {scheduledDate} sont au format AAAA-MM-JJ et seront vides s'ils ne sont pas définis.",
 				},
 			},
 			displayFormatting: {
 				header: "Formatage d'affichage",
-				description:
-					"Configurez comment les dates, heures et autres données sont affichées dans le plugin.",
+				description: "Configurez comment les dates, heures et autres données sont affichées dans le plugin.",
 				timeFormat: {
 					name: "Format d'heure",
-					description:
-						"Afficher l'heure au format 12 heures ou 24 heures dans tout le plugin",
+					description: "Afficher l'heure au format 12 heures ou 24 heures dans tout le plugin",
 					options: {
 						twelveHour: "12 heures (AM/PM)",
 						twentyFourHour: "24 heures",
@@ -1084,8 +1029,7 @@ export const fr: TranslationTree = {
 				},
 				firstDayOfWeek: {
 					name: "Premier jour de la semaine",
-					description:
-						"Quel jour doit être la première colonne dans les vues hebdomadaires",
+					description: "Quel jour doit être la première colonne dans les vues hebdomadaires",
 				},
 				showWeekends: {
 					name: "Afficher les week-ends",
@@ -1101,25 +1045,21 @@ export const fr: TranslationTree = {
 				},
 				showCurrentTimeIndicator: {
 					name: "Afficher l'indicateur de l'heure actuelle",
-					description:
-						"Afficher une ligne montrant l'heure actuelle dans les vues chronologiques",
+					description: "Afficher une ligne montrant l'heure actuelle dans les vues chronologiques",
 				},
 				selectionMirror: {
 					name: "Miroir de sélection",
-					description:
-						"Afficher un aperçu visuel lors du glissement pour sélectionner des plages horaires",
+					description: "Afficher un aperçu visuel lors du glissement pour sélectionner des plages horaires",
 				},
 				calendarLocale: {
 					name: "Locale du calendrier",
-					description:
-						'Locale du calendrier pour le formatage des dates et le système calendaire (ex. "en", "fa" pour le Farsi/Persan, "de" pour l\'Allemand). Laisser vide pour détecter automatiquement depuis le navigateur.',
+					description: "Locale du calendrier pour le formatage des dates et le système calendaire (ex. \"en\", \"fa\" pour le Farsi/Persan, \"de\" pour l'Allemand). Laisser vide pour détecter automatiquement depuis le navigateur.",
 					placeholder: "Détection automatique",
 				},
 			},
 			defaultEventVisibility: {
 				header: "Visibilité des événements par défaut",
-				description:
-					"Configurez quels types d'événements sont visibles par défaut à l'ouverture du Calendrier avancé. Les utilisateurs peuvent toujours activer/désactiver ces options dans la vue calendrier.",
+				description: "Configurez quels types d'événements sont visibles par défaut à l'ouverture du Calendrier avancé. Les utilisateurs peuvent toujours activer/désactiver ces options dans la vue calendrier.",
 				showScheduledTasks: {
 					name: "Afficher les tâches planifiées",
 					description: "Afficher les tâches avec dates planifiées par défaut",
@@ -1130,8 +1070,7 @@ export const fr: TranslationTree = {
 				},
 				showDueWhenScheduled: {
 					name: "Afficher les échéances quand planifiées",
-					description:
-						"Afficher les dates d'échéance même pour les tâches qui ont déjà des dates planifiées",
+					description: "Afficher les dates d'échéance même pour les tâches qui ont déjà des dates planifiées",
 				},
 				showTimeEntries: {
 					name: "Afficher les entrées de temps",
@@ -1148,8 +1087,7 @@ export const fr: TranslationTree = {
 			},
 			timeSettings: {
 				header: "Paramètres de temps",
-				description:
-					"Configurez les paramètres d'affichage liés au temps pour les vues chronologiques.",
+				description: "Configurez les paramètres d'affichage liés au temps pour les vues chronologiques.",
 				timeSlotDuration: {
 					name: "Durée des créneaux horaires",
 					description: "Durée de chaque créneau horaire dans les vues chronologiques",
@@ -1161,20 +1099,17 @@ export const fr: TranslationTree = {
 				},
 				startTime: {
 					name: "Heure de début",
-					description:
-						"Heure la plus tôt affichée dans les vues chronologiques (format HH:MM)",
+					description: "Heure la plus tôt affichée dans les vues chronologiques (format HH:MM)",
 					placeholder: "06:00",
 				},
 				endTime: {
 					name: "Heure de fin",
-					description:
-						"Heure la plus tardive affichée dans les vues chronologiques (format HH:MM)",
+					description: "Heure la plus tardive affichée dans les vues chronologiques (format HH:MM)",
 					placeholder: "22:00",
 				},
 				initialScrollTime: {
 					name: "Heure de défilement initial",
-					description:
-						"Heure vers laquelle défiler à l'ouverture des vues chronologiques (format HH:MM)",
+					description: "Heure vers laquelle défiler à l'ouverture des vues chronologiques (format HH:MM)",
 					placeholder: "09:00",
 				},
 				eventMinHeight: {
@@ -1188,13 +1123,11 @@ export const fr: TranslationTree = {
 				description: "Configurez l'affichage de divers éléments d'interface.",
 				showTrackedTasksInStatusBar: {
 					name: "Afficher les tâches suivies dans la barre de statut",
-					description:
-						"Afficher les tâches actuellement suivies dans la barre de statut d'Obsidian",
+					description: "Afficher les tâches actuellement suivies dans la barre de statut d'Obsidian",
 				},
 				showProjectSubtasksWidget: {
 					name: "Afficher le widget des sous-tâches de projet",
-					description:
-						"Afficher un widget montrant les sous-tâches pour la note de projet actuelle",
+					description: "Afficher un widget montrant les sous-tâches pour la note de projet actuelle",
 				},
 				projectSubtasksPosition: {
 					name: "Position des sous-tâches de projet",
@@ -1206,18 +1139,15 @@ export const fr: TranslationTree = {
 				},
 				showTaskCardInNote: {
 					name: "Afficher la carte de tâche dans la note",
-					description:
-						"Afficher un widget de carte de tâche en haut des notes de tâche montrant les détails et actions de la tâche",
+					description: "Afficher un widget de carte de tâche en haut des notes de tâche montrant les détails et actions de la tâche",
 				},
 				showExpandableSubtasks: {
 					name: "Afficher les sous-tâches extensibles",
-					description:
-						"Permettre d'étendre/réduire les sections de sous-tâches dans les cartes de tâches",
+					description: "Permettre d'étendre/réduire les sections de sous-tâches dans les cartes de tâches",
 				},
 				subtaskChevronPosition: {
 					name: "Position du chevron des sous-tâches",
-					description:
-						"Position des chevrons d'extension/réduction dans les cartes de tâches",
+					description: "Position des chevrons d'extension/réduction dans les cartes de tâches",
 					options: {
 						left: "Côté gauche",
 						right: "Côté droit",
@@ -1234,74 +1164,60 @@ export const fr: TranslationTree = {
 			},
 			projectAutosuggest: {
 				header: "Autosuggestion de projets",
-				description:
-					"Personnalisez l'affichage des suggestions de projets lors de la création de tâches.",
+				description: "Personnalisez l'affichage des suggestions de projets lors de la création de tâches.",
 				requiredTags: {
 					name: "Tags requis",
-					description:
-						"Afficher seulement les notes avec l'un de ces tags (séparés par des virgules). Laisser vide pour afficher toutes les notes.",
+					description: "Afficher seulement les notes avec l'un de ces tags (séparés par des virgules). Laisser vide pour afficher toutes les notes.",
 					placeholder: "projet, actif, important",
 				},
 				includeFolders: {
 					name: "Inclure les dossiers",
-					description:
-						"Afficher seulement les notes dans ces dossiers (chemins séparés par des virgules). Laisser vide pour afficher tous les dossiers.",
+					description: "Afficher seulement les notes dans ces dossiers (chemins séparés par des virgules). Laisser vide pour afficher tous les dossiers.",
 					placeholder: "Projets/, Travail/Actif, Personnel",
 				},
 				requiredPropertyKey: {
 					name: "Clé de propriété requise",
-					description:
-						"Afficher seulement les notes où cette propriété frontmatter correspond à la valeur ci-dessous. Laisser vide pour ignorer.",
+					description: "Afficher seulement les notes où cette propriété frontmatter correspond à la valeur ci-dessous. Laisser vide pour ignorer.",
 					placeholder: "type-projet",
 				},
 				requiredPropertyValue: {
 					name: "Valeur de propriété requise",
-					description:
-						"Seules les notes où la propriété égale cette valeur sont suggérées. Laisser vide pour exiger que la propriété existe.",
+					description: "Seules les notes où la propriété égale cette valeur sont suggérées. Laisser vide pour exiger que la propriété existe.",
 					placeholder: "projet",
 				},
 				customizeDisplay: {
 					name: "Personnaliser l'affichage des suggestions",
-					description:
-						"Afficher les options avancées pour configurer comment les suggestions de projets apparaissent et quelles informations elles affichent.",
+					description: "Afficher les options avancées pour configurer comment les suggestions de projets apparaissent et quelles informations elles affichent.",
 				},
 				enableFuzzyMatching: {
 					name: "Activer la correspondance floue",
-					description:
-						"Permettre les fautes de frappe et correspondances partielles dans la recherche de projet. Peut être plus lent dans les gros coffres.",
+					description: "Permettre les fautes de frappe et correspondances partielles dans la recherche de projet. Peut être plus lent dans les gros coffres.",
 				},
-				displayRowsHelp:
-					"Configurez jusqu'à 3 lignes d'informations à afficher pour chaque suggestion de projet.",
+				displayRowsHelp: "Configurez jusqu'à 3 lignes d'informations à afficher pour chaque suggestion de projet.",
 				displayRows: {
 					row1: {
 						name: "Ligne 1",
-						description:
-							"Format : {propriété|drapeaux}. Propriétés : title, aliases, file.path, file.parent. Drapeaux : n(Label) affiche le label, s rend cherchable. Exemple : {title|n(Titre)|s}",
+						description: "Format : {propriété|drapeaux}. Propriétés : title, aliases, file.path, file.parent. Drapeaux : n(Label) affiche le label, s rend cherchable. Exemple : {title|n(Titre)|s}",
 						placeholder: "{title|n(Titre)}",
 					},
 					row2: {
 						name: "Ligne 2 (optionnel)",
-						description:
-							"Modèles courants : {aliases|n(Alias)}, {file.parent|n(Dossier)}, literal:Texte personnalisé",
+						description: "Modèles courants : {aliases|n(Alias)}, {file.parent|n(Dossier)}, literal:Texte personnalisé",
 						placeholder: "{aliases|n(Alias)}",
 					},
 					row3: {
 						name: "Ligne 3 (optionnel)",
-						description:
-							"Infos supplémentaires comme {file.path|n(Chemin)} ou champs frontmatter personnalisés",
+						description: "Infos supplémentaires comme {file.path|n(Chemin)} ou champs frontmatter personnalisés",
 						placeholder: "{file.path|n(Chemin)}",
 					},
 				},
 				quickReference: {
 					header: "Référence rapide",
-					properties:
-						"Propriétés disponibles : title, aliases, file.path, file.parent, ou tout champ frontmatter",
-					labels: 'Ajouter des labels : {title|n(Titre)} → "Titre : Mon Projet"',
-					searchable:
-						"Rendre cherchable : {description|s} inclut la description dans la recherche +",
+					properties: "Propriétés disponibles : title, aliases, file.path, file.parent, ou tout champ frontmatter",
+					labels: "Ajouter des labels : {title|n(Titre)} → \"Titre : Mon Projet\"",
+					searchable: "Rendre cherchable : {description|s} inclut la description dans la recherche +",
 					staticText: "Texte statique : literal:Mon Label Personnalisé",
-					alwaysSearchable:
-						"Le nom de fichier, titre et alias sont toujours cherchables par défaut.",
+					alwaysSearchable: "Le nom de fichier, titre et alias sont toujours cherchables par défaut.",
 				},
 			},
 			dataStorage: {
@@ -1325,37 +1241,26 @@ export const fr: TranslationTree = {
 			recurringSection: {
 				description: "Configurez le comportement pour la gestion des tâches récurrentes.",
 			},
-			timeblocking: {
-				description:
-					"Configurez la fonctionnalité de blocs de temps pour la planification légère dans les notes quotidiennes.",
-				usage: "Utilisation : Dans la vue calendrier avancée, maintenez Shift + glissez pour créer des blocs de temps. Glissez pour déplacer les blocs de temps existants. Redimensionnez les bords pour ajuster la durée.",
-			},
 		},
 		integrations: {
 			basesIntegration: {
 				header: "Intégration Bases",
-				description:
-					"Configurez l'intégration avec le plugin Obsidian Bases. Il s'agit d'une fonctionnalité expérimentale qui repose actuellement sur des API Obsidian non documentées. Le comportement peut changer ou se briser.",
+				description: "Configurez l'intégration avec le plugin Obsidian Bases. Il s'agit d'une fonctionnalité expérimentale qui repose actuellement sur des API Obsidian non documentées. Le comportement peut changer ou se briser.",
 				enable: {
 					name: "Activer l'intégration Bases",
-					description:
-						"Permettre l'utilisation des vues TaskNotes dans le plugin Obsidian Bases. Le plugin Bases doit être activé pour que cela fonctionne.",
+					description: "Permettre l'utilisation des vues TaskNotes dans le plugin Obsidian Bases. Le plugin Bases doit être activé pour que cela fonctionne.",
 				},
 				notices: {
-					enabled:
-						"Intégration Bases activée. Veuillez redémarrer Obsidian pour terminer la configuration.",
-					disabled:
-						"Intégration Bases désactivée. Veuillez redémarrer Obsidian pour terminer la suppression.",
+					enabled: "Intégration Bases activée. Veuillez redémarrer Obsidian pour terminer la configuration.",
+					disabled: "Intégration Bases désactivée. Veuillez redémarrer Obsidian pour terminer la suppression.",
 				},
 			},
 			calendarSubscriptions: {
 				header: "Abonnements calendrier",
-				description:
-					"Abonnez-vous à des calendriers externes via des URL ICS/iCal pour voir les événements à côté de vos tâches.",
+				description: "Abonnez-vous à des calendriers externes via des URL ICS/iCal pour voir les événements à côté de vos tâches.",
 				defaultNoteTemplate: {
 					name: "Modèle de note par défaut",
-					description:
-						"Chemin vers le fichier modèle pour les notes créées à partir d'événements ICS",
+					description: "Chemin vers le fichier modèle pour les notes créées à partir d'événements ICS",
 					placeholder: "Templates/Modèle Événement.md",
 				},
 				defaultNoteFolder: {
@@ -1365,8 +1270,7 @@ export const fr: TranslationTree = {
 				},
 				filenameFormat: {
 					name: "Format du nom de fichier des notes ICS",
-					description:
-						"Comment les noms de fichiers sont générés pour les notes créées à partir d'événements ICS",
+					description: "Comment les noms de fichiers sont générés pour les notes créées à partir d'événements ICS",
 					options: {
 						title: "Titre de l'événement",
 						zettel: "Format Zettelkasten",
@@ -1384,8 +1288,7 @@ export const fr: TranslationTree = {
 				header: "Liste des abonnements calendrier",
 				addSubscription: {
 					name: "Ajouter un abonnement calendrier",
-					description:
-						"Ajouter un nouvel abonnement calendrier depuis une URL ICS/iCal ou un fichier local",
+					description: "Ajouter un nouvel abonnement calendrier depuis une URL ICS/iCal ou un fichier local",
 					buttonText: "Ajouter un abonnement",
 				},
 				refreshAll: {
@@ -1394,20 +1297,18 @@ export const fr: TranslationTree = {
 					buttonText: "Tout actualiser",
 				},
 				newCalendarName: "Nouveau calendrier",
-				emptyState:
-					"Aucun abonnement calendrier configuré. Ajoutez un abonnement pour synchroniser des calendriers externes.",
+				emptyState: "Aucun abonnement calendrier configuré. Ajoutez un abonnement pour synchroniser des calendriers externes.",
 				notices: {
-					addSuccess:
-						"Nouvel abonnement calendrier ajouté - veuillez configurer les détails",
+					addSuccess: "Nouvel abonnement calendrier ajouté - veuillez configurer les détails",
 					addFailure: "Échec de l'ajout de l'abonnement",
 					serviceUnavailable: "Service d'abonnement ICS non disponible",
 					refreshSuccess: "Tous les abonnements calendrier actualisés avec succès",
 					refreshFailure: "Échec de l'actualisation de certains abonnements calendrier",
 					updateFailure: "Échec de la mise à jour de l'abonnement",
-					deleteSuccess: 'Abonnement "{name}" supprimé',
+					deleteSuccess: "Abonnement \"{name}\" supprimé",
 					deleteFailure: "Échec de la suppression de l'abonnement",
 					enableFirst: "Activez d'abord l'abonnement",
-					refreshSubscriptionSuccess: '"{name}" actualisé',
+					refreshSubscriptionSuccess: "\"{name}\" actualisé",
 					refreshSubscriptionFailure: "Échec de l'actualisation de l'abonnement",
 				},
 				labels: {
@@ -1443,10 +1344,10 @@ export const fr: TranslationTree = {
 					refreshNow: "Actualiser maintenant",
 					deleteSubscription: "Supprimer l'abonnement",
 				},
+				refreshNow: "Actualiser maintenant",
 				confirmDelete: {
 					title: "Supprimer l'abonnement",
-					message:
-						'Voulez-vous vraiment supprimer l\'abonnement "{name}" ? Cette action ne peut pas être annulée.',
+					message: "Voulez-vous vraiment supprimer l'abonnement \"{name}\" ? Cette action ne peut pas être annulée.",
 					confirmText: "Supprimer",
 				},
 			},
@@ -1455,13 +1356,11 @@ export const fr: TranslationTree = {
 				description: "Exportez automatiquement toutes vos tâches vers un fichier ICS.",
 				enable: {
 					name: "Activer l'export automatique",
-					description:
-						"Maintenir automatiquement un fichier ICS à jour avec toutes vos tâches",
+					description: "Maintenir automatiquement un fichier ICS à jour avec toutes vos tâches",
 				},
 				filePath: {
 					name: "Chemin du fichier d'export",
-					description:
-						"Chemin où le fichier ICS sera sauvegardé (relatif à la racine du coffre)",
+					description: "Chemin où le fichier ICS sera sauvegardé (relatif à la racine du coffre)",
 					placeholder: "tasknotes-calendrier.ics",
 				},
 				interval: {
@@ -1480,12 +1379,11 @@ export const fr: TranslationTree = {
 					nextExport: "Prochain export : {time}",
 					noExports: "Aucun export encore",
 					notScheduled: "Non programmé",
-					notInitialized:
-						"Service d'export automatique non initialisé - veuillez redémarrer Obsidian",
+					notInitialized: "Service d'export automatique non initialisé - veuillez redémarrer Obsidian",
+					serviceNotInitialized: "Service non initialisé - veuillez redémarrer Obsidian",
 				},
 				notices: {
-					reloadRequired:
-						"Veuillez recharger Obsidian pour que les changements d'export automatique prennent effet.",
+					reloadRequired: "Veuillez recharger Obsidian pour que les changements d'export automatique prennent effet.",
 					exportSuccess: "Tâches exportées avec succès",
 					exportFailure: "Échec de l'export - vérifiez la console pour les détails",
 					serviceUnavailable: "Service d'export automatique non disponible",
@@ -1493,8 +1391,7 @@ export const fr: TranslationTree = {
 			},
 			httpApi: {
 				header: "API HTTP",
-				description:
-					"Activez l'API HTTP pour les intégrations externes et les automations.",
+				description: "Activez l'API HTTP pour les intégrations externes et les automations.",
 				enable: {
 					name: "Activer l'API HTTP",
 					description: "Démarrer le serveur HTTP local pour l'accès API",
@@ -1506,8 +1403,7 @@ export const fr: TranslationTree = {
 				},
 				authToken: {
 					name: "Jeton d'authentification API",
-					description:
-						"Jeton requis pour l'authentification API (laisser vide pour pas d'authentification)",
+					description: "Jeton requis pour l'authentification API (laisser vide pour pas d'authentification)",
 					placeholder: "votre-jeton-secret",
 				},
 				endpoints: {
@@ -1519,8 +1415,7 @@ export const fr: TranslationTree = {
 			webhooks: {
 				header: "Webhooks",
 				description: {
-					overview:
-						"Les webhooks envoient des notifications en temps réel aux services externes lorsque des événements TaskNotes se produisent.",
+					overview: "Les webhooks envoient des notifications en temps réel aux services externes lorsque des événements TaskNotes se produisent.",
 					usage: "Configurez des webhooks pour intégrer avec des outils d'automatisation, des services de synchronisation ou des applications personnalisées.",
 				},
 				addWebhook: {
@@ -1529,8 +1424,7 @@ export const fr: TranslationTree = {
 					buttonText: "Ajouter un webhook",
 				},
 				emptyState: {
-					message:
-						"Aucun webhook configuré. Ajoutez un webhook pour recevoir des notifications en temps réel.",
+					message: "Aucun webhook configuré. Ajoutez un webhook pour recevoir des notifications en temps réel.",
 					buttonText: "Ajouter un webhook",
 				},
 				labels: {
@@ -1553,6 +1447,7 @@ export const fr: TranslationTree = {
 					editEvents: "Modifier les événements",
 					delete: "Supprimer",
 				},
+				editEvents: "Modifier les événements",
 				notices: {
 					urlUpdated: "URL du webhook mise à jour",
 					enabled: "Webhook activé",
@@ -1563,8 +1458,7 @@ export const fr: TranslationTree = {
 				},
 				confirmDelete: {
 					title: "Supprimer le webhook",
-					message:
-						"Voulez-vous vraiment supprimer ce webhook ?\n\nURL : {url}\n\nCette action ne peut pas être annulée.",
+					message: "Voulez-vous vraiment supprimer ce webhook ?\n\nURL : {url}\n\nCette action ne peut pas être annulée.",
 					confirmText: "Supprimer",
 				},
 				cardHeader: "Webhook",
@@ -1582,8 +1476,7 @@ export const fr: TranslationTree = {
 				},
 				secretModal: {
 					title: "Secret webhook généré",
-					description:
-						"Votre secret webhook a été généré. Sauvegardez ce secret car vous ne pourrez plus le voir :",
+					description: "Votre secret webhook a été généré. Sauvegardez ce secret car vous ne pourrez plus le voir :",
 					usage: "Utilisez ce secret pour vérifier les données webhook dans votre application réceptrice.",
 					gotIt: "Compris",
 				},
@@ -1648,8 +1541,7 @@ export const fr: TranslationTree = {
 				modals: {
 					secretGenerated: {
 						title: "Secret du webhook généré",
-						description:
-							"Le secret de votre webhook a été généré. Sauvegardez ce secret car vous ne pourrez plus le voir :",
+						description: "Le secret de votre webhook a été généré. Sauvegardez ce secret car vous ne pourrez plus le voir :",
 						usage: "Utilisez ce secret pour vérifier les données du webhook dans votre application réceptrice.",
 						buttonText: "Compris",
 					},
@@ -1660,14 +1552,12 @@ export const fr: TranslationTree = {
 						headersSection: "Configuration des en-têtes",
 						transformFile: {
 							name: "Fichier de transformation",
-							description:
-								"Chemin vers un fichier .js ou .json dans votre coffre qui transforme les données du webhook",
+							description: "Chemin vers un fichier .js ou .json dans votre coffre qui transforme les données du webhook",
 							placeholder: "discord-transform.js",
 						},
 						customHeaders: {
 							name: "Inclure les en-têtes personnalisés",
-							description:
-								"Inclure les en-têtes TaskNotes (type d'événement, signature, ID de livraison). Désactivez pour Discord, Slack et autres services avec des politiques CORS strictes.",
+							description: "Inclure les en-têtes TaskNotes (type d'événement, signature, ID de livraison). Désactivez pour Discord, Slack et autres services avec des politiques CORS strictes.",
 						},
 						buttons: {
 							cancel: "Annuler",
@@ -1684,20 +1574,17 @@ export const fr: TranslationTree = {
 						headersSection: "Configuration des en-têtes",
 						url: {
 							name: "URL du webhook",
-							description:
-								"Le point de terminaison où les données du webhook seront envoyées",
+							description: "Le point de terminaison où les données du webhook seront envoyées",
 							placeholder: "https://votre-service.com/webhook",
 						},
 						transformFile: {
 							name: "Fichier de transformation",
-							description:
-								"Chemin vers un fichier .js ou .json dans votre coffre qui transforme les données du webhook",
+							description: "Chemin vers un fichier .js ou .json dans votre coffre qui transforme les données du webhook",
 							placeholder: "discord-transform.js",
 						},
 						customHeaders: {
 							name: "Inclure les en-têtes personnalisés",
-							description:
-								"Inclure les en-têtes TaskNotes (type d'événement, signature, ID de livraison). Désactivez pour Discord, Slack et autres services avec des politiques CORS strictes.",
+							description: "Inclure les en-têtes TaskNotes (type d'événement, signature, ID de livraison). Désactivez pour Discord, Slack et autres services avec des politiques CORS strictes.",
 						},
 						transformHelp: {
 							title: "Les fichiers de transformation permettent de personnaliser les données du webhook :",
@@ -1884,6 +1771,58 @@ export const fr: TranslationTree = {
 			templatePathDesc: "Chemin vers le fichier de modèle",
 			templatePathPlaceholder: "templates/ics-note-template.md",
 		},
+		unscheduledTasksSelector: {
+			title: "Tâches non planifiées",
+			placeholder: "Tapez pour rechercher des tâches non planifiées...",
+			instructions: {
+				navigate: "pour naviguer",
+				schedule: "pour planifier",
+				dismiss: "pour ignorer",
+			},
+		},
+		migration: {
+			title: "Migrer vers le nouveau système de récurrence",
+			description: "TaskNotes dispose d'un nouveau système de récurrence qui utilise des modèles standard de l'industrie pour une meilleure compatibilité et des options de planification plus puissantes.",
+			tasksFound: "{count} tâche(s) avec d'anciens modèles de récurrence détectée(s)",
+			noMigrationNeeded: "Aucune tâche ne nécessite de migration",
+			warnings: {
+				title: "Avant de continuer :",
+				backup: "Sauvegardez votre coffre avant la migration",
+				conversion: "Les anciens modèles de récurrence seront convertis au nouveau format",
+				normalUsage: "Vous pouvez continuer à utiliser TaskNotes normalement pendant la migration",
+				permanent: "Ce changement est permanent et ne peut pas être annulé automatiquement",
+			},
+			benefits: {
+				title: "Avantages du nouveau système :",
+				powerfulPatterns: "Modèles de récurrence plus puissants (ex. 'tous les 2e mardi')",
+				performance: "Meilleures performances avec les tâches récurrentes",
+				compatibility: "Format de récurrence standard compatible avec d'autres applications",
+				nlp: "Support amélioré du traitement du langage naturel",
+			},
+			progress: {
+				title: "Progression de la migration",
+				preparing: "Préparation de la migration...",
+				completed: "Migration terminée avec succès",
+				failed: "Échec de la migration",
+			},
+			buttons: {
+				migrate: "Démarrer la migration",
+				completed: "Fermer",
+			},
+			errors: {
+				title: "Erreurs pendant la migration :",
+			},
+			notices: {
+				completedWithErrors: "Migration terminée avec quelques erreurs. Consultez la liste des erreurs ci-dessus.",
+				success: "Toutes les tâches ont été migrées avec succès !",
+				failed: "Échec de la migration. Veuillez consulter la console pour plus de détails.",
+			},
+			prompt: {
+				message: "TaskNotes a détecté des tâches utilisant l'ancien format de récurrence. Souhaitez-vous les migrer vers le nouveau système maintenant ?",
+				migrateNow: "Migrer maintenant",
+				remindLater: "Me rappeler plus tard",
+			},
+		},
 		task: {
 			titlePlaceholder: "Quel est votre prochain objectif ?",
 			titleLabel: "Titre",
@@ -1973,6 +1912,22 @@ export const fr: TranslationTree = {
 				ordinal: "{number}e",
 			},
 		},
+		taskSelector: {
+			title: "Sélectionner une tâche",
+			placeholder: "Tapez pour rechercher des tâches...",
+			instructions: {
+				navigate: "pour naviguer",
+				select: "pour sélectionner",
+				dismiss: "pour annuler",
+			},
+			notices: {
+				noteNotFound: "Impossible de trouver la note \"{name}\"",
+			},
+			dueDate: {
+				overdue: "Échéance : {date} (en retard)",
+				today: "Échéance : Aujourd'hui",
+			},
+		},
 		taskCreation: {
 			title: "Créer une tâche",
 			actions: {
@@ -1980,12 +1935,11 @@ export const fr: TranslationTree = {
 				hideDetailedOptions: "Masquer les options détaillées",
 				showDetailedOptions: "Afficher les options détaillées",
 			},
-			nlPlaceholder:
-				"Acheter des courses demain à 15h @maison #courses\n\nAjoutez des détails ici...",
+			nlPlaceholder: "Acheter des courses demain à 15h @maison #courses\n\nAjoutez des détails ici...",
 			notices: {
 				titleRequired: "Veuillez saisir un titre de tâche",
-				success: 'Tâche "{title}" créée avec succès',
-				successShortened: 'Tâche "{title}" créée avec succès (nom de fichier raccourci)',
+				success: "Tâche \"{title}\" créée avec succès",
+				successShortened: "Tâche \"{title}\" créée avec succès (nom de fichier raccourci)",
 				failure: "Échec de la création de la tâche : {message}",
 				blockingUnresolved: "Impossible de résoudre : {entries}",
 			},
@@ -2009,7 +1963,7 @@ export const fr: TranslationTree = {
 			notices: {
 				titleRequired: "Veuillez saisir un titre de tâche",
 				noChanges: "Aucune modification à enregistrer",
-				updateSuccess: 'Tâche "{title}" mise à jour avec succès',
+				updateSuccess: "Tâche \"{title}\" mise à jour avec succès",
 				updateFailure: "Échec de la mise à jour de la tâche : {message}",
 				dependenciesUpdateSuccess: "Dépendances mises à jour",
 				blockingUnresolved: "Impossible de résoudre : {entries}",
@@ -2029,23 +1983,19 @@ export const fr: TranslationTree = {
 				switch: "Basculer vers le stockage dans les notes quotidiennes ?",
 			},
 			message: {
-				migrate:
-					"Cette action migre vos sessions Pomodoro existantes vers le frontmatter des notes quotidiennes. Les données seront regroupées par date et stockées dans chaque note.",
+				migrate: "Cette action migre vos sessions Pomodoro existantes vers le frontmatter des notes quotidiennes. Les données seront regroupées par date et stockées dans chaque note.",
 				switch: "Les sessions Pomodoro seront désormais enregistrées dans le frontmatter de vos notes quotidiennes au lieu du fichier de données du plugin.",
 			},
 			whatThisMeans: "Ce que cela implique :",
 			bullets: {
 				dailyNotesRequired: "Le plugin noyau Daily Notes doit rester activé",
-				storedInNotes:
-					"Les données seront stockées dans le frontmatter de vos notes quotidiennes",
+				storedInNotes: "Les données seront stockées dans le frontmatter de vos notes quotidiennes",
 				migrateData: "Les données du plugin seront migrées puis vidées",
-				futureSessions:
-					"Les futures sessions seront enregistrées dans les notes quotidiennes",
+				futureSessions: "Les futures sessions seront enregistrées dans les notes quotidiennes",
 				dataLongevity: "Cela garantit une meilleure pérennité des données avec vos notes",
 			},
 			finalNote: {
-				migrate:
-					"⚠️ Assurez-vous d’avoir des sauvegardes si nécessaire. Ce changement ne peut pas être annulé automatiquement.",
+				migrate: "⚠️ Assurez-vous d’avoir des sauvegardes si nécessaire. Ce changement ne peut pas être annulé automatiquement.",
 				switch: "Vous pourrez revenir au stockage du plugin à tout moment par la suite.",
 			},
 			buttons: {
@@ -2127,22 +2077,6 @@ export const fr: TranslationTree = {
 				updateFailed: "Échec de la mise à jour de la date planifiée. Veuillez réessayer.",
 			},
 		},
-		taskSelector: {
-			title: "Sélectionner une tâche",
-			placeholder: "Tapez pour rechercher des tâches...",
-			instructions: {
-				navigate: "pour naviguer",
-				select: "pour sélectionner",
-				dismiss: "pour annuler",
-			},
-			notices: {
-				noteNotFound: 'Impossible de trouver la note "{name}"',
-			},
-			dueDate: {
-				overdue: "Échéance : {date} (en retard)",
-				today: "Échéance : Aujourd'hui",
-			},
-		},
 		timeEntryEditor: {
 			title: "Entrées de temps - {taskTitle}",
 			addEntry: "Ajouter une entrée de temps",
@@ -2194,6 +2128,7 @@ export const fr: TranslationTree = {
 			clearReminders: "Supprimer tous les rappels",
 			startTimeTracking: "Commencer le suivi du temps",
 			stopTimeTracking: "Arrêter le suivi du temps",
+			editTimeEntries: "Modifier les entrées de temps",
 			archive: "Archiver",
 			unarchive: "Désarchiver",
 			openNote: "Ouvrir la note",
@@ -2204,7 +2139,7 @@ export const fr: TranslationTree = {
 			renamePlaceholder: "Saisir un nouveau nom",
 			delete: "Supprimer",
 			deleteTitle: "Supprimer le fichier",
-			deleteMessage: 'Voulez-vous vraiment supprimer "{name}" ?',
+			deleteMessage: "Voulez-vous vraiment supprimer \"{name}\" ?",
 			deleteConfirm: "Supprimer",
 			copyPath: "Copier le chemin",
 			copyUrl: "Copier l'URL Obsidian",
@@ -2274,8 +2209,7 @@ export const fr: TranslationTree = {
 				oneDay: "1 jour avant",
 			},
 			notices: {
-				toggleCompletionFailure:
-					"Impossible de modifier l'achèvement récurrent : {message}",
+				toggleCompletionFailure: "Impossible de modifier l'achèvement récurrent : {message}",
 				updateDueDateFailure: "Impossible de mettre à jour l'échéance : {message}",
 				updateScheduledFailure: "Impossible de mettre à jour la date planifiée : {message}",
 				updateRemindersFailure: "Impossible de mettre à jour les rappels",
@@ -2284,7 +2218,7 @@ export const fr: TranslationTree = {
 				archiveFailure: "Impossible de modifier l'archivage de la tâche : {message}",
 				copyTitleSuccess: "Titre de la tâche copié dans le presse-papiers",
 				copyFailure: "Impossible de copier dans le presse-papiers",
-				renameSuccess: 'Renommé en "{name}"',
+				renameSuccess: "Renommé en \"{name}\"",
 				renameFailure: "Impossible de renommer le fichier",
 				copyPathSuccess: "Chemin du fichier copié dans le presse-papiers",
 				copyUrlSuccess: "URL Obsidian copiée dans le presse-papiers",
@@ -2311,7 +2245,7 @@ export const fr: TranslationTree = {
 				taskCreateFailure: "Impossible de créer une tâche depuis l'événement",
 				noteCreated: "Note créée avec succès",
 				creationFailure: "Impossible d'ouvrir la fenêtre de création",
-				linkSuccess: 'Note "{name}" liée à l\'événement',
+				linkSuccess: "Note \"{name}\" liée à l'événement",
 				linkFailure: "Impossible de lier la note",
 				linkSelectionFailure: "Impossible d'ouvrir la sélection de note",
 			},
@@ -2355,31 +2289,24 @@ export const fr: TranslationTree = {
 		pomodoro: {
 			notices: {
 				alreadyRunning: "Un pomodoro est déjà en cours",
-				resumeCurrentSession:
-					"Reprendre la session actuelle au lieu d'en démarrer une nouvelle",
+				resumeCurrentSession: "Reprendre la session actuelle au lieu d'en démarrer une nouvelle",
 				timerAlreadyRunning: "Un minuteur est déjà en cours",
-				resumeSessionInstead:
-					"Reprendre la session actuelle au lieu d'en démarrer une nouvelle",
+				resumeSessionInstead: "Reprendre la session actuelle au lieu d'en démarrer une nouvelle",
 				shortBreakStarted: "Pause courte démarrée",
 				longBreakStarted: "Pause longue démarrée",
 				paused: "Pomodoro mis en pause",
 				resumed: "Pomodoro repris",
 				stoppedAndReset: "Pomodoro arrêté et remis à zéro",
-				migrationSuccess:
-					"{count} sessions pomodoro migrées avec succès vers les notes quotidiennes.",
-				migrationFailure:
-					"Échec de la migration des données pomodoro. Veuillez réessayer ou vérifier la console pour plus de détails.",
+				migrationSuccess: "{count} sessions pomodoro migrées avec succès vers les notes quotidiennes.",
+				migrationFailure: "Échec de la migration des données pomodoro. Veuillez réessayer ou vérifier la console pour plus de détails.",
 			},
 		},
 		icsSubscription: {
 			notices: {
-				calendarNotFound:
-					'Calendrier "{name}" introuvable (404). Veuillez vérifier que l\'URL ICS est correcte et que le calendrier est accessible publiquement.',
-				calendarAccessDenied:
-					'Accès refusé au calendrier "{name}" (500). Cela peut être dû aux restrictions du serveur Microsoft Outlook. Essayez de régénérer l\'URL ICS depuis les paramètres de votre calendrier.',
-				fetchRemoteFailed:
-					'Échec de la récupération du calendrier distant "{name}" : {error}',
-				readLocalFailed: 'Échec de la lecture du calendrier local "{name}" : {error}',
+				calendarNotFound: "Calendrier \"{name}\" introuvable (404). Veuillez vérifier que l'URL ICS est correcte et que le calendrier est accessible publiquement.",
+				calendarAccessDenied: "Accès refusé au calendrier \"{name}\" (500). Cela peut être dû aux restrictions du serveur Microsoft Outlook. Essayez de régénérer l'URL ICS depuis les paramètres de votre calendrier.",
+				fetchRemoteFailed: "Échec de la récupération du calendrier distant \"{name}\" : {error}",
+				readLocalFailed: "Échec de la lecture du calendrier local \"{name}\" : {error}",
 			},
 		},
 		calendarExport: {
@@ -2425,8 +2352,7 @@ export const fr: TranslationTree = {
 				noCheckboxTasks: "Aucune tâche à cocher trouvée dans la note actuelle.",
 				convertingTasks: "Conversion de {count} tâche{plural}...",
 				conversionSuccess: "✅ {count} tâche{plural} converties avec succès en TaskNotes !",
-				partialConversion:
-					"{successCount} tâche{successPlural} convertie{successPlural}. {failureCount} ont échoué.",
+				partialConversion: "{successCount} tâche{successPlural} convertie{successPlural}. {failureCount} ont échoué.",
 				batchConversionFailed: "Échec de la conversion par lot. Veuillez réessayer.",
 				invalidParameters: "Paramètres d'entrée invalides.",
 				emptyLine: "La ligne actuelle est vide ou ne contient aucun contenu valide.",
@@ -2434,10 +2360,8 @@ export const fr: TranslationTree = {
 				invalidTaskData: "Données de tâche invalides.",
 				replaceLineFailed: "Échec du remplacement de la ligne de tâche.",
 				conversionComplete: "Tâche convertie : {title}",
-				conversionCompleteShortened:
-					'Tâche convertie : "{title}" (nom de fichier raccourci en raison de la longueur)',
-				fileExists:
-					"Un fichier avec ce nom existe déjà. Veuillez réessayer ou renommer la tâche.",
+				conversionCompleteShortened: "Tâche convertie : \"{title}\" (nom de fichier raccourci en raison de la longueur)",
+				fileExists: "Un fichier avec ce nom existe déjà. Veuillez réessayer ou renommer la tâche.",
 				conversionFailed: "Échec de la conversion de la tâche. Veuillez réessayer.",
 			},
 		},
@@ -2458,12 +2382,6 @@ export const fr: TranslationTree = {
 		autoExport: {
 			notices: {
 				exportFailed: "Échec de l'export automatique TaskNotes : {error}",
-			},
-		},
-		notification: {
-			notices: {
-				// NotificationService uses Notice for in-app notifications
-				// but the message comes from the reminder content, so no hardcoded strings to translate
 			},
 		},
 	},
@@ -2503,22 +2421,22 @@ export const fr: TranslationTree = {
 			savedFilterViews: "Vues de filtre enregistrées",
 			filters: "Filtres",
 			properties: "Propriétés",
-			sort: "Tri",
-			newTask: "Nouvelle",
+			sort: "Trier",
+			newTask: "Nouveau",
 			expandAllGroups: "Déplier tous les groupes",
 			collapseAllGroups: "Replier tous les groupes",
 			searchTasksPlaceholder: "Rechercher des tâches...",
 			searchTasksTooltip: "Rechercher dans les titres de tâches",
-			filterUnavailable: "Barre de filtre temporairement indisponible",
-			toggleFilter: "Basculer le filtre",
+			filterUnavailable: "Barre de filtrage temporairement indisponible",
+			toggleFilter: "Activer/désactiver le filtre",
 			activeFiltersTooltip: "Filtres actifs – Cliquez pour modifier, clic droit pour effacer",
 			configureVisibleProperties: "Configurer les propriétés visibles",
-			sortAndGroupOptions: "Options de tri et regroupement",
-			sortMenuHeader: "Tri",
+			sortAndGroupOptions: "Options de tri et de regroupement",
+			sortMenuHeader: "Trier",
 			orderMenuHeader: "Ordre",
-			groupMenuHeader: "Groupe",
+			groupMenuHeader: "Grouper",
 			createNewTask: "Créer une nouvelle tâche",
-			filter: "Filtre",
+			filter: "Filtrer",
 			displayOrganization: "Affichage et organisation",
 			viewOptions: "Options de vue",
 			addFilter: "Ajouter un filtre",
@@ -2530,9 +2448,9 @@ export const fr: TranslationTree = {
 			closeFilterModal: "Fermer la fenêtre de filtre",
 			deleteFilterGroup: "Supprimer le groupe de filtres",
 			deleteCondition: "Supprimer la condition",
-			all: "Toutes",
-			any: "N'importe laquelle",
-			followingAreTrue: "des conditions suivantes sont vraies :",
+			all: "Tous",
+			any: "N'importe lequel",
+			followingAreTrue: "des suivants sont vrais :",
 			where: "où",
 			selectProperty: "Sélectionner...",
 			chooseProperty: "Choisissez quelle propriété de tâche filtrer",
@@ -2540,28 +2458,27 @@ export const fr: TranslationTree = {
 			enterValue: "Entrez la valeur à filtrer",
 			selectValue: "Sélectionnez un {property} à filtrer",
 			sortBy: "Trier par :",
-			toggleSortDirection: "Basculer la direction de tri",
+			toggleSortDirection: "Inverser le sens de tri",
 			chooseSortMethod: "Choisissez comment trier les tâches",
 			groupBy: "Grouper par :",
 			chooseGroupMethod: "Grouper les tâches par une propriété commune",
-			toggleViewOption: "Basculer {option}",
+			toggleViewOption: "Activer/désactiver {option}",
 			expandCollapseFilters: "Cliquez pour déplier/replier les conditions de filtre",
-			expandCollapseSort: "Cliquez pour déplier/replier les options de tri et regroupement",
-			expandCollapseViewOptions:
-				"Cliquez pour déplier/replier les options spécifiques à la vue",
+			expandCollapseSort: "Cliquez pour déplier/replier les options de tri et de regroupement",
+			expandCollapseViewOptions: "Cliquez pour déplier/replier les options spécifiques à la vue",
 			naturalLanguageDates: "Dates en langage naturel",
-			naturalLanguageExamples: "Afficher les exemples de dates en langage naturel",
+			naturalLanguageExamples: "Afficher des exemples de dates en langage naturel",
 			enterNumericValue: "Entrez une valeur numérique à filtrer",
-			enterDateValue: "Entrez une date en langage naturel ou format ISO",
+			enterDateValue: "Entrez une date en langage naturel ou au format ISO",
 			pickDateTime: "Choisir date et heure",
 			noSavedViews: "Aucune vue enregistrée",
 			savedViews: "Vues enregistrées",
-			yourSavedFilters: "Vos configurations de filtres enregistrées",
+			yourSavedFilters: "Vos configurations de filtre enregistrées",
 			dragToReorder: "Glissez pour réorganiser les vues",
 			loadSavedView: "Charger la vue enregistrée : {name}",
 			deleteView: "Supprimer la vue",
 			deleteViewTitle: "Supprimer la vue",
-			deleteViewMessage: 'Êtes-vous sûr de vouloir supprimer la vue "{name}" ?',
+			deleteViewMessage: "Êtes-vous sûr de vouloir supprimer la vue \"{name}\" ?",
 			manageAllReminders: "Gérer tous les rappels...",
 			clearAllReminders: "Effacer tous les rappels",
 			customRecurrence: "Récurrence personnalisée...",
@@ -2586,17 +2503,39 @@ export const fr: TranslationTree = {
 				dueDate: "Date d'échéance",
 				scheduledDate: "Date planifiée",
 				tags: "Étiquettes",
-				completedDate: "Date de complétion",
+				completedDate: "Date d'achèvement",
 			},
-			notices: {
-				propertiesMenuFailed: "Impossible d'afficher le menu des propriétés",
-			},
-		},
-		filterBar: {
 			subgroupLabel: "SOUS-GROUPE",
+			notices: {
+				propertiesMenuFailed: "Échec de l'affichage du menu des propriétés",
+			},
 		},
 	},
 	components: {
+		dateContextMenu: {
+			weekdays: "Jours de semaine",
+			clearDate: "Effacer la date",
+			today: "Aujourd'hui",
+			tomorrow: "Demain",
+			thisWeekend: "Ce week-end",
+			nextWeek: "La semaine prochaine",
+			nextMonth: "Le mois prochain",
+			setDateTime: "Définir la date et l'heure",
+			dateLabel: "Date",
+			timeLabel: "Heure (optionnelle)",
+		},
+		subgroupMenuBuilder: {
+			none: "Aucun",
+			status: "Statut",
+			priority: "Priorité",
+			context: "Contexte",
+			project: "Projet",
+			dueDate: "Date d'échéance",
+			scheduledDate: "Date programmée",
+			tags: "Étiquettes",
+			completedDate: "Date de finalisation",
+			subgroup: "SOUS-GROUPE",
+		},
 		propertyVisibilityDropdown: {
 			coreProperties: "PROPRIÉTÉS PRINCIPALES",
 			organization: "ORGANISATION",
@@ -2633,30 +2572,6 @@ export const fr: TranslationTree = {
 				oneDayBefore: "1 jour avant",
 			},
 		},
-		dateContextMenu: {
-			weekdays: "Jours de semaine",
-			clearDate: "Effacer la date",
-			today: "Aujourd'hui",
-			tomorrow: "Demain",
-			thisWeekend: "Ce week-end",
-			nextWeek: "La semaine prochaine",
-			nextMonth: "Le mois prochain",
-			setDateTime: "Définir la date et l'heure",
-			dateLabel: "Date",
-			timeLabel: "Heure (optionnelle)",
-		},
-		subgroupMenuBuilder: {
-			none: "Aucun",
-			status: "Statut",
-			priority: "Priorité",
-			context: "Contexte",
-			project: "Projet",
-			dueDate: "Date d'échéance",
-			scheduledDate: "Date programmée",
-			tags: "Étiquettes",
-			completedDate: "Date de finalisation",
-			subgroup: "SOUS-GROUPE",
-		},
 		recurrenceContextMenu: {
 			daily: "Quotidien",
 			weeklyOn: "Hebdomadaire le {day}",
@@ -2672,14 +2587,12 @@ export const fr: TranslationTree = {
 				startDate: "Date de début",
 				startDateDesc: "La date à laquelle le modèle de récurrence commence",
 				startTime: "Heure de début",
-				startTimeDesc:
-					"L'heure à laquelle les instances récurrentes doivent apparaître (optionnel)",
+				startTimeDesc: "L'heure à laquelle les instances récurrentes doivent apparaître (optionnel)",
 				frequency: "Fréquence",
 				interval: "Intervalle",
 				intervalDesc: "Tous les X jours/semaines/mois/années",
 				daysOfWeek: "Jours de la semaine",
-				daysOfWeekDesc:
-					"Sélectionnez des jours spécifiques (pour la récurrence hebdomadaire)",
+				daysOfWeekDesc: "Sélectionnez des jours spécifiques (pour la récurrence hebdomadaire)",
 				monthlyRecurrence: "Récurrence mensuelle",
 				monthlyRecurrenceDesc: "Choisissez comment répéter mensuellement",
 				yearlyRecurrence: "Récurrence annuelle",
@@ -2730,5 +2643,3 @@ export const fr: TranslationTree = {
 		},
 	},
 };
-
-export type FrTranslationSchema = typeof fr;
