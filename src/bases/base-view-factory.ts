@@ -88,6 +88,7 @@ export function buildTasknotesBaseViewFactory(plugin: TaskNotesPlugin, config: V
 		};
 
 		const render = async function(this: any) {
+			console.log("[TaskNotes][Bases] ========== RENDER CALLED ==========");
 			if (!currentRoot) return;
 			try {
 				// Public API (1.10.0+): 'this' is the BasesView with data/config
@@ -150,6 +151,7 @@ export function buildTasknotesBaseViewFactory(plugin: TaskNotesPlugin, config: V
 				}
 
 				const taskNotes = await identifyTaskNotesFromBasesData(dataItems, plugin);
+				console.log("[TaskNotes][Bases] Found", taskNotes.length, "tasks");
 
 				// Render body
 				itemsContainer.innerHTML = "";
@@ -160,6 +162,7 @@ export function buildTasknotesBaseViewFactory(plugin: TaskNotesPlugin, config: V
 					emptyEl.textContent = "No TaskNotes tasks found for this Base.";
 					itemsContainer.appendChild(emptyEl);
 				} else {
+					console.log("[TaskNotes][Bases] Checking groupedData:", !!viewContext.data?.groupedData);
 					// Build a map from task path to its properties/frontmatter
 					const pathToProps = new Map<string, Record<string, any>>(
 						dataItems
@@ -173,6 +176,7 @@ export function buildTasknotesBaseViewFactory(plugin: TaskNotesPlugin, config: V
 					// Check if we have grouped data from Bases (public API)
 					if (viewContext.data?.groupedData && Array.isArray(viewContext.data.groupedData)) {
 						// Use grouped data from Bases
+						console.log("[TaskNotes][Bases] Calling renderGroupedTasksInBasesView with", viewContext.data.groupedData.length, "groups");
 						await renderGroupedTasksInBasesView(
 							itemsContainer,
 							taskNotes,
@@ -193,6 +197,7 @@ export function buildTasknotesBaseViewFactory(plugin: TaskNotesPlugin, config: V
 						// Render tasks using existing helper (flat list)
 						// Clear existing task elements tracking before re-render
 						currentTaskElements.clear();
+						console.log("[TaskNotes][Bases] Calling renderTaskNotesInBasesView with", taskNotes.length, "tasks");
 						await renderTaskNotesInBasesView(
 							itemsContainer,
 							taskNotes,
