@@ -334,12 +334,17 @@ import { FieldMapper } from "../services/FieldMapper";
 
 /**
  * Complete property mapping chain:
- * 1. Bases Property ID → TaskCard Property ID
- * 2. TaskCard Property ID → Internal Field Name
- * 3. Internal Field Name → User-Configured Property Name
+ * 1. Bases Property ID → Internal Field Name (via FieldMapper)
+ * 2. Internal Field Name → User-Configured Property Name (for frontmatter I/O)
  *
- * Example flow:
- * "note.status" → "status" → "status" → "task-status" (if user configured)
+ * Example flow (user configured "state" as their status property):
+ * - User adds "note.state" column in Bases
+ * - basesToInternal("note.state"):
+ *   1. Strip prefix: "note.state" → "state"
+ *   2. FieldMapper.fromUserField("state") → "status"
+ *   3. Returns: "status" (internal field name)
+ * - TaskCard uses PROPERTY_EXTRACTORS["status"] to get task.status
+ * - TaskCard uses PROPERTY_RENDERERS["status"] to render status UI (checkbox, dot)
  */
 export class PropertyMappingService {
     constructor(
@@ -351,13 +356,17 @@ export class PropertyMappingService {
      * Map Bases property ID to the internal field name used by TaskInfo.
      * This is the complete chain: Bases → TaskCard → Internal.
      *
-     * @param basesPropertyId - Property ID from Bases (e.g., "note.status", "file.name")
+     * Example: User configures "state" as their status property
+     * - Bases gives us: "note.state"
+     * - We strip prefix: "state"
+     * - FieldMapper maps: "state" → "status"
+     * - Returns: "status" (internal field name)
+     *
+     * @param basesPropertyId - Property ID from Bases (e.g., "note.state", "file.name")
      * @returns Internal field name (e.g., "status", "title")
      */
     basesToInternal(basesPropertyId: BasesPropertyId): string {
-        let mapped = basesPropertyId;
-
-        // Step 1: Try custom field mapping first (highest priority)
+        // Step 1: Try custom field mapping on full ID first (edge case: user configured "note.state")
         if (this.fieldMapper) {
             const internalFieldName = this.fieldMapper.fromUserField(basesPropertyId);
             if (internalFieldName) {
@@ -365,22 +374,58 @@ export class PropertyMappingService {
             }
         }
 
-        // Step 2: Handle dotted prefixes (note., task., file., formula.)
+        // Step 2: Handle dotted prefixes - strip and try FieldMapper again
         if (basesPropertyId.startsWith("note.")) {
-            mapped = basesPropertyId.substring(5);
-        } else if (basesPropertyId.startsWith("task.")) {
-            mapped = basesPropertyId.substring(5);
-        } else if (basesPropertyId.startsWith("file.")) {
+            const stripped = basesPropertyId.substring(5); // "note.state" → "state"
+
+            // Try custom field mapping on stripped name (main case!)
+            if (this.fieldMapper) {
+                const internalFieldName = this.fieldMapper.fromUserField(stripped);
+                if (internalFieldName) {
+                    return this.applySpecialTransformations(internalFieldName);
+                }
+            }
+
+            // Handle known note properties
+            if (stripped === "dateCreated") return "dateCreated";
+            if (stripped === "dateModified") return "dateModified";
+            if (stripped === "completedDate") return "completedDate";
+
+            return this.applySpecialTransformations(stripped);
+        }
+
+        if (basesPropertyId.startsWith("task.")) {
+            const stripped = basesPropertyId.substring(5);
+
+            // Try custom field mapping on stripped name
+            if (this.fieldMapper) {
+                const internalFieldName = this.fieldMapper.fromUserField(stripped);
+                if (internalFieldName) {
+                    return this.applySpecialTransformations(internalFieldName);
+                }
+            }
+
+            return this.applySpecialTransformations(stripped);
+        }
+
+        if (basesPropertyId.startsWith("file.")) {
             // Map file properties to TaskInfo equivalents
             if (basesPropertyId === "file.ctime") return "dateCreated";
             if (basesPropertyId === "file.mtime") return "dateModified";
             if (basesPropertyId === "file.name") return "title";
             if (basesPropertyId === "file.basename") return "title";
-            mapped = basesPropertyId.substring(5);
+
+            const stripped = basesPropertyId.substring(5);
+            return this.applySpecialTransformations(stripped);
         }
 
-        // Step 3: Apply special transformations
-        return this.applySpecialTransformations(mapped);
+        // Step 3: Keep formula properties unchanged
+        if (basesPropertyId.startsWith("formula.")) {
+            return basesPropertyId;
+        }
+
+        // Step 4: Direct property (no prefix) - apply special transformations
+        return this.applySpecialTransformations(basesPropertyId);
     }
 
     /**
