@@ -48,6 +48,12 @@ function createTaskInfoFromProperties(
 		}
 	});
 
+	// Calculate total tracked time from time entries
+	const { calculateTotalTimeSpent } = require("../utils/helpers");
+	const totalTrackedTime = props.timeEntries
+		? calculateTotalTimeSpent(props.timeEntries)
+		: 0;
+
 	return {
 		title:
 			props.title ||
@@ -77,6 +83,7 @@ function createTaskInfoFromProperties(
 		dateCreated: props.dateCreated,
 		dateModified: props.dateModified,
 		timeEntries: props.timeEntries,
+		totalTrackedTime: totalTrackedTime,
 		reminders: props.reminders,
 		icsEventId: props.icsEventId,
 		complete_instances: props.complete_instances,
