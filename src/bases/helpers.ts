@@ -18,7 +18,8 @@ export interface BasesDataItem {
  */
 function createTaskInfoFromProperties(
 	props: Record<string, any>,
-	basesItem: BasesDataItem
+	basesItem: BasesDataItem,
+	plugin?: TaskNotesPlugin
 ): TaskInfo {
 	const knownProperties = new Set([
 		"title",
@@ -39,6 +40,8 @@ function createTaskInfoFromProperties(
 		"reminders",
 		"icsEventId",
 		"complete_instances",
+		"blockedBy",
+		"blocking",
 	]);
 
 	const customProperties: Record<string, any> = {};
@@ -53,6 +56,17 @@ function createTaskInfoFromProperties(
 	const totalTrackedTime = props.timeEntries
 		? calculateTotalTimeSpent(props.timeEntries)
 		: 0;
+
+	// Calculate isBlocked from blockedBy array (tasks that block this task)
+	const isBlocked = Array.isArray(props.blockedBy) && props.blockedBy.length > 0;
+
+	// Get blocking tasks from DependencyCache if plugin is available
+	let blockingTasks: string[] = [];
+	let isBlocking = false;
+	if (plugin?.dependencyCache && basesItem.path) {
+		blockingTasks = plugin.dependencyCache.getBlockedTaskPaths(basesItem.path);
+		isBlocking = blockingTasks.length > 0;
+	}
 
 	return {
 		title:
@@ -87,6 +101,10 @@ function createTaskInfoFromProperties(
 		reminders: props.reminders,
 		icsEventId: props.icsEventId,
 		complete_instances: props.complete_instances,
+		blockedBy: props.blockedBy,
+		blocking: blockingTasks.length > 0 ? blockingTasks : undefined,
+		isBlocked: isBlocked,
+		isBlocking: isBlocking,
 		customProperties: Object.keys(customProperties).length > 0 ? customProperties : undefined,
 		basesData: basesItem.basesData,
 	};
@@ -107,11 +125,11 @@ export function createTaskInfoFromBasesData(
 			plugin.settings.storeTitleInFilename
 		);
 		return {
-			...createTaskInfoFromProperties(mappedTaskInfo, basesItem),
+			...createTaskInfoFromProperties(mappedTaskInfo, basesItem, plugin),
 			customProperties: mappedTaskInfo.customProperties,
 		};
 	} else {
-		return createTaskInfoFromProperties(props, basesItem);
+		return createTaskInfoFromProperties(props, basesItem, plugin);
 	}
 }
 
@@ -251,6 +269,10 @@ export async function renderTaskNotesInBasesView(
 					if (mappedId === "timeEntries") {
 						mappedId = "totalTrackedTime";
 					}
+					// Special case: if user mapped blockedBy, show blocked pill
+					if (mappedId === "blockedBy") {
+						mappedId = "blocked";
+					}
 				}
 				// Handle dotted properties like task.due -> due
 				else if (propId.startsWith("task.")) {
@@ -258,6 +280,10 @@ export async function renderTaskNotesInBasesView(
 					// Special case: timeEntries should show as totalTrackedTime in card views
 					if (mappedId === "timeEntries") {
 						mappedId = "totalTrackedTime";
+					}
+					// Special case: blockedBy should show as blocked pill
+					if (mappedId === "blockedBy") {
+						mappedId = "blocked";
 					}
 				}
 				// Handle note properties like note.projects -> projects
@@ -272,17 +298,29 @@ export async function renderTaskNotesInBasesView(
 						if (mappedId === "timeEntries") {
 							mappedId = "totalTrackedTime";
 						}
+						// Special case: blockedBy should show as blocked pill
+						if (mappedId === "blockedBy") {
+							mappedId = "blocked";
+						}
 					}
 					// Map specific note properties to TaskNotes property names
 					else if (stripped === "dateCreated") mappedId = "dateCreated";
 					else if (stripped === "dateModified") mappedId = "dateModified";
 					else if (stripped === "completedDate") mappedId = "completedDate";
 					else if (stripped === "timeEntries") mappedId = "totalTrackedTime"; // Show total instead of array
+					else if (stripped === "blockedBy") mappedId = "blocked"; // Show "Blocked (n)" pill
 					else mappedId = stripped; // projects, contexts, tags, and any other arbitrary properties
 				}
 				// Handle direct timeEntries property
 				else if (propId === "timeEntries") {
 					mappedId = "totalTrackedTime"; // Show total instead of array
+				}
+				// Handle dependency properties - show pill format instead of detailed lists
+				else if (propId === "blockedBy") {
+					mappedId = "blocked"; // Show "Blocked (n)" pill instead of detailed list
+				}
+				else if (propId === "blocking") {
+					mappedId = "blocking"; // Show "Blocking (n)" pill instead of detailed list
 				}
 				// Handle file properties
 				else if (propId === "file.ctime") mappedId = "dateCreated";
@@ -401,11 +439,19 @@ export async function renderGroupedTasksInBasesView(
 				if (mappedId === "timeEntries") {
 					mappedId = "totalTrackedTime";
 				}
+				// Special case: blockedBy should show as blocked pill
+				if (mappedId === "blockedBy") {
+					mappedId = "blocked";
+				}
 			} else if (propId.startsWith("task.")) {
 				mappedId = propId.substring(5);
 				// Special case: timeEntries should show as totalTrackedTime
 				if (mappedId === "timeEntries") {
 					mappedId = "totalTrackedTime";
+				}
+				// Special case: blockedBy should show as blocked pill
+				if (mappedId === "blockedBy") {
+					mappedId = "blocked";
 				}
 			} else if (propId.startsWith("note.")) {
 				const stripped = propId.substring(5);
@@ -416,13 +462,22 @@ export async function renderGroupedTasksInBasesView(
 					if (mappedId === "timeEntries") {
 						mappedId = "totalTrackedTime";
 					}
+					// Special case: blockedBy should show as blocked pill
+					if (mappedId === "blockedBy") {
+						mappedId = "blocked";
+					}
 				} else if (stripped === "dateCreated") mappedId = "dateCreated";
 				else if (stripped === "dateModified") mappedId = "dateModified";
 				else if (stripped === "completedDate") mappedId = "completedDate";
 				else if (stripped === "timeEntries") mappedId = "totalTrackedTime"; // Show total instead of array
+				else if (stripped === "blockedBy") mappedId = "blocked"; // Show "Blocked (n)" pill
 				else mappedId = stripped;
 			} else if (propId === "timeEntries") {
 				mappedId = "totalTrackedTime"; // Show total instead of array
+			} else if (propId === "blockedBy") {
+				mappedId = "blocked"; // Show "Blocked (n)" pill instead of detailed list
+			} else if (propId === "blocking") {
+				mappedId = "blocking"; // Show "Blocking (n)" pill instead of detailed list
 			} else if (propId === "file.ctime") mappedId = "dateCreated";
 			else if (propId === "file.mtime") mappedId = "dateModified";
 			else if (propId === "file.name") mappedId = "title";

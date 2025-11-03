@@ -261,6 +261,17 @@ export class TaskManager extends Events {
 				? calculateTotalTimeSpent(mappedTask.timeEntries)
 				: 0;
 
+			// Calculate isBlocked from blockedBy array (tasks that block this task)
+			const isBlocked = Array.isArray(mappedTask.blockedBy) && mappedTask.blockedBy.length > 0;
+
+			// Get blocking tasks from DependencyCache (tasks that this task blocks)
+			let blockingTasks: string[] = [];
+			let isBlocking = false;
+			if (this._dependencyCache) {
+				blockingTasks = this._dependencyCache.getBlockedTaskPaths(path);
+				isBlocking = blockingTasks.length > 0;
+			}
+
 			return {
 				id: path, // Add id field for API consistency
 				title: mappedTask.title || "Untitled task",
@@ -283,9 +294,9 @@ export class TaskManager extends Events {
 				dateModified: mappedTask.dateModified,
 				reminders: mappedTask.reminders,
 				blockedBy: mappedTask.blockedBy,
-				blocking: mappedTask.blocking,
-				isBlocked: false, // Will be calculated by DependencyCache when needed
-				isBlocking: false, // Will be calculated by DependencyCache when needed
+				blocking: blockingTasks.length > 0 ? blockingTasks : undefined,
+				isBlocked: isBlocked,
+				isBlocking: isBlocking,
 			};
 		} catch (error) {
 			console.error(`Error extracting task info from native metadata for ${path}:`, error);

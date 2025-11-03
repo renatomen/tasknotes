@@ -116,10 +116,15 @@ const PROPERTY_EXTRACTORS: Record<string, (task: TaskInfo) => any> = {
 	tags: (task) => task.tags,
 	blocked: (task) => task.isBlocked,
 	blocking: (task) => task.isBlocking,
+	blockedBy: (task) => task.blockedBy,
+	blockingTasks: (task) => task.blocking,
 	timeEstimate: (task) => task.timeEstimate,
+	timeEntries: (task) => task.timeEntries,
 	totalTrackedTime: (task) => task.totalTrackedTime,
 	recurrence: (task) => task.recurrence,
 	completedDate: (task) => task.completedDate,
+	reminders: (task) => task.reminders,
+	icsEventId: (task) => task.icsEventId,
 	"file.ctime": (task) => task.dateCreated,
 	"file.mtime": (task) => task.dateModified,
 };
@@ -382,6 +387,92 @@ const PROPERTY_RENDERERS: Record<string, PropertyRenderer> = {
 				showTime: false,
 				userTimeFormat: plugin.settings.calendarViewSettings.timeFormat,
 			})}`;
+		}
+	},
+	blocked: (element, value, task) => {
+		// Show blocked status with count if available
+		if (value === true) {
+			const blockedCount = task.blockedBy?.length ?? 0;
+			element.textContent = blockedCount > 0 ? `Blocked (${blockedCount})` : "Blocked";
+			element.classList.add("task-card__metadata-pill--blocked");
+		}
+	},
+	blocking: (element, value, task) => {
+		// Show blocking status with count if available
+		if (value === true) {
+			const blockingCount = task.blocking?.length ?? 0;
+			element.textContent = blockingCount > 0 ? `Blocking (${blockingCount})` : "Blocking";
+			element.classList.add("task-card__metadata-pill--blocking");
+		}
+	},
+	blockedBy: (element, value, task, plugin) => {
+		// Show list of tasks blocking this one
+		if (Array.isArray(value) && value.length > 0) {
+			const linkServices: LinkServices = {
+				metadataCache: plugin.app.metadataCache,
+				workspace: plugin.app.workspace,
+			};
+			element.createEl("span", { text: "Blocked by: " });
+			const linksContainer = element.createEl("span");
+			value.forEach((dep, idx) => {
+				if (idx > 0) linksContainer.appendChild(document.createTextNode(", "));
+				// Each dependency has a path property
+				const depPath = typeof dep === "string" ? dep : dep.path;
+				if (depPath) {
+					const linkEl = linksContainer.createEl("a", {
+						cls: "internal-link",
+						attr: { href: depPath },
+					});
+					linkEl.textContent = depPath.split("/").pop()?.replace(".md", "") || depPath;
+					linkEl.addEventListener("click", (e) => {
+						e.preventDefault();
+						e.stopPropagation();
+						plugin.app.workspace.openLinkText(depPath, "", false);
+					});
+				}
+			});
+		}
+	},
+	blockingTasks: (element, value, task, plugin) => {
+		// Show list of tasks that this one is blocking
+		if (Array.isArray(value) && value.length > 0) {
+			element.createEl("span", { text: "Blocking: " });
+			const linksContainer = element.createEl("span");
+			value.forEach((path, idx) => {
+				if (idx > 0) linksContainer.appendChild(document.createTextNode(", "));
+				const linkEl = linksContainer.createEl("a", {
+					cls: "internal-link",
+					attr: { href: path },
+				});
+				linkEl.textContent = path.split("/").pop()?.replace(".md", "") || path;
+				linkEl.addEventListener("click", (e) => {
+					e.preventDefault();
+					e.stopPropagation();
+					plugin.app.workspace.openLinkText(path, "", false);
+				});
+			});
+		}
+	},
+	timeEntries: (element, value, _, plugin) => {
+		// Show total tracked time from time entries
+		if (Array.isArray(value) && value.length > 0) {
+			const { calculateTotalTimeSpent } = require("../utils/helpers");
+			const totalTime = calculateTotalTimeSpent(value);
+			if (totalTime > 0) {
+				element.textContent = `${plugin.formatTime(totalTime)} tracked (${value.length} ${value.length === 1 ? "entry" : "entries"})`;
+			}
+		}
+	},
+	reminders: (element, value) => {
+		// Show reminder count
+		if (Array.isArray(value) && value.length > 0) {
+			element.textContent = `${value.length} ${value.length === 1 ? "reminder" : "reminders"}`;
+		}
+	},
+	icsEventId: (element, value) => {
+		// Show calendar event indicator
+		if (Array.isArray(value) && value.length > 0) {
+			element.textContent = `Linked to ${value.length} calendar ${value.length === 1 ? "event" : "events"}`;
 		}
 	},
 };
@@ -1103,9 +1194,6 @@ export function createTaskCard(
 			{ placement: "top" }
 		);
 
-		// Use Obsidian's built-in folder icon for project tasks
-		setIcon(projectIndicatorPlaceholder, "folder");
-
 		// Add click handler to filter subtasks
 		projectIndicatorPlaceholder.addEventListener("click", async (e) => {
 			e.stopPropagation(); // Don't trigger card click
@@ -1707,7 +1795,6 @@ export function updateTaskCard(
 						title: "This task is used as a project (click to filter subtasks)",
 					},
 				});
-				setIcon(projectIndicator, "folder");
 
 				// Add click handler to filter subtasks
 				projectIndicator.addEventListener("click", async (e) => {
