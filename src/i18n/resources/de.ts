@@ -1,6 +1,6 @@
-import { Translation } from "../types";
+import { TranslationTree } from "../types";
 
-export const de: Translation = {
+export const de: TranslationTree = {
 	common: {
 		appName: "TaskNotes",
 		cancel: "Abbrechen",

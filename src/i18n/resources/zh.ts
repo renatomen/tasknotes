@@ -1,6 +1,6 @@
-import { Translation } from "../types";
+import { TranslationTree } from "../types";
 
-export const zh: Translation = {
+export const zh: TranslationTree = {
 	common: {
 		appName: "TaskNotes",
 		cancel: "取消",
