@@ -46,6 +46,11 @@ Example:
   - Reduced codebase by 38.5% (736 fewer lines)
   - Zero startup time (no index building required)
   - Always provides fresh, accurate task data from Obsidian's MetadataCache
+- Completed internationalization with 100% translation coverage across all supported languages
+  - Added 90 missing translation keys to English base
+  - Completed 829 translations across 6 languages (German, Spanish, French, Japanese, Russian, Chinese)
+  - All locales now have complete coverage (1745/1745 keys)
+  - Improved translation quality for migration system, calendar settings, statistics, ICS events, and filter components
 
 ## Fixed
 
