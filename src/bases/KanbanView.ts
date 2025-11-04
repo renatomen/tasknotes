@@ -458,8 +458,8 @@ export class KanbanView extends BasesViewBase {
 		tasks: TaskInfo[],
 		visibleProperties: string[]
 	): Promise<void> {
-		// Make container scrollable
-		tasksContainer.style.cssText = "overflow-y: auto; max-height: 400px; position: relative;";
+		// Make container scrollable and fill the cell
+		tasksContainer.style.cssText = "overflow-y: auto; height: 100%; position: relative;";
 
 		const scroller = new VirtualScroller<TaskInfo>({
 			container: tasksContainer,
