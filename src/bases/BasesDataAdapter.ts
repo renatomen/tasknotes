@@ -110,7 +110,13 @@ export class BasesDataAdapter {
 			return result;
 		}
 
-		// DateValue
+		// DateValue - check for date property (more reliable than constructor check)
+		if (value.date instanceof Date) {
+			// Return the date as ISO string for consistency
+			return value.date.toISOString();
+		}
+
+		// DateValue - legacy check with toISOString method
 		if (value.constructor?.name === "DateValue" && value.toISOString) {
 			return value.toISOString();
 		}

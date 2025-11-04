@@ -10,7 +10,7 @@ TaskNotes ships with a lightweight i18n system that keeps interface copy separat
 
 ## Adding a New Language
 
-1. Duplicate `src/i18n/resources/en.ts` to a new file with the ISO language code, e.g. `de.ts`.
+2. Duplicate `src/i18n/resources/en.ts` to a new file with the ISO language code, e.g. `de.ts`.
 2. Translate only the string values. Keep keys identical so TypeScript’s type-checking continues to work.
 3. Import the new resource in `src/i18n/index.ts` and add it to `translationResources`.
 4. (Optional) Add a human-readable label under `common.languages.<code>` so the language shows up nicely in the UI picker.

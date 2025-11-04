@@ -4,6 +4,7 @@ import { requireApiVersion } from "obsidian";
 import { buildTaskListViewFactory } from "./TaskListView";
 import { buildKanbanViewFactory } from "./KanbanView";
 import { buildCalendarViewFactory } from "./CalendarView";
+import { buildMiniCalendarViewFactory } from "./MiniCalendarView";
 import { registerBasesView, unregisterBasesView } from "./api";
 
 /**
@@ -385,8 +386,28 @@ export async function registerBasesTaskList(plugin: TaskNotesPlugin): Promise<vo
 					},
 				});
 
+			// Register Mini Calendar view using public API
+			const miniCalendarSuccess = registerBasesView(plugin, "tasknotesMiniCalendar", {
+				name: "TaskNotes Mini Calendar",
+				icon: "calendar-days",
+				factory: buildMiniCalendarViewFactory(plugin),
+				options: () => [
+					{
+						type: "property",
+						key: "dateProperty",
+						displayName: "Date Property",
+						placeholder: "Select property to show on calendar",
+						default: "file.ctime",
+						filter: (prop: string) => {
+							// Show date-type properties from all sources
+							return prop.startsWith("note.") || prop.startsWith("file.") || prop.startsWith("task.");
+						},
+					},
+				],
+			});
+
 			// Consider it successful if any view registered successfully
-			if (!taskListSuccess && !kanbanSuccess && !calendarSuccess) {
+			if (!taskListSuccess && !kanbanSuccess && !calendarSuccess && !miniCalendarSuccess) {
 				console.debug("[TaskNotes][Bases] Bases plugin not available for registration");
 				return false;
 			}
@@ -440,6 +461,7 @@ export function unregisterBasesViews(plugin: TaskNotesPlugin): void {
 		unregisterBasesView(plugin, "tasknotesTaskList");
 		unregisterBasesView(plugin, "tasknotesKanban");
 		unregisterBasesView(plugin, "tasknotesCalendar");
+		unregisterBasesView(plugin, "tasknotesMiniCalendar");
 	} catch (error) {
 		console.error("[TaskNotes][Bases] Error during view unregistration:", error);
 	}
