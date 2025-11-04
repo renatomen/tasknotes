@@ -445,14 +445,13 @@ export class CalendarView extends BasesViewBase {
 		if (!this.viewOptions.startDateProperty) return [];
 
 		const events: any[] = [];
-		const taskNotePaths = new Set(this.currentTasks.map(t => t.path));
 
 		for (const entry of this.basesViewContext.data.data) {
 			try {
 				const file = entry.file;
 
-				// Skip if no file or is already a TaskNote
-				if (!file || taskNotePaths.has(file.path)) continue;
+				// Skip if no file
+				if (!file) continue;
 
 				// Use BasesDataAdapter to get the property value (handles all Bases Value types)
 				const startValue = this.dataAdapter.getPropertyValue(entry, this.viewOptions.startDateProperty);
