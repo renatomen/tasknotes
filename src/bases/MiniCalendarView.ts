@@ -474,6 +474,9 @@ export class MiniCalendarView extends BasesViewBase {
 			return;
 		}
 
+		// Update selection visually (highlight the clicked date)
+		this.refresh();
+
 		// Check if date has notes
 		const dateKey = formatDateForStorage(date);
 		const notesForDay = this.notesByDate.get(dateKey);
@@ -492,9 +495,6 @@ export class MiniCalendarView extends BasesViewBase {
 				}
 			);
 			modal.open();
-		} else {
-			// Just update selection visually
-			this.refresh();
 		}
 	}
 
