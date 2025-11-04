@@ -454,67 +454,52 @@ export class CalendarView extends BasesViewBase {
 				// Skip if no file or is already a TaskNote
 				if (!file || taskNotePaths.has(file.path)) continue;
 
-				// Try to get start date from configured property
-				const startValue = entry.getValue?.(this.viewOptions.startDateProperty);
+				// Use BasesDataAdapter to get the property value (handles all Bases Value types)
+				const startValue = this.dataAdapter.getPropertyValue(entry, this.viewOptions.startDateProperty);
 				if (!startValue) continue;
-
-				// Extract date from Bases Value object
-				let dateValue: Date | string | null = null;
-				if (startValue.date instanceof Date) {
-					dateValue = startValue.date;
-				} else if (startValue.data instanceof Date) {
-					dateValue = startValue.data;
-				} else if (typeof startValue.data === 'string') {
-					dateValue = startValue.data;
-				} else if (startValue instanceof Date) {
-					dateValue = startValue;
-				}
-
-				if (!dateValue) continue;
 
 				// Convert to date string
 				let startDateStr: string;
-				if (dateValue instanceof Date) {
-					if (isNaN(dateValue.getTime())) continue;
-					const hasTime = startValue.time === true;
-					startDateStr = hasTime
-						? format(dateValue, "yyyy-MM-dd'T'HH:mm")
-						: format(dateValue, "yyyy-MM-dd");
-				} else {
-					const testDate = new Date(dateValue);
+				if (typeof startValue === 'string') {
+					// ISO string from BasesDataAdapter
+					const testDate = new Date(startValue);
 					if (isNaN(testDate.getTime())) continue;
-					startDateStr = dateValue;
+
+					// Check if it includes time component
+					const hasTime = startValue.includes('T');
+					startDateStr = hasTime ? startValue : startValue.split('T')[0];
+				} else if (typeof startValue === 'number') {
+					// Unix timestamp
+					const date = new Date(startValue);
+					if (isNaN(date.getTime())) continue;
+					startDateStr = format(date, "yyyy-MM-dd");
+				} else if (startValue instanceof Date) {
+					// Direct Date object
+					if (isNaN(startValue.getTime())) continue;
+					startDateStr = format(startValue, "yyyy-MM-dd'T'HH:mm");
+				} else {
+					continue;
 				}
 
 				// Try to get end date if property is configured
 				let endDateStr: string | undefined;
 				if (this.viewOptions.endDateProperty) {
-					const endValue = entry.getValue?.(this.viewOptions.endDateProperty);
+					const endValue = this.dataAdapter.getPropertyValue(entry, this.viewOptions.endDateProperty);
 					if (endValue) {
-						let endDateValue: Date | string | null = null;
-						if (endValue.date instanceof Date) {
-							endDateValue = endValue.date;
-						} else if (endValue.data instanceof Date) {
-							endDateValue = endValue.data;
-						} else if (typeof endValue.data === 'string') {
-							endDateValue = endValue.data;
+						if (typeof endValue === 'string') {
+							const testDate = new Date(endValue);
+							if (!isNaN(testDate.getTime())) {
+								const hasTime = endValue.includes('T');
+								endDateStr = hasTime ? endValue : endValue.split('T')[0];
+							}
+						} else if (typeof endValue === 'number') {
+							const date = new Date(endValue);
+							if (!isNaN(date.getTime())) {
+								endDateStr = format(date, "yyyy-MM-dd");
+							}
 						} else if (endValue instanceof Date) {
-							endDateValue = endValue;
-						}
-
-						if (endDateValue) {
-							if (endDateValue instanceof Date) {
-								if (!isNaN(endDateValue.getTime())) {
-									const hasTime = endValue.time === true;
-									endDateStr = hasTime
-										? format(endDateValue, "yyyy-MM-dd'T'HH:mm")
-										: format(endDateValue, "yyyy-MM-dd");
-								}
-							} else {
-								const testDate = new Date(endDateValue);
-								if (!isNaN(testDate.getTime())) {
-									endDateStr = endDateValue;
-								}
+							if (!isNaN(endValue.getTime())) {
+								endDateStr = format(endValue, "yyyy-MM-dd'T'HH:mm");
 							}
 						}
 					}
@@ -523,13 +508,9 @@ export class CalendarView extends BasesViewBase {
 				// Try to get title from configured property
 				let eventTitle: string | undefined;
 				if (this.viewOptions.titleProperty) {
-					const titleValue = entry.getValue?.(this.viewOptions.titleProperty);
-					if (titleValue) {
-						if (typeof titleValue.data === 'string' && titleValue.data.trim()) {
-							eventTitle = titleValue.data.trim();
-						} else if (typeof titleValue === 'string' && titleValue.trim()) {
-							eventTitle = titleValue.trim();
-						}
+					const titleValue = this.dataAdapter.getPropertyValue(entry, this.viewOptions.titleProperty);
+					if (titleValue && typeof titleValue === 'string' && titleValue.trim()) {
+						eventTitle = titleValue.trim();
 					}
 				}
 
