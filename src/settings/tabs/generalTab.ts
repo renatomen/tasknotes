@@ -210,6 +210,11 @@ export function renderGeneralTab(
 	// Command file mappings
 	const commandMappings = [
 		{
+			id: 'open-calendar-view',
+			name: 'Open Mini Calendar View',
+			defaultPath: 'TaskNotes/Views/mini-calendar-default.base',
+		},
+		{
 			id: 'open-kanban-view',
 			name: 'Open Kanban View',
 			defaultPath: 'TaskNotes/Views/kanban-default.base',
@@ -221,7 +226,7 @@ export function renderGeneralTab(
 		},
 		{
 			id: 'open-advanced-calendar-view',
-			name: 'Open Calendar View',
+			name: 'Open Advanced Calendar View',
 			defaultPath: 'TaskNotes/Views/calendar-default.base',
 		},
 		{

@@ -131,6 +131,7 @@ export interface TaskNotesSettings {
 	enableBases: boolean;
 	// Command-to-file mappings for view commands (v4)
 	commandFileMapping: {
+		'open-calendar-view': string;
 		'open-kanban-view': string;
 		'open-tasks-view': string;
 		'open-advanced-calendar-view': string;

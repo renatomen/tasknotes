@@ -1324,6 +1324,11 @@ export default class TaskNotesPlugin extends Plugin {
 				...DEFAULT_SETTINGS.calendarViewSettings,
 				...(loadedData?.calendarViewSettings || {}),
 			},
+			// Deep merge command file mapping to ensure new commands get defaults
+			commandFileMapping: {
+				...DEFAULT_SETTINGS.commandFileMapping,
+				...(loadedData?.commandFileMapping || {}),
+			},
 			// Deep merge ICS integration settings to ensure new fields get default values
 			icsIntegration: {
 				...DEFAULT_SETTINGS.icsIntegration,
@@ -1345,8 +1350,11 @@ export default class TaskNotesPlugin extends Plugin {
 					key as keyof typeof DEFAULT_SETTINGS.calendarViewSettings
 				]
 		);
+		const hasNewCommandMappings = Object.keys(DEFAULT_SETTINGS.commandFileMapping).some(
+			(key) => !loadedData?.commandFileMapping?.[key]
+		);
 
-		if (hasNewFields || hasNewCalendarSettings) {
+		if (hasNewFields || hasNewCalendarSettings || hasNewCommandMappings) {
 			// Save the migrated settings to include new field mappings (non-blocking)
 			setTimeout(async () => {
 				try {
@@ -1715,7 +1723,7 @@ export default class TaskNotesPlugin extends Plugin {
 	}
 
 	async activateCalendarView() {
-		return this.activateView(MINI_CALENDAR_VIEW_TYPE);
+		return this.openBasesFileForCommand('open-calendar-view');
 	}
 
 	// v4: Removed - Advanced Calendar now uses Bases
@@ -1862,7 +1870,12 @@ export default class TaskNotesPlugin extends Plugin {
 
 		try {
 			const adapter = this.app.vault.adapter;
-			const entries = Object.entries(this.settings.commandFileMapping ?? {});
+			const commandFileMapping = {
+				...DEFAULT_SETTINGS.commandFileMapping,
+				...(this.settings.commandFileMapping ?? {}),
+			};
+			this.settings.commandFileMapping = commandFileMapping;
+			const entries = Object.entries(commandFileMapping);
 
 			for (const [commandId, rawPath] of entries) {
 				if (!rawPath) {

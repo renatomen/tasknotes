@@ -289,6 +289,7 @@ export const DEFAULT_SETTINGS: TaskNotesSettings = {
 	enableBases: true,
 	// Command-to-file mappings for view commands (v4)
 	commandFileMapping: {
+		'open-calendar-view': 'TaskNotes/Views/mini-calendar-default.base',
 		'open-kanban-view': 'TaskNotes/Views/kanban-default.base',
 		'open-tasks-view': 'TaskNotes/Views/tasks-default.base',
 		'open-advanced-calendar-view': 'TaskNotes/Views/calendar-default.base',

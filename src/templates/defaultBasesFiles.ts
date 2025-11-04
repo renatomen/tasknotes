@@ -158,6 +158,33 @@ export function generateBasesFileTemplate(commandId: string, settings: TaskNotes
 	const orderYaml = formatOrderArray(orderArray);
 
 	switch (commandId) {
+		case 'open-calendar-view': {
+			const dueProperty = mapPropertyToBasesProperty('due', settings);
+			const scheduledProperty = mapPropertyToBasesProperty('scheduled', settings);
+			return `# Mini Calendar
+# Generated with your TaskNotes settings
+
+views:
+  - type: tasknotesMiniCalendar
+    name: "Due"
+    order:
+${orderYaml}
+    sort:
+      - property: ${dueProperty}
+        direction: ASC
+    dateProperty: ${dueProperty}
+  - type: tasknotesMiniCalendar
+    name: "Scheduled"
+    order: []
+    dateProperty: ${scheduledProperty}
+  - type: tasknotesMiniCalendar
+    name: "Created"
+    dateProperty: file.ctime
+  - type: tasknotesMiniCalendar
+    name: "Modified"
+    dateProperty: file.mtime
+`;
+		}
 		case 'open-kanban-view':
 			return `# Kanban Board
 # Automatically filters for tasks based on your settings
@@ -262,6 +289,23 @@ ${orderYaml}
  * These are used as fallbacks when settings are not available
  */
 export const DEFAULT_BASES_FILES: Record<string, string> = {
+	'open-calendar-view': `views:
+  - type: tasknotesMiniCalendar
+    name: "Due"
+    sort:
+      - property: note.due
+        direction: ASC
+    dateProperty: note.due
+  - type: tasknotesMiniCalendar
+    name: "Scheduled"
+    dateProperty: note.scheduled
+  - type: tasknotesMiniCalendar
+    name: "Created"
+    dateProperty: file.ctime
+  - type: tasknotesMiniCalendar
+    name: "Modified"
+    dateProperty: file.mtime
+`,
 	'open-kanban-view': `views:
   - type: tasknotesKanban
     name: "Kanban Board"
