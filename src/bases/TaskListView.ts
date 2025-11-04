@@ -57,7 +57,6 @@ export class TaskListView extends BasesViewBase {
 	}
 
 	async render(): Promise<void> {
-		console.log("[TaskNotes][TaskListView] ========== RENDER CALLED ==========");
 		if (!this.itemsContainer || !this.rootElement) return;
 
 		try {
@@ -73,7 +72,6 @@ export class TaskListView extends BasesViewBase {
 			await this.computeFormulas(dataItems);
 
 			const taskNotes = await identifyTaskNotesFromBasesData(dataItems, this.plugin);
-			console.log("[TaskNotes][TaskListView] Found", taskNotes.length, "tasks");
 
 			if (taskNotes.length === 0) {
 				this.clearAllTaskElements();
@@ -88,13 +86,11 @@ export class TaskListView extends BasesViewBase {
 				if (!this.lastRenderWasGrouped) {
 					this.clearAllTaskElements();
 				}
-				console.log("[TaskNotes][TaskListView] Rendering grouped view");
 				await this.renderGrouped(taskNotes);
 			} else {
 				if (this.lastRenderWasGrouped) {
 					this.clearAllTaskElements();
 				}
-				console.log("[TaskNotes][TaskListView] Rendering flat view");
 				await this.renderFlat(taskNotes);
 			}
 
@@ -593,11 +589,18 @@ export class TaskListView extends BasesViewBase {
 	private handleItemClick = async (event: MouseEvent) => {
 		const target = event.target as HTMLElement;
 
-		// Check if clicking on group toggle button
-		const toggleBtn = target.closest<HTMLElement>(".task-group-toggle");
-		if (toggleBtn) {
-			const groupKey = toggleBtn.dataset.groupKey;
+		// Check if clicking anywhere on group header (not just toggle button)
+		const groupHeader = target.closest<HTMLElement>(".task-group-header");
+		if (groupHeader) {
+			const groupSection = groupHeader.closest<HTMLElement>(".task-group");
+			const groupKey = groupSection?.dataset.groupKey;
+
 			if (groupKey) {
+				// Don't toggle if clicking on a link
+				if (target.closest("a")) {
+					return;
+				}
+
 				event.preventDefault();
 				event.stopPropagation();
 				await this.handleGroupToggle(groupKey);
@@ -633,8 +636,65 @@ export class TaskListView extends BasesViewBase {
 			this.collapsedGroups.add(groupKey);
 		}
 
-		// Re-render to show/hide tasks
-		await this.render();
+		// Rebuild items and update virtual scroller without full re-render
+		if (this.lastRenderWasGrouped) {
+			await this.refreshGroupedView();
+		}
+	}
+
+	private async refreshGroupedView(): Promise<void> {
+		if (!this.basesViewContext?.data?.data) return;
+
+		const dataItems = this.dataAdapter.extractDataItems();
+		await this.computeFormulas(dataItems);
+		const taskNotes = await identifyTaskNotesFromBasesData(dataItems, this.plugin);
+		const groups = this.dataAdapter.getGroupedData();
+		const visibleProperties = this.getVisibleProperties();
+		const cardOptions = this.getCardOptions(this.currentTargetDate);
+
+		// Create a map from file path to TaskInfo for quick lookup
+		const tasksByPath = new Map<string, TaskInfo>();
+		taskNotes.forEach((task) => {
+			if (task.path) {
+				tasksByPath.set(task.path, task);
+			}
+		});
+
+		// Build flattened list of items (same logic as renderGrouped)
+		type RenderItem =
+			| { type: 'header'; groupKey: string; groupTitle: string; taskCount: number; groupEntries: any[]; isCollapsed: boolean }
+			| { type: 'task'; task: TaskInfo; groupKey: string };
+
+		const items: RenderItem[] = [];
+		for (const group of groups) {
+			const groupTitle = this.dataAdapter.convertGroupKeyToString(group.key);
+			const groupPaths = new Set(group.entries.map((e: any) => e.file.path));
+			const groupTasks = taskNotes.filter((t) => groupPaths.has(t.path));
+			const isCollapsed = this.collapsedGroups.has(groupTitle);
+
+			items.push({
+				type: 'header',
+				groupKey: groupTitle,
+				groupTitle,
+				taskCount: group.entries.length,
+				groupEntries: group.entries,
+				isCollapsed
+			});
+
+			if (!isCollapsed) {
+				for (const task of groupTasks) {
+					items.push({ type: 'task', task, groupKey: groupTitle });
+				}
+			}
+		}
+
+		// Update virtual scroller with new items
+		if (this.useVirtualScrolling && this.virtualScroller) {
+			this.virtualScroller.updateItems(items);
+		} else {
+			// If not using virtual scrolling, do full render
+			await this.render();
+		}
 	}
 
 	private handleItemContextMenu = async (event: MouseEvent) => {

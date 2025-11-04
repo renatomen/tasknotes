@@ -106,7 +106,6 @@ export class VirtualScroller<T> {
 
 		// Find the actual scrolling container by walking up the DOM
 		this.scrollContainer = this.findScrollContainer(this.container);
-		console.log('[VirtualScroller] Found scroll container:', this.scrollContainer.className, 'clientHeight:', this.scrollContainer.clientHeight);
 	}
 
 	private findScrollContainer(element: HTMLElement): HTMLElement {
@@ -118,7 +117,6 @@ export class VirtualScroller<T> {
 			const overflowY = style.overflowY;
 
 			if (overflowY === 'scroll' || overflowY === 'auto') {
-				console.log('[VirtualScroller] Found scrollable element:', current.className, 'overflow:', overflowY);
 				return current;
 			}
 
@@ -126,7 +124,6 @@ export class VirtualScroller<T> {
 		}
 
 		// Fallback to container itself
-		console.warn('[VirtualScroller] No scrollable parent found, using container');
 		return element;
 	}
 
@@ -280,7 +277,6 @@ export class VirtualScroller<T> {
 		}
 
 		this.scrollRAF = requestAnimationFrame(() => {
-			console.log('[VirtualScroller] Scroll event, scrollTop:', this.scrollContainer.scrollTop);
 			this.updateVisibleRange();
 			this.scrollRAF = null;
 		});
@@ -327,7 +323,6 @@ export class VirtualScroller<T> {
 			endIndex !== this.state.endIndex ||
 			this.items.length !== this.state.totalItems
 		) {
-			console.log('[VirtualScroller] Rendering range:', startIndex, '-', endIndex, 'of', this.items.length, 'offsetY:', offsetY);
 			this.state = {
 				startIndex,
 				endIndex,
@@ -404,7 +399,6 @@ export class VirtualScroller<T> {
 	updateItems(items: T[]): void {
 		// Save current scroll position
 		const currentScrollTop = this.scrollContainer.scrollTop;
-		console.log('[VirtualScroller] updateItems called, preserving scrollTop:', currentScrollTop);
 
 		this.items = items;
 		this.state.totalItems = items.length;
@@ -438,8 +432,6 @@ export class VirtualScroller<T> {
 		this.scrollContainer.scrollTop = currentScrollTop;
 
 		this.updateVisibleRange();
-
-		console.log('[VirtualScroller] After update, scrollTop is:', this.scrollContainer.scrollTop);
 	}
 
 	/**
