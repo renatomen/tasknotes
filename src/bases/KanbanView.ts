@@ -328,9 +328,9 @@ export class KanbanView extends BasesViewBase {
 					}
 				});
 
-				// Set fixed height on cell to prevent expansion
+				// Set max height on cell to prevent expansion while allowing flexibility
 				if (tasks.length >= this.VIRTUAL_SCROLL_THRESHOLD) {
-					cell.style.height = "500px";
+					cell.style.maxHeight = "2000px";
 				}
 
 				// Setup drop handlers for this cell
