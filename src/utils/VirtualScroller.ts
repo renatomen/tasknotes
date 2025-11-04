@@ -10,8 +10,12 @@ export interface VirtualScrollerOptions<T> {
 	container: HTMLElement;
 	/** Array of items to virtualize */
 	items: T[];
-	/** Estimated height of each item in pixels */
-	itemHeight: number;
+	/**
+	 * Initial estimated height of each item in pixels.
+	 * If not provided, VirtualScroller will measure a sample of items to calculate average height.
+	 * Actual heights are measured via ResizeObserver after rendering.
+	 */
+	itemHeight?: number;
 	/** Number of items to render above/below viewport (buffer) */
 	overscan?: number;
 	/** Function to render an item */
@@ -64,7 +68,7 @@ export class VirtualScroller<T> {
 	constructor(options: VirtualScrollerOptions<T>) {
 		this.container = options.container;
 		this.items = options.items;
-		this.estimatedHeight = options.itemHeight;
+		this.estimatedHeight = options.itemHeight ?? 0; // Will be calculated if not provided
 		this.overscan = options.overscan ?? 5;
 		this.renderItem = options.renderItem;
 		this.getItemKey = options.getItemKey ?? ((item, index) => String(index));
@@ -72,6 +76,12 @@ export class VirtualScroller<T> {
 		this.setupDOM();
 		this.attachScrollListener();
 		this.setupResizeObserver();
+
+		// If no itemHeight provided, calculate from sample
+		if (!options.itemHeight && this.items.length > 0) {
+			this.calculateEstimatedHeight();
+		}
+
 		this.rebuildPositionCache();
 		this.updateVisibleRange();
 	}
@@ -106,6 +116,48 @@ export class VirtualScroller<T> {
 
 		// Find the actual scrolling container by walking up the DOM
 		this.scrollContainer = this.findScrollContainer(this.container);
+	}
+
+	/**
+	 * Calculate estimated height by measuring a sample of items
+	 * Renders up to 5 items, measures them, and calculates average
+	 */
+	private calculateEstimatedHeight(): void {
+		const sampleSize = Math.min(5, this.items.length);
+		const sampleHeights: number[] = [];
+
+		// Temporarily render sample items for measurement
+		const tempContainer = this.contentContainer.createDiv({
+			cls: 'virtual-scroller__sample',
+		});
+		tempContainer.style.cssText = `
+			position: absolute;
+			visibility: hidden;
+			pointer-events: none;
+		`;
+
+		for (let i = 0; i < sampleSize; i++) {
+			const element = this.renderItem(this.items[i], i);
+			tempContainer.appendChild(element);
+
+			// Force layout and measure
+			const height = element.getBoundingClientRect().height;
+			if (height > 0) {
+				sampleHeights.push(height);
+			}
+		}
+
+		// Remove sample container
+		tempContainer.remove();
+
+		// Calculate average height
+		if (sampleHeights.length > 0) {
+			const sum = sampleHeights.reduce((a, b) => a + b, 0);
+			this.estimatedHeight = Math.ceil(sum / sampleHeights.length);
+		} else {
+			// Fallback if measurement fails
+			this.estimatedHeight = 60;
+		}
 	}
 
 	private findScrollContainer(element: HTMLElement): HTMLElement {

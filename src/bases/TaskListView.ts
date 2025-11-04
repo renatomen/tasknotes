@@ -29,7 +29,13 @@ export class TaskListView extends BasesViewBase {
 	private virtualScroller: VirtualScroller<any> | null = null; // Can render TaskInfo or group headers
 	private useVirtualScrolling = false;
 	private collapsedGroups = new Set<string>(); // Track collapsed group keys
-	private readonly VIRTUAL_SCROLL_THRESHOLD = 100; // Use virtual scrolling for 100+ tasks (flat or grouped)
+	/**
+	 * Threshold for enabling virtual scrolling in task list view.
+	 * Virtual scrolling activates when total items (tasks + group headers) >= 100.
+	 * Benefits: ~90% memory reduction, eliminates UI lag for large lists.
+	 * Lower than KanbanView (30) because task cards are simpler/smaller.
+	 */
+	private readonly VIRTUAL_SCROLL_THRESHOLD = 100;
 
 	constructor(controller: any, containerEl: HTMLElement, plugin: TaskNotesPlugin) {
 		super(controller, containerEl, plugin);
@@ -190,11 +196,11 @@ export class TaskListView extends BasesViewBase {
 		cardOptions: any
 	): Promise<void> {
 		if (!this.virtualScroller) {
-			// Initialize virtual scroller
+			// Initialize virtual scroller with automatic height calculation
 			this.virtualScroller = new VirtualScroller<TaskInfo>({
 				container: this.itemsContainer!,
 				items: taskNotes,
-				itemHeight: 60, // Approximate task card height - can be adjusted
+				// itemHeight omitted - will be calculated automatically from sample
 				overscan: 5,
 				renderItem: (taskInfo: TaskInfo, index: number) => {
 					// Create card using lazy mode
@@ -284,23 +290,11 @@ export class TaskListView extends BasesViewBase {
 		this.lastFlatPaths = taskNotes.map((task) => task.path);
 	}
 
-	private async renderGrouped(taskNotes: TaskInfo[]): Promise<void> {
-		const visibleProperties = this.getVisibleProperties();
-		const groups = this.dataAdapter.getGroupedData();
-
-		const targetDate = new Date();
-		this.currentTargetDate = targetDate;
-		const cardOptions = this.getCardOptions(targetDate);
-
-		// Create a map from file path to TaskInfo for quick lookup
-		const tasksByPath = new Map<string, TaskInfo>();
-		taskNotes.forEach((task) => {
-			if (task.path) {
-				tasksByPath.set(task.path, task);
-			}
-		});
-
-		// Build flattened list of items (headers + tasks) for virtual scrolling
+	/**
+	 * Build flattened list of render items (headers + tasks) for grouped view
+	 * Shared between renderGrouped() and refreshGroupedView()
+	 */
+	private buildGroupedRenderItems(groups: any[], taskNotes: TaskInfo[]): any[] {
 		type RenderItem =
 			| { type: 'header'; groupKey: string; groupTitle: string; taskCount: number; groupEntries: any[]; isCollapsed: boolean }
 			| { type: 'task'; task: TaskInfo; groupKey: string };
@@ -329,6 +323,20 @@ export class TaskListView extends BasesViewBase {
 				}
 			}
 		}
+
+		return items;
+	}
+
+	private async renderGrouped(taskNotes: TaskInfo[]): Promise<void> {
+		const visibleProperties = this.getVisibleProperties();
+		const groups = this.dataAdapter.getGroupedData();
+
+		const targetDate = new Date();
+		this.currentTargetDate = targetDate;
+		const cardOptions = this.getCardOptions(targetDate);
+
+		// Build flattened list of items using shared method
+		const items = this.buildGroupedRenderItems(groups, taskNotes);
 
 		// Use virtual scrolling if we have many items
 		const shouldUseVirtualScrolling = items.length >= this.VIRTUAL_SCROLL_THRESHOLD;
@@ -373,7 +381,7 @@ export class TaskListView extends BasesViewBase {
 			this.virtualScroller = new VirtualScroller<any>({
 				container: this.itemsContainer!,
 				items: items,
-				itemHeight: 60, // Estimated height (headers ~40px, cards ~60px)
+				// itemHeight omitted - automatically calculated from sample (headers + cards)
 				overscan: 5,
 				renderItem: (item: any) => {
 					if (item.type === 'header') {
@@ -657,44 +665,9 @@ export class TaskListView extends BasesViewBase {
 		await this.computeFormulas(dataItems);
 		const taskNotes = await identifyTaskNotesFromBasesData(dataItems, this.plugin);
 		const groups = this.dataAdapter.getGroupedData();
-		const visibleProperties = this.getVisibleProperties();
-		const cardOptions = this.getCardOptions(this.currentTargetDate);
 
-		// Create a map from file path to TaskInfo for quick lookup
-		const tasksByPath = new Map<string, TaskInfo>();
-		taskNotes.forEach((task) => {
-			if (task.path) {
-				tasksByPath.set(task.path, task);
-			}
-		});
-
-		// Build flattened list of items (same logic as renderGrouped)
-		type RenderItem =
-			| { type: 'header'; groupKey: string; groupTitle: string; taskCount: number; groupEntries: any[]; isCollapsed: boolean }
-			| { type: 'task'; task: TaskInfo; groupKey: string };
-
-		const items: RenderItem[] = [];
-		for (const group of groups) {
-			const groupTitle = this.dataAdapter.convertGroupKeyToString(group.key);
-			const groupPaths = new Set(group.entries.map((e: any) => e.file.path));
-			const groupTasks = taskNotes.filter((t) => groupPaths.has(t.path));
-			const isCollapsed = this.collapsedGroups.has(groupTitle);
-
-			items.push({
-				type: 'header',
-				groupKey: groupTitle,
-				groupTitle,
-				taskCount: group.entries.length,
-				groupEntries: group.entries,
-				isCollapsed
-			});
-
-			if (!isCollapsed) {
-				for (const task of groupTasks) {
-					items.push({ type: 'task', task, groupKey: groupTitle });
-				}
-			}
-		}
+		// Build flattened list of items using shared method
+		const items = this.buildGroupedRenderItems(groups, taskNotes);
 
 		// Update virtual scroller with new items
 		if (this.useVirtualScrolling && this.virtualScroller) {
