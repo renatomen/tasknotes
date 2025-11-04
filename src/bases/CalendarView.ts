@@ -1061,13 +1061,16 @@ export class CalendarView extends BasesViewBase {
 				});
 		});
 
-		menu.addItem((item) => {
-			item.setTitle("Create timeblock")
-				.setIcon("clock")
-				.onClick(async () => {
-					await handleTimeblockCreation(info.start, info.end, info.allDay, this.plugin);
-				});
-		});
+		// Only show timeblock option if timeblocking is enabled
+		if (this.plugin.settings.calendarViewSettings.enableTimeblocking) {
+			menu.addItem((item) => {
+				item.setTitle("Create timeblock")
+					.setIcon("clock")
+					.onClick(async () => {
+						await handleTimeblockCreation(info.start, info.end, info.allDay, this.plugin);
+					});
+			});
+		}
 
 		menu.addItem((item) => {
 			item.setTitle("Create time entry")
