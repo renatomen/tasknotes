@@ -77,6 +77,9 @@ nav:
     - Timezone Handling: TIMEZONE_HANDLING_GUIDE.md
     - UTC Implementation: TIMEZONE_HANDLING_UTC.md
     - Timezone Quick Reference: TIMEZONE_QUICK_REFERENCE.md
+  - Development:
+    - Translation Workflow: development/translations.md
+    - i18n-state-manager: development/i18n-state-manager.md
   - Release Notes: releases.md
   - Troubleshooting: troubleshooting.md
   - Privacy Policy: privacy.md
