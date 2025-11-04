@@ -38,7 +38,7 @@ export class VirtualScroller<T> {
 	private spacer: HTMLElement;
 
 	private items: T[] = [];
-	private itemHeight: number;
+	private estimatedHeight: number; // Default estimated height for unmeasured items
 	private overscan: number;
 	private renderItem: (item: T, index: number) => HTMLElement;
 	private getItemKey: (item: T, index: number) => string;
@@ -53,16 +53,26 @@ export class VirtualScroller<T> {
 	private renderedElements = new Map<string, HTMLElement>();
 	private scrollRAF: number | null = null;
 
+	// Variable height tracking
+	private itemHeights = new Map<number, number>(); // index -> measured height
+	private positionCache: number[] = []; // Cumulative positions [0, 60, 125, 200...]
+	private totalHeight: number = 0;
+	private resizeObserver: ResizeObserver | null = null;
+	private measurementRAF: number | null = null;
+	private pendingMeasurements = new Set<number>();
+
 	constructor(options: VirtualScrollerOptions<T>) {
 		this.container = options.container;
 		this.items = options.items;
-		this.itemHeight = options.itemHeight;
+		this.estimatedHeight = options.itemHeight;
 		this.overscan = options.overscan ?? 5;
 		this.renderItem = options.renderItem;
 		this.getItemKey = options.getItemKey ?? ((item, index) => String(index));
 
 		this.setupDOM();
 		this.attachScrollListener();
+		this.setupResizeObserver();
+		this.rebuildPositionCache();
 		this.updateVisibleRange();
 	}
 
@@ -121,8 +131,142 @@ export class VirtualScroller<T> {
 	}
 
 	private updateSpacerHeight(): void {
-		const totalHeight = this.items.length * this.itemHeight;
-		this.spacer.style.height = `${totalHeight}px`;
+		this.spacer.style.height = `${this.totalHeight}px`;
+	}
+
+	/**
+	 * Binary search to find the index of the first item at or after the given scroll position
+	 */
+	private binarySearchPosition(scrollTop: number): number {
+		if (this.positionCache.length === 0) return 0;
+
+		let left = 0;
+		let right = this.positionCache.length - 1;
+
+		while (left < right) {
+			const mid = Math.floor((left + right) / 2);
+			if (this.positionCache[mid] < scrollTop) {
+				left = mid + 1;
+			} else {
+				right = mid;
+			}
+		}
+
+		return Math.max(0, left - 1);
+	}
+
+	/**
+	 * Get the height of an item (measured or estimated)
+	 */
+	private getItemHeight(index: number): number {
+		return this.itemHeights.get(index) ?? this.estimatedHeight;
+	}
+
+	/**
+	 * Get the position (top offset) of an item
+	 */
+	private getItemPosition(index: number): number {
+		if (index < 0 || index >= this.positionCache.length) return 0;
+		return this.positionCache[index];
+	}
+
+	/**
+	 * Rebuild the position cache from measured heights
+	 */
+	private rebuildPositionCache(): void {
+		this.positionCache = [];
+		let currentPosition = 0;
+
+		for (let i = 0; i < this.items.length; i++) {
+			this.positionCache[i] = currentPosition;
+			currentPosition += this.getItemHeight(i);
+		}
+
+		this.totalHeight = currentPosition;
+		this.updateSpacerHeight();
+	}
+
+	/**
+	 * Setup ResizeObserver to detect height changes in rendered items
+	 */
+	private setupResizeObserver(): void {
+		this.resizeObserver = new ResizeObserver((entries) => {
+			// Collect indices that need remeasurement
+			for (const entry of entries) {
+				const element = entry.target as HTMLElement;
+				const index = parseInt(element.dataset.virtualIndex || '-1', 10);
+
+				if (index >= 0 && index < this.items.length) {
+					this.pendingMeasurements.add(index);
+				}
+			}
+
+			// Debounce the actual measurement update
+			if (this.measurementRAF === null) {
+				this.measurementRAF = requestAnimationFrame(() => {
+					this.processPendingMeasurements();
+					this.measurementRAF = null;
+				});
+			}
+		});
+	}
+
+	/**
+	 * Measure items and update position cache if heights changed
+	 */
+	private processPendingMeasurements(): void {
+		if (this.pendingMeasurements.size === 0) return;
+
+		let heightsChanged = false;
+
+		for (const index of this.pendingMeasurements) {
+			const element = this.contentContainer.querySelector(
+				`[data-virtual-index="${index}"]`
+			) as HTMLElement;
+
+			if (element) {
+				const newHeight = element.getBoundingClientRect().height;
+				const oldHeight = this.itemHeights.get(index);
+
+				if (oldHeight !== newHeight && newHeight > 0) {
+					this.itemHeights.set(index, newHeight);
+					heightsChanged = true;
+				}
+			}
+		}
+
+		this.pendingMeasurements.clear();
+
+		if (heightsChanged) {
+			this.rebuildPositionCache();
+			// Don't force re-render here to avoid infinite loops
+			// Just update the spacer height
+		}
+	}
+
+	/**
+	 * Measure all currently rendered items
+	 */
+	private measureRenderedItems(): void {
+		const elements = this.contentContainer.querySelectorAll('[data-virtual-index]');
+		let heightsChanged = false;
+
+		for (const element of elements) {
+			const index = parseInt((element as HTMLElement).dataset.virtualIndex || '-1', 10);
+			if (index >= 0 && index < this.items.length) {
+				const newHeight = element.getBoundingClientRect().height;
+				const oldHeight = this.itemHeights.get(index);
+
+				if (oldHeight !== newHeight && newHeight > 0) {
+					this.itemHeights.set(index, newHeight);
+					heightsChanged = true;
+				}
+			}
+		}
+
+		if (heightsChanged) {
+			this.rebuildPositionCache();
+		}
 	}
 
 	private attachScrollListener(): void {
@@ -157,14 +301,25 @@ export class VirtualScroller<T> {
 			console.warn('[VirtualScroller] Using window height as fallback:', containerHeight);
 		}
 
-		// Calculate visible range
-		const startIndex = Math.max(0, Math.floor(scrollTop / this.itemHeight) - this.overscan);
-		const endIndex = Math.min(
-			this.items.length - 1,
-			Math.ceil((scrollTop + containerHeight) / this.itemHeight) + this.overscan
-		);
+		// Use binary search to find visible range based on actual positions
+		const startIndex = Math.max(0, this.binarySearchPosition(scrollTop) - this.overscan);
 
-		const offsetY = startIndex * this.itemHeight;
+		// Find end index by searching from startIndex
+		let endIndex = startIndex;
+		const viewportBottom = scrollTop + containerHeight;
+
+		while (endIndex < this.items.length - 1) {
+			const itemBottom = this.getItemPosition(endIndex) + this.getItemHeight(endIndex);
+			if (itemBottom > viewportBottom) {
+				break;
+			}
+			endIndex++;
+		}
+
+		// Add overscan to end
+		endIndex = Math.min(this.items.length - 1, endIndex + this.overscan);
+
+		const offsetY = this.getItemPosition(startIndex);
 
 		// Only update if range changed
 		if (
@@ -203,20 +358,43 @@ export class VirtualScroller<T> {
 			if (!element) {
 				// Create new element
 				element = this.renderItem(item, i);
+
+				// Add data attribute for measurement tracking
+				element.dataset.virtualIndex = String(i);
+
 				this.renderedElements.set(key, element);
 				this.contentContainer.appendChild(element);
+
+				// Observe for size changes
+				if (this.resizeObserver) {
+					this.resizeObserver.observe(element);
+				}
 			} else if (!element.isConnected) {
 				// Re-attach existing element
+				element.dataset.virtualIndex = String(i);
 				this.contentContainer.appendChild(element);
+
+				// Re-observe
+				if (this.resizeObserver) {
+					this.resizeObserver.observe(element);
+				}
 			}
 		}
 
 		// Remove elements that are no longer visible
 		for (const [key, element] of this.renderedElements) {
 			if (!visibleKeys.has(key)) {
+				if (this.resizeObserver) {
+					this.resizeObserver.unobserve(element);
+				}
 				element.remove();
 			}
 		}
+
+		// Schedule measurement after render
+		requestAnimationFrame(() => {
+			this.measureRenderedItems();
+		});
 	}
 
 	/**
@@ -229,10 +407,24 @@ export class VirtualScroller<T> {
 
 		this.items = items;
 		this.state.totalItems = items.length;
-		this.updateSpacerHeight();
+
+		// Note: We keep existing height measurements since they're still valid
+		// Only clear measurements for indices beyond the new length
+		const oldSize = this.itemHeights.size;
+		for (let i = items.length; i < oldSize; i++) {
+			this.itemHeights.delete(i);
+		}
+
+		// Rebuild position cache with new item count
+		this.rebuildPositionCache();
 
 		// Clear rendered elements cache since items changed
 		// This forces fresh cards to be created with updated data
+		for (const element of this.renderedElements.values()) {
+			if (this.resizeObserver) {
+				this.resizeObserver.unobserve(element);
+			}
+		}
 		this.renderedElements.clear();
 		this.contentContainer.empty();
 
@@ -253,7 +445,7 @@ export class VirtualScroller<T> {
 	 * Scroll to a specific item index
 	 */
 	scrollToIndex(index: number, behavior: ScrollBehavior = 'smooth'): void {
-		const targetScroll = index * this.itemHeight;
+		const targetScroll = this.getItemPosition(index);
 		this.scrollContainer.scrollTo({
 			top: targetScroll,
 			behavior,
@@ -298,8 +490,18 @@ export class VirtualScroller<T> {
 		if (this.scrollRAF !== null) {
 			cancelAnimationFrame(this.scrollRAF);
 		}
+		if (this.measurementRAF !== null) {
+			cancelAnimationFrame(this.measurementRAF);
+		}
+		if (this.resizeObserver) {
+			this.resizeObserver.disconnect();
+			this.resizeObserver = null;
+		}
 		this.scrollContainer.removeEventListener('scroll', this.handleScroll);
 		this.renderedElements.clear();
 		this.contentContainer.empty();
+		this.itemHeights.clear();
+		this.positionCache = [];
+		this.pendingMeasurements.clear();
 	}
 }

@@ -31,6 +31,13 @@ Example:
   - ICS/Google/Microsoft Calendar events: Right-click shows ICS event context menu with options to show details, create task/note, link note, and copy info
 - Added calendar icon to ICS event titles for better visual distinction
 - Added hover tooltips for timeblocks in calendar views
+- (#new) Added MiniCalendar view for Bases integration
+  - Monthly calendar grid with dot indicators on days with notes
+  - Configurable date property (file.ctime, note.dateCreated, etc.)
+  - Fuzzy selector modal for selecting notes on clicked days
+  - UTC anchor compliance for timezone-independent date handling
+  - Ctrl+click (or Cmd+click on Mac) on any day opens/creates daily note
+  - Ctrl+Enter keyboard shortcut for accessibility
 
 ## Changed
 
@@ -57,6 +64,19 @@ Example:
   - Completed 829 translations across 6 languages (German, Spanish, French, Japanese, Russian, Chinese)
   - All locales now have complete coverage (1745/1745 keys)
   - Improved translation quality for migration system, calendar settings, statistics, ICS events, and filter components
+- Migrated to i18n-state-manager CLI tool for translation management
+  - Replaced custom scripts with more robust i18n-state-manager package
+  - Added i18n-state.config.json for project-specific patterns
+  - New features: find-unused, check-duplicates, improved stale detection
+  - Hash-based state tracking and ripgrep-based scanning for performance
+- Bases view templates now generate dynamically based on user settings
+  - Task filters adapt to user's task identification method (tag or property)
+  - Property ordering reflects defaultVisibleProperties setting
+  - Uses correct YAML object notation for Bases filters
+  - Maintains backward compatibility with legacy static templates
+- Updated Bases CalendarView to show TaskNotes in property-based events
+  - Tasks can now be visualized on calendar via any date property (dateCreated, scheduled, due, etc.)
+  - Previously all TaskNotes were filtered out from property-based events
 
 ## Fixed
 
@@ -69,4 +89,22 @@ Example:
   - Removed unnecessary dynamic imports that were causing module resolution failures
   - Consolidated imports at top of calendar-core.ts module
   - Thanks to @jalooc for reporting this issue
+- Fixed task dependencies not displaying on task cards
+  - TaskManager now properly calculates isBlocked and isBlocking flags from dependency data
+  - Added missing property extractors and renderers in TaskCard for all dependency-related fields
+  - Dependency information now shows correctly in Bases views, task note widgets, and other views
+  - Shows "Blocked (n)" and "Blocking (n)" pills, plus detailed task links
+- Fixed Bases property mapping for user-configured field names
+  - PropertyMappingService now correctly strips prefixes and applies FieldMapper transformations
+  - Example: User configures "state" → "status", Bases provides "note.state", now correctly maps to "status"
+  - Ensures TaskCard properly recognizes and renders user-configured properties
+- Fixed Bases views not respecting user-configured visible properties
+  - Now prioritizes Bases 1.10.0+ public API config.getOrder() method
+  - Removed reliance on internal API paths that no longer work
+  - Filters out blocked/blocking properties when using defaults (only shown when explicitly requested via blockedBy)
+- Fixed MiniCalendar UTC anchoring for consistent timezone-independent date handling
+- Fixed DateValue conversion in BasesDataAdapter
+  - DateValue objects have {date: Date, time: boolean} structure
+  - Now properly checks for value.date instanceof Date before legacy conversion methods
+  - Fixes property-based events in CalendarView
 
