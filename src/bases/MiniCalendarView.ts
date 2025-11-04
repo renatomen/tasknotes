@@ -9,7 +9,6 @@ import {
 	createUTCDateFromLocalCalendarDate,
 	convertUTCToLocalCalendarDate,
 	createSafeUTCDate,
-	parseDateToUTC,
 	getDatePart,
 } from "../utils/dateUtils";
 import { isSameDay } from "../utils/helpers";
@@ -142,41 +141,118 @@ export class MiniCalendarView extends BasesViewBase {
 				return null;
 			}
 
-			// Now we have a native JavaScript value
-			let dateString: string | null = null;
+			// Normalize based on the native JavaScript value shape
+			if (typeof value === "string") {
+				return this.extractDateFromString(value);
+			}
 
-			// Handle different value types
-			if (typeof value === 'string') {
-				// Could be an ISO date string, date-only string, or filename
-				// First, try to parse as date
-				const testDate = new Date(value);
-				if (!isNaN(testDate.getTime())) {
-					dateString = getDatePart(value);
-				} else {
-					// Maybe it's a filename with embedded date
-					const dateMatch = value.match(/(\d{4}-\d{2}-\d{2})/);
-					if (dateMatch) {
-						dateString = dateMatch[1];
-					}
+			if (typeof value === "number") {
+				return this.toAnchoredDateString(new Date(value));
+			}
+
+			if (value instanceof Date) {
+				return this.toAnchoredDateString(value);
+			}
+
+			if (typeof value === "object") {
+				const maybeDate = (value as { date?: Date }).date;
+				if (maybeDate instanceof Date) {
+					return this.toAnchoredDateString(maybeDate);
 				}
-			} else if (typeof value === 'number') {
-				// Unix timestamp
-				const date = new Date(value);
-				if (!isNaN(date.getTime())) {
-					dateString = format(date, "yyyy-MM-dd");
-				}
-			} else if (value instanceof Date) {
-				// Direct Date object
-				if (!isNaN(value.getTime())) {
-					dateString = format(value, "yyyy-MM-dd");
+
+				const toISOString = (value as { toISOString?: () => string }).toISOString;
+				if (typeof toISOString === "function") {
+					return this.extractDateFromString(toISOString.call(value));
 				}
 			}
 
-			return dateString;
+			return null;
 		} catch (error) {
 			console.warn("[TaskNotes][MiniCalendarView] Error getting date value:", error);
 			return null;
 		}
+	}
+
+	private extractDateFromString(rawValue: string): string | null {
+		const trimmed = rawValue?.trim();
+		if (!trimmed) {
+			return null;
+		}
+
+		// YYYY-MM-DD already normalized (UTC anchor ready)
+		if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+			return this.validateCalendarDate(trimmed);
+		}
+
+		// Handle ISO / timezone-aware or space-separated datetime strings
+		if (
+			trimmed.includes("T") ||
+			/\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}/.test(trimmed) ||
+			/[+-]\d{2}:\d{2}$/.test(trimmed)
+		) {
+			const sanitized =
+				trimmed.includes(" ") && !trimmed.includes("T") ? trimmed.replace(" ", "T") : trimmed;
+			const parsed = new Date(sanitized);
+			if (!isNaN(parsed.getTime())) {
+				return this.toAnchoredDateString(parsed);
+			}
+		}
+
+		// Support common alternate separators like YYYY/MM/DD or YYYY.MM.DD
+		const alternateSeparatorMatch = trimmed.match(/^(\d{4})[\/.](\d{2})[\/.](\d{2})$/);
+		if (alternateSeparatorMatch) {
+			const [, year, month, day] = alternateSeparatorMatch;
+			return this.validateCalendarDate(`${year}-${month}-${day}`);
+		}
+
+		// As a last resort, pull the first YYYY-MM-DD from the string (e.g., filenames)
+		const embeddedMatch = trimmed.match(/(\d{4}-\d{2}-\d{2})/);
+		if (embeddedMatch) {
+			return this.validateCalendarDate(embeddedMatch[1]);
+		}
+
+		return null;
+	}
+
+	private toAnchoredDateString(date: Date): string | null {
+		if (!(date instanceof Date) || isNaN(date.getTime())) {
+			return null;
+		}
+
+		const anchored = createUTCDateFromLocalCalendarDate(date);
+		return formatDateForStorage(anchored);
+	}
+
+	private validateCalendarDate(value: string | null | undefined): string | null {
+		if (!value) {
+			return null;
+		}
+
+		const trimmed = value.trim();
+		const match = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+		if (!match) {
+			return null;
+		}
+
+		const [, yearStr, monthStr, dayStr] = match;
+		const year = Number(yearStr);
+		const monthIndex = Number(monthStr) - 1;
+		const day = Number(dayStr);
+
+		if (Number.isNaN(year) || Number.isNaN(monthIndex) || Number.isNaN(day)) {
+			return null;
+		}
+
+		const safe = createSafeUTCDate(year, monthIndex, day);
+		if (
+			safe.getUTCFullYear() !== year ||
+			safe.getUTCMonth() !== monthIndex ||
+			safe.getUTCDate() !== day
+		) {
+			return null;
+		}
+
+		return formatDateForStorage(safe);
 	}
 
 	private renderCalendarControls(): void {
@@ -433,7 +509,16 @@ export class MiniCalendarView extends BasesViewBase {
 
 		// Convert date to moment for the API
 		const dateStr = formatDateForStorage(date);
-		const jsDate = new Date(`${dateStr}T12:00:00`);
+		const localAnchor = convertUTCToLocalCalendarDate(date);
+		const jsDate = new Date(
+			localAnchor.getFullYear(),
+			localAnchor.getMonth(),
+			localAnchor.getDate(),
+			12,
+			0,
+			0,
+			0
+		);
 		const moment = (window as any).moment(jsDate);
 
 		// Get all daily notes to check if one exists for this date
