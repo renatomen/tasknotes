@@ -860,7 +860,7 @@ export async function generateCalendarEvents(
 }
 
 /**
- * Handle timeblock creation (Shift + drag selection)
+ * Handle timeblock creation (drag selection with context menu)
  */
 export async function handleTimeblockCreation(
 	start: Date,

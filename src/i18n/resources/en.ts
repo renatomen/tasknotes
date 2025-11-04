@@ -547,13 +547,13 @@ export const en: TranslationTree = {
 			timeblocking: {
 				header: "Timeblocking",
 				description:
-					"Configure timeblock functionality for lightweight scheduling in daily notes. In the advanced calendar view, hold Shift + click and drag to create timeblocks.",
+					"Configure timeblock functionality for lightweight scheduling in daily notes. Drag on calendar views to create events - select 'Timeblock' from the context menu.",
 				enableName: "Enable timeblocking",
 				enableDesc:
-					"Enable timeblock functionality for lightweight scheduling in daily notes",
+					"Enable timeblocking feature for lightweight scheduling in daily notes. When enabled, 'Timeblock' option appears in the calendar drag context menu.",
 				showBlocksName: "Show timeblocks",
 				showBlocksDesc: "Display timeblocks from daily notes by default",
-				usage: "Usage: In the advanced calendar view, hold Shift + drag to create timeblocks. Drag to move existing timeblocks. Resize edges to adjust duration.",
+				usage: "Usage: Drag on the calendar to create events. Select 'Timeblock' from the context menu (only visible when timeblocking is enabled). Drag to move existing timeblocks. Resize edges to adjust duration.",
 			},
 			performance: {
 				header: "Performance & Behavior",
