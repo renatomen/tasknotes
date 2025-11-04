@@ -288,12 +288,6 @@ export class TaskListView extends BasesViewBase {
 		const visibleProperties = this.getVisibleProperties();
 		const groups = this.dataAdapter.getGroupedData();
 
-		this.itemsContainer!.empty();
-		this.currentTaskElements.clear();
-		this.clearClickTimeouts();
-		this.taskInfoCache.clear();
-		this.lastTaskSignatures.clear();
-
 		const targetDate = new Date();
 		this.currentTargetDate = targetDate;
 		const cardOptions = this.getCardOptions(targetDate);
@@ -338,6 +332,20 @@ export class TaskListView extends BasesViewBase {
 
 		// Use virtual scrolling if we have many items
 		const shouldUseVirtualScrolling = items.length >= this.VIRTUAL_SCROLL_THRESHOLD;
+
+		// If already using virtual scrolling and still need it, just update items
+		if (this.useVirtualScrolling && shouldUseVirtualScrolling && this.virtualScroller) {
+			this.virtualScroller.updateItems(items);
+			this.lastFlatPaths = taskNotes.map((task) => task.path);
+			return;
+		}
+
+		// Otherwise, need to switch rendering mode or initial render
+		this.itemsContainer!.empty();
+		this.currentTaskElements.clear();
+		this.clearClickTimeouts();
+		this.taskInfoCache.clear();
+		this.lastTaskSignatures.clear();
 
 		if (shouldUseVirtualScrolling && !this.useVirtualScrolling) {
 			this.cleanupNonVirtualRendering();
