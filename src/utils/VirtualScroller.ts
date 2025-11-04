@@ -251,6 +251,11 @@ export class VirtualScroller<T> {
 		const elements = this.contentContainer.querySelectorAll('[data-virtual-index]');
 		let heightsChanged = false;
 
+		// Track the first visible item for scroll anchoring
+		const scrollTop = this.scrollContainer.scrollTop;
+		const firstVisibleIndex = this.state.startIndex;
+		const oldFirstItemPosition = this.getItemPosition(firstVisibleIndex);
+
 		for (const element of elements) {
 			const index = parseInt((element as HTMLElement).dataset.virtualIndex || '-1', 10);
 			if (index >= 0 && index < this.items.length) {
@@ -266,6 +271,15 @@ export class VirtualScroller<T> {
 
 		if (heightsChanged) {
 			this.rebuildPositionCache();
+
+			// Scroll anchoring: adjust scroll position to keep the first visible item stable
+			const newFirstItemPosition = this.getItemPosition(firstVisibleIndex);
+			const positionDrift = newFirstItemPosition - oldFirstItemPosition;
+
+			if (Math.abs(positionDrift) > 1) {
+				// Adjust scroll to compensate for position changes
+				this.scrollContainer.scrollTop = scrollTop + positionDrift;
+			}
 		}
 	}
 
@@ -408,14 +422,12 @@ export class VirtualScroller<T> {
 		this.items = items;
 		this.state.totalItems = items.length;
 
-		// Note: We keep existing height measurements since they're still valid
-		// Only clear measurements for indices beyond the new length
-		const oldSize = this.itemHeights.size;
-		for (let i = items.length; i < oldSize; i++) {
-			this.itemHeights.delete(i);
-		}
+		// IMPORTANT: Clear ALL height measurements when items change
+		// This prevents stale heights from causing scroll position drift
+		// Items will be remeasured on next render
+		this.itemHeights.clear();
 
-		// Rebuild position cache with new item count
+		// Rebuild position cache with estimated heights
 		this.rebuildPositionCache();
 
 		// Clear rendered elements cache since items changed
@@ -468,12 +480,32 @@ export class VirtualScroller<T> {
 	invalidateItem(key: string): void {
 		const element = this.renderedElements.get(key);
 		if (element) {
+			// Get the index from the element
+			const index = parseInt(element.dataset.virtualIndex || '-1', 10);
+
+			// Clear height measurement for this index
+			if (index >= 0) {
+				this.itemHeights.delete(index);
+			}
+
 			// Remove from cache - will be recreated on next render
 			this.renderedElements.delete(key);
 			element.remove();
 		}
-		// Force re-render of visible range
+		// Rebuild position cache and force re-render
+		this.rebuildPositionCache();
 		this.updateVisibleRange();
+	}
+
+	/**
+	 * Invalidate height measurements for specific indices
+	 * Useful when items change but you're about to call updateItems anyway
+	 */
+	invalidateHeights(indices: number[]): void {
+		for (const index of indices) {
+			this.itemHeights.delete(index);
+		}
+		this.rebuildPositionCache();
 	}
 
 	/**
