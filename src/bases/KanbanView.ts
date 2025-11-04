@@ -429,8 +429,8 @@ export class KanbanView extends BasesViewBase {
 		visibleProperties: string[],
 		cardOptions: any
 	): void {
-		// Make container scrollable
-		cardsContainer.style.cssText = "overflow-y: auto; max-height: 600px; position: relative;";
+		// Make container scrollable with full viewport height
+		cardsContainer.style.cssText = "overflow-y: auto; max-height: 100vh; position: relative;";
 
 		const scroller = new VirtualScroller<TaskInfo>({
 			container: cardsContainer,
