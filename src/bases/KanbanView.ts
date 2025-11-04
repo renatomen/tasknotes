@@ -4,7 +4,6 @@ import { BasesViewBase } from "./BasesViewBase";
 import { TaskInfo } from "../types";
 import { identifyTaskNotesFromBasesData } from "./helpers";
 import { createTaskCard } from "../ui/TaskCard";
-import { getBasesSortComparator } from "./sorting";
 import { renderGroupTitle } from "./groupTitleRenderer";
 import { type LinkServices } from "../ui/renderers/linkRenderer";
 
@@ -86,7 +85,7 @@ export class KanbanView extends BasesViewBase {
 			if (this.swimLanePropertyId) {
 				await this.renderWithSwimLanes(groups, taskNotes, pathToProps, groupByPropertyId);
 			} else {
-				await this.renderFlat(groups, pathToProps);
+				await this.renderFlat(groups);
 			}
 		} catch (error: any) {
 			console.error("[TaskNotes][KanbanView] Error rendering:", error);
@@ -183,24 +182,18 @@ export class KanbanView extends BasesViewBase {
 	}
 
 	private async renderFlat(
-		groups: Map<string, TaskInfo[]>,
-		pathToProps: Map<string, Record<string, any>>
+		groups: Map<string, TaskInfo[]>
 	): Promise<void> {
 		// Render columns without swimlanes
 		const visibleProperties = this.getVisibleProperties();
 
-		// Apply sorting within each column
-		const sortComparator = getBasesSortComparator(this.basesViewContext, pathToProps);
+		// Note: tasks are already sorted by Bases within each group
+		// No manual sorting needed - Bases provides pre-sorted data
 
 		for (const [groupKey, tasks] of groups.entries()) {
 			// Filter empty columns if option enabled
 			if (this.hideEmptyColumns && tasks.length === 0) {
 				continue;
-			}
-
-			// Sort tasks in column
-			if (sortComparator) {
-				tasks.sort(sortComparator);
 			}
 
 			// Create column
@@ -294,7 +287,9 @@ export class KanbanView extends BasesViewBase {
 
 		// Get visible properties for cards
 		const visibleProperties = this.getVisibleProperties();
-		const sortComparator = getBasesSortComparator(this.basesViewContext, pathToProps);
+
+		// Note: tasks are already sorted by Bases
+		// No manual sorting needed - Bases provides pre-sorted data
 
 		// Render each swimlane row
 		for (const [swimLaneKey, columns] of swimLanes) {
@@ -317,11 +312,6 @@ export class KanbanView extends BasesViewBase {
 			// Render columns in this swimlane
 			for (const columnKey of columnKeys) {
 				const tasks = columns.get(columnKey) || [];
-
-				// Sort tasks
-				if (sortComparator) {
-					tasks.sort(sortComparator);
-				}
 
 				// Create cell
 				const cell = row.createEl("div", {

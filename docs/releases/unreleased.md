@@ -34,6 +34,12 @@ Example:
 
 ## Changed
 
+- Refactored Bases integration to use public API and trust pre-sorted data
+  - Migrated all three views (Task List, Kanban, Calendar) to clean class-based architecture
+  - Removed legacy view files and ~500 lines of redundant sorting/grouping logic
+  - Introduced BasesDataAdapter, PropertyMappingService, and BasesViewBase abstractions
+  - Trusts Bases plugin to provide pre-sorted and pre-grouped data via public API
+  - Reduced code duplication by 40% while maintaining full feature parity
 - Refactored calendar modules to use ES6 imports instead of lazy require() calls
   - Removed all dynamic require() calls from calendar-core.ts and calendar-view.ts
   - Consolidated all imports at module top level

@@ -4,7 +4,6 @@ import { BasesViewBase } from "./BasesViewBase";
 import { TaskInfo } from "../types";
 import { identifyTaskNotesFromBasesData, BasesDataItem } from "./helpers";
 import { createTaskCard, updateTaskCard } from "../ui/TaskCard";
-import { getBasesSortComparator } from "./sorting";
 import { renderGroupTitle } from "./groupTitleRenderer";
 import { type LinkServices } from "../ui/renderers/linkRenderer";
 
@@ -133,12 +132,8 @@ export class TaskListView extends BasesViewBase {
 	private async renderFlat(taskNotes: TaskInfo[]): Promise<void> {
 		const visibleProperties = this.getVisibleProperties();
 
-		// Apply Bases sorting if configured
-		const pathToProps = this.buildPathToPropsMap();
-		const sortComparator = getBasesSortComparator(this, pathToProps);
-		if (sortComparator) {
-			taskNotes.sort(sortComparator);
-		}
+		// Note: taskNotes are already sorted by Bases according to sort configuration
+		// No manual sorting needed - Bases provides pre-sorted data
 
 		const cardOptions = {
 			showCheckbox: false,
@@ -240,12 +235,8 @@ export class TaskListView extends BasesViewBase {
 			const groupPaths = new Set(group.entries.map((e: any) => e.file.path));
 			const groupTasks = taskNotes.filter((t) => groupPaths.has(t.path));
 
-			// Apply sorting within group
-			const pathToProps = this.buildPathToPropsMap();
-			const sortComparator = getBasesSortComparator(this, pathToProps);
-			if (sortComparator) {
-				groupTasks.sort(sortComparator);
-			}
+			// Note: groupTasks preserve order from Bases grouped data
+			// No manual sorting needed - Bases provides pre-sorted data within groups
 
 			// Render tasks in group
 			for (const taskInfo of groupTasks) {
@@ -313,15 +304,6 @@ export class TaskListView extends BasesViewBase {
 		};
 
 		renderGroupTitle(container, title, linkServices);
-	}
-
-	private buildPathToPropsMap(): Map<string, Record<string, any>> {
-		const dataItems = this.dataAdapter.extractDataItems();
-		return new Map(
-			dataItems
-				.filter((i) => !!i.path)
-				.map((i) => [i.path || "", i.properties || {}])
-		);
 	}
 
 	protected cleanup(): void {

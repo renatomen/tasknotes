@@ -661,12 +661,8 @@ export async function renderGroupedTasksInBasesView(
 			}
 		}
 
-		// Apply sorting within group
-		const { getBasesSortComparator } = await import("./sorting");
-		const sortComparator = getBasesSortComparator(viewContext, pathToProps);
-		if (sortComparator) {
-			groupTasks.sort(sortComparator);
-		}
+		// Note: groupTasks preserve order from Bases grouped data
+		// No manual sorting needed - Bases provides pre-sorted data within groups
 
 		// Render tasks in this group
 		for (const task of groupTasks) {
