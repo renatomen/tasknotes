@@ -1,4 +1,4 @@
-/* eslint-disable no-console */
+/* eslint-disable no-console, @typescript-eslint/no-unused-vars, @microsoft/sdl/no-inner-html, no-constant-condition */
 import {
 	ItemView,
 	WorkspaceLeaf,

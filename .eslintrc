@@ -23,7 +23,7 @@
     },
     "rules": {
       "no-unused-vars": "off",
-      "@typescript-eslint/no-unused-vars": ["error", { "args": "none" }],
+      "@typescript-eslint/no-unused-vars": ["warn", { "args": "none", "varsIgnorePattern": "^_" }],
       "@typescript-eslint/ban-ts-comment": "off",
       "no-prototype-builtins": "off",
       "@typescript-eslint/no-empty-function": "off",
@@ -31,7 +31,13 @@
       "obsidianmd/settings-tab": "off",
       "obsidianmd/platform": "off",
       "deprecation/deprecation": "off",
-      "import/no-nodejs-modules": "off"
+      "import/no-nodejs-modules": "off",
+      "@microsoft/sdl/no-inner-html": "warn",
+      "no-constant-condition": "warn",
+      "no-case-declarations": "warn",
+      "no-undef": "warn",
+      "no-restricted-globals": "warn",
+      "@typescript-eslint/no-inferrable-types": "warn"
     },
     "overrides": [
       {
