@@ -8,6 +8,7 @@ import type { TaskNotesSettings } from "../types/settings";
 /**
  * Generate a task filter expression based on the task identification method
  * Returns the filter condition string (not the full YAML structure)
+ * Only used for project-subtasks view now
  */
 function generateTaskFilterCondition(settings: TaskNotesSettings): string {
 	if (settings.taskIdentificationMethod === "tag") {
@@ -37,6 +38,7 @@ function generateTaskFilterCondition(settings: TaskNotesSettings): string {
 
 /**
  * Format filter condition(s) as YAML object notation
+ * Only used for project-subtasks view now
  */
 function formatFilterAsYAML(conditions: string | string[]): string {
 	const conditionArray = Array.isArray(conditions) ? conditions : [conditions];
@@ -187,9 +189,6 @@ ${orderYaml}
 		}
 		case 'open-kanban-view':
 			return `# Kanban Board
-# Automatically filters for tasks based on your settings
-
-${formatFilterAsYAML(taskFilterCondition)}
 
 views:
   - type: tasknotesKanban
@@ -203,9 +202,6 @@ ${orderYaml}
 
 		case 'open-tasks-view':
 			return `# All Tasks
-# Automatically filters for tasks based on your settings
-
-${formatFilterAsYAML(taskFilterCondition)}
 
 views:
   - type: tasknotesTaskList
@@ -219,9 +215,6 @@ ${orderYaml}
 
 		case 'open-advanced-calendar-view':
 			return `# Calendar
-# Automatically filters for tasks based on your settings
-
-${formatFilterAsYAML(taskFilterCondition)}
 
 views:
   - type: tasknotesCalendar
@@ -245,9 +238,6 @@ ${orderYaml}
 
 		case 'open-agenda-view':
 			return `# Agenda
-# Automatically filters for tasks based on your settings
-
-${formatFilterAsYAML(taskFilterCondition)}
 
 views:
   - type: tasknotesCalendar
