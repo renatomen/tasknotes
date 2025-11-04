@@ -791,14 +791,21 @@ describe('TaskCard Component', () => {
       expect(lastMenuInstance.addSeparator).toHaveBeenCalled();
     });
 
-    it('should handle task not found', async () => {
+    it('should handle task not found by showing file context menu', async () => {
       mockPlugin.cacheManager.getTaskInfo.mockResolvedValue(null);
+      const mockFile = new TFile('nonexistent.md');
+      mockApp.vault.getAbstractFileByPath.mockReturnValue(mockFile);
 
       const mockEvent = new MouseEvent('contextmenu');
 
       await showTaskContextMenu(mockEvent, 'nonexistent.md', mockPlugin, new Date('2025-01-15'));
 
-      expect(console.error).toHaveBeenCalledWith(expect.stringContaining('No task found'));
+      expect(mockApp.workspace.trigger).toHaveBeenCalledTimes(1);
+      const triggerArgs = mockApp.workspace.trigger.mock.calls[0];
+      expect(triggerArgs[0]).toBe('file-menu');
+      expect(triggerArgs[1]).toBeDefined();
+      expect(triggerArgs[2]).toBe(mockFile);
+      expect(triggerArgs[3]).toBe('tasknotes-bases-view');
     });
 
     it('should handle errors gracefully', async () => {

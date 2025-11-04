@@ -7,6 +7,19 @@ import type TaskNotesPlugin from "../main";
  * Kept independent for ease of testing and minimal integration surface.
  */
 export class SubgroupMenuBuilder {
+	private static translate(plugin: TaskNotesPlugin, key: string, fallback: string): string {
+		const translator = plugin?.i18n?.translate?.bind(plugin.i18n);
+		try {
+			const value = translator ? translator(key) : undefined;
+			if (typeof value === "string" && value.trim().length > 0) {
+				return value;
+			}
+		} catch (error) {
+			// Ignore translation errors and use fallback
+		}
+		return fallback;
+	}
+
 	/**
 	 * Build the available subgroup options based on built-in keys and user properties,
 	 * excluding the current primary group key. Always includes 'none'.
@@ -17,15 +30,15 @@ export class SubgroupMenuBuilder {
 		plugin: TaskNotesPlugin
 	): Record<string, string> {
 		const builtIn: Record<TaskGroupKey, string> = {
-			none: plugin.i18n.translate("ui.filterBar.group.none"),
-			status: plugin.i18n.translate("ui.filterBar.group.status"),
-			priority: plugin.i18n.translate("ui.filterBar.group.priority"),
-			context: plugin.i18n.translate("ui.filterBar.group.context"),
-			project: plugin.i18n.translate("ui.filterBar.group.project"),
-			due: plugin.i18n.translate("ui.filterBar.group.dueDate"),
-			scheduled: plugin.i18n.translate("ui.filterBar.group.scheduledDate"),
-			tags: plugin.i18n.translate("ui.filterBar.group.tags"),
-			completedDate: plugin.i18n.translate("ui.filterBar.group.completedDate"),
+			none: SubgroupMenuBuilder.translate(plugin, "ui.filterBar.group.none", "None"),
+			status: SubgroupMenuBuilder.translate(plugin, "ui.filterBar.group.status", "Status"),
+			priority: SubgroupMenuBuilder.translate(plugin, "ui.filterBar.group.priority", "Priority"),
+			context: SubgroupMenuBuilder.translate(plugin, "ui.filterBar.group.context", "Context"),
+			project: SubgroupMenuBuilder.translate(plugin, "ui.filterBar.group.project", "Project"),
+			due: SubgroupMenuBuilder.translate(plugin, "ui.filterBar.group.dueDate", "Due Date"),
+			scheduled: SubgroupMenuBuilder.translate(plugin, "ui.filterBar.group.scheduledDate", "Scheduled Date"),
+			tags: SubgroupMenuBuilder.translate(plugin, "ui.filterBar.group.tags", "Tags"),
+			completedDate: SubgroupMenuBuilder.translate(plugin, "ui.filterBar.group.completedDate", "Completed Date"),
 		} as const;
 
 		const options: Record<string, string> = {};
@@ -71,7 +84,7 @@ export class SubgroupMenuBuilder {
 		// Visual separator and header
 		menu.addSeparator();
 		menu.addItem((item: any) => {
-			item.setTitle(plugin.i18n.translate("ui.filterBar.subgroupLabel"));
+			item.setTitle(SubgroupMenuBuilder.translate(plugin, "ui.filterBar.subgroupLabel", "SUBGROUP"));
 			if (typeof item.setDisabled === "function") item.setDisabled(true);
 		});
 

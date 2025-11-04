@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-import { TFile, setIcon, Notice, Modal, App, setTooltip, parseLinktext } from "obsidian";
+import { TFile, setIcon, Notice, Modal, App, setTooltip, parseLinktext, Menu } from "obsidian";
 import { TaskInfo } from "../types";
 import TaskNotesPlugin from "../main";
 import { TaskContextMenu } from "../components/TaskContextMenu";
@@ -1434,11 +1434,18 @@ export async function showTaskContextMenu(
 	plugin: TaskNotesPlugin,
 	targetDate: Date
 ) {
+	const file = plugin.app.vault.getAbstractFileByPath(taskPath);
+	const showFileMenuFallback = () => {
+		if (file instanceof TFile) {
+			showFileContextMenu(event, file, plugin);
+		}
+	};
+
 	try {
 		// Always fetch fresh task data - ignore any stale captured data
 		const task = await plugin.cacheManager.getTaskInfo(taskPath);
 		if (!task) {
-			console.error(`No task found for path: ${taskPath}`);
+			showFileMenuFallback();
 			return;
 		}
 
@@ -1460,7 +1467,39 @@ export async function showTaskContextMenu(
 			taskPath,
 		});
 		new Notice(`Failed to create context menu: ${errorMessage}`);
+		showFileMenuFallback();
 	}
+}
+
+function showFileContextMenu(event: MouseEvent, file: TFile, plugin: TaskNotesPlugin) {
+	const menu = new Menu();
+
+	let populated = false;
+	try {
+		plugin.app.workspace.trigger("file-menu", menu, file, "tasknotes-bases-view");
+		populated = (menu as any).items?.length > 0;
+	} catch (error) {
+		populated = false;
+	}
+
+	if (!populated) {
+		menu.addItem((item) => {
+			item.setTitle("Open");
+			item.setIcon("file-text");
+			item.onClick(() => {
+				plugin.app.workspace.getLeaf(false).openFile(file);
+			});
+		});
+		menu.addItem((item) => {
+			item.setTitle("Open in new tab");
+			item.setIcon("external-link");
+			item.onClick(() => {
+				plugin.app.workspace.openLinkText(file.path, "", true);
+			});
+		});
+	}
+
+	menu.showAtMouseEvent(event);
 }
 
 /**
