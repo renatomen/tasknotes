@@ -134,9 +134,19 @@ const PROPERTY_EXTRACTORS: Record<string, (task: TaskInfo) => any> = {
  */
 function getPropertyValue(task: TaskInfo, propertyId: string, plugin: TaskNotesPlugin): unknown {
 	try {
-		// Use extractors for standard properties
-		if (propertyId in PROPERTY_EXTRACTORS) {
-			return PROPERTY_EXTRACTORS[propertyId](task);
+		// Map display property ID to internal field name using FieldMapper
+		// This handles user-configured property mappings (e.g., "task-status" → "status")
+		let internalFieldName = propertyId;
+		if (plugin.fieldMapper && !propertyId.startsWith("user:") && !propertyId.startsWith("formula.")) {
+			const mapped = plugin.fieldMapper.fromUserField(propertyId);
+			if (mapped) {
+				internalFieldName = mapped;
+			}
+		}
+
+		// Use extractors for standard properties (now using internal field names)
+		if (internalFieldName in PROPERTY_EXTRACTORS) {
+			return PROPERTY_EXTRACTORS[internalFieldName](task);
 		}
 
 		// Handle user properties

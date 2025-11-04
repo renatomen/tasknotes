@@ -1,9 +1,9 @@
 /* eslint-disable no-console */
 import TaskNotesPlugin from "../main";
 import { requireApiVersion } from "obsidian";
-import { buildTasknotesTaskListViewFactory } from "./view-factory";
-import { buildTasknotesKanbanViewFactory } from "./kanban-view";
-import { buildTasknotesCalendarViewFactory } from "./calendar-view";
+import { buildTaskListViewFactory } from "./TaskListView";
+import { buildKanbanViewFactory } from "./KanbanView";
+import { buildCalendarViewFactory } from "./CalendarView";
 import { registerBasesView, unregisterBasesView } from "./api";
 
 /**
@@ -21,14 +21,14 @@ export async function registerBasesTaskList(plugin: TaskNotesPlugin): Promise<vo
 			const taskListSuccess = registerBasesView(plugin, "tasknotesTaskList", {
 				name: "TaskNotes Task List",
 				icon: "tasknotes-simple",
-				factory: buildTasknotesTaskListViewFactory(plugin),
+				factory: buildTaskListViewFactory(plugin),
 			});
 
 			// Register Kanban view using public API
 			const kanbanSuccess = registerBasesView(plugin, "tasknotesKanban", {
 				name: "TaskNotes Kanban",
 				icon: "tasknotes-simple",
-				factory: buildTasknotesKanbanViewFactory(plugin),
+				factory: buildKanbanViewFactory(plugin),
 				options: () => [
 					{
 						type: "property",
@@ -62,7 +62,7 @@ export async function registerBasesTaskList(plugin: TaskNotesPlugin): Promise<vo
 			const calendarSuccess = registerBasesView(plugin, "tasknotesCalendar", {
 				name: "TaskNotes Calendar",
 				icon: "tasknotes-simple",
-				factory: buildTasknotesCalendarViewFactory(plugin),
+				factory: buildCalendarViewFactory(plugin),
 				options: () => {
 						const calendarSettings = plugin.settings.calendarViewSettings;
 						const t = (key: string) => plugin.i18n.translate(`views.basesCalendar.settings.${key}`);
