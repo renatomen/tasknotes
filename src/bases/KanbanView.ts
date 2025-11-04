@@ -262,7 +262,10 @@ export class KanbanView extends BasesViewBase {
 
 			const swimLane = swimLanes.get(swimLaneKey);
 			if (swimLane && swimLane.has(columnKey)) {
-				swimLane.get(columnKey)!.push(task);
+				const columnTasks = swimLane.get(columnKey);
+				if (columnTasks) {
+					columnTasks.push(task);
+				}
 			}
 		}
 
@@ -804,19 +807,19 @@ export class KanbanView extends BasesViewBase {
 		event: MouseEvent
 	): Promise<void> {
 		// Import handlers dynamically to avoid circular dependencies
-		const {
-			DateContextMenu,
-			PriorityContextMenu,
-			RecurrenceContextMenu,
-			ReminderModal,
-			showTaskContextMenu
-		} = await import("../ui/TaskCard").then(m => ({
-			DateContextMenu: require("../components/DateContextMenu").DateContextMenu,
-			PriorityContextMenu: require("../components/PriorityContextMenu").PriorityContextMenu,
-			RecurrenceContextMenu: require("../components/RecurrenceContextMenu").RecurrenceContextMenu,
-			ReminderModal: require("../modals/ReminderModal").ReminderModal,
-			showTaskContextMenu: m.showTaskContextMenu
-		}));
+		const [
+			{ DateContextMenu },
+			{ PriorityContextMenu },
+			{ RecurrenceContextMenu },
+			{ ReminderModal },
+			{ showTaskContextMenu }
+		] = await Promise.all([
+			import("../components/DateContextMenu"),
+			import("../components/PriorityContextMenu"),
+			import("../components/RecurrenceContextMenu"),
+			import("../modals/ReminderModal"),
+			import("../ui/TaskCard")
+		]);
 
 		switch (action) {
 			case "toggle-status":

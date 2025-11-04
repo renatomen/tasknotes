@@ -27,14 +27,10 @@ import { TaskNotesSettingTab } from "./settings/TaskNotesSettingTab";
 import { DEFAULT_BASES_FILES, generateBasesFileTemplate } from "./templates/defaultBasesFiles";
 import {
 	MINI_CALENDAR_VIEW_TYPE,
-	ADVANCED_CALENDAR_VIEW_TYPE,
-	NOTES_VIEW_TYPE,
-	TASK_LIST_VIEW_TYPE,
 	AGENDA_VIEW_TYPE,
 	POMODORO_VIEW_TYPE,
 	POMODORO_STATS_VIEW_TYPE,
 	STATS_VIEW_TYPE,
-	KANBAN_VIEW_TYPE,
 	TaskInfo,
 	EVENT_DATE_SELECTED,
 	EVENT_DATA_CHANGED,

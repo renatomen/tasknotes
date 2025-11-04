@@ -195,10 +195,12 @@ export class TaskListView extends BasesViewBase {
 		visibleProperties: string[] | undefined,
 		cardOptions: any
 	): Promise<void> {
+		if (!this.itemsContainer) return;
+
 		if (!this.virtualScroller) {
 			// Initialize virtual scroller with automatic height calculation
 			this.virtualScroller = new VirtualScroller<TaskInfo>({
-				container: this.itemsContainer!,
+				container: this.itemsContainer,
 				items: taskNotes,
 				// itemHeight omitted - will be calculated automatically from sample
 				overscan: 5,
@@ -232,11 +234,13 @@ export class TaskListView extends BasesViewBase {
 		visibleProperties: string[] | undefined,
 		cardOptions: any
 	): Promise<void> {
+		if (!this.itemsContainer) return;
+
 		const seenPaths = new Set<string>();
 		const orderChanged = !this.arePathArraysEqual(taskNotes, this.lastFlatPaths);
 
 		if (orderChanged) {
-			this.itemsContainer!.empty();
+			this.itemsContainer.empty();
 			this.currentTaskElements.clear();
 		}
 

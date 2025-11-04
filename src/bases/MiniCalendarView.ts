@@ -125,7 +125,10 @@ export class MiniCalendarView extends BasesViewBase {
 				if (!this.notesByDate.has(dateKey)) {
 					this.notesByDate.set(dateKey, []);
 				}
-				this.notesByDate.get(dateKey)!.push(noteEntry);
+				const notes = this.notesByDate.get(dateKey);
+				if (notes) {
+					notes.push(noteEntry);
+				}
 			} catch (error) {
 				console.warn("[TaskNotes][MiniCalendarView] Error indexing note:", error);
 			}
@@ -256,7 +259,8 @@ export class MiniCalendarView extends BasesViewBase {
 	}
 
 	private renderCalendarControls(): void {
-		const controlsContainer = this.calendarEl!.createDiv({ cls: "mini-calendar-view__controls" });
+		if (!this.calendarEl) return;
+		const controlsContainer = this.calendarEl.createDiv({ cls: "mini-calendar-view__controls" });
 		const headerContainer = controlsContainer.createDiv({ cls: "mini-calendar-view__header" });
 
 		// Navigation section
@@ -303,7 +307,8 @@ export class MiniCalendarView extends BasesViewBase {
 	}
 
 	private renderCalendarGrid(): void {
-		const gridContainer = this.calendarEl!.createDiv({ cls: "mini-calendar-view__grid-container" });
+		if (!this.calendarEl) return;
+		const gridContainer = this.calendarEl.createDiv({ cls: "mini-calendar-view__grid-container" });
 
 		// Get current month/year from displayed date
 		const currentMonth = this.displayedMonth;

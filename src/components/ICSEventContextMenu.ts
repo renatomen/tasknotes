@@ -1,4 +1,4 @@
-import { Menu, Notice, TFile } from "obsidian";
+import { Notice, TFile } from "obsidian";
 import TaskNotesPlugin from "../main";
 import { ICSEvent } from "../types";
 import { ICSEventInfoModal } from "../modals/ICSEventInfoModal";

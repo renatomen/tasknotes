@@ -13,8 +13,6 @@ import {
 	EVENT_TASK_DELETED,
 	EVENT_TASK_UPDATED,
 	EVENT_DATE_CHANGED,
-	FilterQuery,
-	SUBTASK_WIDGET_VIEW_TYPE,
 	TaskInfo,
 } from "../types";
 import {

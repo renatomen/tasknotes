@@ -90,7 +90,7 @@ export function isDarkMode(): boolean {
  * Get appropriate text color for event based on theme
  * Returns dark text for light mode, light text for dark mode
  */
-export function getEventTextColor(isGoogleCalendar: boolean = false): string {
+export function getEventTextColor(isGoogleCalendar = false): string {
 	if (isGoogleCalendar) {
 		return isDarkMode() ? '#e8eaed' : '#202124'; // Light text in dark mode, dark text in light mode
 	}
@@ -943,7 +943,7 @@ export async function handleTimeEntryCreation(
 						const updatedTimeEntries = [...(selectedTask.timeEntries || []), newEntry];
 
 						// Save to file
-						const updatedTask = await plugin.taskService.updateTask(selectedTask, {
+						await plugin.taskService.updateTask(selectedTask, {
 							timeEntries: updatedTimeEntries,
 						});
 
@@ -1098,7 +1098,7 @@ export function addTaskHoverPreview(
 	element: HTMLElement,
 	taskInfo: TaskInfo,
 	plugin: TaskNotesPlugin,
-	source: string = "tasknotes-calendar"
+	source = "tasknotes-calendar"
 ): void {
 	element.addEventListener("mouseover", (event: MouseEvent) => {
 		const file = plugin.app.vault.getAbstractFileByPath(taskInfo.path);
