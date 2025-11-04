@@ -28,7 +28,9 @@ export class TaskListView extends BasesViewBase {
 	private containerListenersRegistered = false;
 	private virtualScroller: VirtualScroller<TaskInfo> | null = null;
 	private useVirtualScrolling = false;
-	private readonly VIRTUAL_SCROLL_THRESHOLD = 250; // Use virtual scrolling for 250+ tasks
+	private groupScrollers = new Map<string, VirtualScroller<TaskInfo>>(); // groupKey -> scroller
+	private readonly VIRTUAL_SCROLL_THRESHOLD = 250; // Use virtual scrolling for 250+ tasks (flat mode)
+	private readonly GROUP_VIRTUAL_SCROLL_THRESHOLD = 50; // Use virtual scrolling for 50+ tasks per group
 
 	constructor(controller: any, containerEl: HTMLElement, plugin: TaskNotesPlugin) {
 		super(controller, containerEl, plugin);
@@ -291,6 +293,9 @@ export class TaskListView extends BasesViewBase {
 		const visibleProperties = this.getVisibleProperties();
 		const groups = this.dataAdapter.getGroupedData();
 
+		// Clean up any existing group scrollers
+		this.destroyGroupScrollers();
+
 		this.itemsContainer!.empty();
 		this.currentTaskElements.clear();
 		this.clearClickTimeouts();
@@ -374,19 +379,69 @@ export class TaskListView extends BasesViewBase {
 			// Note: groupTasks preserve order from Bases grouped data
 			// No manual sorting needed - Bases provides pre-sorted data within groups
 
-			// Render tasks in group
-			for (const taskInfo of groupTasks) {
-				const cardEl = createTaskCard(taskInfo, this.plugin, visibleProperties, {
-					...cardOptions,
-				});
-				taskCardsContainer.appendChild(cardEl);
-				this.currentTaskElements.set(taskInfo.path, cardEl);
-				this.taskInfoCache.set(taskInfo.path, taskInfo);
-				this.lastTaskSignatures.set(taskInfo.path, this.buildTaskSignature(taskInfo));
+			// Use virtual scrolling for large groups
+			const groupKey = groupTitle; // Use group title as key
+			if (groupTasks.length >= this.GROUP_VIRTUAL_SCROLL_THRESHOLD) {
+				this.renderGroupVirtual(taskCardsContainer, groupKey, groupTasks, visibleProperties, cardOptions);
+			} else {
+				this.renderGroupNormal(taskCardsContainer, groupTasks, visibleProperties, cardOptions);
 			}
 		}
 
 		this.lastFlatPaths = taskNotes.map((task) => task.path);
+	}
+
+	private renderGroupVirtual(
+		taskCardsContainer: HTMLElement,
+		groupKey: string,
+		groupTasks: TaskInfo[],
+		visibleProperties: string[] | undefined,
+		cardOptions: any
+	): void {
+		// Make container scrollable with max height
+		taskCardsContainer.style.cssText = "overflow-y: auto; max-height: 600px; position: relative;";
+
+		const scroller = new VirtualScroller<TaskInfo>({
+			container: taskCardsContainer,
+			items: groupTasks,
+			itemHeight: 60, // Estimated card height
+			overscan: 5,
+			renderItem: (taskInfo: TaskInfo) => {
+				const cardEl = createTaskCard(taskInfo, this.plugin, visibleProperties, cardOptions);
+
+				// Cache task info for event handlers
+				this.taskInfoCache.set(taskInfo.path, taskInfo);
+				this.lastTaskSignatures.set(taskInfo.path, this.buildTaskSignature(taskInfo));
+
+				return cardEl;
+			},
+			getItemKey: (taskInfo: TaskInfo) => taskInfo.path,
+		});
+
+		this.groupScrollers.set(groupKey, scroller);
+	}
+
+	private renderGroupNormal(
+		taskCardsContainer: HTMLElement,
+		groupTasks: TaskInfo[],
+		visibleProperties: string[] | undefined,
+		cardOptions: any
+	): void {
+		// Render tasks normally
+		for (const taskInfo of groupTasks) {
+			const cardEl = createTaskCard(taskInfo, this.plugin, visibleProperties, cardOptions);
+			taskCardsContainer.appendChild(cardEl);
+			this.currentTaskElements.set(taskInfo.path, cardEl);
+			this.taskInfoCache.set(taskInfo.path, taskInfo);
+			this.lastTaskSignatures.set(taskInfo.path, this.buildTaskSignature(taskInfo));
+		}
+	}
+
+	private destroyGroupScrollers(): void {
+		for (const scroller of this.groupScrollers.values()) {
+			scroller.destroy();
+		}
+		this.groupScrollers.clear();
 	}
 
 	protected async handleTaskUpdate(task: TaskInfo): Promise<void> {
@@ -449,6 +504,7 @@ export class TaskListView extends BasesViewBase {
 		super.cleanup();
 		this.unregisterContainerListeners();
 		this.destroyVirtualScroller();
+		this.destroyGroupScrollers();
 		this.currentTaskElements.clear();
 		this.itemsContainer = null;
 		this.lastRenderWasGrouped = false;
@@ -464,6 +520,7 @@ export class TaskListView extends BasesViewBase {
 			this.destroyVirtualScroller();
 			this.useVirtualScrolling = false;
 		}
+		this.destroyGroupScrollers();
 		this.itemsContainer?.empty();
 		this.currentTaskElements.forEach((el) => el.remove());
 		this.currentTaskElements.clear();
