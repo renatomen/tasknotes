@@ -1,9 +1,9 @@
 import { requestUrl, Notice } from "obsidian";
 import TaskNotesPlugin from "../main";
 import { OAuthService } from "./OAuthService";
-import { ICSEvent, OAuthProvider } from "../types";
+import { ICSEvent } from "../types";
 import { MICROSOFT_CALENDAR_CONSTANTS } from "./constants";
-import { GoogleCalendarError, EventNotFoundError, CalendarNotFoundError, RateLimitError, NetworkError, TokenExpiredError } from "./errors";
+import { GoogleCalendarError, EventNotFoundError, CalendarNotFoundError, RateLimitError, TokenExpiredError } from "./errors";
 import { validateCalendarId, validateEventId, validateRequired } from "./validation";
 import { CalendarProvider, ProviderCalendar } from "./CalendarProvider";
 
@@ -66,7 +66,7 @@ export class MicrosoftCalendarService extends CalendarProvider {
 	private oauthService: OAuthService;
 	private baseUrl = "https://graph.microsoft.com/v1.0";
 	private cache: Map<string, ICSEvent[]> = new Map();
-	private refreshTimer: NodeJS.Timeout | null = null;
+	private refreshTimer: ReturnType<typeof setTimeout> | null = null;
 	private availableCalendars: ProviderCalendar[] = [];
 	private lastManualRefresh: number = 0; // Timestamp of last manual refresh for rate limiting
 

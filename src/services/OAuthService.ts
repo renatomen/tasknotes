@@ -5,7 +5,7 @@ import TaskNotesPlugin from "../main";
 import { OAuthProvider, OAuthTokens, OAuthConnection, OAuthConfig } from "../types";
 import { DeviceCodeModal } from "../modals/DeviceCodeModal";
 import { OAUTH_CONSTANTS } from "./constants";
-import { OAuthError, OAuthNotConfiguredError, TokenExpiredError, NetworkError } from "./errors";
+import { OAuthNotConfiguredError, TokenExpiredError } from "./errors";
 
 let cachedHttpModule: typeof import("http") | null = null;
 

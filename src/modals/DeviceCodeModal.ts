@@ -16,7 +16,7 @@ export class DeviceCodeModal extends Modal {
 	private plugin: TaskNotesPlugin;
 	private deviceCode: DeviceCodeInfo;
 	private onCancel: () => void;
-	private countdownInterval?: NodeJS.Timeout;
+	private countdownInterval?: ReturnType<typeof setInterval>;
 	private expiresAt: number;
 	private translate: (key: TranslationKey, variables?: Record<string, any>) => string;
 

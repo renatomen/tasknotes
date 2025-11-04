@@ -38,9 +38,6 @@ import {
 	EVENT_DATE_CHANGED,
 } from "./types";
 import { MiniCalendarView } from "./views/MiniCalendarView";
-import { AdvancedCalendarView } from "./views/AdvancedCalendarView";
-import { TaskListView } from "./views/TaskListView";
-import { NotesView } from "./views/NotesView";
 import { AgendaView } from "./views/AgendaView";
 import { PomodoroView } from "./views/PomodoroView";
 import { PomodoroStatsView } from "./views/PomodoroStatsView";
