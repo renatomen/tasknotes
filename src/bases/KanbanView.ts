@@ -6,6 +6,7 @@ import { identifyTaskNotesFromBasesData } from "./helpers";
 import { createTaskCard } from "../ui/TaskCard";
 import { renderGroupTitle } from "./groupTitleRenderer";
 import { type LinkServices } from "../ui/renderers/linkRenderer";
+import { VirtualScroller } from "../utils/VirtualScroller";
 
 export class KanbanView extends BasesViewBase {
 	type = "tasknoteKanban";
@@ -16,6 +17,7 @@ export class KanbanView extends BasesViewBase {
 	private draggedTaskPath: string | null = null;
 	private taskInfoCache = new Map<string, TaskInfo>();
 	private containerListenersRegistered = false;
+	private columnScrollers = new Map<string, VirtualScroller<TaskInfo>>(); // columnKey -> scroller
 
 	// View options (accessed via config)
 	private swimLanePropertyId: string | null = null;
@@ -61,7 +63,8 @@ export class KanbanView extends BasesViewBase {
 			const dataItems = this.dataAdapter.extractDataItems();
 			const taskNotes = await identifyTaskNotesFromBasesData(dataItems, this.plugin);
 
-			// Clear board
+			// Clear board and cleanup scrollers
+			this.destroyColumnScrollers();
 			this.boardEl.empty();
 
 			if (taskNotes.length === 0) {
@@ -384,7 +387,6 @@ export class KanbanView extends BasesViewBase {
 		// Setup drag-and-drop
 		this.setupColumnDragDrop(column, cardsContainer, groupKey);
 
-		// Render task cards with lazy mode
 		const cardOptions = {
 			showCheckbox: false,
 			showArchiveButton: false,
@@ -395,6 +397,57 @@ export class KanbanView extends BasesViewBase {
 			interactionMode: "lazy" as const
 		};
 
+		// Use virtual scrolling for columns with many cards
+		if (tasks.length >= this.VIRTUAL_SCROLL_THRESHOLD) {
+			this.createVirtualColumn(cardsContainer, groupKey, tasks, visibleProperties, cardOptions);
+		} else {
+			this.createNormalColumn(cardsContainer, tasks, visibleProperties, cardOptions);
+		}
+
+		return column;
+	}
+
+	private createVirtualColumn(
+		cardsContainer: HTMLElement,
+		groupKey: string,
+		tasks: TaskInfo[],
+		visibleProperties: string[],
+		cardOptions: any
+	): void {
+		// Make container scrollable
+		cardsContainer.style.cssText = "overflow-y: auto; max-height: 600px; position: relative;";
+
+		const scroller = new VirtualScroller<TaskInfo>({
+			container: cardsContainer,
+			items: tasks,
+			itemHeight: 80, // Estimated card height
+			overscan: 3,
+			renderItem: (task: TaskInfo) => {
+				const cardWrapper = document.createElement("div");
+				cardWrapper.className = "kanban-view__card-wrapper";
+				cardWrapper.setAttribute("draggable", "true");
+				cardWrapper.setAttribute("data-task-path", task.path);
+
+				const card = createTaskCard(task, this.plugin, visibleProperties, cardOptions);
+				cardWrapper.appendChild(card);
+
+				this.taskInfoCache.set(task.path, task);
+				this.setupCardDragHandlers(cardWrapper, task);
+
+				return cardWrapper;
+			},
+			getItemKey: (task: TaskInfo) => task.path,
+		});
+
+		this.columnScrollers.set(groupKey, scroller);
+	}
+
+	private createNormalColumn(
+		cardsContainer: HTMLElement,
+		tasks: TaskInfo[],
+		visibleProperties: string[],
+		cardOptions: any
+	): void {
 		for (const task of tasks) {
 			const cardWrapper = cardsContainer.createDiv({ cls: "kanban-view__card-wrapper" });
 			cardWrapper.setAttribute("draggable", "true");
@@ -409,8 +462,6 @@ export class KanbanView extends BasesViewBase {
 			// Setup card drag handlers
 			this.setupCardDragHandlers(cardWrapper, task);
 		}
-
-		return column;
 	}
 
 	private setupColumnDragDrop(
@@ -809,9 +860,17 @@ export class KanbanView extends BasesViewBase {
 		menu.show(event);
 	}
 
+	private destroyColumnScrollers(): void {
+		for (const scroller of this.columnScrollers.values()) {
+			scroller.destroy();
+		}
+		this.columnScrollers.clear();
+	}
+
 	protected cleanup(): void {
 		super.cleanup();
 		this.unregisterBoardListeners();
+		this.destroyColumnScrollers();
 		this.currentTaskElements.clear();
 		this.taskInfoCache.clear();
 		this.boardEl = null;
