@@ -251,11 +251,6 @@ export class VirtualScroller<T> {
 		const elements = this.contentContainer.querySelectorAll('[data-virtual-index]');
 		let heightsChanged = false;
 
-		// Track the first visible item for scroll anchoring
-		const scrollTop = this.scrollContainer.scrollTop;
-		const firstVisibleIndex = this.state.startIndex;
-		const oldFirstItemPosition = this.getItemPosition(firstVisibleIndex);
-
 		for (const element of elements) {
 			const index = parseInt((element as HTMLElement).dataset.virtualIndex || '-1', 10);
 			if (index >= 0 && index < this.items.length) {
@@ -271,15 +266,6 @@ export class VirtualScroller<T> {
 
 		if (heightsChanged) {
 			this.rebuildPositionCache();
-
-			// Scroll anchoring: adjust scroll position to keep the first visible item stable
-			const newFirstItemPosition = this.getItemPosition(firstVisibleIndex);
-			const positionDrift = newFirstItemPosition - oldFirstItemPosition;
-
-			if (Math.abs(positionDrift) > 1) {
-				// Adjust scroll to compensate for position changes
-				this.scrollContainer.scrollTop = scrollTop + positionDrift;
-			}
 		}
 	}
 
@@ -361,7 +347,11 @@ export class VirtualScroller<T> {
 		// Position the content container
 		this.contentContainer.style.transform = `translateY(${offsetY}px)`;
 
-		// Render visible items
+		// Clear and rebuild to ensure correct DOM order
+		// This prevents the visual issue where scrolling up looks like scrolling down
+		this.contentContainer.empty();
+
+		// Render visible items in order
 		for (let i = startIndex; i <= endIndex; i++) {
 			const item = this.items[i];
 			const key = this.getItemKey(item, i);
@@ -377,22 +367,18 @@ export class VirtualScroller<T> {
 				element.dataset.virtualIndex = String(i);
 
 				this.renderedElements.set(key, element);
-				this.contentContainer.appendChild(element);
 
 				// Observe for size changes
 				if (this.resizeObserver) {
 					this.resizeObserver.observe(element);
 				}
-			} else if (!element.isConnected) {
-				// Re-attach existing element
+			} else {
+				// Update index for existing element
 				element.dataset.virtualIndex = String(i);
-				this.contentContainer.appendChild(element);
-
-				// Re-observe
-				if (this.resizeObserver) {
-					this.resizeObserver.observe(element);
-				}
 			}
+
+			// Always append to ensure correct order
+			this.contentContainer.appendChild(element);
 		}
 
 		// Remove elements that are no longer visible
@@ -401,7 +387,8 @@ export class VirtualScroller<T> {
 				if (this.resizeObserver) {
 					this.resizeObserver.unobserve(element);
 				}
-				element.remove();
+				// Element already removed by empty() above or not in visibleKeys
+				this.renderedElements.delete(key);
 			}
 		}
 
@@ -422,12 +409,14 @@ export class VirtualScroller<T> {
 		this.items = items;
 		this.state.totalItems = items.length;
 
-		// IMPORTANT: Clear ALL height measurements when items change
-		// This prevents stale heights from causing scroll position drift
-		// Items will be remeasured on next render
-		this.itemHeights.clear();
+		// Keep existing height measurements - they're usually still valid
+		// Only clear measurements for indices beyond the new length
+		const maxIndex = this.itemHeights.size;
+		for (let i = items.length; i < maxIndex; i++) {
+			this.itemHeights.delete(i);
+		}
 
-		// Rebuild position cache with estimated heights
+		// Rebuild position cache with existing measurements
 		this.rebuildPositionCache();
 
 		// Clear rendered elements cache since items changed
