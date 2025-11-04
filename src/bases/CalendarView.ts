@@ -26,7 +26,6 @@ import {
 	createICSEvent,
 	showTimeblockInfoModal,
 } from "./calendar-core";
-import { getTodayLocal, parseDateToUTC, formatDateForStorage } from "../utils/dateUtils";
 import { handleCalendarTaskClick } from "../utils/clickHandlers";
 import { TaskCreationModal } from "../modals/TaskCreationModal";
 import { ICSEventInfoModal } from "../modals/ICSEventInfoModal";
@@ -698,6 +697,11 @@ export class CalendarView extends BasesViewBase {
 					? endDateProperty.split('.').pop()
 					: endDateProperty;
 
+				if (!startProp) {
+					info.revert();
+					return;
+				}
+
 				// Calculate time shift (in milliseconds)
 				const oldStart = info.oldEvent.start;
 				const newStart = info.event.start;
@@ -706,13 +710,13 @@ export class CalendarView extends BasesViewBase {
 				// Update frontmatter
 				await this.plugin.app.fileManager.processFrontMatter(file, (frontmatter) => {
 					// Update start date
-					const oldStartValue = frontmatter[startProp!];
+					const oldStartValue = frontmatter[startProp];
 					if (oldStartValue) {
 						const oldStartDate = new Date(oldStartValue);
 						if (isNaN(oldStartDate.getTime())) return;
 						const newStartDate = new Date(oldStartDate.getTime() + timeDiffMs);
 						if (isNaN(newStartDate.getTime())) return;
-						frontmatter[startProp!] = format(newStartDate, info.event.allDay ? "yyyy-MM-dd" : "yyyy-MM-dd'T'HH:mm");
+						frontmatter[startProp] = format(newStartDate, info.event.allDay ? "yyyy-MM-dd" : "yyyy-MM-dd'T'HH:mm");
 					}
 
 					// Update end date if configured
@@ -810,7 +814,11 @@ export class CalendarView extends BasesViewBase {
 				if (entry) {
 					// Shift both start and end time by the same amount
 					const oldStartDate = new Date(entry.startTime);
-					const oldEndDate = new Date(entry.endTime!);
+					if (!entry.endTime) {
+						info.revert();
+						return;
+					}
+					const oldEndDate = new Date(entry.endTime);
 
 					entry.startTime = new Date(oldStartDate.getTime() + timeDiffMs).toISOString();
 					entry.endTime = new Date(oldEndDate.getTime() + timeDiffMs).toISOString();
@@ -940,6 +948,11 @@ export class CalendarView extends BasesViewBase {
 					? endDateProperty.split('.').pop()
 					: endDateProperty;
 
+				if (!endProp) {
+					info.revert();
+					return;
+				}
+
 				const newEnd = info.event.end;
 				if (!newEnd) {
 					info.revert();
@@ -949,7 +962,7 @@ export class CalendarView extends BasesViewBase {
 				// Update frontmatter
 				await this.plugin.app.fileManager.processFrontMatter(file, (frontmatter) => {
 					if (isNaN(newEnd.getTime())) return;
-					frontmatter[endProp!] = format(newEnd, info.event.allDay ? "yyyy-MM-dd" : "yyyy-MM-dd'T'HH:mm");
+					frontmatter[endProp] = format(newEnd, info.event.allDay ? "yyyy-MM-dd" : "yyyy-MM-dd'T'HH:mm");
 				});
 			} catch (error) {
 				console.error("[TaskNotes][CalendarView] Error resizing property-based event:", error);

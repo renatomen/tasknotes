@@ -1,4 +1,3 @@
-import { setIcon } from "obsidian";
 import TaskNotesPlugin from "../main";
 import { BasesViewBase } from "./BasesViewBase";
 import { TaskInfo } from "../types";
@@ -21,8 +20,8 @@ export class KanbanView extends BasesViewBase {
 
 	// View options (accessed via config)
 	private swimLanePropertyId: string | null = null;
-	private columnWidth: number = 280;
-	private hideEmptyColumns: boolean = false;
+	private columnWidth = 280;
+	private hideEmptyColumns = false;
 	/**
 	 * Threshold for enabling virtual scrolling in kanban columns/swimlane cells.
 	 * Virtual scrolling activates when a column or cell has >= 30 cards.
@@ -211,7 +210,9 @@ export class KanbanView extends BasesViewBase {
 
 			// Create column
 			const column = await this.createColumn(groupKey, tasks, visibleProperties);
-			this.boardEl!.appendChild(column);
+			if (this.boardEl) {
+				this.boardEl.appendChild(column);
+			}
 		}
 	}
 
@@ -221,6 +222,8 @@ export class KanbanView extends BasesViewBase {
 		pathToProps: Map<string, Record<string, any>>,
 		groupByPropertyId: string
 	): Promise<void> {
+		if (!this.swimLanePropertyId) return;
+
 		// Group by swimlane first, then by column within each swimlane
 		const swimLanes = new Map<string, Map<string, TaskInfo[]>>();
 
@@ -229,18 +232,19 @@ export class KanbanView extends BasesViewBase {
 
 		for (const task of allTasks) {
 			const props = pathToProps.get(task.path) || {};
-			const swimLaneValue = this.getPropertyValue(props, this.swimLanePropertyId!);
+			const swimLaneValue = this.getPropertyValue(props, this.swimLanePropertyId);
 			const swimLaneKey = this.valueToString(swimLaneValue);
 			swimLaneValues.add(swimLaneKey);
 		}
 
 		// Initialize swimlane -> column -> tasks structure
 		for (const swimLaneKey of swimLaneValues) {
-			swimLanes.set(swimLaneKey, new Map());
+			const swimLaneMap = new Map<string, TaskInfo[]>();
+			swimLanes.set(swimLaneKey, swimLaneMap);
 
 			// Initialize each column in this swimlane
 			for (const [columnKey] of groups) {
-				swimLanes.get(swimLaneKey)!.set(columnKey, []);
+				swimLaneMap.set(columnKey, []);
 			}
 		}
 
@@ -249,7 +253,7 @@ export class KanbanView extends BasesViewBase {
 			const props = pathToProps.get(task.path) || {};
 
 			// Determine swimlane
-			const swimLaneValue = this.getPropertyValue(props, this.swimLanePropertyId!);
+			const swimLaneValue = this.getPropertyValue(props, this.swimLanePropertyId);
 			const swimLaneKey = this.valueToString(swimLaneValue);
 
 			// Determine column (groupBy value)
@@ -274,14 +278,16 @@ export class KanbanView extends BasesViewBase {
 		columnKeys: string[],
 		pathToProps: Map<string, Record<string, any>>
 	): Promise<void> {
+		if (!this.boardEl) return;
+
 		// Set CSS variable for column width
-		this.boardEl!.style.setProperty('--kanban-column-width', `${this.columnWidth}px`);
+		this.boardEl.style.setProperty('--kanban-column-width', `${this.columnWidth}px`);
 
 		// Add swimlanes class to board
-		this.boardEl!.addClass("kanban-view__board--swimlanes");
+		this.boardEl.addClass("kanban-view__board--swimlanes");
 
 		// Create header row
-		const headerRow = this.boardEl!.createEl("div", {
+		const headerRow = this.boardEl.createEl("div", {
 			cls: "kanban-view__swimlane-row kanban-view__swimlane-row--header"
 		});
 
@@ -306,7 +312,7 @@ export class KanbanView extends BasesViewBase {
 
 		// Render each swimlane row
 		for (const [swimLaneKey, columns] of swimLanes) {
-			const row = this.boardEl!.createEl("div", { cls: "kanban-view__swimlane-row" });
+			const row = this.boardEl.createEl("div", { cls: "kanban-view__swimlane-row" });
 
 			// Swimlane label cell
 			const labelCell = row.createEl("div", { cls: "kanban-view__swimlane-label" });
@@ -647,28 +653,31 @@ export class KanbanView extends BasesViewBase {
 	}
 
 	private renderEmptyState(): void {
+		if (!this.boardEl) return;
 		const empty = document.createElement("div");
 		empty.className = "tn-bases-empty";
 		empty.style.cssText = "padding: 20px; text-align: center; color: var(--text-muted);";
 		empty.textContent = "No TaskNotes tasks found for this Base.";
-		this.boardEl!.appendChild(empty);
+		this.boardEl.appendChild(empty);
 	}
 
 	private renderNoGroupByError(): void {
+		if (!this.boardEl) return;
 		const error = document.createElement("div");
 		error.className = "tn-bases-error";
 		error.style.cssText = "padding: 20px; text-align: center; color: var(--text-error);";
 		error.textContent = "Kanban view requires a 'Group by' property to be configured.";
-		this.boardEl!.appendChild(error);
+		this.boardEl.appendChild(error);
 	}
 
 	private renderError(error: Error): void {
+		if (!this.boardEl) return;
 		const errorEl = document.createElement("div");
 		errorEl.className = "tn-bases-error";
 		errorEl.style.cssText =
 			"padding: 20px; color: #d73a49; background: #ffeaea; border-radius: 4px; margin: 10px 0;";
 		errorEl.textContent = `Error loading kanban: ${error.message || "Unknown error"}`;
-		this.boardEl!.appendChild(errorEl);
+		this.boardEl.appendChild(errorEl);
 	}
 
 	private buildPathToPropsMap(): Map<string, Record<string, any>> {
@@ -800,17 +809,13 @@ export class KanbanView extends BasesViewBase {
 			PriorityContextMenu,
 			RecurrenceContextMenu,
 			ReminderModal,
-			showTaskContextMenu,
-			toggleSubtasks,
-			toggleBlockingTasks
+			showTaskContextMenu
 		} = await import("../ui/TaskCard").then(m => ({
 			DateContextMenu: require("../components/DateContextMenu").DateContextMenu,
 			PriorityContextMenu: require("../components/PriorityContextMenu").PriorityContextMenu,
 			RecurrenceContextMenu: require("../components/RecurrenceContextMenu").RecurrenceContextMenu,
 			ReminderModal: require("../modals/ReminderModal").ReminderModal,
-			showTaskContextMenu: m.showTaskContextMenu,
-			toggleSubtasks: m.toggleSubtasks,
-			toggleBlockingTasks: m.toggleBlockingTasks
+			showTaskContextMenu: m.showTaskContextMenu
 		}));
 
 		switch (action) {

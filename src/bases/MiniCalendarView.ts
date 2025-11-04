@@ -199,7 +199,7 @@ export class MiniCalendarView extends BasesViewBase {
 		}
 
 		// Support common alternate separators like YYYY/MM/DD or YYYY.MM.DD
-		const alternateSeparatorMatch = trimmed.match(/^(\d{4})[\/.](\d{2})[\/.](\d{2})$/);
+		const alternateSeparatorMatch = trimmed.match(/^(\d{4})[/.](\d{2})[/.](\d{2})$/);
 		if (alternateSeparatorMatch) {
 			const [, year, month, day] = alternateSeparatorMatch;
 			return this.validateCalendarDate(`${year}-${month}-${day}`);
@@ -351,10 +351,6 @@ export class MiniCalendarView extends BasesViewBase {
 		const daysThisMonth = lastDayOfMonth.getUTCDate();
 		const daysFromNextMonth = totalCells - daysThisMonth - daysFromPrevMonth;
 		const lastDayOfPrevMonth = new Date(Date.UTC(currentYear, currentMonth, 0)).getUTCDate();
-
-		// Today for comparison
-		const todayLocal = getTodayLocal();
-		const today = createUTCDateFromLocalCalendarDate(todayLocal);
 
 		// Render days
 		let currentWeekRow = calendarGrid.createDiv({
@@ -508,7 +504,6 @@ export class MiniCalendarView extends BasesViewBase {
 		}
 
 		// Convert date to moment for the API
-		const dateStr = formatDateForStorage(date);
 		const localAnchor = convertUTCToLocalCalendarDate(date);
 		const jsDate = new Date(
 			localAnchor.getFullYear(),
