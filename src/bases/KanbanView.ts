@@ -14,11 +14,14 @@ export class KanbanView extends BasesViewBase {
 	private basesController: any; // Store controller for accessing query.views
 	private currentTaskElements = new Map<string, HTMLElement>();
 	private draggedTaskPath: string | null = null;
+	private taskInfoCache = new Map<string, TaskInfo>();
+	private containerListenersRegistered = false;
 
 	// View options (accessed via config)
 	private swimLanePropertyId: string | null = null;
 	private columnWidth: number = 280;
 	private hideEmptyColumns: boolean = false;
+	private readonly VIRTUAL_SCROLL_THRESHOLD = 50; // Use virtual scrolling for 50+ cards per column
 
 	constructor(controller: any, containerEl: HTMLElement, plugin: TaskNotesPlugin) {
 		super(controller, containerEl, plugin);
@@ -328,7 +331,7 @@ export class KanbanView extends BasesViewBase {
 				// Create tasks container inside the cell
 				const tasksContainer = cell.createDiv({ cls: "kanban-view__tasks-container" });
 
-				// Render tasks in this cell
+				// Render tasks in this cell with lazy mode
 				for (const task of tasks) {
 					const cardWrapper = tasksContainer.createDiv({ cls: "kanban-view__card-wrapper" });
 					cardWrapper.setAttribute("draggable", "true");
@@ -340,11 +343,13 @@ export class KanbanView extends BasesViewBase {
 						showTimeTracking: false,
 						showRecurringControls: true,
 						groupByDate: false,
-						targetDate: new Date()
+						targetDate: new Date(),
+						interactionMode: "lazy" as const
 					});
 
 					cardWrapper.appendChild(card);
 					this.currentTaskElements.set(task.path, cardWrapper);
+					this.taskInfoCache.set(task.path, task);
 
 					// Setup card drag handlers
 					this.setupCardDragHandlers(cardWrapper, task);
@@ -379,14 +384,15 @@ export class KanbanView extends BasesViewBase {
 		// Setup drag-and-drop
 		this.setupColumnDragDrop(column, cardsContainer, groupKey);
 
-		// Render task cards
+		// Render task cards with lazy mode
 		const cardOptions = {
 			showCheckbox: false,
 			showArchiveButton: false,
 			showTimeTracking: false,
 			showRecurringControls: true,
 			groupByDate: false,
-			targetDate: new Date()
+			targetDate: new Date(),
+			interactionMode: "lazy" as const
 		};
 
 		for (const task of tasks) {
@@ -398,6 +404,7 @@ export class KanbanView extends BasesViewBase {
 
 			cardWrapper.appendChild(card);
 			this.currentTaskElements.set(task.path, cardWrapper);
+			this.taskInfoCache.set(task.path, task);
 
 			// Setup card drag handlers
 			this.setupCardDragHandlers(cardWrapper, task);
@@ -536,6 +543,7 @@ export class KanbanView extends BasesViewBase {
 		board.className = "kanban-view__board";
 		this.rootElement?.appendChild(board);
 		this.boardEl = board;
+		this.registerBoardListeners();
 	}
 
 	protected async handleTaskUpdate(task: TaskInfo): Promise<void> {
@@ -613,9 +621,199 @@ export class KanbanView extends BasesViewBase {
 		renderGroupTitle(container, title, linkServices);
 	}
 
+	private registerBoardListeners(): void {
+		if (!this.boardEl || this.containerListenersRegistered) return;
+		this.boardEl.addEventListener("click", this.handleBoardClick);
+		this.boardEl.addEventListener("contextmenu", this.handleBoardContextMenu);
+		this.containerListenersRegistered = true;
+	}
+
+	private unregisterBoardListeners(): void {
+		if (!this.boardEl || !this.containerListenersRegistered) return;
+		this.boardEl.removeEventListener("click", this.handleBoardClick);
+		this.boardEl.removeEventListener("contextmenu", this.handleBoardContextMenu);
+		this.containerListenersRegistered = false;
+	}
+
+	private getTaskContextFromEvent(event: Event): { task: TaskInfo; card: HTMLElement } | null {
+		const target = event.target as HTMLElement | null;
+		if (!target) return null;
+		const card = target.closest<HTMLElement>(".task-card");
+		if (!card) return null;
+		const wrapper = card.closest<HTMLElement>(".kanban-view__card-wrapper");
+		if (!wrapper) return null;
+		const path = wrapper.dataset.taskPath;
+		if (!path) return null;
+		const task = this.taskInfoCache.get(path);
+		if (!task) return null;
+		return { task, card };
+	}
+
+	private handleBoardClick = async (event: MouseEvent) => {
+		const context = this.getTaskContextFromEvent(event);
+		if (!context) return;
+
+		const { task, card } = context;
+		const target = event.target as HTMLElement;
+		const actionEl = target.closest<HTMLElement>("[data-tn-action]");
+
+		if (actionEl && actionEl !== card) {
+			const action = actionEl.dataset.tnAction;
+			if (action) {
+				event.preventDefault();
+				event.stopPropagation();
+				await this.handleCardAction(action, task, actionEl, event);
+				return;
+			}
+		}
+	};
+
+	private handleBoardContextMenu = async (event: MouseEvent) => {
+		const context = this.getTaskContextFromEvent(event);
+		if (!context) return;
+		event.preventDefault();
+		event.stopPropagation();
+
+		const { showTaskContextMenu } = await import("../ui/TaskCard");
+		await showTaskContextMenu(event, context.task.path, this.plugin, new Date());
+	};
+
+	private async handleCardAction(
+		action: string,
+		task: TaskInfo,
+		target: HTMLElement,
+		event: MouseEvent
+	): Promise<void> {
+		// Import handlers dynamically to avoid circular dependencies
+		const {
+			DateContextMenu,
+			PriorityContextMenu,
+			RecurrenceContextMenu,
+			ReminderModal,
+			showTaskContextMenu
+		} = await import("../ui/TaskCard").then(m => ({
+			DateContextMenu: require("../components/DateContextMenu").DateContextMenu,
+			PriorityContextMenu: require("../components/PriorityContextMenu").PriorityContextMenu,
+			RecurrenceContextMenu: require("../components/RecurrenceContextMenu").RecurrenceContextMenu,
+			ReminderModal: require("../modals/ReminderModal").ReminderModal,
+			showTaskContextMenu: m.showTaskContextMenu
+		}));
+
+		switch (action) {
+			case "toggle-status":
+				await this.handleToggleStatus(task, event);
+				return;
+			case "priority-menu":
+				this.showPriorityMenu(task, event, PriorityContextMenu);
+				return;
+			case "recurrence-menu":
+				this.showRecurrenceMenu(task, event, RecurrenceContextMenu);
+				return;
+			case "reminder-menu":
+				this.showReminderModal(task, ReminderModal);
+				return;
+			case "task-context-menu":
+				await showTaskContextMenu(event, task.path, this.plugin, new Date());
+				return;
+			case "edit-date":
+				await this.openDateContextMenu(task, target.dataset.tnDateType as "due" | "scheduled" | undefined, event, DateContextMenu);
+				return;
+		}
+	}
+
+	private async handleToggleStatus(task: TaskInfo, event: MouseEvent): Promise<void> {
+		try {
+			if (task.recurrence) {
+				await this.plugin.toggleRecurringTaskComplete(task, new Date());
+			} else {
+				await this.plugin.toggleTaskStatus(task);
+			}
+		} catch (error) {
+			console.error("[TaskNotes][KanbanView] Failed to toggle status", error);
+		}
+	}
+
+	private showPriorityMenu(task: TaskInfo, event: MouseEvent, PriorityContextMenu: any): void {
+		const menu = new PriorityContextMenu({
+			currentValue: task.priority,
+			onSelect: async (newPriority: any) => {
+				try {
+					await this.plugin.updateTaskProperty(task, "priority", newPriority);
+				} catch (error) {
+					console.error("[TaskNotes][KanbanView] Failed to update priority", error);
+				}
+			},
+			plugin: this.plugin,
+		});
+		menu.show(event);
+	}
+
+	private showRecurrenceMenu(task: TaskInfo, event: MouseEvent, RecurrenceContextMenu: any): void {
+		const menu = new RecurrenceContextMenu({
+			currentValue: typeof task.recurrence === "string" ? task.recurrence : undefined,
+			onSelect: async (newRecurrence: string | null) => {
+				try {
+					await this.plugin.updateTaskProperty(task, "recurrence", newRecurrence || undefined);
+				} catch (error) {
+					console.error("[TaskNotes][KanbanView] Failed to update recurrence", error);
+				}
+			},
+			app: this.plugin.app,
+			plugin: this.plugin,
+		});
+		menu.show(event);
+	}
+
+	private showReminderModal(task: TaskInfo, ReminderModal: any): void {
+		const modal = new ReminderModal(this.plugin.app, this.plugin, task, async (reminders: any) => {
+			try {
+				await this.plugin.updateTaskProperty(task, "reminders", reminders.length > 0 ? reminders : undefined);
+			} catch (error) {
+				console.error("[TaskNotes][KanbanView] Failed to update reminders", error);
+			}
+		});
+		modal.open();
+	}
+
+	private async openDateContextMenu(
+		task: TaskInfo,
+		dateType: "due" | "scheduled" | undefined,
+		event: MouseEvent,
+		DateContextMenu: any
+	): Promise<void> {
+		if (!dateType) return;
+
+		const { getDatePart, getTimePart } = await import("../utils/dateUtils");
+		const currentValue = dateType === "due" ? task.due : task.scheduled;
+
+		const menu = new DateContextMenu({
+			currentValue: getDatePart(currentValue || ""),
+			currentTime: getTimePart(currentValue || ""),
+			onSelect: async (dateValue: string, timeValue: string) => {
+				try {
+					let finalValue: string | undefined;
+					if (!dateValue) {
+						finalValue = undefined;
+					} else if (timeValue) {
+						finalValue = `${dateValue}T${timeValue}`;
+					} else {
+						finalValue = dateValue;
+					}
+					await this.plugin.updateTaskProperty(task, dateType, finalValue);
+				} catch (error) {
+					console.error("[TaskNotes][KanbanView] Failed to update date", error);
+				}
+			},
+			plugin: this.plugin,
+		});
+		menu.show(event);
+	}
+
 	protected cleanup(): void {
 		super.cleanup();
+		this.unregisterBoardListeners();
 		this.currentTaskElements.clear();
+		this.taskInfoCache.clear();
 		this.boardEl = null;
 	}
 }
