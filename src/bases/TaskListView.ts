@@ -11,12 +11,13 @@ import { PriorityContextMenu } from "../components/PriorityContextMenu";
 import { RecurrenceContextMenu } from "../components/RecurrenceContextMenu";
 import { ReminderModal } from "../modals/ReminderModal";
 import { getDatePart, getTimePart } from "../utils/dateUtils";
+import { VirtualScroller } from "../utils/VirtualScroller";
 
 export class TaskListView extends BasesViewBase {
 	type = "tasknoteTaskList";
 	private itemsContainer: HTMLElement | null = null;
 	private currentTaskElements = new Map<string, HTMLElement>();
-	// Store reference to BasesView context for accessing data and config
+	// Store reference to Bases View context for accessing data and config
 	private basesViewContext?: any;
 	private lastRenderWasGrouped = false;
 	private lastFlatPaths: string[] = [];
@@ -25,6 +26,9 @@ export class TaskListView extends BasesViewBase {
 	private clickTimeouts = new Map<string, number>();
 	private currentTargetDate = new Date();
 	private containerListenersRegistered = false;
+	private virtualScroller: VirtualScroller<TaskInfo> | null = null;
+	private useVirtualScrolling = false;
+	private readonly VIRTUAL_SCROLL_THRESHOLD = 250; // Use virtual scrolling for 250+ tasks
 
 	constructor(controller: any, containerEl: HTMLElement, plugin: TaskNotesPlugin) {
 		super(controller, containerEl, plugin);
@@ -45,7 +49,7 @@ export class TaskListView extends BasesViewBase {
 		// Create items container
 		const itemsContainer = document.createElement("div");
 		itemsContainer.className = "tn-bases-items-container";
-		itemsContainer.style.cssText = "margin-top: 12px;";
+		itemsContainer.style.cssText = "margin-top: 12px; min-height: 400px; flex: 1;";
 		this.rootElement?.appendChild(itemsContainer);
 		this.itemsContainer = itemsContainer;
 		this.registerContainerListeners();
@@ -163,6 +167,68 @@ export class TaskListView extends BasesViewBase {
 
 		const cardOptions = this.getCardOptions(targetDate);
 
+		// Decide whether to use virtual scrolling
+		const shouldUseVirtualScrolling = taskNotes.length >= this.VIRTUAL_SCROLL_THRESHOLD;
+
+		if (shouldUseVirtualScrolling && !this.useVirtualScrolling) {
+			// Switch to virtual scrolling
+			this.cleanupNonVirtualRendering();
+			this.useVirtualScrolling = true;
+		} else if (!shouldUseVirtualScrolling && this.useVirtualScrolling) {
+			// Switch back to normal rendering
+			this.destroyVirtualScroller();
+			this.useVirtualScrolling = false;
+		}
+
+		if (this.useVirtualScrolling) {
+			await this.renderFlatVirtual(taskNotes, visibleProperties, cardOptions);
+		} else {
+			await this.renderFlatNormal(taskNotes, visibleProperties, cardOptions);
+		}
+	}
+
+	private async renderFlatVirtual(
+		taskNotes: TaskInfo[],
+		visibleProperties: string[] | undefined,
+		cardOptions: any
+	): Promise<void> {
+		if (!this.virtualScroller) {
+			// Initialize virtual scroller
+			this.virtualScroller = new VirtualScroller<TaskInfo>({
+				container: this.itemsContainer!,
+				items: taskNotes,
+				itemHeight: 60, // Approximate task card height - can be adjusted
+				overscan: 5,
+				renderItem: (taskInfo: TaskInfo, index: number) => {
+					// Create card using lazy mode
+					const card = createTaskCard(taskInfo, this.plugin, visibleProperties, cardOptions);
+
+					// Cache task info for event handlers
+					this.taskInfoCache.set(taskInfo.path, taskInfo);
+					this.lastTaskSignatures.set(taskInfo.path, this.buildTaskSignature(taskInfo));
+
+					return card;
+				},
+				getItemKey: (taskInfo: TaskInfo) => taskInfo.path,
+			});
+
+			// Force recalculation after DOM settles
+			setTimeout(() => {
+				this.virtualScroller?.recalculate();
+			}, 0);
+		} else {
+			// Update existing virtual scroller with new items
+			this.virtualScroller.updateItems(taskNotes);
+		}
+
+		this.lastFlatPaths = taskNotes.map((task) => task.path);
+	}
+
+	private async renderFlatNormal(
+		taskNotes: TaskInfo[],
+		visibleProperties: string[] | undefined,
+		cardOptions: any
+	): Promise<void> {
 		const seenPaths = new Set<string>();
 		const orderChanged = !this.arePathArraysEqual(taskNotes, this.lastFlatPaths);
 
@@ -324,21 +390,29 @@ export class TaskListView extends BasesViewBase {
 	}
 
 	protected async handleTaskUpdate(task: TaskInfo): Promise<void> {
-		const existingElement = this.currentTaskElements.get(task.path);
+		// Update cache
 		this.taskInfoCache.set(task.path, task);
 		this.lastTaskSignatures.set(task.path, this.buildTaskSignature(task));
 
-		if (existingElement && existingElement.isConnected) {
-			const visibleProperties = this.getVisibleProperties();
-			const replacement = createTaskCard(task, this.plugin, visibleProperties, this.getCardOptions(this.currentTargetDate));
-			existingElement.replaceWith(replacement);
-			replacement.classList.add("task-card--updated");
-			window.setTimeout(() => {
-				replacement.classList.remove("task-card--updated");
-			}, 1000);
-			this.currentTaskElements.set(task.path, replacement);
-		} else {
+		// For virtual scrolling, just do a full refresh
+		// Simple and reliable, performance is still good with virtual scrolling
+		if (this.useVirtualScrolling) {
 			this.debouncedRefresh();
+		} else {
+			// Normal mode - update the specific card
+			const existingElement = this.currentTaskElements.get(task.path);
+			if (existingElement && existingElement.isConnected) {
+				const visibleProperties = this.getVisibleProperties();
+				const replacement = createTaskCard(task, this.plugin, visibleProperties, this.getCardOptions(this.currentTargetDate));
+				existingElement.replaceWith(replacement);
+				replacement.classList.add("task-card--updated");
+				window.setTimeout(() => {
+					replacement.classList.remove("task-card--updated");
+				}, 1000);
+				this.currentTaskElements.set(task.path, replacement);
+			} else {
+				this.debouncedRefresh();
+			}
 		}
 	}
 
@@ -374,6 +448,7 @@ export class TaskListView extends BasesViewBase {
 	protected cleanup(): void {
 		super.cleanup();
 		this.unregisterContainerListeners();
+		this.destroyVirtualScroller();
 		this.currentTaskElements.clear();
 		this.itemsContainer = null;
 		this.lastRenderWasGrouped = false;
@@ -381,9 +456,14 @@ export class TaskListView extends BasesViewBase {
 		this.taskInfoCache.clear();
 		this.lastTaskSignatures.clear();
 		this.lastFlatPaths = [];
+		this.useVirtualScrolling = false;
 	}
 
 	private clearAllTaskElements(): void {
+		if (this.useVirtualScrolling) {
+			this.destroyVirtualScroller();
+			this.useVirtualScrolling = false;
+		}
 		this.itemsContainer?.empty();
 		this.currentTaskElements.forEach((el) => el.remove());
 		this.currentTaskElements.clear();
@@ -766,6 +846,19 @@ export class TaskListView extends BasesViewBase {
 			if (taskNotes[i].path !== previousPaths[i]) return false;
 		}
 		return true;
+	}
+
+	private cleanupNonVirtualRendering(): void {
+		this.itemsContainer?.empty();
+		this.currentTaskElements.clear();
+		this.clearClickTimeouts();
+	}
+
+	private destroyVirtualScroller(): void {
+		if (this.virtualScroller) {
+			this.virtualScroller.destroy();
+			this.virtualScroller = null;
+		}
 	}
 
 	private buildTaskSignature(task: TaskInfo): string {
