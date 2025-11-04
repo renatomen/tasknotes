@@ -389,7 +389,7 @@ export async function registerBasesTaskList(plugin: TaskNotesPlugin): Promise<vo
 			// Register Mini Calendar view using public API
 			const miniCalendarSuccess = registerBasesView(plugin, "tasknotesMiniCalendar", {
 				name: "TaskNotes Mini Calendar",
-				icon: "calendar-days",
+				icon: "tasknotes-simple",
 				factory: buildMiniCalendarViewFactory(plugin),
 				options: () => [
 					{
