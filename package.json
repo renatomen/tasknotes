@@ -46,6 +46,7 @@
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-obsidianmd": "^0.0.2",
 		"eslint-plugin-prettier": "^5.5.4",
+		"i18n-state-manager": "^0.1.0",
 		"jest": "^30.1.1",
 		"jest-environment-jsdom": "^30.1.1",
 		"obsidian": "latest",
