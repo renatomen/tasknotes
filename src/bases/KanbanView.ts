@@ -334,28 +334,38 @@ export class KanbanView extends BasesViewBase {
 				// Create tasks container inside the cell
 				const tasksContainer = cell.createDiv({ cls: "kanban-view__tasks-container" });
 
-				// Render tasks in this cell with lazy mode
-				for (const task of tasks) {
-					const cardWrapper = tasksContainer.createDiv({ cls: "kanban-view__card-wrapper" });
-					cardWrapper.setAttribute("draggable", "true");
-					cardWrapper.setAttribute("data-task-path", task.path);
+				// Use virtual scrolling for cells with 50+ tasks
+				if (tasks.length >= this.VIRTUAL_SCROLL_THRESHOLD) {
+					await this.createVirtualSwimLaneCell(
+						tasksContainer,
+						`${swimLaneKey}:${columnKey}`,
+						tasks,
+						visibleProperties
+					);
+				} else {
+					// Render tasks normally for smaller cells
+					for (const task of tasks) {
+						const cardWrapper = tasksContainer.createDiv({ cls: "kanban-view__card-wrapper" });
+						cardWrapper.setAttribute("draggable", "true");
+						cardWrapper.setAttribute("data-task-path", task.path);
 
-					const card = createTaskCard(task, this.plugin, visibleProperties, {
-						showCheckbox: false,
-						showArchiveButton: false,
-						showTimeTracking: false,
-						showRecurringControls: true,
-						groupByDate: false,
-						targetDate: new Date(),
-						interactionMode: "lazy" as const
-					});
+						const card = createTaskCard(task, this.plugin, visibleProperties, {
+							showCheckbox: false,
+							showArchiveButton: false,
+							showTimeTracking: false,
+							showRecurringControls: true,
+							groupByDate: false,
+							targetDate: new Date(),
+							interactionMode: "lazy" as const
+						});
 
-					cardWrapper.appendChild(card);
-					this.currentTaskElements.set(task.path, cardWrapper);
-					this.taskInfoCache.set(task.path, task);
+						cardWrapper.appendChild(card);
+						this.currentTaskElements.set(task.path, cardWrapper);
+						this.taskInfoCache.set(task.path, task);
 
-					// Setup card drag handlers
-					this.setupCardDragHandlers(cardWrapper, task);
+						// Setup card drag handlers
+						this.setupCardDragHandlers(cardWrapper, task);
+					}
 				}
 			}
 		}
@@ -440,6 +450,49 @@ export class KanbanView extends BasesViewBase {
 		});
 
 		this.columnScrollers.set(groupKey, scroller);
+	}
+
+	private async createVirtualSwimLaneCell(
+		tasksContainer: HTMLElement,
+		cellKey: string,
+		tasks: TaskInfo[],
+		visibleProperties: string[]
+	): Promise<void> {
+		// Make container scrollable
+		tasksContainer.style.cssText = "overflow-y: auto; max-height: 400px; position: relative;";
+
+		const scroller = new VirtualScroller<TaskInfo>({
+			container: tasksContainer,
+			items: tasks,
+			itemHeight: 80, // Estimated card height
+			overscan: 3,
+			renderItem: (task: TaskInfo) => {
+				const cardWrapper = document.createElement("div");
+				cardWrapper.className = "kanban-view__card-wrapper";
+				cardWrapper.setAttribute("draggable", "true");
+				cardWrapper.setAttribute("data-task-path", task.path);
+
+				const card = createTaskCard(task, this.plugin, visibleProperties, {
+					showCheckbox: false,
+					showArchiveButton: false,
+					showTimeTracking: false,
+					showRecurringControls: true,
+					groupByDate: false,
+					targetDate: new Date(),
+					interactionMode: "lazy" as const
+				});
+
+				cardWrapper.appendChild(card);
+
+				this.taskInfoCache.set(task.path, task);
+				this.setupCardDragHandlers(cardWrapper, task);
+
+				return cardWrapper;
+			},
+			getItemKey: (task: TaskInfo) => task.path,
+		});
+
+		this.columnScrollers.set(cellKey, scroller);
 	}
 
 	private createNormalColumn(
@@ -741,13 +794,15 @@ export class KanbanView extends BasesViewBase {
 			PriorityContextMenu,
 			RecurrenceContextMenu,
 			ReminderModal,
-			showTaskContextMenu
+			showTaskContextMenu,
+			toggleSubtasks
 		} = await import("../ui/TaskCard").then(m => ({
 			DateContextMenu: require("../components/DateContextMenu").DateContextMenu,
 			PriorityContextMenu: require("../components/PriorityContextMenu").PriorityContextMenu,
 			RecurrenceContextMenu: require("../components/RecurrenceContextMenu").RecurrenceContextMenu,
 			ReminderModal: require("../modals/ReminderModal").ReminderModal,
-			showTaskContextMenu: m.showTaskContextMenu
+			showTaskContextMenu: m.showTaskContextMenu,
+			toggleSubtasks: m.toggleSubtasks
 		}));
 
 		switch (action) {
@@ -768,6 +823,9 @@ export class KanbanView extends BasesViewBase {
 				return;
 			case "edit-date":
 				await this.openDateContextMenu(task, target.dataset.tnDateType as "due" | "scheduled" | undefined, event, DateContextMenu);
+				return;
+			case "toggle-subtasks":
+				await this.handleToggleSubtasks(task, target);
 				return;
 		}
 	}
@@ -858,6 +916,28 @@ export class KanbanView extends BasesViewBase {
 			plugin: this.plugin,
 		});
 		menu.show(event);
+	}
+
+	private async handleToggleSubtasks(task: TaskInfo, chevronElement: HTMLElement): Promise<void> {
+		const { toggleSubtasks } = await import("../ui/TaskCard");
+		const card = chevronElement.closest<HTMLElement>(".task-card");
+		if (!card) return;
+
+		// Toggle expansion state
+		const isExpanded = this.plugin.expandedProjectsService?.isExpanded(task.path) || false;
+		const newExpanded = !isExpanded;
+
+		if (newExpanded) {
+			this.plugin.expandedProjectsService?.setExpanded(task.path, true);
+		} else {
+			this.plugin.expandedProjectsService?.setExpanded(task.path, false);
+		}
+
+		// Update chevron rotation
+		chevronElement.classList.toggle("is-rotated", newExpanded);
+
+		// Toggle subtasks display
+		await toggleSubtasks(card, task, this.plugin, newExpanded);
 	}
 
 	private destroyColumnScrollers(): void {
