@@ -328,6 +328,11 @@ export class KanbanView extends BasesViewBase {
 					}
 				});
 
+				// Set fixed height on cell to prevent expansion
+				if (tasks.length >= this.VIRTUAL_SCROLL_THRESHOLD) {
+					cell.style.height = "500px";
+				}
+
 				// Setup drop handlers for this cell
 				this.setupSwimLaneCellDragDrop(cell, columnKey, swimLaneKey);
 
