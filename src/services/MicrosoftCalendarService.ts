@@ -453,7 +453,7 @@ export class MicrosoftCalendarService extends CalendarProvider {
 			// Fetch events from each enabled calendar
 			for (const calendarId of enabledCalendarIds) {
 				try {
-					const { events: msEvents, isFullSync, hasDeletes } = await this.fetchCalendarEvents(calendarId);
+					const { events: msEvents, isFullSync } = await this.fetchCalendarEvents(calendarId);
 
 
 					if (isFullSync) {
@@ -470,10 +470,6 @@ export class MicrosoftCalendarService extends CalendarProvider {
 						cachedEvents.push(...icsEvents);
 					} else {
 						// Incremental sync: Update cache with changes
-						let addedCount = 0;
-						let updatedCount = 0;
-						let deletedCount = 0;
-
 						for (const msEvent of msEvents) {
 							const removedInfo = msEvent["@removed"];
 							const eventId = `microsoft-${calendarId}-${msEvent.id}`;
@@ -482,7 +478,6 @@ export class MicrosoftCalendarService extends CalendarProvider {
 							if (removedInfo) {
 								if (existingIndex !== -1) {
 									cachedEvents.splice(existingIndex, 1);
-									deletedCount++;
 								}
 								continue;
 							}
@@ -491,7 +486,6 @@ export class MicrosoftCalendarService extends CalendarProvider {
 								// Event was deleted
 								if (existingIndex !== -1) {
 									cachedEvents.splice(existingIndex, 1);
-									deletedCount++;
 								}
 							} else {
 								// Event was added or updated
@@ -501,11 +495,9 @@ export class MicrosoftCalendarService extends CalendarProvider {
 									if (existingIndex !== -1) {
 										// Update existing event
 										cachedEvents[existingIndex] = icsEvent;
-										updatedCount++;
 									} else {
 										// Add new event
 										cachedEvents.push(icsEvent);
-										addedCount++;
 									}
 								} catch (conversionError) {
 									console.warn("[MicrosoftCalendar] Failed to convert event during refresh", msEvent.id, conversionError);

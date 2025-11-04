@@ -1,6 +1,6 @@
 import { TFile, Notice, normalizePath } from "obsidian";
 import { format } from "date-fns";
-import { processFolderTemplate, ICSTemplateData as ICSFolderTemplateData } from "../utils/folderTemplateProcessor";
+import { processFolderTemplate } from "../utils/folderTemplateProcessor";
 import TaskNotesPlugin from "../main";
 import { ICSEvent, TaskInfo, NoteInfo, TaskCreationData } from "../types";
 import { getCurrentTimestamp, formatDateForStorage } from "../utils/dateUtils";

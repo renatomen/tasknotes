@@ -417,7 +417,7 @@ export class GoogleCalendarService extends CalendarProvider {
 			// Fetch events from each enabled calendar
 			for (const calendarId of enabledCalendarIds) {
 				try {
-					const { events: googleEvents, isFullSync, hasDeletes } = await this.fetchCalendarEvents(calendarId);
+					const { events: googleEvents, isFullSync } = await this.fetchCalendarEvents(calendarId);
 
 
 					if (isFullSync) {
@@ -435,10 +435,6 @@ export class GoogleCalendarService extends CalendarProvider {
 						cachedEvents.push(...icsEvents);
 					} else {
 						// Incremental sync: Update cache with changes
-						let addedCount = 0;
-						let updatedCount = 0;
-						let deletedCount = 0;
-
 						for (const googleEvent of googleEvents) {
 							const eventId = `google-${calendarId}-${googleEvent.id}`;
 							const existingIndex = cachedEvents.findIndex(e => e.id === eventId);
@@ -447,7 +443,6 @@ export class GoogleCalendarService extends CalendarProvider {
 								// Event was deleted
 								if (existingIndex !== -1) {
 									cachedEvents.splice(existingIndex, 1);
-									deletedCount++;
 								}
 							} else {
 								// Event was added or updated
@@ -456,11 +451,9 @@ export class GoogleCalendarService extends CalendarProvider {
 								if (existingIndex !== -1) {
 									// Update existing event
 									cachedEvents[existingIndex] = icsEvent;
-									updatedCount++;
 								} else {
 									// Add new event
 									cachedEvents.push(icsEvent);
-									addedCount++;
 								}
 							}
 						}
