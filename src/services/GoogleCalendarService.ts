@@ -40,7 +40,7 @@ export class GoogleCalendarService extends CalendarProvider {
 	private refreshTimer: ReturnType<typeof setTimeout> | null = null;
 	private availableCalendars: ProviderCalendar[] = [];
 	private calendarColors: Map<string, string> = new Map(); // Map calendar ID to color
-	private lastManualRefresh: number = 0; // Timestamp of last manual refresh for rate limiting
+	private lastManualRefresh = 0; // Timestamp of last manual refresh for rate limiting
 
 	constructor(plugin: TaskNotesPlugin, oauthService: OAuthService) {
 		super();

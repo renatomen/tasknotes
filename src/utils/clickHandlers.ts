@@ -22,7 +22,7 @@ export function createTaskClickHandler(options: ClickHandlerOptions) {
 
 	let clickTimeout: ReturnType<typeof setTimeout> | null = null;
 
-	const openNote = (newTab: boolean = false) => {
+	const openNote = (newTab = false) => {
 		const file = plugin.app.vault.getAbstractFileByPath(task.path);
 		if (file instanceof TFile) {
 			if (newTab) {
@@ -153,7 +153,7 @@ export async function handleCalendarTaskClick(
 	jsEvent: MouseEvent,
 	eventId: string
 ) {
-	const openNote = (newTab: boolean = false) => {
+	const openNote = (newTab = false) => {
 		const file = plugin.app.vault.getAbstractFileByPath(task.path);
 		if (file instanceof TFile) {
 			if (newTab) {

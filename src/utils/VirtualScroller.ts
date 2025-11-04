@@ -60,7 +60,7 @@ export class VirtualScroller<T> {
 	// Variable height tracking
 	private itemHeights = new Map<number, number>(); // index -> measured height
 	private positionCache: number[] = []; // Cumulative positions [0, 60, 125, 200...]
-	private totalHeight: number = 0;
+	private totalHeight = 0;
 	private resizeObserver: ResizeObserver | null = null;
 	private measurementRAF: number | null = null;
 	private pendingMeasurements = new Set<number>();

@@ -452,7 +452,7 @@ export class BasesFilterConverter {
 	/**
 	 * Convert filter object to YAML string
 	 */
-	private filterObjectToYAML(filterObj: any, indent: number = 0): string {
+	private filterObjectToYAML(filterObj: any, indent = 0): string {
 		const indentStr = "  ".repeat(indent);
 
 		if (typeof filterObj == "string") {

@@ -68,7 +68,7 @@ export class MicrosoftCalendarService extends CalendarProvider {
 	private cache: Map<string, ICSEvent[]> = new Map();
 	private refreshTimer: ReturnType<typeof setTimeout> | null = null;
 	private availableCalendars: ProviderCalendar[] = [];
-	private lastManualRefresh: number = 0; // Timestamp of last manual refresh for rate limiting
+	private lastManualRefresh = 0; // Timestamp of last manual refresh for rate limiting
 
 	constructor(plugin: TaskNotesPlugin, oauthService: OAuthService) {
 		super();
