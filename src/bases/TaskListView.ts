@@ -26,11 +26,9 @@ export class TaskListView extends BasesViewBase {
 	private clickTimeouts = new Map<string, number>();
 	private currentTargetDate = new Date();
 	private containerListenersRegistered = false;
-	private virtualScroller: VirtualScroller<TaskInfo> | null = null;
+	private virtualScroller: VirtualScroller<any> | null = null; // Can render TaskInfo or group headers
 	private useVirtualScrolling = false;
-	private groupScrollers = new Map<string, VirtualScroller<TaskInfo>>(); // groupKey -> scroller
-	private readonly VIRTUAL_SCROLL_THRESHOLD = 250; // Use virtual scrolling for 250+ tasks (flat mode)
-	private readonly GROUP_VIRTUAL_SCROLL_THRESHOLD = 50; // Use virtual scrolling for 50+ tasks per group
+	private readonly VIRTUAL_SCROLL_THRESHOLD = 250; // Use virtual scrolling for 250+ tasks (flat or grouped)
 
 	constructor(controller: any, containerEl: HTMLElement, plugin: TaskNotesPlugin) {
 		super(controller, containerEl, plugin);
@@ -293,9 +291,6 @@ export class TaskListView extends BasesViewBase {
 		const visibleProperties = this.getVisibleProperties();
 		const groups = this.dataAdapter.getGroupedData();
 
-		// Clean up any existing group scrollers
-		this.destroyGroupScrollers();
-
 		this.itemsContainer!.empty();
 		this.currentTaskElements.clear();
 		this.clearClickTimeouts();
@@ -314,134 +309,143 @@ export class TaskListView extends BasesViewBase {
 			}
 		});
 
+		// Build flattened list of items (headers + tasks) for virtual scrolling
+		type RenderItem =
+			| { type: 'header'; groupKey: string; groupTitle: string; taskCount: number; groupEntries: any[] }
+			| { type: 'task'; task: TaskInfo };
+
+		const items: RenderItem[] = [];
 		for (const group of groups) {
-			// Create group header
-			const groupHeader = document.createElement("div");
-			groupHeader.className = "task-section task-group";
-			this.itemsContainer!.appendChild(groupHeader);
-
-			// Create header element
-			const headerElement = document.createElement("h3");
-			headerElement.className = "task-group-header task-list-view__group-header";
-			groupHeader.appendChild(headerElement);
-
-			// Add toggle button
-			const toggleBtn = document.createElement("button");
-			toggleBtn.className = "task-group-toggle";
-			toggleBtn.setAttribute("aria-label", "Toggle group");
-			toggleBtn.setAttribute("aria-expanded", "true");
-			headerElement.appendChild(toggleBtn);
-
-			// Add chevron icon
-			setIcon(toggleBtn, "chevron-right");
-			const svg = toggleBtn.querySelector("svg");
-			if (svg) {
-				svg.classList.add("chevron");
-				svg.setAttribute("width", "16");
-				svg.setAttribute("height", "16");
-			}
-
-			// Add group title (with link support if it's a wiki-link)
 			const groupTitle = this.dataAdapter.convertGroupKeyToString(group.key);
-			const titleContainer = headerElement.createSpan({ cls: "task-group-title" });
-			this.renderGroupTitle(titleContainer, groupTitle);
-
-			// Add count
-			headerElement.createSpan({
-				text: ` (${group.entries.length})`,
-				cls: "agenda-view__item-count",
-			});
-
-			// Create task cards container
-			const taskCardsContainer = document.createElement("div");
-			taskCardsContainer.className = "tasks-container task-cards";
-			groupHeader.appendChild(taskCardsContainer);
-
-			// Add click handler for toggle
-			headerElement.addEventListener("click", (e: any) => {
-				const target = e.target as HTMLElement;
-				if (target.closest("a")) return; // Don't toggle if clicking on a link
-
-				e.preventDefault();
-				e.stopPropagation();
-
-				const isCollapsed = groupHeader.classList.toggle("is-collapsed");
-				toggleBtn.setAttribute("aria-expanded", String(!isCollapsed));
-
-				// Toggle task cards visibility
-				taskCardsContainer.style.display = isCollapsed ? "none" : "";
-			});
-
-			// Get tasks for this group
 			const groupPaths = new Set(group.entries.map((e: any) => e.file.path));
 			const groupTasks = taskNotes.filter((t) => groupPaths.has(t.path));
 
-			// Note: groupTasks preserve order from Bases grouped data
-			// No manual sorting needed - Bases provides pre-sorted data within groups
+			// Add header item
+			items.push({
+				type: 'header',
+				groupKey: groupTitle,
+				groupTitle,
+				taskCount: group.entries.length,
+				groupEntries: group.entries
+			});
 
-			// Use virtual scrolling for large groups
-			const groupKey = groupTitle; // Use group title as key
-			if (groupTasks.length >= this.GROUP_VIRTUAL_SCROLL_THRESHOLD) {
-				this.renderGroupVirtual(taskCardsContainer, groupKey, groupTasks, visibleProperties, cardOptions);
-			} else {
-				this.renderGroupNormal(taskCardsContainer, groupTasks, visibleProperties, cardOptions);
+			// Add task items
+			for (const task of groupTasks) {
+				items.push({ type: 'task', task });
 			}
+		}
+
+		// Use virtual scrolling if we have many items
+		const shouldUseVirtualScrolling = items.length >= this.VIRTUAL_SCROLL_THRESHOLD;
+
+		if (shouldUseVirtualScrolling && !this.useVirtualScrolling) {
+			this.cleanupNonVirtualRendering();
+			this.useVirtualScrolling = true;
+		} else if (!shouldUseVirtualScrolling && this.useVirtualScrolling) {
+			this.destroyVirtualScroller();
+			this.useVirtualScrolling = false;
+		}
+
+		if (this.useVirtualScrolling) {
+			await this.renderGroupedVirtual(items, visibleProperties, cardOptions);
+		} else {
+			await this.renderGroupedNormal(items, visibleProperties, cardOptions);
 		}
 
 		this.lastFlatPaths = taskNotes.map((task) => task.path);
 	}
 
-	private renderGroupVirtual(
-		taskCardsContainer: HTMLElement,
-		groupKey: string,
-		groupTasks: TaskInfo[],
+	private async renderGroupedVirtual(
+		items: any[],
 		visibleProperties: string[] | undefined,
 		cardOptions: any
-	): void {
-		// Make container scrollable with max height
-		taskCardsContainer.style.cssText = "overflow-y: auto; max-height: 600px; position: relative;";
+	): Promise<void> {
+		if (!this.virtualScroller) {
+			this.virtualScroller = new VirtualScroller<any>({
+				container: this.itemsContainer!,
+				items: items,
+				itemHeight: 60, // Estimated height (headers ~40px, cards ~60px)
+				overscan: 5,
+				renderItem: (item: any) => {
+					if (item.type === 'header') {
+						return this.createGroupHeader(item);
+					} else {
+						const cardEl = createTaskCard(item.task, this.plugin, visibleProperties, cardOptions);
+						this.taskInfoCache.set(item.task.path, item.task);
+						this.lastTaskSignatures.set(item.task.path, this.buildTaskSignature(item.task));
+						return cardEl;
+					}
+				},
+				getItemKey: (item: any) => {
+					return item.type === 'header' ? `header-${item.groupKey}` : item.task.path;
+				},
+			});
 
-		const scroller = new VirtualScroller<TaskInfo>({
-			container: taskCardsContainer,
-			items: groupTasks,
-			itemHeight: 60, // Estimated card height
-			overscan: 5,
-			renderItem: (taskInfo: TaskInfo) => {
-				const cardEl = createTaskCard(taskInfo, this.plugin, visibleProperties, cardOptions);
+			setTimeout(() => {
+				this.virtualScroller?.recalculate();
+			}, 0);
+		} else {
+			this.virtualScroller.updateItems(items);
+		}
+	}
 
-				// Cache task info for event handlers
-				this.taskInfoCache.set(taskInfo.path, taskInfo);
-				this.lastTaskSignatures.set(taskInfo.path, this.buildTaskSignature(taskInfo));
+	private async renderGroupedNormal(
+		items: any[],
+		visibleProperties: string[] | undefined,
+		cardOptions: any
+	): Promise<void> {
+		for (const item of items) {
+			if (item.type === 'header') {
+				const headerEl = this.createGroupHeader(item);
+				this.itemsContainer!.appendChild(headerEl);
+			} else {
+				const cardEl = createTaskCard(item.task, this.plugin, visibleProperties, cardOptions);
+				this.itemsContainer!.appendChild(cardEl);
+				this.currentTaskElements.set(item.task.path, cardEl);
+				this.taskInfoCache.set(item.task.path, item.task);
+				this.lastTaskSignatures.set(item.task.path, this.buildTaskSignature(item.task));
+			}
+		}
+	}
 
-				return cardEl;
-			},
-			getItemKey: (taskInfo: TaskInfo) => taskInfo.path,
+	private createGroupHeader(headerItem: any): HTMLElement {
+		const groupHeader = document.createElement("div");
+		groupHeader.className = "task-section task-group";
+
+		const headerElement = document.createElement("h3");
+		headerElement.className = "task-group-header task-list-view__group-header";
+		groupHeader.appendChild(headerElement);
+
+		// Add toggle button
+		const toggleBtn = document.createElement("button");
+		toggleBtn.className = "task-group-toggle";
+		toggleBtn.setAttribute("aria-label", "Toggle group");
+		toggleBtn.setAttribute("aria-expanded", "true");
+		headerElement.appendChild(toggleBtn);
+
+		// Add chevron icon
+		setIcon(toggleBtn, "chevron-right");
+		const svg = toggleBtn.querySelector("svg");
+		if (svg) {
+			svg.classList.add("chevron");
+			svg.setAttribute("width", "16");
+			svg.setAttribute("height", "16");
+		}
+
+		// Add group title
+		const titleContainer = headerElement.createSpan({ cls: "task-group-title" });
+		this.renderGroupTitle(titleContainer, headerItem.groupTitle);
+
+		// Add count
+		headerElement.createSpan({
+			text: ` (${headerItem.taskCount})`,
+			cls: "agenda-view__item-count",
 		});
 
-		this.groupScrollers.set(groupKey, scroller);
-	}
+		// Note: Group collapse/expand is disabled in virtual mode for simplicity
+		// Re-enabling would require tracking collapsed state and filtering items
 
-	private renderGroupNormal(
-		taskCardsContainer: HTMLElement,
-		groupTasks: TaskInfo[],
-		visibleProperties: string[] | undefined,
-		cardOptions: any
-	): void {
-		// Render tasks normally
-		for (const taskInfo of groupTasks) {
-			const cardEl = createTaskCard(taskInfo, this.plugin, visibleProperties, cardOptions);
-			taskCardsContainer.appendChild(cardEl);
-			this.currentTaskElements.set(taskInfo.path, cardEl);
-			this.taskInfoCache.set(taskInfo.path, taskInfo);
-			this.lastTaskSignatures.set(taskInfo.path, this.buildTaskSignature(taskInfo));
-		}
-	}
-
-	private destroyGroupScrollers(): void {
-		for (const scroller of this.groupScrollers.values()) {
-			scroller.destroy();
-		}
-		this.groupScrollers.clear();
+		return groupHeader;
 	}
 
 	protected async handleTaskUpdate(task: TaskInfo): Promise<void> {
@@ -504,7 +508,6 @@ export class TaskListView extends BasesViewBase {
 		super.cleanup();
 		this.unregisterContainerListeners();
 		this.destroyVirtualScroller();
-		this.destroyGroupScrollers();
 		this.currentTaskElements.clear();
 		this.itemsContainer = null;
 		this.lastRenderWasGrouped = false;
@@ -520,7 +523,6 @@ export class TaskListView extends BasesViewBase {
 			this.destroyVirtualScroller();
 			this.useVirtualScrolling = false;
 		}
-		this.destroyGroupScrollers();
 		this.itemsContainer?.empty();
 		this.currentTaskElements.forEach((el) => el.remove());
 		this.currentTaskElements.clear();
