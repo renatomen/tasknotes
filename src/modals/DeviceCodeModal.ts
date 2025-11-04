@@ -75,13 +75,13 @@ export class DeviceCodeModal extends Modal {
 
 		// Code display
 		const codeContainer = contentEl.createDiv({ cls: "tasknotes-device-code-container" });
-		const codeLabel = codeContainer.createEl("div", {
+		codeContainer.createEl("div", {
 			text: this.translate("modals.deviceCode.codeLabel"),
 			cls: "tasknotes-device-code-label"
 		});
 
 		const codeBox = codeContainer.createEl("div", { cls: "tasknotes-device-code-box" });
-		const codeText = codeBox.createEl("code", {
+		codeBox.createEl("code", {
 			text: this.formatUserCode(this.deviceCode.userCode),
 			cls: "tasknotes-device-code-text"
 		});

@@ -591,7 +591,6 @@ export class BasesFilterConverter {
 		content += `# Converted from TaskNotes saved views\n\n`;
 
 		// Collect all unique filter expressions
-		const allFilters: string[] = [];
 		const viewDefinitions: string[] = [];
 
 		for (const savedView of savedViews) {
