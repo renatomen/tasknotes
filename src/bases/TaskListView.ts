@@ -28,6 +28,7 @@ export class TaskListView extends BasesViewBase {
 	private containerListenersRegistered = false;
 	private virtualScroller: VirtualScroller<any> | null = null; // Can render TaskInfo or group headers
 	private useVirtualScrolling = false;
+	private collapsedGroups = new Set<string>(); // Track collapsed group keys
 	private readonly VIRTUAL_SCROLL_THRESHOLD = 250; // Use virtual scrolling for 250+ tasks (flat or grouped)
 
 	constructor(controller: any, containerEl: HTMLElement, plugin: TaskNotesPlugin) {
@@ -311,14 +312,15 @@ export class TaskListView extends BasesViewBase {
 
 		// Build flattened list of items (headers + tasks) for virtual scrolling
 		type RenderItem =
-			| { type: 'header'; groupKey: string; groupTitle: string; taskCount: number; groupEntries: any[] }
-			| { type: 'task'; task: TaskInfo };
+			| { type: 'header'; groupKey: string; groupTitle: string; taskCount: number; groupEntries: any[]; isCollapsed: boolean }
+			| { type: 'task'; task: TaskInfo; groupKey: string };
 
 		const items: RenderItem[] = [];
 		for (const group of groups) {
 			const groupTitle = this.dataAdapter.convertGroupKeyToString(group.key);
 			const groupPaths = new Set(group.entries.map((e: any) => e.file.path));
 			const groupTasks = taskNotes.filter((t) => groupPaths.has(t.path));
+			const isCollapsed = this.collapsedGroups.has(groupTitle);
 
 			// Add header item
 			items.push({
@@ -326,12 +328,15 @@ export class TaskListView extends BasesViewBase {
 				groupKey: groupTitle,
 				groupTitle,
 				taskCount: group.entries.length,
-				groupEntries: group.entries
+				groupEntries: group.entries,
+				isCollapsed
 			});
 
-			// Add task items
-			for (const task of groupTasks) {
-				items.push({ type: 'task', task });
+			// Add task items only if group is not collapsed
+			if (!isCollapsed) {
+				for (const task of groupTasks) {
+					items.push({ type: 'task', task, groupKey: groupTitle });
+				}
 			}
 		}
 
@@ -411,6 +416,12 @@ export class TaskListView extends BasesViewBase {
 	private createGroupHeader(headerItem: any): HTMLElement {
 		const groupHeader = document.createElement("div");
 		groupHeader.className = "task-section task-group";
+		groupHeader.dataset.groupKey = headerItem.groupKey;
+
+		// Apply collapsed state
+		if (headerItem.isCollapsed) {
+			groupHeader.classList.add("is-collapsed");
+		}
 
 		const headerElement = document.createElement("h3");
 		headerElement.className = "task-group-header task-list-view__group-header";
@@ -420,7 +431,8 @@ export class TaskListView extends BasesViewBase {
 		const toggleBtn = document.createElement("button");
 		toggleBtn.className = "task-group-toggle";
 		toggleBtn.setAttribute("aria-label", "Toggle group");
-		toggleBtn.setAttribute("aria-expanded", "true");
+		toggleBtn.setAttribute("aria-expanded", String(!headerItem.isCollapsed));
+		toggleBtn.dataset.groupKey = headerItem.groupKey;
 		headerElement.appendChild(toggleBtn);
 
 		// Add chevron icon
@@ -441,9 +453,6 @@ export class TaskListView extends BasesViewBase {
 			text: ` (${headerItem.taskCount})`,
 			cls: "agenda-view__item-count",
 		});
-
-		// Note: Group collapse/expand is disabled in virtual mode for simplicity
-		// Re-enabling would require tracking collapsed state and filtering items
 
 		return groupHeader;
 	}
@@ -582,11 +591,24 @@ export class TaskListView extends BasesViewBase {
 	}
 
 	private handleItemClick = async (event: MouseEvent) => {
+		const target = event.target as HTMLElement;
+
+		// Check if clicking on group toggle button
+		const toggleBtn = target.closest<HTMLElement>(".task-group-toggle");
+		if (toggleBtn) {
+			const groupKey = toggleBtn.dataset.groupKey;
+			if (groupKey) {
+				event.preventDefault();
+				event.stopPropagation();
+				await this.handleGroupToggle(groupKey);
+				return;
+			}
+		}
+
 		const context = this.getTaskContextFromEvent(event);
 		if (!context) return;
 
 		const { task, card } = context;
-		const target = event.target as HTMLElement;
 		const actionEl = target.closest<HTMLElement>("[data-tn-action]");
 
 		if (actionEl && actionEl !== card) {
@@ -602,6 +624,18 @@ export class TaskListView extends BasesViewBase {
 		event.stopPropagation();
 		await this.handleCardClick(task, event);
 	};
+
+	private async handleGroupToggle(groupKey: string): Promise<void> {
+		// Toggle collapsed state
+		if (this.collapsedGroups.has(groupKey)) {
+			this.collapsedGroups.delete(groupKey);
+		} else {
+			this.collapsedGroups.add(groupKey);
+		}
+
+		// Re-render to show/hide tasks
+		await this.render();
+	}
 
 	private handleItemContextMenu = async (event: MouseEvent) => {
 		const context = this.getTaskContextFromEvent(event);
