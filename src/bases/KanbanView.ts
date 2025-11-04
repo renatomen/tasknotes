@@ -23,7 +23,7 @@ export class KanbanView extends BasesViewBase {
 	private swimLanePropertyId: string | null = null;
 	private columnWidth: number = 280;
 	private hideEmptyColumns: boolean = false;
-	private readonly VIRTUAL_SCROLL_THRESHOLD = 50; // Use virtual scrolling for 50+ cards per column
+	private readonly VIRTUAL_SCROLL_THRESHOLD = 30; // Use virtual scrolling for 30+ cards per column
 
 	constructor(controller: any, containerEl: HTMLElement, plugin: TaskNotesPlugin) {
 		super(controller, containerEl, plugin);
