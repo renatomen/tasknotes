@@ -24,7 +24,7 @@ import {
 import { TaskNotesSettings } from "./types/settings";
 import { DEFAULT_SETTINGS } from "./settings/defaults";
 import { TaskNotesSettingTab } from "./settings/TaskNotesSettingTab";
-import { DEFAULT_BASES_FILES } from "./templates/defaultBasesFiles";
+import { DEFAULT_BASES_FILES, generateBasesFileTemplate } from "./templates/defaultBasesFiles";
 import {
 	MINI_CALENDAR_VIEW_TYPE,
 	ADVANCED_CALENDAR_VIEW_TYPE,
@@ -1884,14 +1884,21 @@ export default class TaskNotesPlugin extends Plugin {
 					continue;
 				}
 
-				const template = DEFAULT_BASES_FILES[commandId];
+				// Generate template with user settings
+				const template = generateBasesFileTemplate(commandId, this.settings);
 				if (!template) {
-					skipped.push(rawPath);
-					continue;
+					// Fall back to legacy template if generation fails
+					const legacyTemplate = DEFAULT_BASES_FILES[commandId];
+					if (!legacyTemplate) {
+						skipped.push(rawPath);
+						continue;
+					}
+					// eslint-disable-next-line no-await-in-loop
+					await this.app.vault.create(normalizedPath, legacyTemplate);
+				} else {
+					// eslint-disable-next-line no-await-in-loop
+					await this.app.vault.create(normalizedPath, template);
 				}
-
-				// eslint-disable-next-line no-await-in-loop
-				await this.app.vault.create(normalizedPath, template);
 				created.push(rawPath);
 			}
 		} catch (error) {
