@@ -800,14 +800,16 @@ export class KanbanView extends BasesViewBase {
 			RecurrenceContextMenu,
 			ReminderModal,
 			showTaskContextMenu,
-			toggleSubtasks
+			toggleSubtasks,
+			toggleBlockingTasks
 		} = await import("../ui/TaskCard").then(m => ({
 			DateContextMenu: require("../components/DateContextMenu").DateContextMenu,
 			PriorityContextMenu: require("../components/PriorityContextMenu").PriorityContextMenu,
 			RecurrenceContextMenu: require("../components/RecurrenceContextMenu").RecurrenceContextMenu,
 			ReminderModal: require("../modals/ReminderModal").ReminderModal,
 			showTaskContextMenu: m.showTaskContextMenu,
-			toggleSubtasks: m.toggleSubtasks
+			toggleSubtasks: m.toggleSubtasks,
+			toggleBlockingTasks: m.toggleBlockingTasks
 		}));
 
 		switch (action) {
@@ -831,6 +833,9 @@ export class KanbanView extends BasesViewBase {
 				return;
 			case "toggle-subtasks":
 				await this.handleToggleSubtasks(task, target);
+				return;
+			case "toggle-blocking-tasks":
+				await this.handleToggleBlockingTasks(task, target);
 				return;
 		}
 	}
@@ -943,6 +948,18 @@ export class KanbanView extends BasesViewBase {
 
 		// Toggle subtasks display
 		await toggleSubtasks(card, task, this.plugin, newExpanded);
+	}
+
+	private async handleToggleBlockingTasks(task: TaskInfo, toggleElement: HTMLElement): Promise<void> {
+		const { toggleBlockingTasks } = await import("../ui/TaskCard");
+		const card = toggleElement.closest<HTMLElement>(".task-card");
+		if (!card) return;
+
+		// Toggle expansion state via CSS class
+		const expanded = toggleElement.classList.toggle("task-card__blocking-toggle--expanded");
+
+		// Toggle blocking tasks display
+		await toggleBlockingTasks(card, task, this.plugin, expanded);
 	}
 
 	private destroyColumnScrollers(): void {
