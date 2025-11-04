@@ -29,7 +29,7 @@ export class TaskListView extends BasesViewBase {
 	private virtualScroller: VirtualScroller<any> | null = null; // Can render TaskInfo or group headers
 	private useVirtualScrolling = false;
 	private collapsedGroups = new Set<string>(); // Track collapsed group keys
-	private readonly VIRTUAL_SCROLL_THRESHOLD = 250; // Use virtual scrolling for 250+ tasks (flat or grouped)
+	private readonly VIRTUAL_SCROLL_THRESHOLD = 100; // Use virtual scrolling for 100+ tasks (flat or grouped)
 
 	constructor(controller: any, containerEl: HTMLElement, plugin: TaskNotesPlugin) {
 		super(controller, containerEl, plugin);
