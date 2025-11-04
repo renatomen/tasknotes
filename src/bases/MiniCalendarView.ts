@@ -1,4 +1,4 @@
-import { TFile, FuzzySuggestModal, FuzzyMatch, setTooltip } from "obsidian";
+import { TFile, FuzzySuggestModal, FuzzyMatch, setTooltip, Notice } from "obsidian";
 import TaskNotesPlugin from "../main";
 import { BasesViewBase } from "./BasesViewBase";
 import { TaskInfo } from "../types";
@@ -13,6 +13,7 @@ import {
 	getDatePart,
 } from "../utils/dateUtils";
 import { isSameDay } from "../utils/helpers";
+import { getAllDailyNotes, getDailyNote, appHasDailyNotesPluginLoaded, createDailyNote } from "obsidian-daily-notes-interface";
 
 interface NoteEntry {
 	file: TFile;
@@ -368,22 +369,34 @@ export class MiniCalendarView extends BasesViewBase {
 		}
 
 		// Click handler - select date or show fuzzy selector
-		dayEl.addEventListener("click", () => {
-			this.handleDayClick(dayDate);
+		dayEl.addEventListener("click", (e: MouseEvent) => {
+			this.handleDayClick(dayDate, e);
 		});
 
 		// Keyboard handler
-		dayEl.addEventListener("keydown", (e: KeyboardEvent) => {
+		dayEl.addEventListener("keydown", async (e: KeyboardEvent) => {
 			if (e.key === "Enter" || e.key === " ") {
 				e.preventDefault();
-				this.handleDayClick(dayDate);
+
+				// Check for ctrl/cmd+Enter to open daily note
+				if (e.ctrlKey || e.metaKey) {
+					await this.openDailyNoteForDate(dayDate);
+				} else {
+					await this.handleDayClick(dayDate);
+				}
 			}
 		});
 	}
 
-	private handleDayClick(date: Date): void {
+	private async handleDayClick(date: Date, event?: MouseEvent): Promise<void> {
 		// Update selected date
 		this.selectedDate = date;
+
+		// Check for ctrl/cmd click to open daily note
+		if (event && (event.ctrlKey || event.metaKey)) {
+			await this.openDailyNoteForDate(date);
+			return;
+		}
 
 		// Check if date has notes
 		const dateKey = formatDateForStorage(date);
@@ -406,6 +419,42 @@ export class MiniCalendarView extends BasesViewBase {
 		} else {
 			// Just update selection visually
 			this.refresh();
+		}
+	}
+
+	private async openDailyNoteForDate(date: Date): Promise<void> {
+		// Check if daily notes plugin is enabled
+		if (!appHasDailyNotesPluginLoaded()) {
+			new Notice(
+				"Daily Notes core plugin is not enabled. Please enable it in Settings > Core plugins."
+			);
+			return;
+		}
+
+		// Convert date to moment for the API
+		const dateStr = formatDateForStorage(date);
+		const jsDate = new Date(`${dateStr}T12:00:00`);
+		const moment = (window as any).moment(jsDate);
+
+		// Get all daily notes to check if one exists for this date
+		const allDailyNotes = getAllDailyNotes();
+		let dailyNote = getDailyNote(moment, allDailyNotes);
+
+		if (!dailyNote) {
+			// Daily note doesn't exist, create it
+			try {
+				dailyNote = await createDailyNote(moment);
+			} catch (error) {
+				const errorMessage = error instanceof Error ? error.message : String(error);
+				console.error("Failed to create daily note:", error);
+				new Notice(`Failed to create daily note: ${errorMessage}`);
+				return;
+			}
+		}
+
+		// Open the daily note
+		if (dailyNote) {
+			await this.plugin.app.workspace.getLeaf(false).openFile(dailyNote);
 		}
 	}
 
