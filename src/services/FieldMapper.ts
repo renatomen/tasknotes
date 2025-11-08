@@ -202,11 +202,11 @@ export class FieldMapper {
 			frontmatter[this.mapping.scheduled] = taskData.scheduled;
 		}
 
-		if (taskData.contexts !== undefined) {
+		if (taskData.contexts !== undefined && (!Array.isArray(taskData.contexts) || taskData.contexts.length > 0)) {
 			frontmatter[this.mapping.contexts] = taskData.contexts;
 		}
 
-		if (taskData.projects !== undefined) {
+		if (taskData.projects !== undefined && (!Array.isArray(taskData.projects) || taskData.projects.length > 0)) {
 			frontmatter[this.mapping.projects] = taskData.projects;
 		}
 
@@ -243,7 +243,9 @@ export class FieldMapper {
 				const normalized = taskData.blockedBy
 					.map((item) => normalizeDependencyEntry(item))
 					.filter((item): item is NonNullable<ReturnType<typeof normalizeDependencyEntry>> => !!item);
-				frontmatter[this.mapping.blockedBy] = normalized.length > 0 ? serializeDependencies(normalized) : [];
+				if (normalized.length > 0) {
+					frontmatter[this.mapping.blockedBy] = serializeDependencies(normalized);
+				}
 			} else {
 				frontmatter[this.mapping.blockedBy] = taskData.blockedBy;
 			}
