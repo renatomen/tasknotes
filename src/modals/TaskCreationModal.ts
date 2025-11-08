@@ -674,11 +674,16 @@ export class TaskCreationModal extends TaskModal {
 				},
 			});
 
-			// Focus the editor after a short delay
+			// Focus the editor after a short delay and reset scroll position
 			setTimeout(() => {
 				if (this.nlMarkdownEditor) {
 					// @ts-ignore - accessing CodeMirror internals
-					this.nlMarkdownEditor.editor?.cm?.focus();
+					const cm = this.nlMarkdownEditor.editor?.cm;
+					if (cm) {
+						cm.focus();
+						// Reset scroll to top to prevent auto-scroll down
+						cm.scrollDOM.scrollTop = 0;
+					}
 				}
 			}, 100);
 		} catch (error) {

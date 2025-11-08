@@ -25,13 +25,26 @@ class PlaceholderWidget extends WidgetType {
 		// Split into lines and create separate divs for proper line rendering
 		const lines = this.text.split('\n');
 
+		// Calculate cumulative delays - third line starts right after first line finishes
+		let cumulativeDelay = 0;
+		const lineDurations: number[] = [];
+
 		lines.forEach((line, index) => {
 			const lineDiv = document.createElement("div");
 			lineDiv.className = "cm-placeholder-line";
 
-			// Add typing animation with staggered delays per line
-			const delay = index * 1000; // 1 second delay between lines
 			const duration = line.length * 50; // 50ms per character
+			lineDurations.push(duration);
+
+			// First line: no delay
+			// Second line (empty): starts after first line
+			// Third line: also starts after first line (not after empty line)
+			let delay = 0;
+			if (index === 1) {
+				delay = lineDurations[0]; // Start after first line
+			} else if (index === 2) {
+				delay = lineDurations[0]; // Also start after first line (parallel with empty line)
+			}
 
 			lineDiv.style.setProperty('--typing-duration', `${duration}ms`);
 			lineDiv.style.setProperty('--typing-delay', `${delay}ms`);
