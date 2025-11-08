@@ -22,6 +22,7 @@ import { combineDateAndTime } from "../utils/dateUtils";
 import { splitListPreservingLinksAndQuotes } from "../utils/stringSplit";
 import { ProjectMetadataResolver, ProjectEntry } from "../utils/projectMetadataResolver";
 import { parseDisplayFieldsRow } from "../utils/projectAutosuggestDisplayFieldsParser";
+import { EmbeddableMarkdownEditor } from "../editor/EmbeddableMarkdownEditor";
 
 
 export interface TaskCreationOptions {
@@ -544,10 +545,11 @@ export class TaskCreationModal extends TaskModal {
 	private options: TaskCreationOptions;
 	private nlParser: NaturalLanguageParser;
 	private statusSuggestionService: StatusSuggestionService;
-	private nlInput: HTMLTextAreaElement;
+	private nlInput: HTMLTextAreaElement; // Legacy - keeping for compatibility
+	private nlMarkdownEditor: EmbeddableMarkdownEditor | null = null;
 	private nlPreviewContainer: HTMLElement;
 	private nlButtonContainer: HTMLElement;
-	private nlpSuggest: NLPSuggest;
+	private nlpSuggest: NLPSuggest; // Will be replaced with CodeMirror autocomplete
 
 	constructor(
 		app: App,
@@ -622,49 +624,89 @@ export class TaskCreationModal extends TaskModal {
 	private createNaturalLanguageInput(container: HTMLElement): void {
 		const nlContainer = container.createDiv("nl-input-container");
 
-		// Create minimalist input field
-		this.nlInput = nlContainer.createEl("textarea", {
-			cls: "nl-input",
-			attr: {
-				placeholder: this.t("modals.taskCreation.nlPlaceholder"),
-				rows: "3",
-			},
-		});
+		// Create markdown editor container
+		const editorContainer = nlContainer.createDiv("nl-markdown-editor");
 
 		// Preview container
 		this.nlPreviewContainer = nlContainer.createDiv("nl-preview-container");
 
-		// Event listeners
-		this.nlInput.addEventListener("input", () => {
-			const input = this.nlInput.value.trim();
-			if (input) {
-				this.updateNaturalLanguagePreview(input);
-			} else {
-				this.clearNaturalLanguagePreview();
-			}
-		});
+		try {
+			// Create embeddable markdown editor
+			this.nlMarkdownEditor = new EmbeddableMarkdownEditor(this.app, editorContainer, {
+				value: "",
+				placeholder: this.t("modals.taskCreation.nlPlaceholder"),
+				cls: "nlp-editor",
+				onChange: (value) => {
+					// Update preview as user types
+					if (value.trim()) {
+						this.updateNaturalLanguagePreview(value.trim());
+					} else {
+						this.clearNaturalLanguagePreview();
+					}
+				},
+				onSubmit: () => {
+					// Ctrl+Enter - save the task
+					this.handleSave();
+				},
+				onEnter: (editor, mod, shift) => {
+					if (shift) {
+						// Shift+Tab - fill form (trigger on shift+enter for now)
+						// We'll handle Shift+Tab separately in keyboard extensions
+						return false; // Allow default newline
+					}
+					// Normal Enter - allow new line
+					return false;
+				},
+			});
 
-		// Keyboard shortcuts
-		this.nlInput.addEventListener("keydown", (e) => {
-			const input = this.nlInput.value.trim();
-			if (!input) return;
+			// Focus the editor after a short delay
+			setTimeout(() => {
+				if (this.nlMarkdownEditor) {
+					// @ts-ignore - accessing CodeMirror internals
+					this.nlMarkdownEditor.editor?.cm?.focus();
+				}
+			}, 100);
+		} catch (error) {
+			console.error("Failed to create NLP markdown editor:", error);
+			// Fallback to textarea if editor creation fails
+			this.nlInput = editorContainer.createEl("textarea", {
+				cls: "nl-input",
+				attr: {
+					placeholder: this.t("modals.taskCreation.nlPlaceholder"),
+					rows: "3",
+				},
+			});
 
-			if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-				e.preventDefault();
-				this.handleSave();
-			} else if (e.key === "Tab" && e.shiftKey) {
-				e.preventDefault();
-				this.parseAndFillForm(input);
-			}
-		});
+			// Event listeners for fallback
+			this.nlInput.addEventListener("input", () => {
+				const input = this.nlInput.value.trim();
+				if (input) {
+					this.updateNaturalLanguagePreview(input);
+				} else {
+					this.clearNaturalLanguagePreview();
+				}
+			});
 
-		// Initialize auto-suggestion
-		this.nlpSuggest = new NLPSuggest(this.app, this.nlInput, this.plugin);
+			this.nlInput.addEventListener("keydown", (e) => {
+				const input = this.nlInput.value.trim();
+				if (!input) return;
 
-		// Focus the input
-		setTimeout(() => {
-			this.nlInput.focus();
-		}, 100);
+				if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+					e.preventDefault();
+					this.handleSave();
+				} else if (e.key === "Tab" && e.shiftKey) {
+					e.preventDefault();
+					this.parseAndFillForm(input);
+				}
+			});
+
+			// Initialize auto-suggestion for fallback
+			this.nlpSuggest = new NLPSuggest(this.app, this.nlInput, this.plugin);
+
+			setTimeout(() => {
+				this.nlInput.focus();
+			}, 100);
+		}
 	}
 
 	private updateNaturalLanguagePreview(input: string): void {
@@ -693,6 +735,18 @@ export class TaskCreationModal extends TaskModal {
 		}
 	}
 
+	/**
+	 * Get the current NLP input value from either markdown editor or fallback textarea
+	 */
+	private getNLPInputValue(): string {
+		if (this.nlMarkdownEditor) {
+			return this.nlMarkdownEditor.value;
+		} else if (this.nlInput) {
+			return this.nlInput.value;
+		}
+		return "";
+	}
+
 	protected createActionBar(container: HTMLElement): void {
 		this.actionBar = container.createDiv("action-bar");
 
@@ -704,7 +758,7 @@ export class TaskCreationModal extends TaskModal {
 				"wand",
 				this.t("modals.taskCreation.actions.fillFromNaturalLanguage"),
 				(icon, event) => {
-					const input = this.nlInput?.value.trim();
+					const input = this.getNLPInputValue().trim();
 					if (input) {
 						this.parseAndFillForm(input);
 					}
@@ -966,8 +1020,8 @@ export class TaskCreationModal extends TaskModal {
 
 	async handleSave(): Promise<void> {
 		// If NLP is enabled and there's content in the NL field, parse it first
-		if (this.plugin.settings.enableNaturalLanguageInput && this.nlInput) {
-			const nlContent = this.nlInput.value.trim();
+		if (this.plugin.settings.enableNaturalLanguageInput) {
+			const nlContent = this.getNLPInputValue().trim();
 			if (nlContent && !this.title.trim()) {
 				// Only auto-parse if no title has been manually entered
 				const parsed = this.statusSuggestionService.extractTaskDataFromInput(nlContent);
@@ -1179,4 +1233,12 @@ export class TaskCreationModal extends TaskModal {
 		}
 	}
 
+	onClose(): void {
+		// Clean up markdown editor if it exists
+		if (this.nlMarkdownEditor) {
+			this.nlMarkdownEditor.destroy();
+			this.nlMarkdownEditor = null;
+		}
+		super.onClose();
+	}
 }

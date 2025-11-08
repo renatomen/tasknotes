@@ -56,6 +56,55 @@
     font-style: italic;
 }
 
+/* =====================================================================
+   NLP MARKDOWN EDITOR
+   ===================================================================== */
+
+.nl-markdown-editor {
+    margin-bottom: var(--size-4-2);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s);
+    overflow: hidden;
+    min-height: 80px;
+    max-height: 200px;
+}
+
+.nl-markdown-editor .nlp-editor {
+    min-height: 80px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.nl-markdown-editor .cm-editor {
+    height: 100%;
+    min-height: 80px;
+    max-height: 200px;
+    background: var(--background-primary);
+}
+
+.nl-markdown-editor .cm-scroller {
+    overflow: auto;
+    max-height: 200px;
+}
+
+.nl-markdown-editor .cm-content {
+    padding: var(--size-4-2);
+    font-family: var(--font-text);
+    font-size: var(--font-ui-medium);
+    line-height: var(--line-height-normal);
+}
+
+.nl-markdown-editor .cm-placeholder {
+    color: var(--text-faint);
+    font-style: italic;
+}
+
+/* Focus state for NLP editor */
+.nl-markdown-editor .cm-editor.cm-focused {
+    outline: none;
+    border-color: var(--color-accent);
+}
+
 .tasknotes-plugin .minimalist-task-modal {
     /* Modal container adjustments */
 }
