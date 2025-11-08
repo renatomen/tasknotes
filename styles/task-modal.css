@@ -134,6 +134,61 @@
     font-style: italic;
 }
 
+/* Multi-line placeholder container */
+.nl-markdown-editor .cm-placeholder-multiline {
+    display: block;
+    pointer-events: none;
+    user-select: none;
+}
+
+/* Individual placeholder lines */
+.nl-markdown-editor .cm-placeholder-line {
+    display: block;
+    line-height: 1.5;
+    white-space: pre;
+    overflow: hidden;
+    border-right: 2px solid var(--text-muted);
+    width: 0;
+    animation:
+        typing var(--typing-duration, 2s) steps(var(--char-count, 20)) var(--typing-delay, 0s) forwards,
+        blink-caret 0.75s step-end var(--typing-delay, 0s) calc(var(--typing-duration, 2s) + var(--typing-delay, 0s));
+}
+
+/* Remove blinking cursor from last line after animation completes */
+.nl-markdown-editor .cm-placeholder-line:last-child {
+    animation:
+        typing var(--typing-duration, 2s) steps(var(--char-count, 20)) var(--typing-delay, 0s) forwards,
+        blink-caret 0.75s step-end var(--typing-delay, 0s) calc(var(--typing-duration, 2s) + var(--typing-delay, 0s)),
+        remove-caret 0s calc(var(--typing-duration, 2s) + var(--typing-delay, 0s) + 1s) forwards;
+}
+
+/* Typing animation - expands width to reveal text */
+@keyframes typing {
+    from {
+        width: 0;
+    }
+    to {
+        width: 100%;
+    }
+}
+
+/* Blinking cursor animation */
+@keyframes blink-caret {
+    from, to {
+        border-color: transparent;
+    }
+    50% {
+        border-color: var(--text-muted);
+    }
+}
+
+/* Remove cursor after typing completes */
+@keyframes remove-caret {
+    to {
+        border-color: transparent;
+    }
+}
+
 /* =====================================================================
    CODEMIRROR AUTOCOMPLETE STYLING (for NLP triggers)
    Scoped to TaskNotes modals only

@@ -11,7 +11,7 @@ import { EditorView, keymap, ViewUpdate, Decoration, DecorationSet, WidgetType }
 import { around } from "monkey-around";
 
 /**
- * Custom placeholder widget that only shows on first line
+ * Custom multi-line animated placeholder widget with typewriter effect
  */
 class PlaceholderWidget extends WidgetType {
 	constructor(private text: string) {
@@ -19,10 +19,37 @@ class PlaceholderWidget extends WidgetType {
 	}
 
 	toDOM() {
-		const span = document.createElement("span");
-		span.className = "cm-placeholder";
-		span.textContent = this.text;
-		return span;
+		const container = document.createElement("div");
+		container.className = "cm-placeholder cm-placeholder-multiline";
+
+		// Split into lines and create separate divs for proper line rendering
+		const lines = this.text.split('\n');
+
+		lines.forEach((line, index) => {
+			const lineDiv = document.createElement("div");
+			lineDiv.className = "cm-placeholder-line";
+
+			// Add typing animation with staggered delays per line
+			const delay = index * 1000; // 1 second delay between lines
+			const duration = line.length * 50; // 50ms per character
+
+			lineDiv.style.setProperty('--typing-duration', `${duration}ms`);
+			lineDiv.style.setProperty('--typing-delay', `${delay}ms`);
+			lineDiv.style.setProperty('--char-count', line.length.toString());
+
+			lineDiv.textContent = line || '\u00A0'; // Use non-breaking space for empty lines
+			container.appendChild(lineDiv);
+		});
+
+		return container;
+	}
+
+	eq(other: PlaceholderWidget) {
+		return this.text === other.text;
+	}
+
+	ignoreEvent() {
+		return true;
 	}
 }
 
@@ -246,16 +273,14 @@ export class EmbeddableMarkdownEditor extends resolveEditorPrototype(app) {
 		// @ts-ignore
 		const extensions = super.buildLocalExtensions();
 
-		// Add placeholder if specified - use first line only to avoid cursor issues
+		// Add placeholder if specified - custom multi-line widget avoids cursor issues
 		if (this.options.placeholder) {
-			// Extract only the first line for placeholder to avoid multi-line cursor bug
-			const firstLine = this.options.placeholder.split('\n')[0];
 			extensions.push(
 				EditorView.decorations.compute(["doc"], (state) => {
 					if (state.doc.length > 0) return Decoration.none;
 
 					const widget = Decoration.widget({
-						widget: new PlaceholderWidget(firstLine),
+						widget: new PlaceholderWidget(this.options.placeholder),
 						side: 1,
 					});
 
