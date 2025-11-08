@@ -637,7 +637,7 @@ export class TaskListView extends BasesViewBase {
 	private handleItemClick = async (event: MouseEvent) => {
 		const target = event.target as HTMLElement;
 
-		// Check if clicking anywhere on group header (not just toggle button)
+		// ONLY handle group header clicks - task cards handle their own clicks
 		const groupHeader = target.closest<HTMLElement>(".task-group-header");
 		if (groupHeader) {
 			const groupSection = groupHeader.closest<HTMLElement>(".task-group");
@@ -656,24 +656,8 @@ export class TaskListView extends BasesViewBase {
 			}
 		}
 
-		const context = this.getTaskContextFromEvent(event);
-		if (!context) return;
-
-		const { task, card } = context;
-		const actionEl = target.closest<HTMLElement>("[data-tn-action]");
-
-		if (actionEl && actionEl !== card) {
-			const action = actionEl.dataset.tnAction;
-			if (action) {
-				event.preventDefault();
-				event.stopPropagation();
-				await this.handleActionClick(action, task, actionEl, event);
-				return;
-			}
-		}
-
-		event.stopPropagation();
-		await this.handleCardClick(task, event);
+		// Don't handle task card clicks here - they have their own handlers
+		// This prevents double-firing when clicking on tasks
 	};
 
 	private async handleGroupToggle(groupKey: string): Promise<void> {
