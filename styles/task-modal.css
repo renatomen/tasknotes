@@ -105,6 +105,87 @@
     border-color: var(--color-accent);
 }
 
+/* =====================================================================
+   CODEMIRROR AUTOCOMPLETE STYLING (for NLP triggers)
+   ===================================================================== */
+
+/* Main autocomplete tooltip */
+.cm-tooltip-autocomplete {
+    background-color: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    box-shadow: var(--shadow-s);
+    padding: var(--size-4-1);
+    font-family: var(--font-ui);
+    font-size: var(--font-ui-small);
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* Autocomplete list */
+.cm-tooltip-autocomplete ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+/* Individual completion option */
+.cm-tooltip-autocomplete li {
+    padding: var(--size-4-2) var(--size-4-3);
+    cursor: pointer;
+    border-radius: var(--radius-s);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--size-4-2);
+}
+
+/* Hovered option */
+.cm-tooltip-autocomplete li:hover,
+.cm-tooltip-autocomplete li[aria-selected="true"] {
+    background-color: var(--background-modifier-hover);
+}
+
+/* Selected option */
+.cm-tooltip-autocomplete li[aria-selected="true"] {
+    background-color: var(--background-modifier-active-hover);
+}
+
+/* Completion label (main text) */
+.cm-completionLabel {
+    flex: 1;
+    color: var(--text-normal);
+    font-weight: 500;
+}
+
+/* Completion info (right side) */
+.cm-completionInfo {
+    color: var(--text-muted);
+    font-size: var(--font-ui-smaller);
+    font-weight: normal;
+}
+
+/* Completion detail (description) */
+.cm-completionDetail {
+    color: var(--text-faint);
+    font-size: var(--font-ui-smaller);
+    margin-left: var(--size-4-2);
+}
+
+/* Icon for different completion types */
+.cm-completionIcon {
+    width: 16px;
+    height: 16px;
+    margin-right: var(--size-4-2);
+    color: var(--text-muted);
+}
+
+/* Match highlighting in completion */
+.cm-completionMatchedText {
+    text-decoration: underline;
+    color: var(--color-accent);
+}
+
 .tasknotes-plugin .minimalist-task-modal {
     /* Modal container adjustments */
 }
