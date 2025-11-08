@@ -93,8 +93,29 @@ export class CalendarView extends BasesViewBase {
 		super(controller, containerEl, plugin);
 		// BasesView now provides this.data, this.config, and this.app directly
 		(this.dataAdapter as any).basesView = this;
-		// Read view options from config
+		// Note: Don't read config here - this.config is not set until after construction
+		// readViewOptions() will be called in onload()
+	}
+
+	/**
+	 * Component lifecycle: Called when view is first loaded.
+	 * Override from Component base class.
+	 */
+	onload(): void {
+		// Read view options now that config is available
 		this.readViewOptions();
+		// Call parent onload which sets up container and listeners
+		super.onload();
+	}
+
+	/**
+	 * Lifecycle: Handle view resize.
+	 * Override to update FullCalendar size when container resizes.
+	 */
+	onResize(): void {
+		if (this.calendar) {
+			this.calendar.updateSize();
+		}
 	}
 
 	/**
@@ -1428,6 +1449,56 @@ export class CalendarView extends BasesViewBase {
 
 		this.calendarEl = null;
 		this.currentTasks = [];
+	}
+
+	/**
+	 * Get ephemeral state to preserve across view reloads.
+	 * Saves current calendar date and view type.
+	 */
+	getEphemeralState(): any {
+		const baseState = super.getEphemeralState();
+
+		if (this.calendar) {
+			const currentDate = this.calendar.getDate();
+			const currentView = this.calendar.view?.type;
+
+			return {
+				...baseState,
+				calendarDate: currentDate ? currentDate.toISOString() : null,
+				calendarView: currentView || null,
+			};
+		}
+
+		return baseState;
+	}
+
+	/**
+	 * Restore ephemeral state after view reload.
+	 * Restores calendar date and view type.
+	 */
+	setEphemeralState(state: any): void {
+		super.setEphemeralState(state);
+
+		if (!state) return;
+
+		// Restore calendar date and view after calendar is initialized
+		if (this.calendar) {
+			if (state.calendarDate) {
+				try {
+					this.calendar.gotoDate(new Date(state.calendarDate));
+				} catch (e) {
+					console.debug("[CalendarView] Failed to restore calendar date:", e);
+				}
+			}
+
+			if (state.calendarView && state.calendarView !== this.calendar.view?.type) {
+				try {
+					this.calendar.changeView(state.calendarView);
+				} catch (e) {
+					console.debug("[CalendarView] Failed to restore calendar view:", e);
+				}
+			}
+		}
 	}
 }
 

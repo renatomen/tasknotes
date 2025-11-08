@@ -512,12 +512,15 @@ export class TaskListView extends BasesViewBase {
 
 	/**
 	 * Render group title using shared utility.
-	 * Uses this.app from BasesView instead of this.plugin.app.
+	 * Uses this.app from BasesView (with fallback to plugin.app for safety).
 	 */
 	private renderGroupTitle(container: HTMLElement, title: string): void {
+		// Use this.app if available (set by Bases), otherwise fall back to plugin.app
+		const app = this.app || this.plugin.app;
+
 		const linkServices: LinkServices = {
-			metadataCache: this.app.metadataCache,
-			workspace: this.app.workspace,
+			metadataCache: app.metadataCache,
+			workspace: app.workspace,
 		};
 
 		renderGroupTitle(container, title, linkServices);
@@ -540,6 +543,40 @@ export class TaskListView extends BasesViewBase {
 		this.lastTaskSignatures.clear();
 		this.lastFlatPaths = [];
 		this.useVirtualScrolling = false;
+	}
+
+	/**
+	 * Get ephemeral state to preserve across view reloads.
+	 * Saves scroll position and collapsed groups.
+	 */
+	getEphemeralState(): any {
+		return {
+			scrollTop: this.rootElement?.scrollTop || 0,
+			collapsedGroups: Array.from(this.collapsedGroups),
+		};
+	}
+
+	/**
+	 * Restore ephemeral state after view reload.
+	 * Restores scroll position and collapsed groups.
+	 */
+	setEphemeralState(state: any): void {
+		if (!state) return;
+
+		// Restore collapsed groups immediately
+		if (state.collapsedGroups && Array.isArray(state.collapsedGroups)) {
+			this.collapsedGroups = new Set(state.collapsedGroups);
+		}
+
+		// Restore scroll position after render completes
+		if (state.scrollTop !== undefined && this.rootElement) {
+			// Use requestAnimationFrame to ensure DOM is ready
+			requestAnimationFrame(() => {
+				if (this.rootElement && this.rootElement.isConnected) {
+					this.rootElement.scrollTop = state.scrollTop;
+				}
+			});
+		}
 	}
 
 	private clearAllTaskElements(): void {
@@ -687,9 +724,10 @@ export class TaskListView extends BasesViewBase {
 			return;
 		}
 
-		const file = this.app.vault.getAbstractFileByPath(context.task.path);
+		const app = this.app || this.plugin.app;
+		const file = app.vault.getAbstractFileByPath(context.task.path);
 		if (file) {
-			this.app.workspace.trigger("hover-link", {
+			app.workspace.trigger("hover-link", {
 				event: event as MouseEvent,
 				source: "tasknotes-task-card",
 				hoverParent: context.card,
@@ -901,12 +939,13 @@ export class TaskListView extends BasesViewBase {
 	}
 
 	private openTaskNote(task: TaskInfo, newTab: boolean): void {
-		const file = this.app.vault.getAbstractFileByPath(task.path);
+		const app = this.app || this.plugin.app;
+		const file = app.vault.getAbstractFileByPath(task.path);
 		if (file instanceof TFile) {
 			if (newTab) {
-				this.app.workspace.openLinkText(task.path, "", true);
+				app.workspace.openLinkText(task.path, "", true);
 			} else {
-				this.app.workspace.getLeaf(false).openFile(file);
+				app.workspace.getLeaf(false).openFile(file);
 			}
 		}
 	}

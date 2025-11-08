@@ -36,8 +36,19 @@ export class KanbanView extends BasesViewBase {
 		this.basesController = controller; // Store for groupBy detection
 		// BasesView now provides this.data, this.config, and this.app directly
 		(this.dataAdapter as any).basesView = this;
-		// Read view options from config
+		// Note: Don't read config here - this.config is not set until after construction
+		// readViewOptions() will be called in onload()
+	}
+
+	/**
+	 * Component lifecycle: Called when view is first loaded.
+	 * Override from Component base class.
+	 */
+	onload(): void {
+		// Read view options now that config is available
 		this.readViewOptions();
+		// Call parent onload which sets up container and listeners
+		super.onload();
 	}
 
 	/**
@@ -820,9 +831,12 @@ export class KanbanView extends BasesViewBase {
 	}
 
 	private renderGroupTitleWrapper(container: HTMLElement, title: string): void {
+		// Use this.app if available (set by Bases), otherwise fall back to plugin.app
+		const app = this.app || this.plugin.app;
+
 		const linkServices: LinkServices = {
-			metadataCache: this.app.metadataCache,
-			workspace: this.app.workspace,
+			metadataCache: app.metadataCache,
+			workspace: app.workspace,
 		};
 		renderGroupTitle(container, title, linkServices);
 	}

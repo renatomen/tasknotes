@@ -104,6 +104,16 @@ export abstract class BasesViewBase extends Component {
 	}
 
 	/**
+	 * Lifecycle: Handle view resize.
+	 * Called by Bases when the view container is resized.
+	 * Subclasses can override to handle resize events.
+	 */
+	onResize(): void {
+		// Default implementation does nothing
+		// Subclasses can override if they need resize handling
+	}
+
+	/**
 	 * Setup container element for this view.
 	 */
 	protected setupContainer(): void {
