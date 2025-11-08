@@ -559,7 +559,6 @@ export class TaskListView extends BasesViewBase {
 
 	private getCardOptions(targetDate: Date) {
 		return {
-			groupByDate: false,
 			targetDate,
 		};
 	}

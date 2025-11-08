@@ -733,7 +733,6 @@ export class KanbanView extends BasesViewBase {
 	 */
 	private getCardOptions() {
 		return {
-			groupByDate: false,
 			targetDate: new Date(),
 		};
 	}

@@ -1195,7 +1195,6 @@ export class CalendarView extends BasesViewBase {
 
 				cardElement = createTaskCard(enrichedTask, this.plugin, visibleProperties, {
 					targetDate: targetDate,
-					groupByDate: false,
 				});
 			}
 			// Render ICS events with ICSCard

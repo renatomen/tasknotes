@@ -30,13 +30,10 @@ import {
 import { renderTagsValue, renderContextsValue, type TagServices } from "./renderers/tagRenderer";
 
 export interface TaskCardOptions {
-	groupByDate: boolean;
 	targetDate?: Date;
 }
 
-export const DEFAULT_TASK_CARD_OPTIONS: TaskCardOptions = {
-	groupByDate: false,
-};
+export const DEFAULT_TASK_CARD_OPTIONS: TaskCardOptions = {};
 
 /**
  * Helper function to attach date context menu click handlers
@@ -2255,9 +2252,7 @@ export async function toggleSubtasks(
 						continue;
 					}
 
-					const subtaskCard = createTaskCard(subtask, plugin, undefined, {
-						groupByDate: false,
-					});
+					const subtaskCard = createTaskCard(subtask, plugin, undefined);
 
 					// Add subtask modifier class
 					subtaskCard.classList.add("task-card--subtask");
@@ -2337,9 +2332,7 @@ export async function toggleBlockingTasks(
 		}
 
 		dependents.forEach((dependentTask) => {
-			const dependentCard = createTaskCard(dependentTask, plugin, undefined, {
-				groupByDate: false,
-			});
+			const dependentCard = createTaskCard(dependentTask, plugin, undefined);
 			dependentCard.classList.add("task-card--dependency");
 			container!.appendChild(dependentCard);
 		});

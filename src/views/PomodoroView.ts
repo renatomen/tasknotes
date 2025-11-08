@@ -783,10 +783,7 @@ export class PomodoroView extends ItemView {
 			const taskCard = createTaskCard(
 				task,
 				this.plugin,
-				this.plugin.settings.defaultVisibleProperties,
-				{
-					groupByDate: false,
-				}
+				this.plugin.settings.defaultVisibleProperties
 			);
 
 			// Add the task card to the container

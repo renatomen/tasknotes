@@ -1626,10 +1626,7 @@ export class StatsView extends ItemView {
 				const taskCard = createTaskCard(
 					task,
 					this.plugin,
-					this.plugin.settings.defaultVisibleProperties,
-					{
-						groupByDate: false,
-					}
+					this.plugin.settings.defaultVisibleProperties
 				);
 
 				taskList.appendChild(taskCard);

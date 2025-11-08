@@ -81,9 +81,7 @@ export class TaskCardWidget extends WidgetType {
 		const visibleProperties = this.plugin.settings.defaultVisibleProperties;
 
 		// Create the task card
-		const taskCard = createTaskCard(this.task, this.plugin, visibleProperties, {
-			groupByDate: false,
-		});
+		const taskCard = createTaskCard(this.task, this.plugin, visibleProperties);
 
 		// Add specific styling for the note widget
 		taskCard.classList.add("task-card-note-widget__card");

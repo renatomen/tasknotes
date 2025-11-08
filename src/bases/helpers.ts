@@ -349,9 +349,7 @@ export async function renderTaskNotesInBasesView(
 
 	// Get visible properties from Bases
 	let visibleProperties: string[] | undefined = precomputedVisibleProperties;
-	let cardOptions = {
-		groupByDate: false,
-	};
+	let cardOptions = {};
 
 	// Only extract properties if not precomputed
 	if (!visibleProperties && basesContainer) {
@@ -529,7 +527,6 @@ export async function renderGroupedTasksInBasesView(
 	container.appendChild(listWrapper);
 
 	const cardOptions = {
-		groupByDate: false,
 		targetDate: new Date(),
 	};
 
