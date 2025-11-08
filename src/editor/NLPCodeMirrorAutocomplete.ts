@@ -15,7 +15,11 @@ import TaskNotesPlugin from "../main";
 import { StatusSuggestionService } from "../services/StatusSuggestionService";
 
 /**
- * CodeMirror autocomplete extension for NLP triggers (@, #, +, status)
+ * CodeMirror autocomplete extension for NLP triggers (@, +, status)
+ *
+ * Note: # tag autocomplete uses Obsidian's native suggester
+ * Note: [[ wikilink autocomplete uses Obsidian's native suggester
+ *
  * Replaces the old NLPSuggest system for use with EmbeddableMarkdownEditor
  */
 export function createNLPAutocomplete(plugin: TaskNotesPlugin): Extension[] {
@@ -38,19 +42,13 @@ export function createNLPAutocomplete(plugin: TaskNotesPlugin): Extension[] {
 
 				// Find trigger positions
 				const lastAtIndex = textBeforeCursor.lastIndexOf("@");
-				const lastHashIndex = textBeforeCursor.lastIndexOf("#");
 				const lastPlusIndex = textBeforeCursor.lastIndexOf("+");
 				const lastStatusIndex = statusTrigger ? textBeforeCursor.lastIndexOf(statusTrigger) : -1;
 
-				// Don't trigger if hash is part of markdown heading (##, ###, etc.)
-				if (lastHashIndex > 0 && textBeforeCursor[lastHashIndex - 1] === "#") {
-					return null;
-				}
-
 				// Determine which trigger is active (most recent valid one)
+				// Note: We don't handle # - Obsidian's native tag suggester handles that
 				const candidates: Array<{ type: string; index: number; triggerLength: number }> = [
 					{ type: "@", index: lastAtIndex, triggerLength: 1 },
-					{ type: "#", index: lastHashIndex, triggerLength: 1 },
 					{ type: "+", index: lastPlusIndex, triggerLength: 1 },
 					{ type: "status", index: lastStatusIndex, triggerLength: statusTrigger.length },
 				].filter((c) => isBoundary(c.index, textBeforeCursor));
@@ -72,7 +70,7 @@ export function createNLPAutocomplete(plugin: TaskNotesPlugin): Extension[] {
 
 				// Don't suggest if there's a space (except for '+' which allows multi-word)
 				if (
-					(active.type === "@" || active.type === "#" || active.type === "status") &&
+					(active.type === "@" || active.type === "status") &&
 					(query.includes(" ") || query.includes("\n"))
 				) {
 					return null;
@@ -96,22 +94,6 @@ export function createNLPAutocomplete(plugin: TaskNotesPlugin): Extension[] {
 							type: "text",
 							info: "Context",
 						}));
-				} else if (active.type === "#") {
-					// Tag suggestions - we handle ALL # to prevent native tag suggester
-					const tags = plugin.cacheManager.getAllTags();
-					options = tags
-						.filter((tag) => tag && typeof tag === "string")
-						.filter((tag) => tag.toLowerCase().includes(query.toLowerCase()))
-						.slice(0, 10)
-						.map((tag) => ({
-							label: tag,
-							apply: tag + " ",
-							type: "text",
-							info: "Tag",
-						}));
-
-					// IMPORTANT: Return result even if empty to prevent native tag suggester
-					// This overrides Obsidian's built-in # tag autocomplete
 				} else if (active.type === "status") {
 					// Status suggestions
 					const statusService = new StatusSuggestionService(
@@ -175,9 +157,8 @@ export function createNLPAutocomplete(plugin: TaskNotesPlugin): Extension[] {
 					}
 				}
 
-				// For # tag trigger, always return a result (even if empty) to prevent native tag suggester
-				// For other triggers, return null if no options
-				if (options.length === 0 && active.type !== "#") {
+				// Return null if no options (let native suggesters handle their triggers)
+				if (options.length === 0) {
 					return null;
 				}
 
