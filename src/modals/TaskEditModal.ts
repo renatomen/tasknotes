@@ -26,6 +26,7 @@ import {
 import { splitListPreservingLinksAndQuotes } from "../utils/stringSplit";
 import { ReminderContextMenu } from "../components/ReminderContextMenu";
 import { generateLinkWithDisplay } from "../utils/linkUtils";
+import { EmbeddableMarkdownEditor } from "../editor/EmbeddableMarkdownEditor";
 
 export interface TaskEditOptions {
 	task: TaskInfo;
@@ -46,6 +47,7 @@ export class TaskEditModal extends TaskModal {
 		raw: Record<string, TaskDependency>;
 	} = { added: [], removed: [], raw: {} };
 	private unresolvedBlockingEntries: string[] = [];
+	private markdownEditor: EmbeddableMarkdownEditor | null = null;
 
 	constructor(app: App, plugin: TaskNotesPlugin, options: TaskEditOptions) {
 		super(app, plugin);
@@ -326,6 +328,77 @@ export class TaskEditModal extends TaskModal {
 
 		// Create save/cancel buttons
 		this.createActionButtons(container);
+	}
+
+	/**
+	 * Override to add markdown editor for details in edit modal
+	 */
+	protected createDetailsSection(container: HTMLElement): void {
+		this.detailsContainer = container.createDiv("details-container");
+		if (!this.isExpanded) {
+			this.detailsContainer.style.display = "none";
+		}
+
+		// Title field for edit modal
+		const titleLabel = this.detailsContainer.createDiv("detail-label");
+		titleLabel.textContent = this.t("modals.task.titleLabel");
+
+		const titleInputDetailed = this.detailsContainer.createEl("input", {
+			type: "text",
+			cls: "title-input-detailed",
+			placeholder: this.t("modals.task.titleDetailedPlaceholder"),
+		});
+
+		titleInputDetailed.value = this.title;
+		titleInputDetailed.addEventListener("input", (e) => {
+			this.title = (e.target as HTMLInputElement).value;
+		});
+
+		// Store reference for title input
+		if (!this.titleInput) {
+			this.titleInput = titleInputDetailed;
+		}
+
+		// Details section with embedded markdown editor
+		const detailsLabel = this.detailsContainer.createDiv("detail-label");
+		detailsLabel.textContent = this.t("modals.task.detailsLabel");
+
+		const editorContainer = this.detailsContainer.createDiv("details-markdown-editor");
+
+		// Create the embeddable markdown editor
+		try {
+			this.markdownEditor = new EmbeddableMarkdownEditor(this.app, editorContainer, {
+				value: this.details,
+				placeholder: this.t("modals.task.detailsPlaceholder"),
+				cls: "task-details-editor",
+				onChange: (value) => {
+					this.details = value;
+				},
+			});
+		} catch (error) {
+			console.error("Failed to create markdown editor:", error);
+			// Fallback to textarea if editor creation fails
+			const fallbackTextarea = editorContainer.createEl("textarea", {
+				cls: "details-input",
+				placeholder: this.t("modals.task.detailsPlaceholder"),
+			});
+			fallbackTextarea.value = this.details;
+			fallbackTextarea.addEventListener("input", (e) => {
+				this.details = (e.target as HTMLTextAreaElement).value;
+			});
+		}
+
+		// Additional form fields (contexts, tags, etc.)
+		this.createAdditionalFields(this.detailsContainer);
+	}
+
+	onClose(): void {
+		// Clean up markdown editor
+		if (this.markdownEditor) {
+			this.markdownEditor.destroy();
+			this.markdownEditor = null;
+		}
+		super.onClose();
 	}
 
 	private createCompletionsCalendarSection(container: HTMLElement): void {

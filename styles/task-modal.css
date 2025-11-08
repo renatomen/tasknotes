@@ -11,6 +11,51 @@
     width: auto;
 }
 
+/* =====================================================================
+   EMBEDDABLE MARKDOWN EDITOR
+   ===================================================================== */
+
+.details-markdown-editor {
+    margin-bottom: var(--size-4-3);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s);
+    overflow: hidden;
+    min-height: 200px;
+    max-height: 400px;
+}
+
+.details-markdown-editor .task-details-editor {
+    min-height: 200px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* Make the editor container scrollable */
+.details-markdown-editor .cm-editor {
+    height: 100%;
+    min-height: 200px;
+    max-height: 400px;
+}
+
+.details-markdown-editor .cm-scroller {
+    overflow: auto;
+    max-height: 400px;
+}
+
+/* Style the editor content */
+.details-markdown-editor .cm-content {
+    padding: var(--size-4-2);
+    font-family: var(--font-text);
+    font-size: var(--font-ui-medium);
+    line-height: var(--line-height-normal);
+}
+
+/* Placeholder styling */
+.details-markdown-editor .cm-placeholder {
+    color: var(--text-faint);
+    font-style: italic;
+}
+
 .tasknotes-plugin .minimalist-task-modal {
     /* Modal container adjustments */
 }
