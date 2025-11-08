@@ -668,7 +668,15 @@ export class KanbanView extends BasesViewBase {
 
 		// Drag leave handler
 		column.addEventListener("dragleave", (e: DragEvent) => {
-			if (e.target === column) {
+			// Only remove if we're actually leaving the column (not just moving to a child)
+			const rect = column.getBoundingClientRect();
+			const x = (e as any).clientX;
+			const y = (e as any).clientY;
+
+			if (
+				x < rect.left || x >= rect.right ||
+				y < rect.top || y >= rect.bottom
+			) {
 				column.classList.remove("kanban-view__column--dragover");
 			}
 		});
@@ -688,6 +696,11 @@ export class KanbanView extends BasesViewBase {
 
 			this.draggedTaskPath = null;
 		});
+
+		// Drag end handler - cleanup in case drop doesn't fire
+		column.addEventListener("dragend", () => {
+			column.classList.remove("kanban-view__column--dragover");
+		});
 	}
 
 	private setupSwimLaneCellDragDrop(
@@ -705,7 +718,15 @@ export class KanbanView extends BasesViewBase {
 
 		// Drag leave handler
 		cell.addEventListener("dragleave", (e: DragEvent) => {
-			if (e.target === cell) {
+			// Only remove if we're actually leaving the cell (not just moving to a child)
+			const rect = cell.getBoundingClientRect();
+			const x = (e as any).clientX;
+			const y = (e as any).clientY;
+
+			if (
+				x < rect.left || x >= rect.right ||
+				y < rect.top || y >= rect.bottom
+			) {
 				cell.classList.remove("kanban-view__swimlane-column--dragover");
 			}
 		});
@@ -723,6 +744,11 @@ export class KanbanView extends BasesViewBase {
 
 			this.draggedTaskPath = null;
 		});
+
+		// Drag end handler - cleanup in case drop doesn't fire
+		cell.addEventListener("dragend", () => {
+			cell.classList.remove("kanban-view__swimlane-column--dragover");
+		});
 	}
 
 	private setupCardDragHandlers(cardWrapper: HTMLElement, task: TaskInfo): void {
@@ -738,6 +764,14 @@ export class KanbanView extends BasesViewBase {
 
 		cardWrapper.addEventListener("dragend", () => {
 			cardWrapper.classList.remove("kanban-view__card--dragging");
+
+			// Clean up any lingering dragover classes
+			this.boardEl?.querySelectorAll('.kanban-view__column--dragover').forEach(el => {
+				el.classList.remove('kanban-view__column--dragover');
+			});
+			this.boardEl?.querySelectorAll('.kanban-view__swimlane-column--dragover').forEach(el => {
+				el.classList.remove('kanban-view__swimlane-column--dragover');
+			});
 		});
 	}
 
