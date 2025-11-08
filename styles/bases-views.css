@@ -311,6 +311,20 @@
     align-items: center;
     justify-content: center;
     text-align: center;
+    cursor: grab;
+    user-select: none;
+    transition: all var(--tn-transition-fast);
+    gap: var(--tn-spacing-xs);
+}
+
+.kanban-view__column-header-cell:active {
+    cursor: grabbing;
+}
+
+.kanban-view__column-header-cell--dragging {
+    opacity: 0.5;
+    transform: rotate(2deg);
+    box-shadow: var(--tn-shadow-medium);
 }
 
 .kanban-view__column-header-cell .kanban-view__column-title {

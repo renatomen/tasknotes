@@ -22,6 +22,7 @@ export class KanbanView extends BasesViewBase {
 	private swimLanePropertyId: string | null = null;
 	private columnWidth = 280;
 	private hideEmptyColumns = false;
+	private columnOrders: Record<string, string[]> = {};
 	/**
 	 * Threshold for enabling virtual scrolling in kanban columns/swimlane cells.
 	 * Virtual scrolling activates when a column or cell has >= 30 cards.
@@ -55,8 +56,13 @@ export class KanbanView extends BasesViewBase {
 				this.swimLanePropertyId = config.get('swimLane') || null;
 				this.columnWidth = config.get('columnWidth') || 280;
 				this.hideEmptyColumns = config.get('hideEmptyColumns') || false;
+
+				// Read column orders
+				const columnOrderStr = config.get('columnOrder') || '{}';
+				this.columnOrders = JSON.parse(columnOrderStr);
 			} catch (e) {
 				// Use defaults
+				console.warn('[KanbanView] Failed to parse config:', e);
 			}
 		}
 	}
@@ -202,7 +208,18 @@ export class KanbanView extends BasesViewBase {
 		// Note: tasks are already sorted by Bases within each group
 		// No manual sorting needed - Bases provides pre-sorted data
 
-		for (const [groupKey, tasks] of groups.entries()) {
+		// Get groupBy property ID
+		const groupByPropertyId = this.getGroupByPropertyId();
+
+		// Get column keys and apply ordering
+		const columnKeys = Array.from(groups.keys());
+		const orderedKeys = groupByPropertyId
+			? this.applyColumnOrder(groupByPropertyId, columnKeys)
+			: columnKeys;
+
+		for (const groupKey of orderedKeys) {
+			const tasks = groups.get(groupKey) || [];
+
 			// Filter empty columns if option enabled
 			if (this.hideEmptyColumns && tasks.length === 0) {
 				continue;
@@ -269,11 +286,12 @@ export class KanbanView extends BasesViewBase {
 			}
 		}
 
-		// Sort column keys to maintain consistent order
+		// Apply column ordering
 		const columnKeys = Array.from(groups.keys());
+		const orderedKeys = this.applyColumnOrder(groupByPropertyId, columnKeys);
 
 		// Render swimlane table
-		await this.renderSwimLaneTable(swimLanes, columnKeys, pathToProps);
+		await this.renderSwimLaneTable(swimLanes, orderedKeys, pathToProps);
 	}
 
 	private async renderSwimLaneTable(
@@ -302,9 +320,18 @@ export class KanbanView extends BasesViewBase {
 			const headerCell = headerRow.createEl("div", {
 				cls: "kanban-view__column-header-cell"
 			});
+			headerCell.setAttribute("draggable", "true");
+			headerCell.setAttribute("data-column-key", columnKey);
+
+			// Drag handle icon
+			const dragHandle = headerCell.createSpan({ cls: "kanban-view__drag-handle" });
+			dragHandle.textContent = "⋮⋮";
 
 			const titleContainer = headerCell.createSpan({ cls: "kanban-view__column-title" });
 			this.renderGroupTitleWrapper(titleContainer, columnKey);
+
+			// Setup column header drag handlers for swimlane mode
+			this.setupColumnHeaderDragHandlers(headerCell);
 		}
 
 		// Get visible properties for cards
@@ -397,6 +424,13 @@ export class KanbanView extends BasesViewBase {
 
 		// Column header
 		const header = column.createDiv({ cls: "kanban-view__column-header" });
+		header.setAttribute("draggable", "true");
+		header.setAttribute("data-column-key", groupKey);
+
+		// Drag handle icon
+		const dragHandle = header.createSpan({ cls: "kanban-view__drag-handle" });
+		dragHandle.textContent = "⋮⋮";
+
 		const titleContainer = header.createSpan({ cls: "kanban-view__column-title" });
 		this.renderGroupTitleWrapper(titleContainer, groupKey);
 
@@ -405,10 +439,13 @@ export class KanbanView extends BasesViewBase {
 			text: ` (${tasks.length})`
 		});
 
+		// Setup column header drag handlers
+		this.setupColumnHeaderDragHandlers(header);
+
 		// Cards container
 		const cardsContainer = column.createDiv({ cls: "kanban-view__cards" });
 
-		// Setup drag-and-drop
+		// Setup drag-and-drop for cards
 		this.setupColumnDragDrop(column, cardsContainer, groupKey);
 
 		const cardOptions = this.getCardOptions();
@@ -517,6 +554,73 @@ export class KanbanView extends BasesViewBase {
 		}
 	}
 
+	private setupColumnHeaderDragHandlers(header: HTMLElement): void {
+		const columnKey = header.dataset.columnKey;
+		if (!columnKey) return;
+
+		// Determine if this is a swimlane header or regular column header
+		const isSwimlaneHeader = header.classList.contains("kanban-view__column-header-cell");
+		const draggingClass = isSwimlaneHeader
+			? "kanban-view__column-header-cell--dragging"
+			: "kanban-view__column-header--dragging";
+
+		header.addEventListener("dragstart", (e: DragEvent) => {
+			if (!e.dataTransfer) return;
+			e.dataTransfer.effectAllowed = "move";
+			e.dataTransfer.setData("text/x-kanban-column", columnKey);
+			header.classList.add(draggingClass);
+		});
+
+		header.addEventListener("dragover", (e: DragEvent) => {
+			// Only handle column drags (not task drags)
+			if (!e.dataTransfer?.types.includes("text/x-kanban-column")) return;
+			e.preventDefault();
+			e.stopPropagation();
+			e.dataTransfer.dropEffect = "move";
+		});
+
+		header.addEventListener("drop", async (e: DragEvent) => {
+			// Only handle column drags (not task drags)
+			if (!e.dataTransfer?.types.includes("text/x-kanban-column")) return;
+			e.preventDefault();
+			e.stopPropagation();
+
+			const draggedKey = e.dataTransfer.getData("text/x-kanban-column");
+			const targetKey = header.dataset.columnKey;
+			if (!targetKey || !draggedKey || draggedKey === targetKey) return;
+
+			// Get current groupBy property
+			const groupBy = this.getGroupByPropertyId();
+			if (!groupBy) return;
+
+			// Get current column order from DOM (supports both flat and swimlane modes)
+			const selector = isSwimlaneHeader
+				? ".kanban-view__column-header-cell"
+				: ".kanban-view__column-header";
+			const currentOrder = Array.from(this.boardEl!.querySelectorAll(selector))
+				.map(el => (el as HTMLElement).dataset.columnKey)
+				.filter(Boolean) as string[];
+
+			// Calculate new order
+			const dragIndex = currentOrder.indexOf(draggedKey);
+			const dropIndex = currentOrder.indexOf(targetKey);
+
+			const newOrder = [...currentOrder];
+			newOrder.splice(dragIndex, 1);
+			newOrder.splice(dropIndex, 0, draggedKey);
+
+			// Save new order
+			await this.saveColumnOrder(groupBy, newOrder);
+
+			// Re-render
+			await this.render();
+		});
+
+		header.addEventListener("dragend", () => {
+			header.classList.remove(draggingClass);
+		});
+	}
+
 	private setupColumnDragDrop(
 		column: HTMLElement,
 		cardsContainer: HTMLElement,
@@ -524,6 +628,8 @@ export class KanbanView extends BasesViewBase {
 	): void {
 		// Drag over handler
 		column.addEventListener("dragover", (e: DragEvent) => {
+			// Only handle task drags (not column drags)
+			if (e.dataTransfer?.types.includes("text/x-kanban-column")) return;
 			e.preventDefault();
 			e.stopPropagation();
 			if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
@@ -539,6 +645,8 @@ export class KanbanView extends BasesViewBase {
 
 		// Drop handler
 		column.addEventListener("drop", async (e: DragEvent) => {
+			// Only handle task drags (not column drags)
+			if (e.dataTransfer?.types.includes("text/x-kanban-column")) return;
 			e.preventDefault();
 			e.stopPropagation();
 			column.classList.remove("kanban-view__column--dragover");
@@ -726,6 +834,60 @@ export class KanbanView extends BasesViewBase {
 			workspace: this.plugin.app.workspace,
 		};
 		renderGroupTitle(container, title, linkServices);
+	}
+
+	private applyColumnOrder(groupBy: string, actualKeys: string[]): string[] {
+		// Get saved order for this grouping property
+		const savedOrder = this.columnOrders[groupBy];
+
+		if (!savedOrder || savedOrder.length === 0) {
+			// No saved order - use natural order (alphabetical)
+			return actualKeys.sort();
+		}
+
+		const ordered: string[] = [];
+		const unsorted: string[] = [];
+
+		// First, add keys in saved order
+		for (const key of savedOrder) {
+			if (actualKeys.includes(key)) {
+				ordered.push(key);
+			}
+		}
+
+		// Then, add any new keys not in saved order
+		for (const key of actualKeys) {
+			if (!savedOrder.includes(key)) {
+				unsorted.push(key);
+			}
+		}
+
+		// Return saved order + new keys (alphabetically sorted)
+		return [...ordered, ...unsorted.sort()];
+	}
+
+	private async saveColumnOrder(groupBy: string, order: string[]): Promise<void> {
+		// Update in-memory state
+		this.columnOrders[groupBy] = order;
+
+		// Get config setter (Bases provides this)
+		const config = this.basesViewContext?.config;
+
+		if (config && typeof config.set === 'function') {
+			try {
+				// Serialize to JSON
+				const orderJson = JSON.stringify(this.columnOrders);
+
+				// Save to config (Bases will update the YAML)
+				await config.set('columnOrder', orderJson);
+
+				console.debug(`[KanbanView] Saved column order for ${groupBy}:`, order);
+			} catch (error) {
+				console.error('[KanbanView] Failed to save column order:', error);
+			}
+		} else {
+			console.warn('[KanbanView] Config.set not available');
+		}
 	}
 
 	/**

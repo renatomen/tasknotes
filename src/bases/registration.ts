@@ -56,6 +56,13 @@ export async function registerBasesTaskList(plugin: TaskNotesPlugin): Promise<vo
 						displayName: "Hide Empty Columns",
 						default: false,
 					},
+					{
+						type: "multitext",
+						key: "columnOrder",
+						displayName: "Column Order (Advanced)",
+						placeholder: "Auto-managed when dragging columns",
+						default: "{}",
+					},
 				],
 			});
 
