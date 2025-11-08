@@ -25,13 +25,13 @@ interface NoteEntry {
 export class MiniCalendarView extends BasesViewBase {
 	type = "tasknotesMiniCalendar";
 	private calendarEl: HTMLElement | null = null;
-	private basesViewContext?: any;
 
 	// View options
 	private dateProperty: string | null = null; // e.g., "note.dueDate", "file.ctime", "note.scheduled"
 	private displayedMonth: number;
 	private displayedYear: number;
 	private selectedDate: Date; // UTC-anchored
+	private configLoaded = false; // Track if we've successfully loaded config
 
 	// Data
 	private notesByDate: Map<string, NoteEntry[]> = new Map();
@@ -39,6 +39,8 @@ export class MiniCalendarView extends BasesViewBase {
 
 	constructor(controller: any, containerEl: HTMLElement, plugin: TaskNotesPlugin) {
 		super(controller, containerEl, plugin);
+		// BasesView now provides this.data, this.config, and this.app directly
+		(this.dataAdapter as any).basesView = this;
 
 		// Initialize with today
 		const todayLocal = getTodayLocal();
@@ -46,24 +48,33 @@ export class MiniCalendarView extends BasesViewBase {
 		this.selectedDate = todayUTC;
 		this.displayedMonth = todayUTC.getUTCMonth();
 		this.displayedYear = todayUTC.getUTCFullYear();
+		// Note: Don't read config here - this.config is not set until after construction
+		// readViewOptions() will be called in onload()
 	}
 
-	setBasesViewContext(context: any): void {
-		this.basesViewContext = context;
-		(this.dataAdapter as any).basesView = context;
-
-		// Read view options
+	/**
+	 * Component lifecycle: Called when view is first loaded.
+	 * Override from Component base class.
+	 */
+	onload(): void {
+		// Read view options now that config is available
 		this.readViewOptions();
+		// Call parent onload which sets up container and listeners
+		super.onload();
 	}
 
+	/**
+	 * Read view configuration options from BasesViewConfig.
+	 */
 	private readViewOptions(): void {
-		if (!this.basesViewContext?.config) return;
-
-		const config = this.basesViewContext.config;
-		if (typeof config.get !== 'function') return;
+		// Guard: config may not be set yet if called too early
+		if (!this.config || typeof this.config.get !== 'function') {
+			return;
+		}
 
 		try {
-			this.dateProperty = config.get('dateProperty') || 'file.ctime';
+			this.dateProperty = (this.config.get('dateProperty') as string) || 'file.ctime';
+			this.configLoaded = true;
 		} catch (e) {
 			console.error("[TaskNotes][MiniCalendarView] Error reading view options:", e);
 		}
@@ -71,14 +82,19 @@ export class MiniCalendarView extends BasesViewBase {
 
 	async render(): Promise<void> {
 		if (!this.calendarEl || !this.rootElement) return;
-		if (!this.basesViewContext?.data?.data) return;
+		if (!this.data?.data) return;
+
+		// Ensure view options are read (in case config wasn't available in onload)
+		if (!this.configLoaded && this.config) {
+			this.readViewOptions();
+		}
 
 		try {
 			// Clear calendar
 			this.calendarEl.empty();
 
 			// Use raw Bases data (has getValue() method)
-			const basesEntries = this.basesViewContext.data.data;
+			const basesEntries = this.data.data;
 
 			// Index notes by date
 			this.indexNotesByDate(basesEntries);
