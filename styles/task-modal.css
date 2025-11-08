@@ -67,6 +67,8 @@
     overflow: hidden;
     min-height: 80px;
     max-height: 200px;
+    background: var(--background-secondary);
+    transition: all 0.2s ease;
 }
 
 .nl-markdown-editor .nlp-editor {
@@ -79,6 +81,17 @@
     height: 100%;
     min-height: 80px;
     max-height: 200px;
+    background: var(--background-secondary);
+}
+
+/* Focus state for NLP editor - match old nl-input styling */
+.nl-markdown-editor:focus-within {
+    border-color: var(--interactive-accent);
+    background: var(--background-primary);
+    box-shadow: 0 0 0 2px rgba(var(--interactive-accent-rgb), 0.2);
+}
+
+.nl-markdown-editor:focus-within .cm-editor {
     background: var(--background-primary);
 }
 
@@ -88,21 +101,15 @@
 }
 
 .nl-markdown-editor .cm-content {
-    padding: var(--size-4-2);
+    padding: var(--size-4-3) var(--size-4-2);
     font-family: var(--font-text);
     font-size: var(--font-ui-medium);
-    line-height: var(--line-height-normal);
+    line-height: 1.5;
 }
 
 .nl-markdown-editor .cm-placeholder {
-    color: var(--text-faint);
+    color: var(--text-muted);
     font-style: italic;
-}
-
-/* Focus state for NLP editor */
-.nl-markdown-editor .cm-editor.cm-focused {
-    outline: none;
-    border-color: var(--color-accent);
 }
 
 /* =====================================================================
