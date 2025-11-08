@@ -17,8 +17,6 @@ export class TaskListView extends BasesViewBase {
 	type = "tasknoteTaskList";
 	private itemsContainer: HTMLElement | null = null;
 	private currentTaskElements = new Map<string, HTMLElement>();
-	// Store reference to Bases View context for accessing data and config
-	private basesViewContext?: any;
 	private lastRenderWasGrouped = false;
 	private lastFlatPaths: string[] = [];
 	private lastTaskSignatures = new Map<string, string>();
@@ -39,15 +37,9 @@ export class TaskListView extends BasesViewBase {
 
 	constructor(controller: any, containerEl: HTMLElement, plugin: TaskNotesPlugin) {
 		super(controller, containerEl, plugin);
-	}
-
-	/**
-	 * Set the Bases view context (called by factory during onDataUpdated)
-	 */
-	setBasesViewContext(context: any): void {
-		this.basesViewContext = context;
-		// Update the data adapter to use the correct context
-		(this.dataAdapter as any).basesView = context;
+		// BasesView now provides this.data, this.config, and this.app directly
+		// Update the data adapter to use this BasesView instance
+		(this.dataAdapter as any).basesView = this;
 	}
 
 	protected setupContainer(): void {
@@ -67,11 +59,11 @@ export class TaskListView extends BasesViewBase {
 
 		try {
 			// Skip rendering if we have no data yet (prevents flickering during data updates)
-			if (!this.basesViewContext?.data?.data) {
+			if (!this.data?.data) {
 				return;
 			}
 
-			// Extract data using adapter
+			// Extract data using adapter (adapter now uses this as basesView)
 			const dataItems = this.dataAdapter.extractDataItems();
 
 			// Compute Bases formulas for TaskNotes items
@@ -115,7 +107,8 @@ export class TaskListView extends BasesViewBase {
 	 * This ensures formulas have access to TaskNote-specific properties.
 	 */
 	private async computeFormulas(dataItems: BasesDataItem[]): Promise<void> {
-		const ctxFormulas = this.basesViewContext?.ctx?.formulas;
+		// Access formulas through the data context
+		const ctxFormulas = (this.data as any)?.ctx?.formulas;
 		if (!ctxFormulas || typeof ctxFormulas !== "object" || dataItems.length === 0) {
 			return;
 		}
@@ -508,7 +501,7 @@ export class TaskListView extends BasesViewBase {
 		this.itemsContainer!.appendChild(emptyEl);
 	}
 
-	private renderError(error: Error): void {
+	renderError(error: Error): void {
 		const errorEl = document.createElement("div");
 		errorEl.className = "tn-bases-error";
 		errorEl.style.cssText =
@@ -519,18 +512,24 @@ export class TaskListView extends BasesViewBase {
 
 	/**
 	 * Render group title using shared utility.
+	 * Uses this.app from BasesView instead of this.plugin.app.
 	 */
 	private renderGroupTitle(container: HTMLElement, title: string): void {
 		const linkServices: LinkServices = {
-			metadataCache: this.plugin.app.metadataCache,
-			workspace: this.plugin.app.workspace,
+			metadataCache: this.app.metadataCache,
+			workspace: this.app.workspace,
 		};
 
 		renderGroupTitle(container, title, linkServices);
 	}
 
-	protected cleanup(): void {
-		super.cleanup();
+	/**
+	 * Component lifecycle: Called when component is unloaded.
+	 * Override from Component base class.
+	 */
+	onunload(): void {
+		// Component.register() calls will be automatically cleaned up
+		// We just need to clean up view-specific state
 		this.unregisterContainerListeners();
 		this.destroyVirtualScroller();
 		this.currentTaskElements.clear();
@@ -649,7 +648,7 @@ export class TaskListView extends BasesViewBase {
 	}
 
 	private async refreshGroupedView(): Promise<void> {
-		if (!this.basesViewContext?.data?.data) return;
+		if (!this.data?.data) return;
 
 		const dataItems = this.dataAdapter.extractDataItems();
 		await this.computeFormulas(dataItems);
@@ -688,9 +687,9 @@ export class TaskListView extends BasesViewBase {
 			return;
 		}
 
-		const file = this.plugin.app.vault.getAbstractFileByPath(context.task.path);
+		const file = this.app.vault.getAbstractFileByPath(context.task.path);
 		if (file) {
-			this.plugin.app.workspace.trigger("hover-link", {
+			this.app.workspace.trigger("hover-link", {
 				event: event as MouseEvent,
 				source: "tasknotes-task-card",
 				hoverParent: context.card,
@@ -902,12 +901,12 @@ export class TaskListView extends BasesViewBase {
 	}
 
 	private openTaskNote(task: TaskInfo, newTab: boolean): void {
-		const file = this.plugin.app.vault.getAbstractFileByPath(task.path);
+		const file = this.app.vault.getAbstractFileByPath(task.path);
 		if (file instanceof TFile) {
 			if (newTab) {
-				this.plugin.app.workspace.openLinkText(task.path, "", true);
+				this.app.workspace.openLinkText(task.path, "", true);
 			} else {
-				this.plugin.app.workspace.getLeaf(false).openFile(file);
+				this.app.workspace.getLeaf(false).openFile(file);
 			}
 		}
 	}
@@ -991,40 +990,19 @@ export class TaskListView extends BasesViewBase {
 	}
 }
 
-// Factory function for Bases registration
+/**
+ * Factory function for Bases registration.
+ * Returns an actual TaskListView instance (extends BasesView).
+ */
 export function buildTaskListViewFactory(plugin: TaskNotesPlugin) {
-	return function (basesContainer: any, containerEl?: HTMLElement) {
-		// Public API (1.10.0+): factory receives (controller, containerEl)
-		const viewContainerEl = containerEl || basesContainer.viewContainerEl;
-		const controller = basesContainer;
-
-		if (!viewContainerEl) {
-			console.error("[TaskNotes][TaskListView] No viewContainerEl found");
-			return { destroy: () => {} } as any;
+	return function (controller: any, containerEl: HTMLElement): TaskListView {
+		if (!containerEl) {
+			console.error("[TaskNotes][TaskListView] No containerEl provided");
+			throw new Error("TaskListView requires a containerEl");
 		}
 
-		const view = new TaskListView(controller, viewContainerEl, plugin);
-
-		return {
-			load: () => view.load(),
-			unload: () => view.unload(),
-			refresh() { view.render(); },
-			onDataUpdated: function(this: any) {
-				// Store reference to 'this' from Bases (the BasesView instance)
-				// This gives us access to both data and config
-				view.setBasesViewContext(this);
-				view.onDataUpdated();
-			},
-			onResize: () => {
-				// Handle resize - no-op for now
-			},
-			getEphemeralState: () => view.getEphemeralState(),
-			setEphemeralState: (state: any) => view.setEphemeralState(state),
-			focus: () => view.focus(),
-			destroy() {
-				// Access cleanup via public unload
-				view.unload();
-			},
-		};
+		// Create and return the view instance directly
+		// TaskListView now properly extends BasesView, so Bases can call its methods directly
+		return new TaskListView(controller, containerEl, plugin);
 	};
 }

@@ -587,7 +587,7 @@ export class MiniCalendarView extends BasesViewBase {
 		this.debouncedRefresh();
 	}
 
-	private renderError(error: Error): void {
+	renderError(error: Error): void {
 		if (!this.calendarEl) return;
 
 		const errorEl = document.createElement("div");
@@ -598,8 +598,8 @@ export class MiniCalendarView extends BasesViewBase {
 		this.calendarEl.appendChild(errorEl);
 	}
 
-	protected cleanup(): void {
-		super.cleanup();
+	onunload(): void {
+		// Component.register() calls will be automatically cleaned up
 		this.calendarEl = null;
 		this.notesByDate.clear();
 		this.monthCalculationCache.clear();
@@ -665,35 +665,19 @@ class NoteSelectionModal extends FuzzySuggestModal<NoteEntry> {
 }
 
 // Factory function
+/**
+ * Factory function for Bases registration.
+ * Returns an actual MiniCalendarView instance (extends BasesView).
+ */
 export function buildMiniCalendarViewFactory(plugin: TaskNotesPlugin) {
-	return function (basesContainer: any, containerEl?: HTMLElement) {
-		const viewContainerEl = containerEl || basesContainer.viewContainerEl;
-		const controller = basesContainer;
-
-		if (!viewContainerEl) {
-			console.error("[TaskNotes][MiniCalendarView] No viewContainerEl found");
-			return { destroy: () => {} } as any;
+	return function (controller: any, containerEl: HTMLElement): MiniCalendarView {
+		if (!containerEl) {
+			console.error("[TaskNotes][MiniCalendarView] No containerEl provided");
+			throw new Error("MiniCalendarView requires a containerEl");
 		}
 
-		const view = new MiniCalendarView(controller, viewContainerEl, plugin);
-
-		return {
-			load: () => view.load(),
-			unload: () => view.unload(),
-			refresh() { view.render(); },
-			onDataUpdated: function(this: any) {
-				view.setBasesViewContext(this);
-				view.onDataUpdated();
-			},
-			onResize: () => {
-				// Handle resize if needed
-			},
-			getEphemeralState: () => view.getEphemeralState(),
-			setEphemeralState: (state: any) => view.setEphemeralState(state),
-			focus: () => view.focus(),
-			destroy() {
-				view.unload();
-			},
-		};
+		// Create and return the view instance directly
+		// MiniCalendarView now properly extends BasesView, so Bases can call its methods directly
+		return new MiniCalendarView(controller, containerEl, plugin);
 	};
 }

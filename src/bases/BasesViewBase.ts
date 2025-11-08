@@ -1,3 +1,4 @@
+import { Component, App } from "obsidian";
 import TaskNotesPlugin from "../main";
 import { BasesDataAdapter } from "./BasesDataAdapter";
 import { PropertyMappingService } from "./PropertyMappingService";
@@ -5,9 +6,15 @@ import { TaskInfo, EVENT_TASK_UPDATED } from "../types";
 
 /**
  * Abstract base class for all TaskNotes Bases views.
- * Handles common lifecycle, data extraction, and event management.
+ * Properly extends Component to leverage lifecycle, and implements BasesView interface.
+ * Note: Bases types (BasesView, BasesViewConfig) are available from obsidian-api declarations.
  */
-export abstract class BasesViewBase {
+export abstract class BasesViewBase extends Component {
+	// BasesView properties (provided by Bases when factory returns this instance)
+	// These match the BasesView interface from Obsidian's internal Bases API
+	app!: App;
+	config!: any; // BasesViewConfig - using any since not exported from public API
+	data!: any; // BasesQueryResult - using any since not exported from public API
 	protected plugin: TaskNotesPlugin;
 	protected dataAdapter: BasesDataAdapter;
 	protected propertyMapper: PropertyMappingService;
@@ -17,36 +24,39 @@ export abstract class BasesViewBase {
 	protected updateDebounceTimer: number | null = null;
 
 	constructor(controller: any, containerEl: HTMLElement, plugin: TaskNotesPlugin) {
-		// Note: We don't call super() since BasesView isn't available in types
-		// The factory function will handle attaching this object to the proper view lifecycle
+		// Call Component constructor
+		super();
 		this.plugin = plugin;
 		this.containerEl = containerEl;
+
+		// Note: app, config, and data will be set by Bases when it creates the view
+		// We just need to ensure our types match the BasesView interface
+
 		this.dataAdapter = new BasesDataAdapter(this);
 		this.propertyMapper = new PropertyMappingService(plugin, plugin.fieldMapper);
 	}
 
 	/**
-	 * Lifecycle: Called when view is first loaded.
+	 * Component lifecycle: Called when view is first loaded.
+	 * Override from Component base class.
 	 */
-	load(): void {
+	onload(): void {
 		this.setupContainer();
 		this.setupTaskUpdateListener();
 		this.render();
 	}
 
 	/**
-	 * Lifecycle: Called when view is unloaded (tab closed, etc).
-	 */
-	unload(): void {
-		this.cleanup();
-	}
-
-	/**
-	 * Lifecycle: Called when Bases data changes.
-	 * Public API callback - Bases will call this automatically.
+	 * BasesView lifecycle: Called when Bases data changes.
+	 * Required abstract method implementation.
 	 */
 	onDataUpdated(): void {
-		this.render();
+		try {
+			this.render();
+		} catch (error) {
+			console.error(`[TaskNotes][${this.type}] Render error:`, error);
+			this.renderError(error as Error);
+		}
 	}
 
 	/**
@@ -108,7 +118,7 @@ export abstract class BasesViewBase {
 
 	/**
 	 * Setup listener for real-time task updates.
-	 * Allows selective updates without full re-render.
+	 * Uses Component.register() for automatic cleanup on unload.
 	 */
 	protected setupTaskUpdateListener(): void {
 		if (this.taskUpdateListener) return;
@@ -130,33 +140,19 @@ export abstract class BasesViewBase {
 				this.debouncedRefresh();
 			}
 		});
-	}
 
-	/**
-	 * Cleanup all resources.
-	 */
-	protected cleanup(): void {
-		// Clean up task update listener
-		if (this.taskUpdateListener) {
-			this.plugin.emitter.offref(this.taskUpdateListener);
-			this.taskUpdateListener = null;
-		}
-
-		// Clean up debounce timer
-		if (this.updateDebounceTimer) {
-			clearTimeout(this.updateDebounceTimer);
-			this.updateDebounceTimer = null;
-		}
-
-		// Clean up DOM
-		if (this.rootElement) {
-			this.rootElement.remove();
-			this.rootElement = null;
-		}
+		// Register cleanup using Component lifecycle
+		this.register(() => {
+			if (this.taskUpdateListener) {
+				this.plugin.emitter.offref(this.taskUpdateListener);
+				this.taskUpdateListener = null;
+			}
+		});
 	}
 
 	/**
 	 * Debounced refresh to prevent multiple rapid re-renders.
+	 * Timer is automatically cleaned up on component unload.
 	 */
 	protected debouncedRefresh(): void {
 		if (this.updateDebounceTimer) {
@@ -167,13 +163,19 @@ export abstract class BasesViewBase {
 			this.render();
 			this.updateDebounceTimer = null;
 		}, 150);
+
+		// Note: We don't need to explicitly register cleanup for this timer
+		// because it's short-lived (150ms) and clears itself. If the component
+		// unloads before the timer fires, the worst case is a no-op render call.
 	}
 
 	/**
 	 * Get visible properties for rendering task cards.
+	 * Uses BasesView's config API directly.
 	 */
 	protected getVisibleProperties(): string[] {
-		const basesPropertyIds = this.dataAdapter.getVisiblePropertyIds();
+		// Get ordered properties from Bases config (configured by user in Bases UI)
+		const basesPropertyIds = this.config.getOrder();
 		let visibleProperties = this.propertyMapper.mapVisibleProperties(basesPropertyIds);
 
 		// Fallback to plugin defaults if no properties configured
@@ -199,13 +201,21 @@ export abstract class BasesViewBase {
 	abstract render(): void;
 
 	/**
+	 * Render an error state when rendering fails.
+	 * Subclasses should display user-friendly error messages.
+	 * Made public to match abstract method visibility requirements.
+	 */
+	abstract renderError(error: Error): void;
+
+	/**
 	 * Handle a single task update for selective rendering.
 	 * Subclasses can implement efficient updates or fall back to full refresh.
 	 */
 	protected abstract handleTaskUpdate(task: TaskInfo): Promise<void>;
 
 	/**
-	 * The view type identifier.
+	 * The view type identifier (required by BasesView).
+	 * Must be unique across all registered Bases views.
 	 */
 	abstract type: string;
 }

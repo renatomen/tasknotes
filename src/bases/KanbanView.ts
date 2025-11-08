@@ -10,7 +10,6 @@ import { VirtualScroller } from "../utils/VirtualScroller";
 export class KanbanView extends BasesViewBase {
 	type = "tasknoteKanban";
 	private boardEl: HTMLElement | null = null;
-	private basesViewContext?: any;
 	private basesController: any; // Store controller for accessing query.views
 	private currentTaskElements = new Map<string, HTMLElement>();
 	private draggedTaskPath: string | null = null;
@@ -18,7 +17,7 @@ export class KanbanView extends BasesViewBase {
 	private containerListenersRegistered = false;
 	private columnScrollers = new Map<string, VirtualScroller<TaskInfo>>(); // columnKey -> scroller
 
-	// View options (accessed via config)
+	// View options (accessed via BasesViewConfig)
 	private swimLanePropertyId: string | null = null;
 	private columnWidth = 280;
 	private hideEmptyColumns = false;
@@ -35,41 +34,33 @@ export class KanbanView extends BasesViewBase {
 	constructor(controller: any, containerEl: HTMLElement, plugin: TaskNotesPlugin) {
 		super(controller, containerEl, plugin);
 		this.basesController = controller; // Store for groupBy detection
-	}
-
-	setBasesViewContext(context: any): void {
-		this.basesViewContext = context;
-		(this.dataAdapter as any).basesView = context;
-
+		// BasesView now provides this.data, this.config, and this.app directly
+		(this.dataAdapter as any).basesView = this;
 		// Read view options from config
 		this.readViewOptions();
 	}
 
+	/**
+	 * Read view configuration options from BasesViewConfig.
+	 */
 	private readViewOptions(): void {
-		if (!this.basesViewContext?.config) return;
+		try {
+			this.swimLanePropertyId = this.config.getAsPropertyId('swimLane');
+			this.columnWidth = (this.config.get('columnWidth') as number) || 280;
+			this.hideEmptyColumns = (this.config.get('hideEmptyColumns') as boolean) || false;
 
-		const config = this.basesViewContext.config;
-
-		// Read swimLane option
-		if (typeof config.get === 'function') {
-			try {
-				this.swimLanePropertyId = config.get('swimLane') || null;
-				this.columnWidth = config.get('columnWidth') || 280;
-				this.hideEmptyColumns = config.get('hideEmptyColumns') || false;
-
-				// Read column orders
-				const columnOrderStr = config.get('columnOrder') || '{}';
-				this.columnOrders = JSON.parse(columnOrderStr);
-			} catch (e) {
-				// Use defaults
-				console.warn('[KanbanView] Failed to parse config:', e);
-			}
+			// Read column orders
+			const columnOrderStr = (this.config.get('columnOrder') as string) || '{}';
+			this.columnOrders = JSON.parse(columnOrderStr);
+		} catch (e) {
+			// Use defaults
+			console.warn('[KanbanView] Failed to parse config:', e);
 		}
 	}
 
 	async render(): Promise<void> {
 		if (!this.boardEl || !this.rootElement) return;
-		if (!this.basesViewContext?.data?.data) return;
+		if (!this.data?.data) return;
 
 		try {
 			const dataItems = this.dataAdapter.extractDataItems();
@@ -121,8 +112,8 @@ export class KanbanView extends BasesViewBase {
 			hasQuery: !!this.basesController?.query,
 			hasViews: !!this.basesController?.query?.views,
 			viewName: this.basesController?.viewName,
-			hasGroupedData: !!this.basesViewContext?.data?.groupedData,
-			groupedDataLength: this.basesViewContext?.data?.groupedData?.length
+			hasGroupedData: !!this.data?.groupedData,
+			groupedDataLength: this.data?.groupedData?.length
 		});
 
 		if (isGrouped) {
@@ -781,7 +772,7 @@ export class KanbanView extends BasesViewBase {
 		this.boardEl.appendChild(error);
 	}
 
-	private renderError(error: Error): void {
+	renderError(error: Error): void {
 		if (!this.boardEl) return;
 		const errorEl = document.createElement("div");
 		errorEl.className = "tn-bases-error";
@@ -830,8 +821,8 @@ export class KanbanView extends BasesViewBase {
 
 	private renderGroupTitleWrapper(container: HTMLElement, title: string): void {
 		const linkServices: LinkServices = {
-			metadataCache: this.plugin.app.metadataCache,
-			workspace: this.plugin.app.workspace,
+			metadataCache: this.app.metadataCache,
+			workspace: this.app.workspace,
 		};
 		renderGroupTitle(container, title, linkServices);
 	}
@@ -870,23 +861,16 @@ export class KanbanView extends BasesViewBase {
 		// Update in-memory state
 		this.columnOrders[groupBy] = order;
 
-		// Get config setter (Bases provides this)
-		const config = this.basesViewContext?.config;
+		try {
+			// Serialize to JSON
+			const orderJson = JSON.stringify(this.columnOrders);
 
-		if (config && typeof config.set === 'function') {
-			try {
-				// Serialize to JSON
-				const orderJson = JSON.stringify(this.columnOrders);
+			// Save to config using BasesViewConfig API
+			this.config.set('columnOrder', orderJson);
 
-				// Save to config (Bases will update the YAML)
-				await config.set('columnOrder', orderJson);
-
-				console.debug(`[KanbanView] Saved column order for ${groupBy}:`, order);
-			} catch (error) {
-				console.error('[KanbanView] Failed to save column order:', error);
-			}
-		} else {
-			console.warn('[KanbanView] Config.set not available');
+			console.debug(`[KanbanView] Saved column order for ${groupBy}:`, order);
+		} catch (error) {
+			console.error('[KanbanView] Failed to save column order:', error);
 		}
 	}
 
@@ -1128,8 +1112,13 @@ export class KanbanView extends BasesViewBase {
 		this.columnScrollers.clear();
 	}
 
-	protected cleanup(): void {
-		super.cleanup();
+	/**
+	 * Component lifecycle: Called when component is unloaded.
+	 * Override from Component base class.
+	 */
+	onunload(): void {
+		// Component.register() calls will be automatically cleaned up
+		// We just need to clean up view-specific state
 		this.unregisterBoardListeners();
 		this.destroyColumnScrollers();
 		this.currentTaskElements.clear();
@@ -1138,36 +1127,19 @@ export class KanbanView extends BasesViewBase {
 	}
 }
 
-// Factory function
+/**
+ * Factory function for Bases registration.
+ * Returns an actual KanbanView instance (extends BasesView).
+ */
 export function buildKanbanViewFactory(plugin: TaskNotesPlugin) {
-	return function (basesContainer: any, containerEl?: HTMLElement) {
-		const viewContainerEl = containerEl || basesContainer.viewContainerEl;
-		const controller = basesContainer;
-
-		if (!viewContainerEl) {
-			console.error("[TaskNotes][KanbanView] No viewContainerEl found");
-			return { destroy: () => {} } as any;
+	return function (controller: any, containerEl: HTMLElement): KanbanView {
+		if (!containerEl) {
+			console.error("[TaskNotes][KanbanView] No containerEl provided");
+			throw new Error("KanbanView requires a containerEl");
 		}
 
-		const view = new KanbanView(controller, viewContainerEl, plugin);
-
-		return {
-			load: () => view.load(),
-			unload: () => view.unload(),
-			refresh() { view.render(); },
-			onDataUpdated: function(this: any) {
-				view.setBasesViewContext(this);
-				view.onDataUpdated();
-			},
-			onResize: () => {
-				// Handle resize if needed
-			},
-			getEphemeralState: () => view.getEphemeralState(),
-			setEphemeralState: (state: any) => view.setEphemeralState(state),
-			focus: () => view.focus(),
-			destroy() {
-				view.unload();
-			},
-		};
+		// Create and return the view instance directly
+		// KanbanView now properly extends BasesView, so Bases can call its methods directly
+		return new KanbanView(controller, containerEl, plugin);
 	};
 }

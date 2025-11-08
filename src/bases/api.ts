@@ -97,10 +97,14 @@ export interface GroupOption {
 	options: ViewOption[];
 }
 
+/**
+ * Bases View Registration interface (Obsidian 1.10.0+ Public API)
+ * Updated to match official BasesViewFactory signature.
+ */
 export interface BasesViewRegistration {
 	name: string;
 	icon: string;
-	factory: (container: BasesContainer) => any;
+	factory: (controller: any, containerEl: HTMLElement) => any;
 	options?: () => ViewOption[];
 }
 

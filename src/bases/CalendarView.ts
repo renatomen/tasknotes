@@ -42,7 +42,6 @@ export class CalendarView extends BasesViewBase {
 	type = "tasknoteCalendar";
 	calendar: Calendar | null = null; // Made public for factory access
 	private calendarEl: HTMLElement | null = null;
-	private basesViewContext?: any;
 	private currentTasks: TaskInfo[] = [];
 	private basesEntryByPath: Map<string, any> = new Map(); // Map task path to Bases entry for enrichment
 
@@ -92,65 +91,61 @@ export class CalendarView extends BasesViewBase {
 
 	constructor(controller: any, containerEl: HTMLElement, plugin: TaskNotesPlugin) {
 		super(controller, containerEl, plugin);
-	}
-
-	setBasesViewContext(context: any): void {
-		this.basesViewContext = context;
-		(this.dataAdapter as any).basesView = context;
-
-		// Read all view options from config
+		// BasesView now provides this.data, this.config, and this.app directly
+		(this.dataAdapter as any).basesView = this;
+		// Read view options from config
 		this.readViewOptions();
 	}
 
+	/**
+	 * Read view configuration options from BasesViewConfig.
+	 */
 	private readViewOptions(): void {
-		if (!this.basesViewContext?.config) return;
-
-		const config = this.basesViewContext.config;
-		if (typeof config.get !== 'function') return;
+		if (!this.config) return;
 
 		try {
 			// Events
-			this.viewOptions.showScheduled = config.get('showScheduled') ?? this.viewOptions.showScheduled;
-			this.viewOptions.showDue = config.get('showDue') ?? this.viewOptions.showDue;
-			this.viewOptions.showRecurring = config.get('showRecurring') ?? this.viewOptions.showRecurring;
-			this.viewOptions.showTimeEntries = config.get('showTimeEntries') ?? this.viewOptions.showTimeEntries;
-			this.viewOptions.showTimeblocks = config.get('showTimeblocks') ?? this.viewOptions.showTimeblocks;
-			this.viewOptions.showPropertyBasedEvents = config.get('showPropertyBasedEvents') ?? this.viewOptions.showPropertyBasedEvents;
+			this.viewOptions.showScheduled = this.config.get('showScheduled') ?? this.viewOptions.showScheduled;
+			this.viewOptions.showDue = this.config.get('showDue') ?? this.viewOptions.showDue;
+			this.viewOptions.showRecurring = this.config.get('showRecurring') ?? this.viewOptions.showRecurring;
+			this.viewOptions.showTimeEntries = this.config.get('showTimeEntries') ?? this.viewOptions.showTimeEntries;
+			this.viewOptions.showTimeblocks = this.config.get('showTimeblocks') ?? this.viewOptions.showTimeblocks;
+			this.viewOptions.showPropertyBasedEvents = this.config.get('showPropertyBasedEvents') ?? this.viewOptions.showPropertyBasedEvents;
 
 			// Date navigation
-			this.viewOptions.initialDate = config.get('initialDate') ?? this.viewOptions.initialDate;
-			this.viewOptions.initialDateProperty = config.get('initialDateProperty') ?? this.viewOptions.initialDateProperty;
-			this.viewOptions.initialDateStrategy = config.get('initialDateStrategy') ?? this.viewOptions.initialDateStrategy;
+			this.viewOptions.initialDate = this.config.get('initialDate') ?? this.viewOptions.initialDate;
+			this.viewOptions.initialDateProperty = this.config.get('initialDateProperty') ?? this.viewOptions.initialDateProperty;
+			this.viewOptions.initialDateStrategy = this.config.get('initialDateStrategy') ?? this.viewOptions.initialDateStrategy;
 
 			// Layout
-			this.viewOptions.calendarView = config.get('calendarView') ?? this.viewOptions.calendarView;
-			this.viewOptions.customDayCount = config.get('customDayCount') ?? this.viewOptions.customDayCount;
-			this.viewOptions.listDayCount = config.get('listDayCount') ?? this.viewOptions.listDayCount;
-			this.viewOptions.slotMinTime = config.get('slotMinTime') ?? this.viewOptions.slotMinTime;
-			this.viewOptions.slotMaxTime = config.get('slotMaxTime') ?? this.viewOptions.slotMaxTime;
-			this.viewOptions.slotDuration = config.get('slotDuration') ?? this.viewOptions.slotDuration;
-			this.viewOptions.firstDay = Number(config.get('firstDay') ?? this.viewOptions.firstDay);
-			this.viewOptions.weekNumbers = config.get('weekNumbers') ?? this.viewOptions.weekNumbers;
-			this.viewOptions.nowIndicator = config.get('nowIndicator') ?? this.viewOptions.nowIndicator;
-			this.viewOptions.showWeekends = config.get('showWeekends') ?? this.viewOptions.showWeekends;
-			this.viewOptions.showAllDaySlot = config.get('showAllDaySlot') ?? this.viewOptions.showAllDaySlot;
-			this.viewOptions.showTodayHighlight = config.get('showTodayHighlight') ?? this.viewOptions.showTodayHighlight;
-			this.viewOptions.selectMirror = config.get('selectMirror') ?? this.viewOptions.selectMirror;
-			this.viewOptions.timeFormat = config.get('timeFormat') ?? this.viewOptions.timeFormat;
-			this.viewOptions.scrollTime = config.get('scrollTime') ?? this.viewOptions.scrollTime;
-			this.viewOptions.eventMinHeight = config.get('eventMinHeight') ?? this.viewOptions.eventMinHeight;
+			this.viewOptions.calendarView = this.config.get('calendarView') ?? this.viewOptions.calendarView;
+			this.viewOptions.customDayCount = this.config.get('customDayCount') ?? this.viewOptions.customDayCount;
+			this.viewOptions.listDayCount = this.config.get('listDayCount') ?? this.viewOptions.listDayCount;
+			this.viewOptions.slotMinTime = this.config.get('slotMinTime') ?? this.viewOptions.slotMinTime;
+			this.viewOptions.slotMaxTime = this.config.get('slotMaxTime') ?? this.viewOptions.slotMaxTime;
+			this.viewOptions.slotDuration = this.config.get('slotDuration') ?? this.viewOptions.slotDuration;
+			this.viewOptions.firstDay = Number(this.config.get('firstDay') ?? this.viewOptions.firstDay);
+			this.viewOptions.weekNumbers = this.config.get('weekNumbers') ?? this.viewOptions.weekNumbers;
+			this.viewOptions.nowIndicator = this.config.get('nowIndicator') ?? this.viewOptions.nowIndicator;
+			this.viewOptions.showWeekends = this.config.get('showWeekends') ?? this.viewOptions.showWeekends;
+			this.viewOptions.showAllDaySlot = this.config.get('showAllDaySlot') ?? this.viewOptions.showAllDaySlot;
+			this.viewOptions.showTodayHighlight = this.config.get('showTodayHighlight') ?? this.viewOptions.showTodayHighlight;
+			this.viewOptions.selectMirror = this.config.get('selectMirror') ?? this.viewOptions.selectMirror;
+			this.viewOptions.timeFormat = this.config.get('timeFormat') ?? this.viewOptions.timeFormat;
+			this.viewOptions.scrollTime = this.config.get('scrollTime') ?? this.viewOptions.scrollTime;
+			this.viewOptions.eventMinHeight = this.config.get('eventMinHeight') ?? this.viewOptions.eventMinHeight;
 
 			// Property-based events
-			this.viewOptions.startDateProperty = config.get('startDateProperty') ?? this.viewOptions.startDateProperty;
-			this.viewOptions.endDateProperty = config.get('endDateProperty') ?? this.viewOptions.endDateProperty;
-			this.viewOptions.titleProperty = config.get('titleProperty') ?? this.viewOptions.titleProperty;
+			this.viewOptions.startDateProperty = this.config.get('startDateProperty') ?? this.viewOptions.startDateProperty;
+			this.viewOptions.endDateProperty = this.config.get('endDateProperty') ?? this.viewOptions.endDateProperty;
+			this.viewOptions.titleProperty = this.config.get('titleProperty') ?? this.viewOptions.titleProperty;
 
 			// ICS calendar toggles
 			if (this.plugin.icsSubscriptionService) {
 				const subscriptions = this.plugin.icsSubscriptionService.getSubscriptions();
 				for (const sub of subscriptions) {
 					const key = `showICS_${sub.id}`;
-					this.icsCalendarToggles.set(sub.id, config.get(key) ?? true);
+					this.icsCalendarToggles.set(sub.id, this.config.get(key) ?? true);
 				}
 			}
 
@@ -159,7 +154,7 @@ export class CalendarView extends BasesViewBase {
 				const calendars = this.plugin.googleCalendarService.getAvailableCalendars();
 				for (const cal of calendars) {
 					const key = `showGoogleCalendar_${cal.id}`;
-					this.googleCalendarToggles.set(cal.id, config.get(key) ?? true);
+					this.googleCalendarToggles.set(cal.id, this.config.get(key) ?? true);
 				}
 			}
 
@@ -168,7 +163,7 @@ export class CalendarView extends BasesViewBase {
 				const calendars = this.plugin.microsoftCalendarService.getAvailableCalendars();
 				for (const cal of calendars) {
 					const key = `showMicrosoftCalendar_${cal.id}`;
-					this.microsoftCalendarToggles.set(cal.id, config.get(key) ?? true);
+					this.microsoftCalendarToggles.set(cal.id, this.config.get(key) ?? true);
 				}
 			}
 		} catch (e) {
@@ -178,7 +173,7 @@ export class CalendarView extends BasesViewBase {
 
 	async render(): Promise<void> {
 		if (!this.calendarEl || !this.rootElement) return;
-		if (!this.basesViewContext?.data?.data) return;
+		if (!this.data?.data) return;
 
 		try {
 			// Extract tasks from Bases
@@ -188,8 +183,8 @@ export class CalendarView extends BasesViewBase {
 
 			// Build Bases entry mapping for task enrichment
 			this.basesEntryByPath.clear();
-			if (this.basesViewContext.data?.data) {
-				for (const entry of this.basesViewContext.data.data) {
+			if (this.data?.data) {
+				for (const entry of this.data.data) {
 					if (entry.file?.path) {
 						this.basesEntryByPath.set(entry.file.path, entry);
 					}
@@ -440,12 +435,12 @@ export class CalendarView extends BasesViewBase {
 	}
 
 	private async buildPropertyBasedEvents(): Promise<any[]> {
-		if (!this.basesViewContext?.data?.data) return [];
+		if (!this.data?.data) return [];
 		if (!this.viewOptions.startDateProperty) return [];
 
 		const events: any[] = [];
 
-		for (const entry of this.basesViewContext.data.data) {
+		for (const entry of this.data.data) {
 			try {
 				const file = entry.file;
 
@@ -1206,7 +1201,7 @@ export class CalendarView extends BasesViewBase {
 				cardElement = createPropertyEventCard(
 					basesEntry,
 					this.plugin,
-					this.basesViewContext?.config
+					this.config
 				);
 			}
 			// Render timeblock events with TimeBlockCard
@@ -1412,7 +1407,7 @@ export class CalendarView extends BasesViewBase {
 		this.debouncedRefresh();
 	}
 
-	private renderError(error: Error): void {
+	renderError(error: Error): void {
 		if (!this.calendarEl) return;
 
 		const errorEl = document.createElement("div");
@@ -1423,8 +1418,8 @@ export class CalendarView extends BasesViewBase {
 		this.calendarEl.appendChild(errorEl);
 	}
 
-	protected cleanup(): void {
-		super.cleanup();
+	onunload(): void {
+		// Component.register() calls will be automatically cleaned up
 
 		if (this.calendar) {
 			this.calendar.destroy();
@@ -1437,38 +1432,19 @@ export class CalendarView extends BasesViewBase {
 }
 
 // Factory function
+/**
+ * Factory function for Bases registration.
+ * Returns an actual CalendarView instance (extends BasesView).
+ */
 export function buildCalendarViewFactory(plugin: TaskNotesPlugin) {
-	return function (basesContainer: any, containerEl?: HTMLElement) {
-		const viewContainerEl = containerEl || basesContainer.viewContainerEl;
-		const controller = basesContainer;
-
-		if (!viewContainerEl) {
-			console.error("[TaskNotes][CalendarView] No viewContainerEl found");
-			return { destroy: () => {} } as any;
+	return function (controller: any, containerEl: HTMLElement): CalendarView {
+		if (!containerEl) {
+			console.error("[TaskNotes][CalendarView] No containerEl provided");
+			throw new Error("CalendarView requires a containerEl");
 		}
 
-		const view = new CalendarView(controller, viewContainerEl, plugin);
-
-		return {
-			load: () => view.load(),
-			unload: () => view.unload(),
-			refresh() { view.render(); },
-			onDataUpdated: function(this: any) {
-				view.setBasesViewContext(this);
-				view.onDataUpdated();
-			},
-			onResize: () => {
-				// Resize calendar if needed
-				if (view.calendar) {
-					view.calendar.updateSize();
-				}
-			},
-			getEphemeralState: () => view.getEphemeralState(),
-			setEphemeralState: (state: any) => view.setEphemeralState(state),
-			focus: () => view.focus(),
-			destroy() {
-				view.unload();
-			},
-		};
+		// Create and return the view instance directly
+		// CalendarView now properly extends BasesView, so Bases can call its methods directly
+		return new CalendarView(controller, containerEl, plugin);
 	};
 }
