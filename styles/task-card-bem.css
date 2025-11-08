@@ -1020,13 +1020,14 @@
     align-items: baseline; /* Align items by baseline instead of center */
     gap: var(--tn-spacing-sm);
     min-width: 0;
-    overflow: hidden;
+    overflow: visible; /* Allow scrollbar to overflow without affecting layout */
 }
 
 /* Title in inline mode - truncate with ellipsis */
 .tasknotes-plugin .task-card--layout-inline .task-card__title {
     font-size: inherit; /* Use editor's font size */
     font-weight: 400;
+    min-width: 100px; /* Ensure title is always visible */
     max-width: 300px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1034,18 +1035,55 @@
     margin: 0;
     gap: var(--tn-spacing-xs);
     align-items: baseline; /* Align title children by baseline */
+    flex-shrink: 0; /* Prevent title from shrinking */
 }
 
-/* Metadata in inline mode - horizontal with minimal spacing */
+/* Metadata in inline mode - horizontal scrollable when too long */
 .tasknotes-plugin .task-card--layout-inline .task-card__metadata {
-    display: inline-flex;
-    flex-direction: row;
-    align-items: center;
-    gap: var(--tn-spacing-xs);
+    display: inline-block; /* Use inline-block instead of inline-flex to avoid baseline shift */
     font-size: var(--tn-font-size-sm);
-    flex-shrink: 0;
-    margin-top: 0; /* Remove vertical offset to align with title */
-    vertical-align: baseline; /* Ensure baseline alignment */
+    margin: 0; /* No margin to avoid shifting */
+    padding: 0; /* No padding to avoid shifting */
+    line-height: inherit; /* Match parent line-height */
+    vertical-align: baseline; /* Ensure baseline alignment with title */
+    overflow-x: auto; /* Enable horizontal scrolling */
+    overflow-y: hidden; /* Hide vertical overflow completely */
+    max-width: 100%; /* Don't exceed container width */
+    white-space: nowrap; /* Prevent wrapping */
+    /* Use overlay scrollbars that don't take up layout space */
+    scrollbar-width: none; /* Hide scrollbar by default (Firefox) */
+}
+
+/* Show thin scrollbar on hover (Firefox) */
+.tasknotes-plugin .task-card--layout-inline .task-card__metadata:hover {
+    scrollbar-width: thin;
+    scrollbar-color: var(--background-modifier-border) transparent;
+}
+
+/* Wrapper for metadata items to maintain horizontal layout */
+.tasknotes-plugin .task-card--layout-inline .task-card__metadata > * {
+    display: inline;
+    vertical-align: baseline;
+    line-height: inherit;
+}
+
+/* Webkit scrollbar styling - overlay scrollbar that doesn't affect layout */
+.tasknotes-plugin .task-card--layout-inline .task-card__metadata::-webkit-scrollbar {
+    height: 6px; /* Slightly taller for easier grabbing */
+    position: absolute; /* Overlay scrollbar */
+}
+
+.tasknotes-plugin .task-card--layout-inline .task-card__metadata::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.tasknotes-plugin .task-card--layout-inline .task-card__metadata::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 3px;
+}
+
+.tasknotes-plugin .task-card--layout-inline .task-card__metadata:hover::-webkit-scrollbar-thumb {
+    background: var(--background-modifier-border);
 }
 
 /* Smaller status dot in inline mode */
@@ -1091,6 +1129,8 @@
     font-size: var(--tn-font-size-sm);
     padding: 0;
     margin: 0;
+    white-space: nowrap; /* Prevent date from wrapping */
+    flex-shrink: 0; /* Prevent date from shrinking */
 }
 
 /* Adjust metadata property spacing - remove padding */
@@ -1098,6 +1138,19 @@
     font-size: var(--tn-font-size-sm);
     padding: 0;
     margin: 0;
+    white-space: nowrap; /* Prevent individual properties from wrapping */
+    flex-shrink: 0; /* Prevent individual properties from shrinking */
+}
+
+/* Prevent metadata pills from wrapping */
+.tasknotes-plugin .task-card--layout-inline .task-card__metadata-pill {
+    white-space: nowrap; /* Prevent pills from wrapping */
+    flex-shrink: 0; /* Prevent pills from shrinking */
+}
+
+/* Prevent separators from causing layout issues */
+.tasknotes-plugin .task-card--layout-inline .task-card__metadata-separator {
+    flex-shrink: 0; /* Keep separators from shrinking */
 }
 
 /* Hide subtask-related elements in inline mode */
