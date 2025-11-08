@@ -160,16 +160,28 @@
 
 /* Individual placeholder lines */
 .nl-markdown-editor .cm-placeholder-line {
-    display: block;
+    display: inline-block;
     line-height: 1.5;
     white-space: nowrap;
     overflow: hidden;
     border-right: 2px solid var(--text-muted);
-    width: fit-content;
+    padding-right: 2px;
     max-width: 0;
     animation:
         typing-width var(--typing-duration, 2s) steps(var(--char-count, 20)) var(--typing-delay, 0s) forwards,
         blink-caret 0.75s step-end var(--typing-delay, 0s) infinite;
+}
+
+/* Each line should be on its own line */
+.nl-markdown-editor .cm-placeholder-line::after {
+    content: '';
+    display: block;
+}
+
+/* Empty lines need minimum height to show as blank line */
+.nl-markdown-editor .cm-placeholder-line:empty {
+    min-height: 1.5em;
+    border-right: none; /* No cursor on empty lines */
 }
 
 /* Stop blinking after typing completes */
@@ -192,7 +204,7 @@
         max-width: 0;
     }
     to {
-        max-width: 100%;
+        max-width: 1000px; /* Large enough for any reasonable text */
     }
 }
 
