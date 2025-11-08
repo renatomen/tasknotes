@@ -136,22 +136,34 @@
 
 /* Multi-line placeholder container */
 .nl-markdown-editor .cm-placeholder-multiline {
+    position: absolute;
+    top: 0;
+    left: 0;
     display: block;
     pointer-events: none;
     user-select: none;
+    padding-left: var(--size-4-2);
+    padding-top: var(--size-4-3);
 }
 
 /* Individual placeholder lines */
 .nl-markdown-editor .cm-placeholder-line {
     display: block;
     line-height: 1.5;
-    white-space: pre;
+    white-space: nowrap;
     overflow: hidden;
     border-right: 2px solid var(--text-muted);
-    width: 0;
+    width: fit-content;
+    max-width: 0;
     animation:
-        typing var(--typing-duration, 2s) steps(var(--char-count, 20)) var(--typing-delay, 0s) forwards,
-        blink-caret 0.75s step-end var(--typing-delay, 0s) calc(var(--typing-duration, 2s) + var(--typing-delay, 0s));
+        typing-width var(--typing-duration, 2s) steps(var(--char-count, 20)) var(--typing-delay, 0s) forwards,
+        blink-caret 0.75s step-end var(--typing-delay, 0s) infinite;
+}
+
+/* Stop blinking after typing completes */
+.nl-markdown-editor .cm-placeholder-line.typed {
+    animation: none;
+    border-right-color: transparent;
 }
 
 /* Remove blinking cursor from last line after animation completes */
@@ -162,13 +174,13 @@
         remove-caret 0s calc(var(--typing-duration, 2s) + var(--typing-delay, 0s) + 1s) forwards;
 }
 
-/* Typing animation - expands width to reveal text */
-@keyframes typing {
+/* Typing animation - expands max-width to reveal text */
+@keyframes typing-width {
     from {
-        width: 0;
+        max-width: 0;
     }
     to {
-        width: 100%;
+        max-width: 100%;
     }
 }
 
