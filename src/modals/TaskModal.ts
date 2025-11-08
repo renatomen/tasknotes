@@ -625,8 +625,8 @@ export abstract class TaskModal extends Modal {
 				this.title = (e.target as HTMLInputElement).value;
 			});
 
-			// Store reference for creation modals with NLP
-			if (isCreationWithNLP && !this.titleInput) {
+			// Store reference for modals that use this as their title input
+			if ((isEditModal || isCreationWithNLP) && !this.titleInput) {
 				this.titleInput = titleInputDetailed;
 			}
 		}
