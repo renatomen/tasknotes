@@ -963,3 +963,167 @@
     0% { background-position: 0 0; }
     100% { background-position: 8px 8px; }
 }
+
+/* =================================================================
+   LAYOUT MODIFIERS - Inline Mode for Task Link Widgets
+   ================================================================= */
+
+/* Inline layout - single line, compact display for editor task links */
+.tasknotes-plugin .task-card--layout-inline {
+    /* Override default flex-direction to create horizontal layout */
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--tn-spacing-xs);
+
+    /* Minimal padding - no indentation needed in inline mode */
+    padding: 2px 0;
+    margin: 0;
+    margin-bottom: 0;
+
+    /* Visual style - transparent background */
+    background-color: transparent;
+    border: none;
+    border-radius: 0;
+
+    /* Size constraints */
+    max-width: 100%;
+    min-height: auto;
+
+    /* Prevent text from breaking into multiple lines */
+    white-space: nowrap;
+}
+
+.tasknotes-plugin .task-card--layout-inline:hover {
+    background-color: transparent;
+}
+
+/* Remove chevron gutter padding in inline mode */
+.tasknotes-plugin .task-card--layout-inline,
+.tasknotes-plugin .task-card--layout-inline.task-card--chevron-left {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+/* Main row in inline mode - horizontal layout */
+.tasknotes-plugin .task-card--layout-inline .task-card__main-row {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--tn-spacing-xs);
+    flex: 1;
+    min-width: 0;
+}
+
+/* Content in inline mode - horizontal, truncated */
+.tasknotes-plugin .task-card--layout-inline .task-card__content {
+    flex-direction: row;
+    align-items: baseline; /* Align items by baseline instead of center */
+    gap: var(--tn-spacing-sm);
+    min-width: 0;
+    overflow: hidden;
+}
+
+/* Title in inline mode - truncate with ellipsis */
+.tasknotes-plugin .task-card--layout-inline .task-card__title {
+    font-size: inherit; /* Use editor's font size */
+    font-weight: 400;
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin: 0;
+    gap: var(--tn-spacing-xs);
+    align-items: baseline; /* Align title children by baseline */
+}
+
+/* Metadata in inline mode - horizontal with minimal spacing */
+.tasknotes-plugin .task-card--layout-inline .task-card__metadata {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--tn-spacing-xs);
+    font-size: var(--tn-font-size-sm);
+    flex-shrink: 0;
+    margin-top: 0; /* Remove vertical offset to align with title */
+    vertical-align: baseline; /* Ensure baseline alignment */
+}
+
+/* Smaller status dot in inline mode */
+.tasknotes-plugin .task-card--layout-inline .task-card__status-dot {
+    width: 12px;
+    height: 12px;
+    margin-right: 4px;
+    border-width: 1.5px;
+}
+
+/* Smaller priority dot in inline mode */
+.tasknotes-plugin .task-card--layout-inline .task-card__priority-dot {
+    width: 12px;
+    height: 12px;
+    margin-right: 4px;
+    border-width: 1.5px;
+}
+
+/* Compact indicators in inline mode */
+.tasknotes-plugin .task-card--layout-inline .task-card__recurring-indicator,
+.tasknotes-plugin .task-card--layout-inline .task-card__reminder-indicator {
+    position: static;
+    width: 12px;
+    height: 12px;
+    margin-right: 2px;
+}
+
+/* Compact context menu in inline mode */
+.tasknotes-plugin .task-card--layout-inline .task-card__context-menu {
+    width: 14px;
+    height: 14px;
+    padding: 2px;
+}
+
+/* Hide metadata separator bullets in inline mode (too cluttered) */
+.tasknotes-plugin .task-card--layout-inline .task-card__metadata-separator {
+    margin: 0 2px;
+    font-size: var(--tn-font-size-xs);
+}
+
+/* Compact date displays - remove padding */
+.tasknotes-plugin .task-card--layout-inline .task-card__metadata-date {
+    font-size: var(--tn-font-size-sm);
+    padding: 0;
+    margin: 0;
+}
+
+/* Adjust metadata property spacing - remove padding */
+.tasknotes-plugin .task-card--layout-inline .task-card__metadata-property {
+    font-size: var(--tn-font-size-sm);
+    padding: 0;
+    margin: 0;
+}
+
+/* Hide subtask-related elements in inline mode */
+.tasknotes-plugin .task-card--layout-inline .task-card__subtasks,
+.tasknotes-plugin .task-card--layout-inline .task-card__blocking {
+    display: none;
+}
+
+/* Ensure inline cards don't have bottom margin */
+.tasknotes-plugin .task-card--layout-inline:last-child {
+    margin-bottom: 0;
+}
+
+/* =================================================================
+   COMPACT LAYOUT (for future use)
+   ================================================================= */
+
+/* Compact layout - smaller padding but still vertical */
+.tasknotes-plugin .task-card--layout-compact {
+    padding: var(--tn-spacing-sm) var(--tn-spacing-md);
+}
+
+.tasknotes-plugin .task-card--layout-compact .task-card__title {
+    font-size: var(--tn-font-size-md);
+}
+
+.tasknotes-plugin .task-card--layout-compact .task-card__metadata {
+    font-size: var(--tn-font-size-sm);
+}

@@ -7,9 +7,15 @@ import {
 	ViewUpdate,
 	WidgetType,
 } from "@codemirror/view";
-import { editorLivePreviewField, MarkdownView, parseLinktext } from "obsidian";
+import { editorInfoField, editorLivePreviewField, EventRef, MarkdownView, parseLinktext } from "obsidian";
 import TaskNotesPlugin from "../main";
-import { TaskInfo } from "../types";
+import {
+	EVENT_DATA_CHANGED,
+	EVENT_TASK_DELETED,
+	EVENT_TASK_UPDATED,
+	EVENT_DATE_CHANGED,
+	TaskInfo,
+} from "../types";
 import { TaskLinkDetectionService } from "../services/TaskLinkDetectionService";
 import { TaskLinkWidget } from "./TaskLinkWidget";
 
@@ -24,12 +30,77 @@ export function createTaskLinkViewPlugin(plugin: TaskNotesPlugin) {
 	return ViewPlugin.fromClass(
 		class {
 			decorations: DecorationSet;
+			private eventListeners: EventRef[] = [];
+			private view: EditorView;
 
 			constructor(view: EditorView) {
+				this.view = view;
 				this.decorations = this.buildDecorations(view);
+				this.setupEventListeners();
+			}
+
+			destroy() {
+				// Clean up event listeners
+				this.eventListeners.forEach((listener) => {
+					plugin.emitter.offref(listener);
+				});
+				this.eventListeners = [];
+			}
+
+			setupEventListeners() {
+				// Listen for data changes that might affect task link widgets
+				const dataChangeListener = plugin.emitter.on(EVENT_DATA_CHANGED, () => {
+					this.refreshDecorations();
+				});
+
+				const taskUpdateListener = plugin.emitter.on(EVENT_TASK_UPDATED, () => {
+					this.refreshDecorations();
+				});
+
+				const taskDeleteListener = plugin.emitter.on(EVENT_TASK_DELETED, () => {
+					this.refreshDecorations();
+				});
+
+				const dateChangeListener = plugin.emitter.on(EVENT_DATE_CHANGED, () => {
+					this.refreshDecorations();
+				});
+
+				// Listen for settings changes
+				const settingsChangeListener = plugin.emitter.on("settings-changed", () => {
+					this.refreshDecorations();
+				});
+
+				this.eventListeners.push(
+					dataChangeListener,
+					taskUpdateListener,
+					taskDeleteListener,
+					dateChangeListener,
+					settingsChangeListener
+				);
+			}
+
+			refreshDecorations() {
+				// Dispatch an update effect to trigger decoration rebuild
+				if (this.view && typeof this.view.dispatch === "function") {
+					queueMicrotask(() => {
+						try {
+							// Clear all widgets to force fresh recreation with updated data
+							activeWidgets.clear();
+
+							this.view.dispatch({
+								effects: [taskUpdateEffect.of({ })],
+							});
+						} catch (error) {
+							console.error("Error dispatching task link update:", error);
+						}
+					});
+				}
 			}
 
 			update(update: ViewUpdate) {
+				// Store the updated view reference
+				this.view = update.view;
+
 				// Only process if overlay is enabled in settings
 				if (!plugin?.settings?.enableTaskLinkOverlay) {
 					this.decorations = Decoration.none;
@@ -90,7 +161,11 @@ export function createTaskLinkViewPlugin(plugin: TaskNotesPlugin) {
 						return Decoration.none;
 					}
 
-					return buildTaskLinkDecorations(view.state, plugin, activeWidgets);
+					// Get the file for this specific view
+					const editorInfo = view.state.field(editorInfoField, false);
+					const currentFile = editorInfo?.file?.path;
+
+					return buildTaskLinkDecorations(view.state, plugin, activeWidgets, currentFile);
 				} catch (error) {
 					console.error("Error building task link decorations:", error);
 					return Decoration.none;
@@ -109,7 +184,8 @@ export function buildTaskLinkDecorations(
 		selection?: { main: { head: number; anchor: number } };
 	},
 	plugin: TaskNotesPlugin,
-	activeWidgets: Map<string, TaskLinkWidget>
+	activeWidgets: Map<string, TaskLinkWidget>,
+	currentFile?: string
 ): DecorationSet {
 	const builder = new RangeSetBuilder<Decoration>();
 
@@ -131,12 +207,14 @@ export function buildTaskLinkDecorations(
 	const detectionService =
 		plugin.taskLinkDetectionService || new TaskLinkDetectionService(plugin);
 
-	// Get current file path
-	const activeMarkdownView = plugin.app.workspace.getActiveViewOfType(MarkdownView);
-	if (!activeMarkdownView) {
-		return builder.finish();
+	// Use provided currentFile, or fall back to getting active view
+	if (!currentFile) {
+		const activeMarkdownView = plugin.app.workspace.getActiveViewOfType(MarkdownView);
+		if (!activeMarkdownView) {
+			return builder.finish();
+		}
+		currentFile = activeMarkdownView.file?.path;
 	}
-	const currentFile = activeMarkdownView.file?.path;
 
 	if (!currentFile) {
 		return builder.finish();

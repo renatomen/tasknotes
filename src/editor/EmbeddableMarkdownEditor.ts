@@ -7,64 +7,8 @@ import {
 	WorkspaceLeaf,
 } from "obsidian";
 import { EditorSelection, Extension, Prec } from "@codemirror/state";
-import { EditorView, keymap, ViewUpdate, Decoration, DecorationSet, WidgetType } from "@codemirror/view";
+import { EditorView, keymap, placeholder, ViewUpdate } from "@codemirror/view";
 import { around } from "monkey-around";
-
-/**
- * Custom multi-line animated placeholder widget with typewriter effect
- */
-class PlaceholderWidget extends WidgetType {
-	constructor(private text: string) {
-		super();
-	}
-
-	toDOM() {
-		const container = document.createElement("div");
-		container.className = "cm-placeholder cm-placeholder-multiline";
-
-		// Split into lines and create separate divs for proper line rendering
-		const lines = this.text.split('\n');
-
-		// Calculate cumulative delays - third line starts right after first line finishes
-		let cumulativeDelay = 0;
-		const lineDurations: number[] = [];
-
-		lines.forEach((line, index) => {
-			const lineDiv = document.createElement("div");
-			lineDiv.className = "cm-placeholder-line";
-
-			const duration = line.length * 50; // 50ms per character
-			lineDurations.push(duration);
-
-			// First line: no delay
-			// Second line (empty): starts after first line
-			// Third line: also starts after first line (not after empty line)
-			let delay = 0;
-			if (index === 1) {
-				delay = lineDurations[0]; // Start after first line
-			} else if (index === 2) {
-				delay = lineDurations[0]; // Also start after first line (parallel with empty line)
-			}
-
-			lineDiv.style.setProperty('--typing-duration', `${duration}ms`);
-			lineDiv.style.setProperty('--typing-delay', `${delay}ms`);
-			lineDiv.style.setProperty('--char-count', line.length.toString());
-
-			lineDiv.textContent = line || '\u00A0'; // Use non-breaking space for empty lines
-			container.appendChild(lineDiv);
-		});
-
-		return container;
-	}
-
-	eq(other: PlaceholderWidget) {
-		return this.text === other.text;
-	}
-
-	ignoreEvent() {
-		return true;
-	}
-}
 
 // Internal Obsidian type - not exported in official API
 interface ScrollableMarkdownEditor {
@@ -286,20 +230,9 @@ export class EmbeddableMarkdownEditor extends resolveEditorPrototype(app) {
 		// @ts-ignore
 		const extensions = super.buildLocalExtensions();
 
-		// Add placeholder if specified - custom multi-line widget avoids cursor issues
+		// Add placeholder if specified
 		if (this.options.placeholder) {
-			extensions.push(
-				EditorView.decorations.compute(["doc"], (state) => {
-					if (state.doc.length > 0) return Decoration.none;
-
-					const widget = Decoration.widget({
-						widget: new PlaceholderWidget(this.options.placeholder),
-						side: 1,
-					});
-
-					return Decoration.set([widget.range(0)]);
-				})
-			);
+			extensions.push(placeholder(this.options.placeholder));
 		}
 
 		// Add paste handler

@@ -71,11 +71,309 @@ class NLPSuggest extends AbstractInputSuggest<
 	private currentTrigger: "@" | "#" | "+" | "status" | null = null;
 	// Store app reference explicitly to avoid relying on plugin.app in tests and runtime
 	private obsidianApp: App;
+	// Cache ProjectMetadataResolver to avoid recreating it for each suggestion
+	private projectMetadataResolver: ProjectMetadataResolver | null = null;
+
 	constructor(app: App, textareaEl: HTMLTextAreaElement, plugin: TaskNotesPlugin) {
 		super(app, textareaEl as unknown as HTMLInputElement);
 		this.plugin = plugin;
 		this.textarea = textareaEl;
 		this.obsidianApp = app;
+	}
+
+	/**
+	 * Helper: Check if index is at a word boundary
+	 */
+	private isBoundary(textBeforeCursor: string, index: number): boolean {
+		if (index === -1) return false;
+		if (index === 0) return true;
+		const prev = textBeforeCursor[index - 1];
+		return !/\w/.test(prev);
+	}
+
+	/**
+	 * Find the most recent valid trigger before cursor
+	 */
+	private findActiveTrigger(textBeforeCursor: string): {
+		trigger: "@" | "#" | "+" | "status" | null;
+		triggerIndex: number;
+		queryAfterTrigger: string;
+	} {
+		const lastAtIndex = textBeforeCursor.lastIndexOf("@");
+		const lastHashIndex = textBeforeCursor.lastIndexOf("#");
+		const lastPlusIndex = textBeforeCursor.lastIndexOf("+");
+		const statusTrig = (this.plugin.settings.statusSuggestionTrigger || "").trim();
+		const lastStatusIndex = statusTrig ? textBeforeCursor.lastIndexOf(statusTrig) : -1;
+
+		// Determine most recent valid trigger by index
+		const candidates: Array<{ type: "@" | "#" | "+" | "status"; index: number }> = [
+			{ type: "@" as const, index: lastAtIndex },
+			{ type: "#" as const, index: lastHashIndex },
+			{ type: "+" as const, index: lastPlusIndex },
+			{ type: "status" as const, index: lastStatusIndex },
+		].filter((c) => this.isBoundary(textBeforeCursor, c.index));
+
+		if (candidates.length === 0) {
+			return { trigger: null, triggerIndex: -1, queryAfterTrigger: "" };
+		}
+
+		candidates.sort((a, b) => b.index - a.index);
+		const triggerIndex = candidates[0].index;
+		const trigger = candidates[0].type;
+
+		// Extract the query after the trigger (respect multi-char trigger for status)
+		const offset = trigger === "status" ? statusTrig?.length || 0 : 1;
+		const queryAfterTrigger = textBeforeCursor.slice(triggerIndex + offset);
+
+		return { trigger, triggerIndex, queryAfterTrigger };
+	}
+
+	/**
+	 * Check if the query context should end suggestion display
+	 */
+	private shouldEndSuggestionContext(
+		trigger: "@" | "#" | "+" | "status",
+		queryAfterTrigger: string
+	): boolean {
+		// If '+' trigger already has a completed wikilink (+[[...]]), do not suggest again
+		if (trigger === "+" && /^\[\[[^\]]*\]\]/.test(queryAfterTrigger)) {
+			return true;
+		}
+
+		// Check if there's a space in the query (which would end the suggestion context)
+		// For '+' (projects/wikilinks), allow spaces for multi-word fuzzy queries
+		if (
+			(trigger === "@" || trigger === "#" || trigger === "status") &&
+			(queryAfterTrigger.includes(" ") || queryAfterTrigger.includes("\n"))
+		) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Get context suggestions
+	 */
+	private getContextSuggestions(query: string): ContextSuggestion[] {
+		const contexts = this.plugin.cacheManager.getAllContexts();
+		return contexts
+			.filter((context) => context && typeof context === "string")
+			.filter((context) =>
+				context.toLowerCase().includes(query.toLowerCase())
+			)
+			.slice(0, 10)
+			.map((context) => ({
+				value: context,
+				display: context,
+				type: "context" as const,
+				toString() {
+					return this.value;
+				},
+			}));
+	}
+
+	/**
+	 * Get status suggestions
+	 */
+	private getStatusSuggestions(query: string): StatusSuggestion[] {
+		const parser = NaturalLanguageParser.fromPlugin(this.plugin);
+		return parser.getStatusSuggestions(query, 10).map(s => ({
+			...s,
+			type: "status" as const,
+			toString() {
+				return this.value;
+			},
+		}));
+	}
+
+	/**
+	 * Get tag suggestions
+	 */
+	private getTagSuggestions(query: string): TagSuggestion[] {
+		const tags = this.plugin.cacheManager.getAllTags();
+		return tags
+			.filter((tag) => tag && typeof tag === "string")
+			.filter((tag) => tag.toLowerCase().includes(query.toLowerCase()))
+			.slice(0, 10)
+			.map((tag) => ({
+				value: tag,
+				display: tag,
+				type: "tag" as const,
+				toString() {
+					return this.value;
+				},
+			}));
+	}
+
+	/**
+	 * Get or create the cached ProjectMetadataResolver
+	 */
+	private getProjectMetadataResolver(): ProjectMetadataResolver {
+		if (!this.projectMetadataResolver) {
+			const appRef: App | undefined =
+				(this as any).obsidianApp ?? (this as any).app ?? this.plugin?.app;
+			this.projectMetadataResolver = new ProjectMetadataResolver({
+				getFrontmatter: (entry) => {
+					const file = appRef?.vault.getAbstractFileByPath(entry.path);
+					const cache = file
+						? appRef?.metadataCache.getFileCache(file as any)
+						: undefined;
+					return cache?.frontmatter || {};
+				},
+			});
+		}
+		return this.projectMetadataResolver;
+	}
+
+	/**
+	 * Get project suggestions (file-based)
+	 */
+	private async getProjectSuggestions(query: string): Promise<ProjectSuggestion[]> {
+		// Use FileSuggestHelper for multi-word support with enhanced project autosuggest cards and |s flag support
+		const { FileSuggestHelper } = await import("../suggest/FileSuggestHelper");
+
+		// Apply excluded folders filter to FileSuggestHelper
+		const excluded = (this.plugin.settings.excludedFolders || "")
+			.split(",")
+			.map((s) => s.trim())
+			.filter(Boolean);
+
+		// Get suggestions using FileSuggestHelper with explicit project filter configuration
+		const list = await FileSuggestHelper.suggest(
+			this.plugin,
+			query,
+			20,
+			this.plugin.settings.projectAutosuggest
+		);
+
+		// Filter out excluded folders
+		const appRef: App | undefined =
+			(this as any).obsidianApp ?? (this as any).app ?? this.plugin?.app;
+		const filteredList = list.filter((item) => {
+			const file = appRef?.vault
+				.getMarkdownFiles()
+				.find((f) => f.basename === item.insertText);
+			if (!file) return true;
+			return !excluded.some((folder) => file.path.startsWith(folder));
+		});
+
+		try {
+			// Use cached resolver instead of creating a new one
+			const resolver = this.getProjectMetadataResolver();
+
+			const rowConfigs = (this.plugin.settings?.projectAutosuggest?.rows ?? []).slice(0, 3);
+
+			return filteredList.map((item) => {
+				const file = appRef?.vault
+					.getMarkdownFiles()
+					.find((f) => f.basename === item.insertText);
+				if (!file) {
+					return {
+						basename: item.insertText,
+						displayName: item.displayText,
+						type: "project" as const,
+						toString() {
+							return this.basename;
+						},
+					};
+				}
+
+				const cache = appRef?.metadataCache.getFileCache(file);
+				const frontmatter = cache?.frontmatter || {};
+				const mapped = this.plugin.fieldMapper.mapFromFrontmatter(
+					frontmatter,
+					file.path,
+					this.plugin.settings.storeTitleInFilename
+				);
+
+				const title = typeof mapped.title === "string" ? mapped.title : "";
+				const aliasesFm = parseFrontMatterAliases(frontmatter) || [];
+				const aliases = Array.isArray(aliasesFm)
+					? (aliasesFm.filter((a) => typeof a === "string") as string[])
+					: [];
+
+				const fileData = {
+					basename: file.basename,
+					name: file.name,
+					path: file.path,
+					parent: file.parent?.path || "",
+					title,
+					aliases,
+					frontmatter: frontmatter,
+				};
+
+				const displayName = this.generateProjectDisplayName(rowConfigs, fileData, resolver, file.basename);
+
+				return {
+					basename: item.insertText,
+					displayName: displayName,
+					type: "project" as const,
+					entry: {
+						basename: fileData.basename,
+						name: fileData.name,
+						path: fileData.path,
+						parent: fileData.parent,
+						title: fileData.title,
+						aliases: fileData.aliases,
+						frontmatter: fileData.frontmatter,
+					},
+					toString() {
+						return this.basename;
+					},
+				} as ProjectSuggestion;
+			});
+		} catch (err) {
+			console.error(
+				"Enhanced project autosuggest failed, falling back to basic suggestions",
+				err
+			);
+			return filteredList.map((item) => ({
+				basename: item.insertText,
+				displayName: item.displayText,
+				type: "project" as const,
+				toString() {
+					return this.basename;
+				},
+			}));
+		}
+	}
+
+	/**
+	 * Generate enhanced display name for project suggestions
+	 */
+	private generateProjectDisplayName(
+		rows: string[],
+		item: any,
+		resolver: ProjectMetadataResolver,
+		fallback: string
+	): string {
+		const lines: string[] = [];
+		for (const row of rows) {
+			try {
+				const tokens = parseDisplayFieldsRow(row);
+				const parts: string[] = [];
+				for (const token of tokens) {
+					if (token.property.startsWith("literal:")) {
+						parts.push(token.property.slice(8));
+						continue;
+					}
+					const value = resolver.resolve(token.property, item) || "";
+					if (!value) continue;
+					if (token.showName) {
+						const label = token.displayName ?? token.property;
+						parts.push(`${label}: ${value}`);
+					} else {
+						parts.push(value);
+					}
+				}
+				const line = parts.join(" ");
+				if (line.trim()) lines.push(line);
+			} catch {
+				// Skip invalid rows
+			}
+		}
+		return lines.join(" | ") || fallback;
 	}
 
 	protected async getSuggestions(
@@ -85,279 +383,55 @@ class NLPSuggest extends AbstractInputSuggest<
 		const cursorPos = this.textarea.selectionStart;
 		const textBeforeCursor = this.textarea.value.slice(0, cursorPos);
 
-		// Find the last @, #, +, or custom status trigger before cursor
-		const lastAtIndex = textBeforeCursor.lastIndexOf("@");
-		const lastHashIndex = textBeforeCursor.lastIndexOf("#");
-		const lastPlusIndex = textBeforeCursor.lastIndexOf("+");
-		const statusTrig = (this.plugin.settings.statusSuggestionTrigger || "").trim();
-		const lastStatusIndex = statusTrig ? textBeforeCursor.lastIndexOf(statusTrig) : -1;
+		// Find the active trigger
+		const { trigger, triggerIndex, queryAfterTrigger } = this.findActiveTrigger(textBeforeCursor);
 
-		let triggerIndex = -1;
-		let trigger: "@" | "#" | "+" | "status" | null = null;
-
-		// Helper: boundary check for multi-char trigger
-		const isBoundary = (index: number) => {
-			if (index === -1) return false;
-			if (index === 0) return true;
-			const prev = textBeforeCursor[index - 1];
-			return !/\w/.test(prev);
-		};
-
-		// Determine most recent valid trigger by index
-		const candidates: Array<{ type: "@" | "#" | "+" | "status"; index: number }> = [
-			{ type: "@" as const, index: lastAtIndex },
-			{ type: "#" as const, index: lastHashIndex },
-			{ type: "+" as const, index: lastPlusIndex },
-			{ type: "status" as const, index: lastStatusIndex },
-		].filter((c) => isBoundary(c.index));
-
-		if (candidates.length === 0) {
+		if (!trigger || triggerIndex === -1) {
 			this.currentTrigger = null;
 			return [];
 		}
 
-		candidates.sort((a, b) => b.index - a.index);
-		triggerIndex = candidates[0].index;
-		trigger = candidates[0].type;
-
-		// Extract the query after the trigger (respect multi-char trigger for status)
-		const offset = trigger === "status" ? statusTrig?.length || 0 : 1;
-		const queryAfterTrigger = textBeforeCursor.slice(triggerIndex + offset);
-
-		// If '+' trigger already has a completed wikilink (+[[...]]), do not suggest again
-		if (trigger === "+" && /^\[\[[^\]]*\]\]/.test(queryAfterTrigger)) {
+		// Check if we should end the suggestion context
+		if (this.shouldEndSuggestionContext(trigger, queryAfterTrigger)) {
 			this.currentTrigger = null;
 			return [];
 		}
 
-		// Check if there's a space in the query (which would end the suggestion context)
-		// For '+' (projects/wikilinks), allow spaces for multi-word fuzzy queries
-		if (
-			(trigger === "@" || trigger === "#" || trigger === "status") &&
-			(queryAfterTrigger.includes(" ") || queryAfterTrigger.includes("\n"))
-		) {
-			this.currentTrigger = null;
-			return [];
-		}
 		this.currentTrigger = trigger;
 
 		// Get suggestions based on trigger type
-		if (trigger === "@") {
-			const contexts = this.plugin.cacheManager.getAllContexts();
-			return contexts
-				.filter((context) => context && typeof context === "string")
-				.filter((context) =>
-					context.toLowerCase().includes(queryAfterTrigger.toLowerCase())
-				)
-				.slice(0, 10)
-				.map((context) => ({
-					value: context,
-					display: context,
-					type: "context" as const,
-					toString() {
-						return this.value;
-					},
-				}));
-		} else if (trigger === "status") {
-			// Use the NaturalLanguageParser for status suggestions
-			const parser = NaturalLanguageParser.fromPlugin(this.plugin);
-			return parser.getStatusSuggestions(queryAfterTrigger, 10).map(s => ({
-				...s,
-				type: "status" as const,
-				toString() {
-					return this.value;
-				},
-			}));
-		} else if (trigger === "#") {
-			const tags = this.plugin.cacheManager.getAllTags();
-			return tags
-				.filter((tag) => tag && typeof tag === "string")
-				.filter((tag) => tag.toLowerCase().includes(queryAfterTrigger.toLowerCase()))
-				.slice(0, 10)
-				.map((tag) => ({
-					value: tag,
-					display: tag,
-					type: "tag" as const,
-					toString() {
-						return this.value;
-					},
-				}));
-		} else if (trigger === "+") {
-			// Use FileSuggestHelper for multi-word support with enhanced project autosuggest cards and |s flag support
-			const { FileSuggestHelper } = await import("../suggest/FileSuggestHelper");
-
-			// Apply excluded folders filter to FileSuggestHelper
-			const excluded = (this.plugin.settings.excludedFolders || "")
-				.split(",")
-				.map((s) => s.trim())
-				.filter(Boolean);
-
-			// Get suggestions using FileSuggestHelper with explicit project filter configuration
-			const list = await FileSuggestHelper.suggest(
-				this.plugin,
-				queryAfterTrigger,
-				20,
-				this.plugin.settings.projectAutosuggest
-			);
-
-			// Filter out excluded folders
-			const filteredList = list.filter((item) => {
-				// Find the corresponding file to check its path
-				const appRef: App | undefined =
-					(this as any).obsidianApp ?? (this as any).app ?? this.plugin?.app;
-				const file = appRef?.vault
-					.getMarkdownFiles()
-					.find((f) => f.basename === item.insertText);
-				if (!file) return true; // Keep if we can't find the file
-				return !excluded.some((folder) => file.path.startsWith(folder));
-			});
-
-			// Robustly resolve app reference for both runtime and tests
-			const appRef: App | undefined =
-				(this as any).obsidianApp ?? (this as any).app ?? this.plugin?.app;
-
-			try {
-				// Convert to enhanced project suggestions with configurable cards and |s flag support
-				const resolver = new ProjectMetadataResolver({
-					getFrontmatter: (entry) => {
-						// entry.path refers to a markdown file path
-						const file = appRef?.vault.getAbstractFileByPath(entry.path);
-						const cache = file
-							? appRef?.metadataCache.getFileCache(file as any)
-							: undefined;
-						return cache?.frontmatter || {};
-					},
-				});
-
-				const rowConfigs = (this.plugin.settings?.projectAutosuggest?.rows ?? []).slice(
-					0,
-					3
-				);
-
-				return filteredList.map((item) => {
-					// Find the corresponding file for enhanced metadata
-					const file = appRef?.vault
-						.getMarkdownFiles()
-						.find((f) => f.basename === item.insertText);
-					if (!file) {
-						// Fallback to basic suggestion if file not found
-						return {
-							basename: item.insertText,
-							displayName: item.displayText,
-							type: "project" as const,
-							toString() {
-								return this.basename;
-							},
-						};
-					}
-
-					const cache = appRef?.metadataCache.getFileCache(file);
-					const frontmatter = cache?.frontmatter || {};
-					const mapped = this.plugin.fieldMapper.mapFromFrontmatter(
-						frontmatter,
-						file.path,
-						this.plugin.settings.storeTitleInFilename
-					);
-
-					// Derive title and aliases for display
-					const title = typeof mapped.title === "string" ? mapped.title : "";
-					const aliasesFm = parseFrontMatterAliases(frontmatter) || [];
-					const aliases = Array.isArray(aliasesFm)
-						? (aliasesFm.filter((a) => typeof a === "string") as string[])
-						: [];
-
-					const fileData = {
-						basename: file.basename,
-						name: file.name,
-						path: file.path,
-						parent: file.parent?.path || "",
-						title,
-						aliases,
-						frontmatter: frontmatter,
-					};
-
-					// Generate enhanced display name using configured rows
-					const generateDisplayName = (
-						rows: string[],
-						item: any,
-						resolver: ProjectMetadataResolver
-					): string => {
-						const lines: string[] = [];
-						for (const row of rows) {
-							try {
-								const tokens = parseDisplayFieldsRow(row);
-								const parts: string[] = [];
-								for (const token of tokens) {
-									if (token.property.startsWith("literal:")) {
-										parts.push(token.property.slice(8));
-										continue;
-									}
-									const value = resolver.resolve(token.property, item) || "";
-									if (!value) continue;
-									if (token.showName) {
-										const label = token.displayName ?? token.property;
-										parts.push(`${label}: ${value}`);
-									} else {
-										parts.push(value);
-									}
-								}
-								const line = parts.join(" ");
-								if (line.trim()) lines.push(line);
-							} catch {
-								// Skip invalid rows
-							}
-						}
-						return lines.join(" | ") || file.basename;
-					};
-
-					const displayName = generateDisplayName(rowConfigs, fileData, resolver);
-
-					return {
-						basename: item.insertText,
-						displayName: displayName,
-						type: "project" as const,
-						entry: {
-							basename: fileData.basename,
-							name: fileData.name,
-							path: fileData.path,
-							parent: fileData.parent,
-							title: fileData.title,
-							aliases: fileData.aliases,
-							frontmatter: fileData.frontmatter,
-						},
-						toString() {
-							return this.basename;
-						},
-					} as ProjectSuggestion;
-				});
-			} catch (err) {
-				console.error(
-					"Enhanced project autosuggest failed, falling back to basic suggestions",
-					err
-				);
-				return filteredList.map((item) => ({
-					basename: item.insertText,
-					displayName: item.displayText,
-					type: "project" as const,
-					toString() {
-						return this.basename;
-					},
-				}));
-			}
+		switch (trigger) {
+			case "@":
+				return this.getContextSuggestions(queryAfterTrigger);
+			case "status":
+				return this.getStatusSuggestions(queryAfterTrigger);
+			case "#":
+				return this.getTagSuggestions(queryAfterTrigger);
+			case "+":
+				return await this.getProjectSuggestions(queryAfterTrigger);
+			default:
+				return [];
 		}
-
-		return [];
 	}
 
 	public renderSuggestion(
 		suggestion: TagSuggestion | ContextSuggestion | ProjectSuggestion | StatusSuggestion,
 		el: HTMLElement
 	): void {
+		// Add ARIA attributes for accessibility
+		el.setAttribute("role", "option");
+		// Get display text - ProjectSuggestion uses displayName, others use display
+		const displayText = suggestion.type === "project"
+			? (suggestion as ProjectSuggestion).displayName
+			: (suggestion as TagSuggestion | ContextSuggestion | StatusSuggestion).display;
+		el.setAttribute("aria-label", `${suggestion.type}: ${displayText}`);
+
 		const icon = el.createSpan("nlp-suggest-icon");
 		icon.textContent =
 			this.currentTrigger === "status"
 				? this.plugin.settings.statusSuggestionTrigger || ""
 				: this.currentTrigger || "";
+		icon.setAttribute("aria-hidden", "true");
 
 		const text = el.createSpan("nlp-suggest-text");
 
@@ -433,9 +507,8 @@ class NLPSuggest extends AbstractInputSuggest<
 
 			const cfg = (this.plugin.settings?.projectAutosuggest?.rows ?? []).slice(0, 3);
 			if (Array.isArray(cfg) && cfg.length > 0 && (suggestion as any).entry) {
-				const resolver = new ProjectMetadataResolver({
-					getFrontmatter: (e) => (e as ProjectEntry).frontmatter,
-				});
+				// Use cached resolver for rendering too
+				const resolver = this.getProjectMetadataResolver();
 				for (let i = 0; i < Math.min(cfg.length, 3); i++) {
 					const row = cfg[i];
 					if (!row) continue;
@@ -553,7 +626,14 @@ export class TaskCreationModal extends TaskModal {
 	private nlMarkdownEditor: EmbeddableMarkdownEditor | null = null;
 	private nlPreviewContainer: HTMLElement;
 	private nlButtonContainer: HTMLElement;
-	private nlpSuggest: NLPSuggest; // Will be replaced with CodeMirror autocomplete
+	private nlpSuggest: NLPSuggest | null = null; // Will be replaced with CodeMirror autocomplete
+
+	// Track event listeners for cleanup
+	private eventListeners: Array<{
+		element: HTMLElement | HTMLTextAreaElement;
+		event: string;
+		handler: EventListener;
+	}> = [];
 
 	constructor(
 		app: App,
@@ -571,6 +651,28 @@ export class TaskCreationModal extends TaskModal {
 
 	protected isCreationMode(): boolean {
 		return true;
+	}
+
+	/**
+	 * Add an event listener and track it for cleanup
+	 */
+	private addTrackedEventListener(
+		element: HTMLElement | HTMLTextAreaElement,
+		event: string,
+		handler: EventListener
+	): void {
+		element.addEventListener(event, handler);
+		this.eventListeners.push({ element, event, handler });
+	}
+
+	/**
+	 * Remove all tracked event listeners
+	 */
+	private removeAllEventListeners(): void {
+		for (const { element, event, handler } of this.eventListeners) {
+			element.removeEventListener(event, handler);
+		}
+		this.eventListeners = [];
 	}
 
 	protected createModalContent(): void {
@@ -614,9 +716,15 @@ export class TaskCreationModal extends TaskModal {
 
 		// Create markdown editor container
 		const editorContainer = nlContainer.createDiv("nl-markdown-editor");
+		editorContainer.setAttribute("role", "textbox");
+		editorContainer.setAttribute("aria-label", this.t("modals.taskCreation.nlPlaceholder"));
+		editorContainer.setAttribute("aria-multiline", "true");
 
 		// Preview container
 		this.nlPreviewContainer = nlContainer.createDiv("nl-preview-container");
+		this.nlPreviewContainer.setAttribute("role", "status");
+		this.nlPreviewContainer.setAttribute("aria-live", "polite");
+		this.nlPreviewContainer.setAttribute("aria-label", "Task preview");
 
 		try {
 			// Create NLP autocomplete extension for @, #, +, status triggers
@@ -697,28 +805,31 @@ export class TaskCreationModal extends TaskModal {
 				},
 			});
 
-			// Event listeners for fallback
-			this.nlInput.addEventListener("input", () => {
+			// Event listeners for fallback - track them for cleanup
+			const inputHandler = () => {
 				const input = this.nlInput.value.trim();
 				if (input) {
 					this.updateNaturalLanguagePreview(input);
 				} else {
 					this.clearNaturalLanguagePreview();
 				}
-			});
+			};
+			this.addTrackedEventListener(this.nlInput, "input", inputHandler);
 
-			this.nlInput.addEventListener("keydown", (e) => {
+			const keydownHandler = (e: Event) => {
 				const input = this.nlInput.value.trim();
 				if (!input) return;
 
-				if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-					e.preventDefault();
+				const keyEvent = e as KeyboardEvent;
+				if (keyEvent.key === "Enter" && (keyEvent.ctrlKey || keyEvent.metaKey)) {
+					keyEvent.preventDefault();
 					this.handleSave();
-				} else if (e.key === "Tab" && e.shiftKey) {
-					e.preventDefault();
+				} else if (keyEvent.key === "Tab" && keyEvent.shiftKey) {
+					keyEvent.preventDefault();
 					this.parseAndFillForm(input);
 				}
-			});
+			};
+			this.addTrackedEventListener(this.nlInput, "keydown", keydownHandler);
 
 			// Initialize auto-suggestion for fallback
 			this.nlpSuggest = new NLPSuggest(this.app, this.nlInput, this.plugin);
@@ -936,6 +1047,7 @@ export class TaskCreationModal extends TaskModal {
 		// Update form inputs if they exist
 		if (this.titleInput) this.titleInput.value = this.title;
 		if (this.detailsInput) this.detailsInput.value = this.details;
+		if (this.detailsMarkdownEditor) this.detailsMarkdownEditor.setValue(this.details);
 		if (this.contextsInput) this.contextsInput.value = this.contexts;
 		if (this.tagsInput) this.tagsInput.value = this.tags;
 
@@ -1290,6 +1402,17 @@ export class TaskCreationModal extends TaskModal {
 			this.nlMarkdownEditor.destroy();
 			this.nlMarkdownEditor = null;
 		}
+
+		// Clean up NLP suggest
+		if (this.nlpSuggest) {
+			// NLPSuggest extends AbstractInputSuggest which has a close method
+			this.nlpSuggest.close();
+			this.nlpSuggest = null;
+		}
+
+		// Remove all tracked event listeners
+		this.removeAllEventListeners();
+
 		super.onClose();
 	}
 }

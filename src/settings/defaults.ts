@@ -319,6 +319,8 @@ export const DEFAULT_SETTINGS: TaskNotesSettings = {
 		"blocked", // Blocked indicator
 		"blocking", // Blocking indicator
 	],
+	// Default visible properties for inline task cards (more compact by default)
+	inlineVisibleProperties: ["status", "priority", "due", "scheduled", "recurrence"],
 	// Bases integration defaults
 	enableBases: true,
 	// Command-to-file mappings for view commands (v4)

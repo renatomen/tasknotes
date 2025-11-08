@@ -9,6 +9,8 @@ import {
 	createNumberSetting,
 	createHelpText,
 } from "../components/settingHelpers";
+import { PropertySelectorModal } from "../../modals/PropertySelectorModal";
+import { getAvailableProperties, getPropertyLabels } from "../../utils/propertyHelpers";
 
 /**
  * Renders the Appearance & UI tab - visual customization settings
@@ -28,154 +30,35 @@ export function renderAppearanceTab(
 	createHelpText(container, translate("settings.appearance.taskCards.description"));
 
 	// Default visible properties
-	const visiblePropsContainer = container.createDiv("visible-properties-container");
-	const visiblePropsSetting = visiblePropsContainer.createDiv();
+	const availableProperties = getAvailableProperties(plugin);
+	const currentProperties = plugin.settings.defaultVisibleProperties || [];
 
-	new Setting(visiblePropsSetting)
+	new Setting(container)
 		.setName(translate("settings.appearance.taskCards.defaultVisibleProperties.name"))
-		.setDesc(translate("settings.appearance.taskCards.defaultVisibleProperties.description"));
-
-	// Create property toggles organized by category like PropertyVisibilityDropdown
-	const propertyGroups: Record<string, Array<{ key: string; label: string }>> = {
-		core: [
-			{ key: "status", label: translate("settings.appearance.taskCards.properties.status") },
-			{
-				key: "priority",
-				label: translate("settings.appearance.taskCards.properties.priority"),
-			},
-			{
-				key: "blocked",
-				label: translate("settings.appearance.taskCards.properties.blocked"),
-			},
-			{
-				key: "blocking",
-				label: translate("settings.appearance.taskCards.properties.blocking"),
-			},
-			{ key: "due", label: translate("settings.appearance.taskCards.properties.due") },
-			{
-				key: "scheduled",
-				label: translate("settings.appearance.taskCards.properties.scheduled"),
-			},
-			{
-				key: "timeEstimate",
-				label: translate("settings.appearance.taskCards.properties.timeEstimate"),
-			},
-			{
-				key: "totalTrackedTime",
-				label: translate("settings.appearance.taskCards.properties.totalTrackedTime"),
-			},
-			{
-				key: "recurrence",
-				label: translate("settings.appearance.taskCards.properties.recurrence"),
-			},
-			{
-				key: "completedDate",
-				label: translate("settings.appearance.taskCards.properties.completedDate"),
-			},
-			{
-				key: "file.ctime",
-				label: translate("settings.appearance.taskCards.properties.createdDate"),
-			},
-			{
-				key: "file.mtime",
-				label: translate("settings.appearance.taskCards.properties.modifiedDate"),
-			},
-		],
-		organization: [
-			{
-				key: "projects",
-				label: translate("settings.appearance.taskCards.properties.projects"),
-			},
-			{
-				key: "contexts",
-				label: translate("settings.appearance.taskCards.properties.contexts"),
-			},
-			{ key: "tags", label: translate("settings.appearance.taskCards.properties.tags") },
-		],
-		user: [],
-	};
-
-	// Add user fields to options
-	if (plugin.settings.userFields) {
-		plugin.settings.userFields.forEach((field) => {
-			if (field.displayName && field.key) {
-				propertyGroups.user.push({
-					key: `user:${field.id}`,
-					label: field.displayName,
-				});
-			}
-		});
-	}
-
-	const defaultVisible = plugin.settings.defaultVisibleProperties || [];
-	const propertyTogglesContainer = visiblePropsContainer.createDiv(
-		"tasknotes-settings__properties-container"
-	);
-
-	// Render each property group
-	const renderPropertyGroup = (
-		groupName: string,
-		properties: { key: string; label: string }[]
-	) => {
-		if (properties.length === 0) return;
-
-		const groupContainer = propertyTogglesContainer.createDiv(
-			"tasknotes-settings__property-group"
-		);
-		const groupHeader = groupContainer.createDiv("tasknotes-settings__property-group-header");
-		groupHeader.textContent = groupName;
-
-		const groupToggles = groupContainer.createDiv("tasknotes-settings__property-toggles");
-
-		properties.forEach((prop) => {
-			const toggleContainer = groupToggles.createDiv("tasknotes-settings__property-toggle");
-			const checkbox = toggleContainer.createEl("input", {
-				type: "checkbox",
-				cls: "tasknotes-settings__property-checkbox",
-				attr: {
-					id: `visible-prop-${prop.key}`,
-					"aria-label": `Show ${prop.label} on task cards`,
-				},
-			});
-
-			checkbox.checked = defaultVisible.includes(prop.key);
-
-			toggleContainer.createEl("label", {
-				text: prop.label,
-				cls: "tasknotes-settings__property-label",
-				attr: { for: `visible-prop-${prop.key}` },
-			});
-
-			checkbox.addEventListener("change", () => {
-				let updatedVisible = [...defaultVisible];
-				if (checkbox.checked) {
-					if (!updatedVisible.includes(prop.key)) {
-						updatedVisible.push(prop.key);
-					}
-				} else {
-					updatedVisible = updatedVisible.filter((key) => key !== prop.key);
-				}
-				plugin.settings.defaultVisibleProperties = updatedVisible;
-				save();
+		.setDesc(translate("settings.appearance.taskCards.defaultVisibleProperties.description"))
+		.addButton((button) => {
+			button.setButtonText("Configure").onClick(() => {
+				const modal = new PropertySelectorModal(
+					plugin.app,
+					availableProperties,
+					currentProperties,
+					async (selected) => {
+						plugin.settings.defaultVisibleProperties = selected;
+						save();
+						new Notice("Default task card properties updated");
+						// Re-render to update display
+						renderAppearanceTab(container, plugin, save);
+					},
+					"Select Default Task Card Properties",
+					"Choose which properties to display in task cards (views, kanban, etc.). Selected properties will appear in the order shown below."
+				);
+				modal.open();
 			});
 		});
-	};
 
-	// Render groups in order
-	renderPropertyGroup(
-		translate("settings.appearance.taskCards.propertyGroups.coreProperties"),
-		propertyGroups.core
-	);
-	renderPropertyGroup(
-		translate("settings.appearance.taskCards.propertyGroups.organization"),
-		propertyGroups.organization
-	);
-	if (propertyGroups.user.length > 0) {
-		renderPropertyGroup(
-			translate("settings.appearance.taskCards.propertyGroups.customProperties"),
-			propertyGroups.user
-		);
-	}
+	const currentLabels = getPropertyLabels(plugin, currentProperties);
+	createHelpText(container, `Currently showing: ${currentLabels.join(", ")}`);
+
 
 	// Task Filenames Section
 	createSectionHeader(container, translate("settings.appearance.taskFilenames.header"));

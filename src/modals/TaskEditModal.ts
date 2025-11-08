@@ -37,7 +37,8 @@ export class TaskEditModal extends TaskModal {
 	private task: TaskInfo;
 	private options: TaskEditOptions;
 	private metadataContainer: HTMLElement;
-	private completedInstancesChanges: Set<string> = new Set();
+	// Changed from Set to array for consistency with other state management
+	private completedInstancesChanges: string[] = [];
 	private calendarWrapper: HTMLElement | null = null;
 	private initialBlockedBy: TaskDependency[] = [];
 	private initialBlockingPaths: string[] = [];
@@ -243,7 +244,7 @@ export class TaskEditModal extends TaskModal {
 
 	async onOpen() {
 		// Clear any previous completion changes
-		this.completedInstancesChanges.clear();
+		this.completedInstancesChanges = [];
 
 		// Refresh task data from file before opening
 		await this.refreshTaskData();
@@ -365,28 +366,28 @@ export class TaskEditModal extends TaskModal {
 
 		const editorContainer = this.detailsContainer.createDiv("details-markdown-editor");
 
-		// Create the embeddable markdown editor
-		try {
-			this.markdownEditor = new EmbeddableMarkdownEditor(this.app, editorContainer, {
-				value: this.details,
-				placeholder: this.t("modals.task.detailsPlaceholder"),
-				cls: "task-details-editor",
-				onChange: (value) => {
-					this.details = value;
-				},
-			});
-		} catch (error) {
-			console.error("Failed to create markdown editor:", error);
-			// Fallback to textarea if editor creation fails
-			const fallbackTextarea = editorContainer.createEl("textarea", {
-				cls: "details-input",
-				placeholder: this.t("modals.task.detailsPlaceholder"),
-			});
-			fallbackTextarea.value = this.details;
-			fallbackTextarea.addEventListener("input", (e) => {
-				this.details = (e.target as HTMLTextAreaElement).value;
-			});
-		}
+		// Create the embeddable markdown editor using shared method
+		this.markdownEditor = this.createMarkdownEditor(editorContainer, {
+			value: this.details,
+			placeholder: this.t("modals.task.detailsPlaceholder"),
+			cls: "task-details-editor",
+			onChange: (value) => {
+				this.details = value;
+			},
+			onSubmit: () => {
+				// Ctrl/Cmd+Enter - save the task
+				this.handleSave();
+			},
+			onEscape: () => {
+				// ESC - close the modal
+				this.close();
+			},
+			onTab: () => {
+				// Tab - jump to next input field
+				this.focusNextField();
+				return true; // Prevent default tab behavior
+			},
+		});
 
 		// Additional form fields (contexts, tags, etc.)
 		this.createAdditionalFields(this.detailsContainer);
@@ -527,13 +528,13 @@ export class TaskEditModal extends TaskModal {
 
 		// Get current completed instances (original + changes)
 		const completedInstances = new Set(this.task.complete_instances || []);
-		this.completedInstancesChanges.forEach((dateStr) => {
+		for (const dateStr of this.completedInstancesChanges) {
 			if (completedInstances.has(dateStr)) {
 				completedInstances.delete(dateStr);
 			} else {
 				completedInstances.add(dateStr);
 			}
-		});
+		}
 
 		// Render each day (no headers, just numbers)
 		allDays.forEach((day) => {
@@ -587,10 +588,11 @@ export class TaskEditModal extends TaskModal {
 	}
 
 	private toggleCompletedInstance(dateStr: string): void {
-		if (this.completedInstancesChanges.has(dateStr)) {
-			this.completedInstancesChanges.delete(dateStr);
+		const index = this.completedInstancesChanges.indexOf(dateStr);
+		if (index !== -1) {
+			this.completedInstancesChanges.splice(index, 1);
 		} else {
-			this.completedInstancesChanges.add(dateStr);
+			this.completedInstancesChanges.push(dateStr);
 		}
 	}
 
@@ -818,15 +820,15 @@ export class TaskEditModal extends TaskModal {
 		}
 
 		// Apply completed instances changes
-		if (this.completedInstancesChanges.size > 0) {
+		if (this.completedInstancesChanges.length > 0) {
 			const currentCompleted = new Set(this.task.complete_instances || []);
-			this.completedInstancesChanges.forEach((dateStr) => {
+			for (const dateStr of this.completedInstancesChanges) {
 				if (currentCompleted.has(dateStr)) {
 					currentCompleted.delete(dateStr);
 				} else {
 					currentCompleted.add(dateStr);
 				}
-			});
+			}
 			changes.complete_instances = Array.from(currentCompleted);
 
 			// If task has recurrence, update scheduled date to next uncompleted occurrence

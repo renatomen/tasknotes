@@ -12,6 +12,8 @@ import {
 import { showStorageLocationConfirmationModal } from "../../modals/StorageLocationConfirmationModal";
 import { getAvailableLanguages } from "../../locales";
 import type { TranslationKey } from "../../i18n";
+import { PropertySelectorModal } from "../../modals/PropertySelectorModal";
+import { getAvailableProperties, getPropertyLabels } from "../../utils/propertyHelpers";
 
 /**
  * Renders the Features tab - optional plugin modules and their configuration
@@ -37,8 +39,51 @@ export function renderFeaturesTab(
 		setValue: async (value: boolean) => {
 			plugin.settings.enableTaskLinkOverlay = value;
 			save();
+			// Re-render to show/hide inline properties setting
+			renderFeaturesTab(container, plugin, save);
 		},
 	});
+
+	// Inline task card visible properties (shown when task link overlay is enabled)
+	if (plugin.settings.enableTaskLinkOverlay) {
+		const availableProperties = getAvailableProperties(plugin);
+
+		const currentProperties = plugin.settings.inlineVisibleProperties || [
+			"status",
+			"priority",
+			"due",
+			"scheduled",
+			"recurrence",
+		];
+
+		new Setting(container)
+			.setName("Inline Task Card Properties")
+			.setDesc(
+				"Select which properties to show in inline task cards (task links in editor). Fewer properties = more compact display."
+			)
+			.addButton((button) => {
+				button.setButtonText("Configure").onClick(() => {
+					const modal = new PropertySelectorModal(
+						plugin.app,
+						availableProperties,
+						currentProperties,
+						async (selected) => {
+							plugin.settings.inlineVisibleProperties = selected;
+							save();
+							new Notice("Inline task card properties updated");
+							// Re-render to update display
+							renderFeaturesTab(container, plugin, save);
+						},
+						"Select Inline Task Card Properties",
+						"Choose which properties to display in inline task cards. Selected properties will appear in the order shown below."
+					);
+					modal.open();
+				});
+			});
+
+		const currentLabels = getPropertyLabels(plugin, currentProperties);
+		createHelpText(container, `Currently showing: ${currentLabels.join(", ")}`);
+	}
 
 	createToggleSetting(container, {
 		name: translate("settings.features.instantConvert.toggle.name"),

@@ -31,9 +31,12 @@ import { renderTagsValue, renderContextsValue, type TagServices } from "./render
 
 export interface TaskCardOptions {
 	targetDate?: Date;
+	layout?: "default" | "compact" | "inline";
 }
 
-export const DEFAULT_TASK_CARD_OPTIONS: TaskCardOptions = {};
+export const DEFAULT_TASK_CARD_OPTIONS: TaskCardOptions = {
+	layout: "default",
+};
 
 /**
  * Helper function to attach date context menu click handlers
@@ -911,6 +914,12 @@ export function createTaskCard(
 	// Build BEM class names
 	const cardClasses = ["task-card"];
 
+	// Add layout modifier
+	const layout = opts.layout || "default";
+	if (layout !== "default") {
+		cardClasses.push(`task-card--layout-${layout}`);
+	}
+
 	// Add modifiers
 	if (isCompleted) cardClasses.push("task-card--completed");
 	if (task.archived) cardClasses.push("task-card--archived");
@@ -1140,23 +1149,28 @@ export function createTaskCard(
 		});
 	}
 
-	// Project indicator (if task is used as a project)
-	// Create placeholder that will be updated asynchronously
-	const projectIndicatorPlaceholder = mainRow.createEl("div", {
-		cls: "task-card__project-indicator-placeholder",
-		attr: { style: "display: none;" },
-	});
+	// Project indicator (if task is used as a project) - hide in inline mode
+	let projectIndicatorPlaceholder: HTMLElement | null = null;
+	let chevronPlaceholder: HTMLElement | null = null;
 
-	// Chevron for expandable subtasks (if feature is enabled)
-	const chevronPlaceholder = mainRow.createEl("div", {
-		cls: "task-card__chevron-placeholder",
-		attr: { style: "display: none;" },
-	});
+	if (layout !== "inline") {
+		// Create placeholder that will be updated asynchronously
+		projectIndicatorPlaceholder = mainRow.createEl("div", {
+			cls: "task-card__project-indicator-placeholder",
+			attr: { style: "display: none;" },
+		});
+
+		// Chevron for expandable subtasks (if feature is enabled)
+		chevronPlaceholder = mainRow.createEl("div", {
+			cls: "task-card__chevron-placeholder",
+			attr: { style: "display: none;" },
+		});
+	}
 
 	// Use synchronous project status check for better performance
 	const isProject = plugin.projectSubtasksService.isTaskUsedAsProjectSync(task.path);
 
-	if (isProject) {
+	if (isProject && projectIndicatorPlaceholder) {
 		projectIndicatorPlaceholder.className = "task-card__project-indicator";
 		projectIndicatorPlaceholder.removeAttribute("style");
 		projectIndicatorPlaceholder.setAttribute(
@@ -1181,7 +1195,7 @@ export function createTaskCard(
 		});
 
 		// Add chevron for expandable subtasks if feature is enabled
-		if (plugin.settings?.showExpandableSubtasks) {
+		if (plugin.settings?.showExpandableSubtasks && chevronPlaceholder) {
 			chevronPlaceholder.className = "task-card__chevron";
 			chevronPlaceholder.removeAttribute("style");
 
@@ -1242,14 +1256,16 @@ export function createTaskCard(
 			}
 		}
 	} else {
-		projectIndicatorPlaceholder.remove();
-		chevronPlaceholder.remove();
+		projectIndicatorPlaceholder?.remove();
+		chevronPlaceholder?.remove();
 	}
 
-	// Blocking toggle sits left of the main content row
-	const blockingToggle = mainRow.createEl("div", { cls: "task-card__blocking-toggle" });
-	if (task.blocking && task.blocking.length > 0) {
-		blockingToggle.classList.add("is-visible");
+	// Blocking toggle sits left of the main content row - hide in inline mode
+	let blockingToggle: HTMLElement | null = null;
+	if (layout !== "inline") {
+		blockingToggle = mainRow.createEl("div", { cls: "task-card__blocking-toggle" });
+		if (task.blocking && task.blocking.length > 0) {
+			blockingToggle.classList.add("is-visible");
 		const toggleLabel = plugin.i18n.translate("ui.taskCard.blockingToggle", {
 			count: task.blocking.length,
 		});
@@ -1257,15 +1273,16 @@ export function createTaskCard(
 		setIcon(blockingToggle, "git-branch");
 		setTooltip(blockingToggle, toggleLabel, { placement: "top" });
 
-		blockingToggle.addEventListener("click", async (e) => {
-			e.stopPropagation();
-			const expanded = blockingToggle.classList.toggle(
-				"task-card__blocking-toggle--expanded"
-			);
-			await toggleBlockingTasks(card, task, plugin, expanded);
-		});
-	} else {
-		blockingToggle.classList.add("is-hidden");
+			blockingToggle.addEventListener("click", async (e) => {
+				e.stopPropagation();
+				const expanded = blockingToggle!.classList.toggle(
+					"task-card__blocking-toggle--expanded"
+				);
+				await toggleBlockingTasks(card, task, plugin, expanded);
+			});
+		} else {
+			blockingToggle.classList.add("is-hidden");
+		}
 	}
 
 	const contentContainer = mainRow.createEl("div", { cls: "task-card__content" });

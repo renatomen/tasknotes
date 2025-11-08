@@ -146,6 +146,8 @@ export interface TaskNotesSettings {
 	userField?: UserFieldMapping;
 	// Default visible properties for task cards (when no saved view is active)
 	defaultVisibleProperties?: string[];
+	// Default visible properties for inline task cards (task link widgets in editor)
+	inlineVisibleProperties?: string[];
 	// Bases integration settings
 	enableBases: boolean;
 	// Command-to-file mappings for view commands (v4)

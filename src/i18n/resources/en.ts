@@ -2013,7 +2013,7 @@ export const en: TranslationTree = {
 				hideDetailedOptions: "Hide detailed options",
 				showDetailedOptions: "Show detailed options",
 			},
-			nlPlaceholder: "Buy groceries tomorrow at 3pm @home #errands\n\nAdd details here...",
+			nlPlaceholder: "Buy groceries tomorrow at 3pm @home #errands",
 			notices: {
 				titleRequired: "Please enter a task title",
 				success: 'Task "{title}" created successfully',

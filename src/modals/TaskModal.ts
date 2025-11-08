@@ -31,6 +31,7 @@ import {
 } from "../ui/renderers/linkRenderer";
 import { TaskSelectorModal } from "./TaskSelectorModal";
 import { generateLink, generateLinkWithDisplay } from "../utils/linkUtils";
+import { EmbeddableMarkdownEditor } from "../editor/EmbeddableMarkdownEditor";
 
 interface DependencyItem {
 	dependency: TaskDependency;
@@ -402,7 +403,8 @@ export abstract class TaskModal extends Modal {
 
 	// UI elements
 	protected titleInput: HTMLInputElement;
-	protected detailsInput: HTMLTextAreaElement;
+	protected detailsInput: HTMLTextAreaElement; // Legacy - kept for compatibility
+	protected detailsMarkdownEditor: EmbeddableMarkdownEditor | null = null;
 	protected contextsInput: HTMLInputElement;
 	protected projectsInput: HTMLInputElement;
 	protected tagsInput: HTMLInputElement;
@@ -418,8 +420,50 @@ export abstract class TaskModal extends Modal {
 		this.plugin = plugin;
 	}
 
+	/**
+	 * Get the Obsidian app instance - useful for dependency injection in tests
+	 */
+	protected getApp(): App {
+		return this.app;
+	}
+
+	/**
+	 * Get the plugin instance - useful for dependency injection in tests
+	 */
+	protected getPlugin(): TaskNotesPlugin {
+		return this.plugin;
+	}
+
 	protected t(key: string, params?: Record<string, string | number>): string {
 		return this.plugin.i18n.translate(key, params);
+	}
+
+	/**
+	 * Get a file by path - useful for testing with mocked vault
+	 */
+	protected getFileByPath(path: string): TAbstractFile | null {
+		return this.app.vault.getAbstractFileByPath(path);
+	}
+
+	/**
+	 * Get all markdown files - useful for testing with mocked vault
+	 */
+	protected getMarkdownFiles(): TFile[] {
+		return this.app.vault.getMarkdownFiles();
+	}
+
+	/**
+	 * Get file cache - useful for testing with mocked metadataCache
+	 */
+	protected getFileCache(file: TFile): any {
+		return this.app.metadataCache.getFileCache(file);
+	}
+
+	/**
+	 * Resolve a link to a file - useful for testing with mocked metadataCache
+	 */
+	protected resolveLink(linkPath: string, sourcePath: string): TFile | null {
+		return this.app.metadataCache.getFirstLinkpathDest(linkPath, sourcePath);
 	}
 
 	protected isEditMode(): boolean {
@@ -636,14 +680,30 @@ export abstract class TaskModal extends Modal {
 			const detailsLabel = this.detailsContainer.createDiv("detail-label");
 			detailsLabel.textContent = this.t("modals.task.detailsLabel");
 
-			this.detailsInput = this.detailsContainer.createEl("textarea", {
-				cls: "details-input",
-				placeholder: this.t("modals.task.detailsPlaceholder"),
-			});
+			// Create container for the markdown editor
+			const detailsEditorContainer = this.detailsContainer.createDiv("details-markdown-editor");
 
-			this.detailsInput.value = this.details;
-			this.detailsInput.addEventListener("input", (e) => {
-				this.details = (e.target as HTMLTextAreaElement).value;
+			// Create embeddable markdown editor for details using shared method
+			this.detailsMarkdownEditor = this.createMarkdownEditor(detailsEditorContainer, {
+				value: this.details,
+				placeholder: this.t("modals.task.detailsPlaceholder"),
+				cls: "details-editor",
+				onChange: (value) => {
+					this.details = value;
+				},
+				onSubmit: () => {
+					// Ctrl/Cmd+Enter - save the task
+					this.handleSave();
+				},
+				onEscape: () => {
+					// ESC - close the modal
+					this.close();
+				},
+				onTab: () => {
+					// Tab - jump to next input field
+					this.focusNextField();
+					return true; // Prevent default tab behavior
+				},
 			});
 		}
 
@@ -1417,13 +1477,13 @@ export abstract class TaskModal extends Modal {
 			const linkMatch = projectString.match(/^\[\[([^\]]+)\]\]$/);
 			if (linkMatch) {
 				const linkPath = linkMatch[1];
-				const file = this.app.metadataCache.getFirstLinkpathDest(linkPath, "");
+				const file = this.resolveLink(linkPath, "");
 				if (file) {
 					this.selectedProjectFiles.push(file);
 				}
 			} else {
 				// For backwards compatibility, try to find a file with this name
-				const files = this.app.vault.getMarkdownFiles();
+				const files = this.getMarkdownFiles();
 				const matchingFile = files.find(
 					(f) => f.basename === projectString || f.name === projectString + ".md"
 				);
@@ -1592,6 +1652,80 @@ export abstract class TaskModal extends Modal {
 
 	protected validateForm(): boolean {
 		return this.title.trim().length > 0;
+	}
+
+	protected focusNextField(): void {
+		// Try to focus the contexts input as the next field after details
+		setTimeout(() => {
+			if (this.contextsInput) {
+				this.contextsInput.focus();
+			} else if (this.tagsInput) {
+				this.tagsInput.focus();
+			} else if (this.timeEstimateInput) {
+				this.timeEstimateInput.focus();
+			}
+		}, 50);
+	}
+
+	/**
+	 * Creates an embeddable markdown editor with standard configuration and error handling
+	 * @param container - The parent HTML element
+	 * @param options - Editor configuration options
+	 * @returns The created editor instance or null if creation fails
+	 */
+	protected createMarkdownEditor(
+		container: HTMLElement,
+		options: {
+			value: string;
+			placeholder: string;
+			cls: string;
+			onChange: (value: string) => void;
+			onSubmit: () => void;
+			onEscape: () => void;
+			onTab: () => boolean;
+			extensions?: any[];
+		}
+	): EmbeddableMarkdownEditor | null {
+		try {
+			return new EmbeddableMarkdownEditor(this.app, container, options);
+		} catch (error) {
+			console.error("Failed to create markdown editor:", error);
+
+			// Create fallback textarea
+			const fallbackTextarea = container.createEl("textarea", {
+				cls: options.cls + "-fallback",
+				placeholder: options.placeholder,
+			});
+			fallbackTextarea.value = options.value;
+			fallbackTextarea.addEventListener("input", (e) => {
+				options.onChange((e.target as HTMLTextAreaElement).value);
+			});
+			fallbackTextarea.addEventListener("keydown", (e) => {
+				if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+					e.preventDefault();
+					options.onSubmit();
+				} else if (e.key === "Escape") {
+					e.preventDefault();
+					options.onEscape();
+				} else if (e.key === "Tab") {
+					const shouldPreventDefault = options.onTab();
+					if (shouldPreventDefault) {
+						e.preventDefault();
+					}
+				}
+			});
+
+			return null;
+		}
+	}
+
+	onClose(): void {
+		// Clean up markdown editor if it exists
+		if (this.detailsMarkdownEditor) {
+			this.detailsMarkdownEditor.destroy();
+			this.detailsMarkdownEditor = null;
+		}
+		super.onClose();
 	}
 }
 
