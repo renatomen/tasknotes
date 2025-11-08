@@ -22,6 +22,7 @@ export class KanbanView extends BasesViewBase {
 	private columnWidth = 280;
 	private hideEmptyColumns = false;
 	private columnOrders: Record<string, string[]> = {};
+	private configLoaded = false; // Track if we've successfully loaded config
 	/**
 	 * Threshold for enabling virtual scrolling in kanban columns/swimlane cells.
 	 * Virtual scrolling activates when a column or cell has >= 30 cards.
@@ -55,6 +56,11 @@ export class KanbanView extends BasesViewBase {
 	 * Read view configuration options from BasesViewConfig.
 	 */
 	private readViewOptions(): void {
+		// Guard: config may not be set yet if called too early
+		if (!this.config || typeof this.config.get !== 'function') {
+			return;
+		}
+
 		try {
 			this.swimLanePropertyId = this.config.getAsPropertyId('swimLane');
 			this.columnWidth = (this.config.get('columnWidth') as number) || 280;
@@ -63,6 +69,9 @@ export class KanbanView extends BasesViewBase {
 			// Read column orders
 			const columnOrderStr = (this.config.get('columnOrder') as string) || '{}';
 			this.columnOrders = JSON.parse(columnOrderStr);
+
+			// Mark config as successfully loaded
+			this.configLoaded = true;
 		} catch (e) {
 			// Use defaults
 			console.warn('[KanbanView] Failed to parse config:', e);
@@ -72,6 +81,11 @@ export class KanbanView extends BasesViewBase {
 	async render(): Promise<void> {
 		if (!this.boardEl || !this.rootElement) return;
 		if (!this.data?.data) return;
+
+		// Ensure view options are read (in case config wasn't available in onload)
+		if (!this.configLoaded && this.config) {
+			this.readViewOptions();
+		}
 
 		try {
 			const dataItems = this.dataAdapter.extractDataItems();

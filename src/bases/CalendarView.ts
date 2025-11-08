@@ -88,6 +88,7 @@ export class CalendarView extends BasesViewBase {
 	private icsCalendarToggles = new Map<string, boolean>();
 	private googleCalendarToggles = new Map<string, boolean>();
 	private microsoftCalendarToggles = new Map<string, boolean>();
+	private configLoaded = false; // Track if we've successfully loaded config
 
 	constructor(controller: any, containerEl: HTMLElement, plugin: TaskNotesPlugin) {
 		super(controller, containerEl, plugin);
@@ -122,7 +123,10 @@ export class CalendarView extends BasesViewBase {
 	 * Read view configuration options from BasesViewConfig.
 	 */
 	private readViewOptions(): void {
-		if (!this.config) return;
+		// Guard: config may not be set yet if called too early
+		if (!this.config || typeof this.config.get !== 'function') {
+			return;
+		}
 
 		try {
 			// Events
@@ -187,6 +191,8 @@ export class CalendarView extends BasesViewBase {
 					this.microsoftCalendarToggles.set(cal.id, this.config.get(key) ?? true);
 				}
 			}
+			// Mark config as successfully loaded
+			this.configLoaded = true;
 		} catch (e) {
 			console.error("[TaskNotes][CalendarView] Error reading view options:", e);
 		}
@@ -195,6 +201,11 @@ export class CalendarView extends BasesViewBase {
 	async render(): Promise<void> {
 		if (!this.calendarEl || !this.rootElement) return;
 		if (!this.data?.data) return;
+
+		// Ensure view options are read (in case config wasn't available in onload)
+		if (!this.configLoaded && this.config) {
+			this.readViewOptions();
+		}
 
 		try {
 			// Extract tasks from Bases
