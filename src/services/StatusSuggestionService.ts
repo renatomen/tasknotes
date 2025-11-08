@@ -1,5 +1,6 @@
 import { NaturalLanguageParser, ParsedTaskData } from "./NaturalLanguageParser";
 import { StatusConfig } from "../types";
+import { NLPTriggersConfig, UserMappedField } from "../types/settings";
 
 /**
  * Service responsible for status suggestion logic and natural language processing.
@@ -12,13 +13,17 @@ export class StatusSuggestionService {
 		statusConfigs: StatusConfig[],
 		priorityConfigs: any[],
 		defaultToScheduled: boolean,
-		languageCode = "en"
+		languageCode = "en",
+		nlpTriggers?: NLPTriggersConfig,
+		userFields?: UserMappedField[]
 	) {
 		this.nlpParser = new NaturalLanguageParser(
 			statusConfigs,
 			priorityConfigs,
 			defaultToScheduled,
-			languageCode
+			languageCode,
+			nlpTriggers,
+			userFields
 		);
 	}
 

@@ -5,6 +5,7 @@ import {
 	CalendarViewSettings,
 	ICSIntegrationSettings,
 	ProjectAutosuggestSettings,
+	NLPTriggersConfig,
 } from "../types/settings";
 
 // Default field mapping maintains backward compatibility
@@ -179,6 +180,37 @@ export const DEFAULT_PROJECT_AUTOSUGGEST: ProjectAutosuggestSettings = {
 	propertyValue: "",
 };
 
+// Default NLP triggers configuration
+export const DEFAULT_NLP_TRIGGERS: NLPTriggersConfig = {
+	triggers: [
+		{
+			propertyId: "tags",
+			trigger: "#",
+			enabled: true,
+		},
+		{
+			propertyId: "contexts",
+			trigger: "@",
+			enabled: true,
+		},
+		{
+			propertyId: "projects",
+			trigger: "+",
+			enabled: true,
+		},
+		{
+			propertyId: "status",
+			trigger: "*",
+			enabled: true,
+		},
+		{
+			propertyId: "priority",
+			trigger: "!",
+			enabled: false, // Disabled by default - priority uses keyword matching
+		},
+	],
+};
+
 export const DEFAULT_SETTINGS: TaskNotesSettings = {
 	tasksFolder: "TaskNotes/Tasks",
 	moveArchivedTasks: false,
@@ -219,8 +251,10 @@ export const DEFAULT_SETTINGS: TaskNotesSettings = {
 	nlpDefaultToScheduled: true,
 	nlpLanguage: "en", // Default to English
 	uiLanguage: "system",
-	// NLP status suggestion trigger
+	// NLP status suggestion trigger (deprecated)
 	statusSuggestionTrigger: "*",
+	// NLP triggers
+	nlpTriggers: DEFAULT_NLP_TRIGGERS,
 
 	singleClickAction: "edit",
 	doubleClickAction: "openNote",

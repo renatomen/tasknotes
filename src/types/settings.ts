@@ -17,6 +17,22 @@ export interface UserMappedField {
 	autosuggestFilter?: FileFilterConfig; // Optional filter configuration for file suggestions
 }
 
+/**
+ * Configuration for a single NLP trigger
+ */
+export interface PropertyTriggerConfig {
+	propertyId: string; // 'tags', 'contexts', 'projects', 'status', 'priority', or user field id
+	trigger: string; // The trigger string (e.g., '@', 'context:', '#')
+	enabled: boolean; // Whether this trigger is active
+}
+
+/**
+ * NLP triggers configuration
+ */
+export interface NLPTriggersConfig {
+	triggers: PropertyTriggerConfig[];
+}
+
 export interface ProjectAutosuggestSettings {
 	enableFuzzy: boolean;
 	rows: string[]; // up to 3 rows; each uses {property|flags} format
@@ -68,8 +84,11 @@ export interface TaskNotesSettings {
 	nlpLanguage: string; // Language code for natural language processing (e.g., 'en', 'es', 'fr')
 	uiLanguage: string; // 'system' or supported locale code for UI translations
 
-	// NLP status suggestion trigger (empty to disable)
+	// NLP status suggestion trigger (empty to disable) - DEPRECATED: Use nlpTriggers instead
 	statusSuggestionTrigger: string;
+
+	// NLP triggers configuration
+	nlpTriggers: NLPTriggersConfig;
 
 	projectAutosuggest?: ProjectAutosuggestSettings; // Display config for project suggestions in NL input
 	// end of project autosuggest settings

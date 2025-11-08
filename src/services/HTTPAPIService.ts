@@ -42,7 +42,9 @@ export class HTTPAPIService implements IWebhookNotifier {
 			plugin.settings.customStatuses,
 			plugin.settings.customPriorities,
 			plugin.settings.nlpDefaultToScheduled,
-			plugin.settings.nlpLanguage
+			plugin.settings.nlpLanguage,
+			plugin.settings.nlpTriggers,
+			plugin.settings.userFields
 		);
 		const statusManager = new StatusManager(plugin.settings.customStatuses);
 

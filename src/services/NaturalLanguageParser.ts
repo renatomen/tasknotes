@@ -3,6 +3,8 @@ import { StatusConfig, PriorityConfig } from "../types";
 import * as chrono from "chrono-node";
 import { RRule } from "rrule";
 import { getLanguageConfig, NLPLanguageConfig } from "../locales";
+import { NLPTriggersConfig, UserMappedField } from "../types/settings";
+import { TriggerConfigService } from "./TriggerConfigService";
 
 export interface ParsedTaskData {
 	title: string;
@@ -19,6 +21,7 @@ export interface ParsedTaskData {
 	recurrence?: string;
 	estimate?: number; // in minutes
 	isCompleted?: boolean;
+	userFields?: Record<string, string | string[]>; // Custom user-defined fields
 }
 
 interface RegexPattern {
@@ -57,18 +60,29 @@ export class NaturalLanguageParser {
 	private readonly languageConfig: NLPLanguageConfig;
 	private readonly processingPipeline: ParseProcessor[];
 	private readonly boundaries: BoundaryConfig;
+	private readonly triggerConfig: TriggerConfigService;
 
 	constructor(
 		statusConfigs: StatusConfig[] = [],
 		priorityConfigs: PriorityConfig[] = [],
 		defaultToScheduled = true,
-		languageCode = "en"
+		languageCode = "en",
+		nlpTriggers?: NLPTriggersConfig,
+		userFields?: UserMappedField[]
 	) {
 		this.defaultToScheduled = defaultToScheduled;
 		this.languageConfig = getLanguageConfig(languageCode);
 
 		// Store status configs for string-based matching
 		this.statusConfigs = statusConfigs;
+
+		// Initialize trigger configuration service
+		// If no config provided, use defaults
+		const effectiveTriggers = nlpTriggers || (() => {
+			const { DEFAULT_NLP_TRIGGERS } = require("../settings/defaults");
+			return DEFAULT_NLP_TRIGGERS;
+		})();
+		this.triggerConfig = new TriggerConfigService(effectiveTriggers, userFields || []);
 
 		// Create boundary configuration once for all pattern building
 		this.boundaries = this.createBoundaryConfig();
@@ -143,6 +157,11 @@ export class NaturalLanguageParser {
 					this.extractTimeEstimate(text, result),
 			},
 			{
+				name: "extractUserFields",
+				process: (text: string, result: ParsedTaskData) =>
+					this.extractUserFields(text, result),
+			},
+			{
 				name: "parseUnifiedDatesAndTimes",
 				process: (text: string, result: ParsedTaskData) =>
 					this.parseUnifiedDatesAndTimes(text, result),
@@ -203,51 +222,152 @@ export class NaturalLanguageParser {
 		return [trimmedInput, undefined];
 	}
 
-	/** Extracts #tags from the text and adds them to the result object. */
+	/** Extracts tags from the text and adds them to the result object. */
 	private extractTags(text: string, result: ParsedTaskData): string {
-		const tagMatches = text.match(/#[\w/-]+/g);
+		const trigger = this.triggerConfig.getTagTrigger();
+		if (!trigger) return text; // Tags disabled
+
+		const escapedTrigger = this.escapeRegex(trigger);
+		const tagPattern = new RegExp(`${escapedTrigger}[\\w/-]+`, "g");
+		const tagMatches = text.match(tagPattern);
+
 		if (tagMatches) {
-			result.tags.push(...tagMatches.map((tag) => tag.substring(1)));
-			return this.cleanupWhitespace(text.replace(/#[\w/-]+/g, ""));
+			result.tags.push(...tagMatches.map((tag) => tag.substring(trigger.length)));
+			return this.cleanupWhitespace(text.replace(tagPattern, ""));
 		}
 		return text;
 	}
 
-	/** Extracts @contexts from the text and adds them to the result object. */
+	/** Extracts contexts from the text and adds them to the result object. */
 	private extractContexts(text: string, result: ParsedTaskData): string {
-		const contextMatches = text.match(/@\w+/g);
+		const trigger = this.triggerConfig.getContextTrigger();
+		if (!trigger) return text; // Contexts disabled
+
+		const escapedTrigger = this.escapeRegex(trigger);
+		const contextPattern = new RegExp(`${escapedTrigger}\\w+`, "g");
+		const contextMatches = text.match(contextPattern);
+
 		if (contextMatches) {
-			result.contexts.push(...contextMatches.map((context) => context.substring(1)));
-			return this.cleanupWhitespace(text.replace(/@\w+/g, ""));
+			result.contexts.push(...contextMatches.map((context) => context.substring(trigger.length)));
+			return this.cleanupWhitespace(text.replace(contextPattern, ""));
 		}
 		return text;
 	}
 
-	/** Extracts +projects and +[[wikilinks]] from the text and adds them to the result object. */
+	/** Extracts projects and [[wikilinks]] from the text and adds them to the result object. */
 	private extractProjects(text: string, result: ParsedTaskData): string {
-		let workingText = text;
+		const trigger = this.triggerConfig.getProjectTrigger();
+		if (!trigger) return text; // Projects disabled
 
-		// Extract +[[wikilink]] patterns first (more specific)
-		const wikilinkProjectMatches = workingText.match(/\+\[\[.*?\]\]/g);
+		let workingText = text;
+		const escapedTrigger = this.escapeRegex(trigger);
+
+		// Extract trigger[[wikilink]] patterns first (more specific)
+		const wikilinkPattern = new RegExp(`${escapedTrigger}\\[\\[.*?\\]\\]`, "g");
+		const wikilinkProjectMatches = workingText.match(wikilinkPattern);
 		if (wikilinkProjectMatches) {
 			result.projects.push(
 				...wikilinkProjectMatches.map((project) => {
-					// Remove the + prefix but keep [[ ]]
-					let projectName = project.slice(1); // Remove just the +
+					// Remove the trigger prefix but keep [[ ]]
+					let projectName = project.slice(trigger.length); // Remove just the trigger
 					// Keep the full wikilink as-is for now - resolution will happen in InstantTaskConvertService
 					return projectName;
 				})
 			);
-			workingText = this.cleanupWhitespace(workingText.replace(/\+\[\[.*?\]\]/g, ""));
+			workingText = this.cleanupWhitespace(workingText.replace(wikilinkPattern, ""));
 		}
 
-		// Extract +project patterns (simple word projects)
-		const projectMatches = workingText.match(/\+[\w/-]+/g);
+		// Extract simple word projects
+		const projectPattern = new RegExp(`${escapedTrigger}[\\w/-]+`, "g");
+		const projectMatches = workingText.match(projectPattern);
 		if (projectMatches) {
-			result.projects.push(...projectMatches.map((project) => project.substring(1)));
-			workingText = this.cleanupWhitespace(workingText.replace(/\+[\w/-]+/g, ""));
+			result.projects.push(...projectMatches.map((project) => project.substring(trigger.length)));
+			workingText = this.cleanupWhitespace(workingText.replace(projectPattern, ""));
 		}
 
+		return workingText;
+	}
+
+	/**
+	 * Extracts user-defined field values from the text
+	 */
+	private extractUserFields(text: string, result: ParsedTaskData): string {
+		let workingText = text;
+
+		// Get all enabled user field triggers
+		const userFieldTriggers = this.triggerConfig
+			.getAllEnabledTriggers()
+			.filter((t) => this.triggerConfig.isUserField(t.propertyId));
+
+		console.debug("[NLP Parser] Processing user field triggers:", userFieldTriggers);
+
+		// Process each user field trigger
+		for (const triggerDef of userFieldTriggers) {
+			const userField = this.triggerConfig.getUserField(triggerDef.propertyId);
+			if (!userField) {
+				console.debug(`[NLP Parser] No user field found for ${triggerDef.propertyId}`);
+				continue;
+			}
+
+			console.debug(`[NLP Parser] Processing user field: ${userField.displayName} (${userField.id}) with trigger "${triggerDef.trigger}"`);
+
+			const escapedTrigger = this.escapeRegex(triggerDef.trigger);
+
+			// For list fields, extract multiple values (allows spaces in values if quoted or within brackets)
+			if (userField.type === "list") {
+				// Match trigger followed by word characters, hyphens, or slashes
+				const pattern = new RegExp(`${escapedTrigger}([\\w/-]+)`, "g");
+				const matches = workingText.match(pattern);
+				console.debug(`[NLP Parser] List field pattern: ${pattern}, matches:`, matches);
+
+				if (matches) {
+					const values = matches.map((m) => m.substring(triggerDef.trigger.length));
+					if (!result.userFields) result.userFields = {};
+					result.userFields[userField.id] = values;
+					workingText = this.cleanupWhitespace(workingText.replace(pattern, ""));
+					console.debug(`[NLP Parser] Extracted list values:`, values);
+				}
+			}
+			// For text/boolean/number fields, extract single value
+			else if (userField.type === "text" || userField.type === "boolean" || userField.type === "number") {
+				// Match trigger followed by word characters, hyphens, or slashes (non-global)
+				const pattern = new RegExp(`${escapedTrigger}([\\w/-]+)`);
+				const match = workingText.match(pattern);
+				console.debug(`[NLP Parser] Single field pattern: ${pattern}, match:`, match);
+
+				if (match) {
+					const value = match[1];
+					if (!result.userFields) result.userFields = {};
+
+					// Convert to boolean if needed
+					if (userField.type === "boolean") {
+						result.userFields[userField.id] =
+							value.toLowerCase() === "true" ? "true" : "false";
+					} else {
+						result.userFields[userField.id] = value;
+					}
+
+					workingText = this.cleanupWhitespace(workingText.replace(pattern, ""));
+					console.debug(`[NLP Parser] Extracted value: ${value}`);
+				}
+			}
+			// For date fields, try to parse as date
+			else if (userField.type === "date") {
+				// Match trigger followed by date-like pattern (YYYY-MM-DD or word)
+				const pattern = new RegExp(`${escapedTrigger}([\\w/-]+)`);
+				const match = workingText.match(pattern);
+
+				if (match) {
+					const value = match[1];
+					if (!result.userFields) result.userFields = {};
+					result.userFields[userField.id] = value; // Store as-is, let consuming code parse
+					workingText = this.cleanupWhitespace(workingText.replace(pattern, ""));
+					console.debug(`[NLP Parser] Extracted date value: ${value}`);
+				}
+			}
+		}
+
+		console.debug("[NLP Parser] Final user fields:", result.userFields);
 		return workingText;
 	}
 
@@ -1192,6 +1312,27 @@ export class NaturalLanguageParser {
 		}
 		if (parsed.estimate)
 			parts.push({ icon: "clock", text: `Estimate: ${parsed.estimate} min` });
+
+		// User-defined fields
+		if (parsed.userFields && Object.keys(parsed.userFields).length > 0) {
+			for (const [fieldId, value] of Object.entries(parsed.userFields)) {
+				const userField = this.triggerConfig.getUserField(fieldId);
+				const displayName = userField?.displayName || fieldId;
+
+				// Format value based on type
+				let displayValue: string;
+				if (Array.isArray(value)) {
+					displayValue = value.join(", ");
+				} else {
+					displayValue = value;
+				}
+
+				parts.push({
+					icon: "box",
+					text: `${displayName}: ${displayValue}`,
+				});
+			}
+		}
 
 		return parts;
 	}

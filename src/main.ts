@@ -1287,6 +1287,22 @@ export default class TaskNotesPlugin extends Plugin {
 			loadedData.apiAuthToken = "";
 		}
 
+		// Migration: Migrate statusSuggestionTrigger to nlpTriggers if needed
+		if (loadedData && !loadedData.nlpTriggers && loadedData.statusSuggestionTrigger !== undefined) {
+			const { DEFAULT_NLP_TRIGGERS } = require("./settings/defaults");
+			loadedData.nlpTriggers = {
+				triggers: [...DEFAULT_NLP_TRIGGERS.triggers],
+			};
+			// Update status trigger if it was customized
+			const statusTriggerIndex = loadedData.nlpTriggers.triggers.findIndex(
+				(t: any) => t.propertyId === "status"
+			);
+			if (statusTriggerIndex !== -1 && loadedData.statusSuggestionTrigger) {
+				loadedData.nlpTriggers.triggers[statusTriggerIndex].trigger =
+					loadedData.statusSuggestionTrigger;
+			}
+		}
+
 		// Deep merge settings with proper migration for nested objects
 		this.settings = {
 			...DEFAULT_SETTINGS,
@@ -1315,6 +1331,12 @@ export default class TaskNotesPlugin extends Plugin {
 			icsIntegration: {
 				...DEFAULT_SETTINGS.icsIntegration,
 				...(loadedData?.icsIntegration || {}),
+			},
+			// Deep merge NLP triggers to ensure new triggers get defaults
+			nlpTriggers: {
+				...DEFAULT_SETTINGS.nlpTriggers,
+				...(loadedData?.nlpTriggers || {}),
+				triggers: loadedData?.nlpTriggers?.triggers || DEFAULT_SETTINGS.nlpTriggers.triggers,
 			},
 			// Array handling - maintain existing arrays or use defaults
 			customStatuses: loadedData?.customStatuses || DEFAULT_SETTINGS.customStatuses,

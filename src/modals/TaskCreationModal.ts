@@ -157,7 +157,9 @@ class NLPSuggest extends AbstractInputSuggest<
 				this.plugin.settings.customStatuses,
 				this.plugin.settings.customPriorities,
 				this.plugin.settings.nlpDefaultToScheduled,
-				this.plugin.settings.nlpLanguage
+				this.plugin.settings.nlpLanguage,
+				this.plugin.settings.nlpTriggers,
+				this.plugin.settings.userFields
 			);
 			return statusService.getStatusSuggestions(
 				queryAfterTrigger,
@@ -564,7 +566,9 @@ export class TaskCreationModal extends TaskModal {
 			plugin.settings.customStatuses,
 			plugin.settings.customPriorities,
 			plugin.settings.nlpDefaultToScheduled,
-			plugin.settings.nlpLanguage
+			plugin.settings.nlpLanguage,
+			plugin.settings.nlpTriggers,
+			plugin.settings.userFields
 		);
 
 		// Use injected service or create default one
@@ -574,7 +578,9 @@ export class TaskCreationModal extends TaskModal {
 				plugin.settings.customStatuses,
 				plugin.settings.customPriorities,
 				plugin.settings.nlpDefaultToScheduled,
-				plugin.settings.nlpLanguage
+				plugin.settings.nlpLanguage,
+				plugin.settings.nlpTriggers,
+				plugin.settings.userFields
 			);
 	}
 
@@ -931,6 +937,33 @@ export class TaskCreationModal extends TaskModal {
 			this.renderProjectsList();
 		}
 
+		// Handle user-defined fields
+		if (parsed.userFields) {
+			console.debug("[TaskCreationModal] applyParsedData - parsed.userFields:", parsed.userFields);
+			console.debug("[TaskCreationModal] applyParsedData - available user field definitions:", this.plugin.settings.userFields);
+
+			for (const [fieldId, value] of Object.entries(parsed.userFields)) {
+				// Find the user field definition
+				const userField = this.plugin.settings.userFields?.find((f) => f.id === fieldId);
+				console.debug(`[TaskCreationModal] Looking for field ${fieldId}, found:`, userField);
+
+				if (userField) {
+					// Store in userFields using the frontmatter key
+					if (Array.isArray(value)) {
+						this.userFields[userField.key] = value.join(", ");
+					} else {
+						this.userFields[userField.key] = value;
+					}
+					console.debug(`[TaskCreationModal] Applied user field ${userField.displayName} (key: ${userField.key}): ${value}`);
+					console.debug(`[TaskCreationModal] Current this.userFields:`, this.userFields);
+				} else {
+					console.warn(`[TaskCreationModal] No user field definition found for field ID: ${fieldId}`);
+				}
+			}
+		} else {
+			console.debug("[TaskCreationModal] applyParsedData - NO parsed.userFields");
+		}
+
 		// Update icon states
 		this.updateIconStates();
 	}
@@ -1180,13 +1213,17 @@ export class TaskCreationModal extends TaskModal {
 	private buildCustomFrontmatter(): Record<string, any> {
 		const customFrontmatter: Record<string, any> = {};
 
+		console.debug("[TaskCreationModal] Building custom frontmatter from userFields:", this.userFields);
+
 		// Add user field values to frontmatter
 		for (const [fieldKey, fieldValue] of Object.entries(this.userFields)) {
 			if (fieldValue !== null && fieldValue !== undefined && fieldValue !== "") {
 				customFrontmatter[fieldKey] = fieldValue;
+				console.debug(`[TaskCreationModal] Adding to frontmatter: ${fieldKey} = ${fieldValue}`);
 			}
 		}
 
+		console.debug("[TaskCreationModal] Final custom frontmatter:", customFrontmatter);
 		return customFrontmatter;
 	}
 
