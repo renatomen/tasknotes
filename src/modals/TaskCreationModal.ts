@@ -23,6 +23,7 @@ import { splitListPreservingLinksAndQuotes } from "../utils/stringSplit";
 import { ProjectMetadataResolver, ProjectEntry } from "../utils/projectMetadataResolver";
 import { parseDisplayFieldsRow } from "../utils/projectAutosuggestDisplayFieldsParser";
 import { EmbeddableMarkdownEditor } from "../editor/EmbeddableMarkdownEditor";
+import { createNLPAutocomplete } from "../editor/NLPCodeMirrorAutocomplete";
 
 
 export interface TaskCreationOptions {
@@ -631,11 +632,15 @@ export class TaskCreationModal extends TaskModal {
 		this.nlPreviewContainer = nlContainer.createDiv("nl-preview-container");
 
 		try {
-			// Create embeddable markdown editor
+			// Create NLP autocomplete extension for @, #, +, status triggers
+			const nlpAutocomplete = createNLPAutocomplete(this.plugin);
+
+			// Create embeddable markdown editor with autocomplete
 			this.nlMarkdownEditor = new EmbeddableMarkdownEditor(this.app, editorContainer, {
 				value: "",
 				placeholder: this.t("modals.taskCreation.nlPlaceholder"),
 				cls: "nlp-editor",
+				extensions: [nlpAutocomplete], // Add autocomplete extension
 				onChange: (value) => {
 					// Update preview as user types
 					if (value.trim()) {

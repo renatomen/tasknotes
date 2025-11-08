@@ -79,6 +79,8 @@ export interface MarkdownEditorProps {
 	onPaste?: (e: ClipboardEvent, editor: EmbeddableMarkdownEditor) => void;
 	/** Handler for content changes */
 	onChange?: (value: string, update: ViewUpdate) => void;
+	/** Additional CodeMirror extensions (e.g., autocomplete) */
+	extensions?: Extension[];
 }
 
 const defaultProperties: Required<MarkdownEditorProps> = {
@@ -92,6 +94,7 @@ const defaultProperties: Required<MarkdownEditorProps> = {
 	onBlur: () => {},
 	onPaste: () => {},
 	onChange: () => {},
+	extensions: [],
 };
 
 /**
@@ -264,6 +267,11 @@ export class EmbeddableMarkdownEditor extends resolveEditorPrototype(app) {
 				])
 			)
 		);
+
+		// Add any custom extensions (e.g., autocomplete)
+		if (this.options.extensions && this.options.extensions.length > 0) {
+			extensions.push(...this.options.extensions);
+		}
 
 		return extensions;
 	}

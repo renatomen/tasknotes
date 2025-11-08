@@ -35,6 +35,8 @@
 	"author": "",
 	"license": "MIT",
 	"devDependencies": {
+		"@codemirror/autocomplete": "^6.19.1",
+		"@codemirror/state": "^6.5.2",
 		"@types/jest": "^30.0.0",
 		"@types/node": "^24.3.0",
 		"@types/yaml": "^1.9.6",
