@@ -641,11 +641,33 @@ export class TaskCreationModal extends TaskModal {
 					// Ctrl+Enter - save the task
 					this.handleSave();
 				},
+				onEscape: () => {
+					// ESC - close the modal (only when not in vim insert mode)
+					// Vim mode will handle its own ESC to exit insert mode
+					this.close();
+				},
+				onTab: () => {
+					// Tab - jump to title input (expand form if needed)
+					if (!this.isExpanded) {
+						this.expandModal();
+					}
+					// Focus title input
+					setTimeout(() => {
+						const titleInput = this.modalEl.querySelector(".title-input-detailed") as HTMLInputElement;
+						if (titleInput) {
+							titleInput.focus();
+						}
+					}, 50);
+					return true; // Prevent default tab behavior
+				},
 				onEnter: (editor, mod, shift) => {
 					if (shift) {
-						// Shift+Tab - fill form (trigger on shift+enter for now)
-						// We'll handle Shift+Tab separately in keyboard extensions
-						return false; // Allow default newline
+						// Shift+Enter - allow newline
+						return false;
+					}
+					if (mod) {
+						// Ctrl/Cmd+Enter - save (already handled by onSubmit)
+						return true;
 					}
 					// Normal Enter - allow new line
 					return false;

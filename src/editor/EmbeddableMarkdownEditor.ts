@@ -71,6 +71,8 @@ export interface MarkdownEditorProps {
 	onEnter?: (editor: EmbeddableMarkdownEditor, mod: boolean, shift: boolean) => boolean;
 	/** Handler for Escape key */
 	onEscape?: (editor: EmbeddableMarkdownEditor) => void;
+	/** Handler for Tab key (return false to use default behavior) */
+	onTab?: (editor: EmbeddableMarkdownEditor) => boolean;
 	/** Handler for Ctrl/Cmd+Enter */
 	onSubmit?: (editor: EmbeddableMarkdownEditor) => void;
 	/** Handler for blur event */
@@ -84,12 +86,13 @@ export interface MarkdownEditorProps {
 }
 
 const defaultProperties: Required<MarkdownEditorProps> = {
-	cursorLocation: { anchor: 0, head: 0 },
+	cursorLocation: undefined as any, // Don't set cursor by default
 	value: "",
 	cls: "",
 	placeholder: "",
 	onEnter: () => false,
 	onEscape: () => {},
+	onTab: () => false,
 	onSubmit: () => {},
 	onBlur: () => {},
 	onPaste: () => {},
@@ -262,6 +265,12 @@ export class EmbeddableMarkdownEditor extends resolveEditorPrototype(app) {
 						run: (cm) => {
 							this.options.onEscape(this);
 							return true;
+						},
+					},
+					{
+						key: "Tab",
+						run: (cm) => {
+							return this.options.onTab(this);
 						},
 					},
 				])
