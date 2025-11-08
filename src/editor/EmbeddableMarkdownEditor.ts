@@ -7,8 +7,24 @@ import {
 	WorkspaceLeaf,
 } from "obsidian";
 import { EditorSelection, Extension, Prec } from "@codemirror/state";
-import { EditorView, keymap, placeholder, ViewUpdate } from "@codemirror/view";
+import { EditorView, keymap, ViewUpdate, Decoration, DecorationSet, WidgetType } from "@codemirror/view";
 import { around } from "monkey-around";
+
+/**
+ * Custom placeholder widget that only shows on first line
+ */
+class PlaceholderWidget extends WidgetType {
+	constructor(private text: string) {
+		super();
+	}
+
+	toDOM() {
+		const span = document.createElement("span");
+		span.className = "cm-placeholder";
+		span.textContent = this.text;
+		return span;
+	}
+}
 
 // Internal Obsidian type - not exported in official API
 interface ScrollableMarkdownEditor {
@@ -230,9 +246,22 @@ export class EmbeddableMarkdownEditor extends resolveEditorPrototype(app) {
 		// @ts-ignore
 		const extensions = super.buildLocalExtensions();
 
-		// Add placeholder if specified
+		// Add placeholder if specified - use first line only to avoid cursor issues
 		if (this.options.placeholder) {
-			extensions.push(placeholder(this.options.placeholder));
+			// Extract only the first line for placeholder to avoid multi-line cursor bug
+			const firstLine = this.options.placeholder.split('\n')[0];
+			extensions.push(
+				EditorView.decorations.compute(["doc"], (state) => {
+					if (state.doc.length > 0) return Decoration.none;
+
+					const widget = Decoration.widget({
+						widget: new PlaceholderWidget(firstLine),
+						side: 1,
+					});
+
+					return Decoration.set([widget.range(0)]);
+				})
+			);
 		}
 
 		// Add paste handler

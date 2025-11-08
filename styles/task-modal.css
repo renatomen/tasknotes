@@ -134,11 +134,6 @@
     font-style: italic;
 }
 
-/* Hide extra cursors when placeholder is showing (multi-line placeholder bug) */
-.nl-markdown-editor .cm-editor:has(.cm-placeholder) .cm-cursor:not(:first-of-type) {
-    display: none !important;
-}
-
 /* =====================================================================
    CODEMIRROR AUTOCOMPLETE STYLING (for NLP triggers)
    Scoped to TaskNotes modals only
