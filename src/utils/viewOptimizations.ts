@@ -182,12 +182,7 @@ async function updateTaskElementInPlace(
 		// Use the existing updateTaskCard function if available
 		const { updateTaskCard } = await import("../ui/TaskCard");
 
-		updateTaskCard(element, taskInfo, plugin, visibleProperties, {
-			showDueDate: true,
-			showCheckbox: false,
-			showArchiveButton: true,
-			showTimeTracking: true,
-		});
+		updateTaskCard(element, taskInfo, plugin, visibleProperties);
 
 		// Add update animation
 		element.classList.add("task-card--updated");

@@ -350,10 +350,6 @@ export async function renderTaskNotesInBasesView(
 	// Get visible properties from Bases
 	let visibleProperties: string[] | undefined = precomputedVisibleProperties;
 	let cardOptions = {
-		showCheckbox: false,
-		showArchiveButton: false,
-		showTimeTracking: false,
-		showRecurringControls: true,
 		groupByDate: false,
 	};
 
@@ -533,10 +529,6 @@ export async function renderGroupedTasksInBasesView(
 	container.appendChild(listWrapper);
 
 	const cardOptions = {
-		showCheckbox: false,
-		showArchiveButton: false,
-		showTimeTracking: false,
-		showRecurringControls: true,
 		groupByDate: false,
 		targetDate: new Date(),
 	};

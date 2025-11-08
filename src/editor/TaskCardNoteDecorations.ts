@@ -82,11 +82,6 @@ export class TaskCardWidget extends WidgetType {
 
 		// Create the task card
 		const taskCard = createTaskCard(this.task, this.plugin, visibleProperties, {
-			showDueDate: true,
-			showCheckbox: false,
-			showArchiveButton: false,
-			showTimeTracking: true,
-			showRecurringControls: true,
 			groupByDate: false,
 		});
 

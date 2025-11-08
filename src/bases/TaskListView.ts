@@ -559,13 +559,8 @@ export class TaskListView extends BasesViewBase {
 
 	private getCardOptions(targetDate: Date) {
 		return {
-			showCheckbox: false,
-			showArchiveButton: false,
-			showTimeTracking: false,
-			showRecurringControls: true,
 			groupByDate: false,
 			targetDate,
-			interactionMode: "lazy" as const,
 		};
 	}
 

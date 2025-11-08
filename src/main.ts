@@ -2197,7 +2197,6 @@ export default class TaskNotesPlugin extends Plugin {
 
 			// Get the current active view that has a FilterBar
 			const activeView =
-				this.app.workspace.getActiveViewOfType(TaskListView) ||
 				this.app.workspace.getActiveViewOfType(KanbanView) ||
 				this.app.workspace.getActiveViewOfType(AgendaView);
 

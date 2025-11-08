@@ -1195,11 +1195,6 @@ export class CalendarView extends BasesViewBase {
 
 				cardElement = createTaskCard(enrichedTask, this.plugin, visibleProperties, {
 					targetDate: targetDate,
-					showDueDate: true,
-					showCheckbox: false,
-					showArchiveButton: false,
-					showTimeTracking: false,
-					showRecurringControls: true,
 					groupByDate: false,
 				});
 			}

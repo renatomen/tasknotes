@@ -733,13 +733,8 @@ export class KanbanView extends BasesViewBase {
 	 */
 	private getCardOptions() {
 		return {
-			showCheckbox: false,
-			showArchiveButton: false,
-			showTimeTracking: false,
-			showRecurringControls: true,
 			groupByDate: false,
 			targetDate: new Date(),
-			interactionMode: "lazy" as const
 		};
 	}
 
