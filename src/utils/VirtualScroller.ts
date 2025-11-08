@@ -394,11 +394,16 @@ export class VirtualScroller<T> {
 		// Position the content container
 		this.contentContainer.style.transform = `translateY(${offsetY}px)`;
 
-		// Clear and rebuild to ensure correct DOM order
-		// This prevents the visual issue where scrolling up looks like scrolling down
-		this.contentContainer.empty();
+		// Build map of currently rendered elements by key
+		const currentElements = new Map<string, HTMLElement>();
+		for (const [key, element] of this.renderedElements) {
+			if (element.parentElement === this.contentContainer) {
+				currentElements.set(key, element);
+			}
+		}
 
 		// Render visible items in order
+		let previousElement: HTMLElement | null = null;
 		for (let i = startIndex; i <= endIndex; i++) {
 			const item = this.items[i];
 			const key = this.getItemKey(item, i);
@@ -424,8 +429,21 @@ export class VirtualScroller<T> {
 				element.dataset.virtualIndex = String(i);
 			}
 
-			// Always append to ensure correct order
-			this.contentContainer.appendChild(element);
+			// Only manipulate DOM if element is not in correct position
+			if (previousElement) {
+				// Element should come after previousElement
+				if (element.previousElementSibling !== previousElement) {
+					// Insert after previousElement
+					previousElement.after(element);
+				}
+			} else {
+				// Element should be first
+				if (this.contentContainer.firstChild !== element) {
+					this.contentContainer.prepend(element);
+				}
+			}
+
+			previousElement = element;
 		}
 
 		// Remove elements that are no longer visible
@@ -434,7 +452,7 @@ export class VirtualScroller<T> {
 				if (this.resizeObserver) {
 					this.resizeObserver.unobserve(element);
 				}
-				// Element already removed by empty() above or not in visibleKeys
+				element.remove();
 				this.renderedElements.delete(key);
 			}
 		}

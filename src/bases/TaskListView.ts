@@ -609,11 +609,17 @@ export class TaskListView extends BasesViewBase {
 	}
 
 	private registerContainerListeners(): void {
-		// Task cards now handle their own events - no delegation needed
+		if (!this.itemsContainer || this.containerListenersRegistered) return;
+
+		// Register click listener for group header collapse/expand using Component API
+		// This automatically cleans up on component unload
+		this.registerDomEvent(this.itemsContainer, "click", this.handleItemClick);
+		this.containerListenersRegistered = true;
 	}
 
 	private unregisterContainerListeners(): void {
-		// No listeners to unregister
+		// No manual cleanup needed - Component.registerDomEvent handles it automatically
+		this.containerListenersRegistered = false;
 	}
 
 	private getTaskContextFromEvent(event: Event): { task: TaskInfo; card: HTMLElement } | null {
