@@ -17,7 +17,14 @@ import {
 	NaturalLanguageParser,
 	ParsedTaskData as NLParsedTaskData,
 } from "../services/NaturalLanguageParser";
-import { StatusSuggestionService, StatusSuggestion } from "../services/StatusSuggestionService";
+// StatusSuggestion kept for backward compatibility with old NLPSuggest
+export interface StatusSuggestion {
+	value: string;
+	label: string;
+	display: string;
+	type: "status";
+	toString(): string;
+}
 import { combineDateAndTime } from "../utils/dateUtils";
 import { splitListPreservingLinksAndQuotes } from "../utils/stringSplit";
 import { ProjectMetadataResolver, ProjectEntry } from "../utils/projectMetadataResolver";
@@ -152,20 +159,15 @@ class NLPSuggest extends AbstractInputSuggest<
 					},
 				}));
 		} else if (trigger === "status") {
-			// Use the StatusSuggestionService for status suggestions
-			const statusService = new StatusSuggestionService(
-				this.plugin.settings.customStatuses,
-				this.plugin.settings.customPriorities,
-				this.plugin.settings.nlpDefaultToScheduled,
-				this.plugin.settings.nlpLanguage,
-				this.plugin.settings.nlpTriggers,
-				this.plugin.settings.userFields
-			);
-			return statusService.getStatusSuggestions(
-				queryAfterTrigger,
-				this.plugin.settings.customStatuses || [],
-				10
-			);
+			// Use the NaturalLanguageParser for status suggestions
+			const parser = NaturalLanguageParser.fromPlugin(this.plugin);
+			return parser.getStatusSuggestions(queryAfterTrigger, 10).map(s => ({
+				...s,
+				type: "status" as const,
+				toString() {
+					return this.value;
+				},
+			}));
 		} else if (trigger === "#") {
 			const tags = this.plugin.cacheManager.getAllTags();
 			return tags
@@ -547,7 +549,6 @@ class NLPSuggest extends AbstractInputSuggest<
 export class TaskCreationModal extends TaskModal {
 	private options: TaskCreationOptions;
 	private nlParser: NaturalLanguageParser;
-	private statusSuggestionService: StatusSuggestionService;
 	private nlInput: HTMLTextAreaElement; // Legacy - keeping for compatibility
 	private nlMarkdownEditor: EmbeddableMarkdownEditor | null = null;
 	private nlPreviewContainer: HTMLElement;
@@ -557,31 +558,11 @@ export class TaskCreationModal extends TaskModal {
 	constructor(
 		app: App,
 		plugin: TaskNotesPlugin,
-		options: TaskCreationOptions = {},
-		statusSuggestionService?: StatusSuggestionService // Optional for backward compatibility
+		options: TaskCreationOptions = {}
 	) {
 		super(app, plugin);
 		this.options = options;
-		this.nlParser = new NaturalLanguageParser(
-			plugin.settings.customStatuses,
-			plugin.settings.customPriorities,
-			plugin.settings.nlpDefaultToScheduled,
-			plugin.settings.nlpLanguage,
-			plugin.settings.nlpTriggers,
-			plugin.settings.userFields
-		);
-
-		// Use injected service or create default one
-		this.statusSuggestionService =
-			statusSuggestionService ||
-			new StatusSuggestionService(
-				plugin.settings.customStatuses,
-				plugin.settings.customPriorities,
-				plugin.settings.nlpDefaultToScheduled,
-				plugin.settings.nlpLanguage,
-				plugin.settings.nlpTriggers,
-				plugin.settings.userFields
-			);
+		this.nlParser = NaturalLanguageParser.fromPlugin(plugin);
 	}
 
 	getModalTitle(): string {
@@ -883,7 +864,7 @@ export class TaskCreationModal extends TaskModal {
 	}
 
 	private parseAndFillForm(input: string): void {
-		const parsed = this.statusSuggestionService.extractTaskDataFromInput(input);
+		const parsed = this.nlParser.parseInput(input);
 		this.applyParsedData(parsed);
 
 		// Expand the form to show filled fields
@@ -1063,7 +1044,7 @@ export class TaskCreationModal extends TaskModal {
 			const nlContent = this.getNLPInputValue().trim();
 			if (nlContent && !this.title.trim()) {
 				// Only auto-parse if no title has been manually entered
-				const parsed = this.statusSuggestionService.extractTaskDataFromInput(nlContent);
+				const parsed = this.nlParser.parseInput(nlContent);
 				this.applyParsedData(parsed);
 			}
 		}

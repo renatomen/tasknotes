@@ -5,6 +5,7 @@ import { RRule } from "rrule";
 import { getLanguageConfig, NLPLanguageConfig } from "../locales";
 import { NLPTriggersConfig, UserMappedField } from "../types/settings";
 import { TriggerConfigService } from "./TriggerConfigService";
+import type TaskNotesPlugin from "../main";
 
 export interface ParsedTaskData {
 	title: string;
@@ -61,6 +62,22 @@ export class NaturalLanguageParser {
 	private readonly processingPipeline: ParseProcessor[];
 	private readonly boundaries: BoundaryConfig;
 	private readonly triggerConfig: TriggerConfigService;
+
+	/**
+	 * Factory method to create parser from plugin settings
+	 * Recommended way to instantiate the parser to avoid parameter duplication
+	 */
+	static fromPlugin(plugin: TaskNotesPlugin): NaturalLanguageParser {
+		const s = plugin.settings;
+		return new NaturalLanguageParser(
+			s.customStatuses,
+			s.customPriorities,
+			s.nlpDefaultToScheduled,
+			s.nlpLanguage,
+			s.nlpTriggers,
+			s.userFields
+		);
+	}
 
 	constructor(
 		statusConfigs: StatusConfig[] = [],
@@ -1344,5 +1361,25 @@ export class NaturalLanguageParser {
 		return this.getPreviewData(parsed)
 			.map((part) => part.text)
 			.join(" • ");
+	}
+
+	/**
+	 * Get status suggestions for autocomplete
+	 */
+	getStatusSuggestions(
+		query: string,
+		limit = 10
+	): Array<{ value: string; label: string; display: string }> {
+		const q = query.toLowerCase();
+		return this.statusConfigs
+			.filter((s) => s && typeof s.value === "string" && typeof s.label === "string")
+			.filter((s) => s.value.trim() !== "" && s.label.trim() !== "")
+			.filter((s) => s.value.toLowerCase().includes(q) || s.label.toLowerCase().includes(q))
+			.slice(0, limit)
+			.map((s) => ({
+				value: s.value,
+				label: s.label,
+				display: s.label,
+			}));
 	}
 }

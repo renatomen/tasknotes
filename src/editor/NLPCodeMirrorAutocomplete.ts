@@ -12,7 +12,7 @@ import {
 import { Extension, Prec } from "@codemirror/state";
 import { keymap } from "@codemirror/view";
 import TaskNotesPlugin from "../main";
-import { StatusSuggestionService } from "../services/StatusSuggestionService";
+import { NaturalLanguageParser } from "../services/NaturalLanguageParser";
 import { TriggerConfigService } from "../services/TriggerConfigService";
 
 /**
@@ -285,20 +285,8 @@ async function getFileSuggestions(
  * Get status suggestions
  */
 function getStatusSuggestions(query: string, plugin: TaskNotesPlugin): Completion[] {
-	const statusService = new StatusSuggestionService(
-		plugin.settings.customStatuses,
-		plugin.settings.customPriorities,
-		plugin.settings.nlpDefaultToScheduled,
-		plugin.settings.nlpLanguage,
-		plugin.settings.nlpTriggers,
-		plugin.settings.userFields
-	);
-
-	const statusSuggestions = statusService.getStatusSuggestions(
-		query,
-		plugin.settings.customStatuses || [],
-		10
-	);
+	const parser = NaturalLanguageParser.fromPlugin(plugin);
+	const statusSuggestions = parser.getStatusSuggestions(query, 10);
 
 	return statusSuggestions.map((s) => ({
 		label: s.display,
