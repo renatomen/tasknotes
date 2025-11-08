@@ -9,7 +9,7 @@ import {
 	startCompletion,
 	closeCompletion
 } from "@codemirror/autocomplete";
-import { Extension } from "@codemirror/state";
+import { Extension, Prec } from "@codemirror/state";
 import { keymap } from "@codemirror/view";
 import TaskNotesPlugin from "../main";
 import { StatusSuggestionService } from "../services/StatusSuggestionService";
@@ -185,14 +185,15 @@ export function createNLPAutocomplete(plugin: TaskNotesPlugin): Extension[] {
 		maxRenderedOptions: 10,
 	});
 
-	// Add explicit keyboard navigation for autocomplete
-	const autocompleteKeymap = keymap.of([
+	// Add explicit keyboard navigation for autocomplete with high priority
+	// This ensures our autocomplete takes precedence over Obsidian's native ones
+	const autocompleteKeymap = Prec.high(keymap.of([
 		{ key: "ArrowDown", run: moveCompletionSelection(true) },
 		{ key: "ArrowUp", run: moveCompletionSelection(false) },
 		{ key: "Enter", run: acceptCompletion },
 		{ key: "Tab", run: acceptCompletion },
 		{ key: "Escape", run: closeCompletion },
-	]);
+	]));
 
-	return [autocomplete, autocompleteKeymap];
+	return [Prec.high(autocomplete), autocompleteKeymap];
 }
