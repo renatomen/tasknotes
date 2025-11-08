@@ -307,6 +307,7 @@ export class NaturalLanguageParser {
 
 	/**
 	 * Extracts user-defined field values from the text
+	 * Supports quoted values for multi-word content: trigger "multi word value"
 	 */
 	private extractUserFields(text: string, result: ParsedTaskData): string {
 		let workingText = text;
@@ -330,30 +331,42 @@ export class NaturalLanguageParser {
 
 			const escapedTrigger = this.escapeRegex(triggerDef.trigger);
 
-			// For list fields, extract multiple values (allows spaces in values if quoted or within brackets)
+			// For list fields, extract multiple values (supports quoted multi-word values)
 			if (userField.type === "list") {
-				// Match trigger followed by word characters, hyphens, or slashes
-				const pattern = new RegExp(`${escapedTrigger}([\\w/-]+)`, "g");
-				const matches = workingText.match(pattern);
-				console.debug(`[NLP Parser] List field pattern: ${pattern}, matches:`, matches);
+				// Match trigger followed by either:
+				// 1. Quoted string: "anything inside quotes"
+				// 2. Single/double word: word or word-with-dash
+				const pattern = new RegExp(`${escapedTrigger}(?:"([^"]+)"|([\\w/-]+))`, "g");
+				const values: string[] = [];
+				let match;
 
-				if (matches) {
-					const values = matches.map((m) => m.substring(triggerDef.trigger.length));
+				while ((match = pattern.exec(workingText)) !== null) {
+					// Group 1 is quoted value, Group 2 is unquoted value
+					const value = match[1] || match[2];
+					values.push(value);
+				}
+
+				console.debug(`[NLP Parser] List field pattern: ${pattern}, matches:`, values);
+
+				if (values.length > 0) {
 					if (!result.userFields) result.userFields = {};
 					result.userFields[userField.id] = values;
 					workingText = this.cleanupWhitespace(workingText.replace(pattern, ""));
 					console.debug(`[NLP Parser] Extracted list values:`, values);
 				}
 			}
-			// For text/boolean/number fields, extract single value
+			// For text/boolean/number fields, extract single value (supports quoted multi-word)
 			else if (userField.type === "text" || userField.type === "boolean" || userField.type === "number") {
-				// Match trigger followed by word characters, hyphens, or slashes (non-global)
-				const pattern = new RegExp(`${escapedTrigger}([\\w/-]+)`);
+				// Match trigger followed by either:
+				// 1. Quoted string: "anything inside quotes"
+				// 2. Single word: word or word-with-dash
+				const pattern = new RegExp(`${escapedTrigger}(?:"([^"]+)"|([\\w/-]+))`);
 				const match = workingText.match(pattern);
 				console.debug(`[NLP Parser] Single field pattern: ${pattern}, match:`, match);
 
 				if (match) {
-					const value = match[1];
+					// Group 1 is quoted value, Group 2 is unquoted value
+					const value = match[1] || match[2];
 					if (!result.userFields) result.userFields = {};
 
 					// Convert to boolean if needed
@@ -368,14 +381,14 @@ export class NaturalLanguageParser {
 					console.debug(`[NLP Parser] Extracted value: ${value}`);
 				}
 			}
-			// For date fields, try to parse as date
+			// For date fields, try to parse as date (supports quoted values too)
 			else if (userField.type === "date") {
-				// Match trigger followed by date-like pattern (YYYY-MM-DD or word)
-				const pattern = new RegExp(`${escapedTrigger}([\\w/-]+)`);
+				// Match trigger followed by either quoted or unquoted date-like pattern
+				const pattern = new RegExp(`${escapedTrigger}(?:"([^"]+)"|([\\w/-]+))`);
 				const match = workingText.match(pattern);
 
 				if (match) {
-					const value = match[1];
+					const value = match[1] || match[2];
 					if (!result.userFields) result.userFields = {};
 					result.userFields[userField.id] = value; // Store as-is, let consuming code parse
 					workingText = this.cleanupWhitespace(workingText.replace(pattern, ""));
