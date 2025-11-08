@@ -191,6 +191,14 @@
     box-shadow: var(--tn-shadow-medium);
 }
 
+/* Column header dragover state (for column reordering) */
+.tasknotes-plugin .kanban-view__column-header--dragover {
+    background: var(--tn-interactive-hover);
+    border: 2px solid var(--tn-interactive-accent);
+    transform: scale(1.02);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
 .tasknotes-plugin .kanban-view__column--uncategorized {
     opacity: 0.8;
     border: 1px dashed var(--tn-text-muted);

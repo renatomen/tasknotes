@@ -593,6 +593,17 @@ export class KanbanView extends BasesViewBase {
 			e.preventDefault();
 			e.stopPropagation();
 			e.dataTransfer.dropEffect = "move";
+
+			// Add visual feedback for drop target
+			header.classList.add("kanban-view__column-header--dragover");
+		});
+
+		header.addEventListener("dragleave", (e: DragEvent) => {
+			// Only handle column drags
+			if (!e.dataTransfer?.types.includes("text/x-kanban-column")) return;
+			if (e.target === header) {
+				header.classList.remove("kanban-view__column-header--dragover");
+			}
 		});
 
 		header.addEventListener("drop", async (e: DragEvent) => {
@@ -600,6 +611,9 @@ export class KanbanView extends BasesViewBase {
 			if (!e.dataTransfer?.types.includes("text/x-kanban-column")) return;
 			e.preventDefault();
 			e.stopPropagation();
+
+			// Remove visual feedback
+			header.classList.remove("kanban-view__column-header--dragover");
 
 			const draggedKey = e.dataTransfer.getData("text/x-kanban-column");
 			const targetKey = header.dataset.columnKey;
