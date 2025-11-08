@@ -120,7 +120,7 @@
     padding-bottom: 0 !important;
     font-family: var(--font-text);
     font-size: var(--font-ui-medium);
-    line-height: 1.5;
+    line-height: 1.3; /* Tighter line height to reduce placeholder spacing */
 }
 
 /* Ensure the editor line doesn't add extra padding */
@@ -132,6 +132,16 @@
 .nl-markdown-editor .cm-placeholder {
     color: var(--text-muted);
     font-style: italic;
+}
+
+/* Remove extra margin/padding from placeholder lines */
+.nl-markdown-editor .cm-line:has(.cm-placeholder) {
+    min-height: auto;
+}
+
+/* Ensure placeholder renders inline without creating visual gaps */
+.nl-markdown-editor .cm-content:empty .cm-line {
+    display: block;
 }
 
 /* =====================================================================
