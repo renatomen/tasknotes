@@ -37,12 +37,15 @@ import {
 	EVENT_TASK_UPDATED,
 	EVENT_DATE_CHANGED,
 } from "./types";
-import { MiniCalendarView } from "./views/MiniCalendarView";
-import { AgendaView } from "./views/AgendaView";
+// Deprecated views - excluded from compilation
+// import { MiniCalendarView } from "./views/MiniCalendarView";
+// import { AgendaView } from "./views/AgendaView";
+// import { KanbanView } from "./views/KanbanView";
+
+// Active views
 import { PomodoroView } from "./views/PomodoroView";
 import { PomodoroStatsView } from "./views/PomodoroStatsView";
 import { StatsView } from "./views/StatsView";
-import { KanbanView } from "./views/KanbanView";
 import { TaskCreationModal } from "./modals/TaskCreationModal";
 import { TaskEditModal } from "./modals/TaskEditModal";
 import { TaskSelectorModal } from "./modals/TaskSelectorModal";
@@ -513,27 +516,13 @@ export default class TaskNotesPlugin extends Plugin {
 			// Inject dynamic styles for custom statuses and priorities
 			this.injectCustomStyles();
 
-			// Register view types (now safe after layout ready)
-			this.registerView(MINI_CALENDAR_VIEW_TYPE, (leaf) => new MiniCalendarView(leaf, this));
-// v4: Advanced Calendar view migrated to Bases
-			// this.registerView(
-				// ADVANCED_CALENDAR_VIEW_TYPE,
-				// (leaf) => new AdvancedCalendarView(leaf, this)
-			// );
-			// v4: Task List view migrated to Bases
-		// this.registerView(TASK_LIST_VIEW_TYPE, (leaf) => new TaskListView(leaf, this));
-			// v4: Notes view deprecated
-		// this.registerView(NOTES_VIEW_TYPE, (leaf) => new NotesView(leaf, this));
-			this.registerView(AGENDA_VIEW_TYPE, (leaf) => new AgendaView(leaf, this));
+			// Register active view types
 			this.registerView(POMODORO_VIEW_TYPE, (leaf) => new PomodoroView(leaf, this));
 			this.registerView(
 				POMODORO_STATS_VIEW_TYPE,
 				(leaf) => new PomodoroStatsView(leaf, this)
 			);
 			this.registerView(STATS_VIEW_TYPE, (leaf) => new StatsView(leaf, this));
-
-			// v4: Kanban view migrated to Bases
-		// this.registerView(KANBAN_VIEW_TYPE, (leaf) => new KanbanView(leaf, this));
 
 			this.registerView(
 				RELEASE_NOTES_VIEW_TYPE,
@@ -2195,26 +2184,9 @@ export default class TaskNotesPlugin extends Plugin {
 				return;
 			}
 
-			// Get the current active view that has a FilterBar
-			const activeView =
-				this.app.workspace.getActiveViewOfType(KanbanView) ||
-				this.app.workspace.getActiveViewOfType(AgendaView);
-
-			if (!activeView || !("filterBar" in activeView)) {
-				new Notice("No compatible view active to apply filter");
-				return;
-			}
-
-			const filterBar = (activeView as any).filterBar;
-			if (!filterBar) {
-				new Notice("Filter bar not available");
-				return;
-			}
-
-			// Use the same pattern as the search box - add a condition to the current query
-			this.addProjectCondition(filterBar, (file as TFile).basename);
-
-			new Notice(`Filtered to show subtasks of: ${projectTask.title}`);
+			// Note: This feature requires views with FilterBar (deprecated in v4)
+			// TODO: Re-implement for Bases views if needed
+			new Notice("Project subtask filtering not available (requires deprecated views)");
 		} catch (error) {
 			console.error("Error applying project subtask filter:", error);
 			new Notice("Failed to apply project filter");

@@ -785,11 +785,6 @@ export class PomodoroView extends ItemView {
 				this.plugin,
 				this.plugin.settings.defaultVisibleProperties,
 				{
-					showDueDate: true,
-					showCheckbox: false,
-					showArchiveButton: false,
-					showTimeTracking: true,
-					showRecurringControls: false,
 					groupByDate: false,
 				}
 			);

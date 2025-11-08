@@ -1628,11 +1628,6 @@ export class StatsView extends ItemView {
 					this.plugin,
 					this.plugin.settings.defaultVisibleProperties,
 					{
-						showDueDate: true,
-						showCheckbox: false,
-						showArchiveButton: false,
-						showTimeTracking: true,
-						showRecurringControls: true,
 						groupByDate: false,
 					}
 				);
