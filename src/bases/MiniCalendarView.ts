@@ -28,14 +28,22 @@ export class MiniCalendarView extends BasesViewBase {
 
 	// View options
 	private dateProperty: string | null = null; // e.g., "note.dueDate", "file.ctime", "note.scheduled"
+	private titleProperty: string | null = null; // e.g., "file.name", "note.title"
 	private displayedMonth: number;
 	private displayedYear: number;
 	private selectedDate: Date; // UTC-anchored
 	private configLoaded = false; // Track if we've successfully loaded config
 
+	// Multi-select mode
+	private multiSelectMode = false;
+	private selectedDates: Set<string> = new Set();
+
 	// Data
 	private notesByDate: Map<string, NoteEntry[]> = new Map();
 	private monthCalculationCache: Map<string, { actualMonth: number; dateObj: Date; dateKey: string }> = new Map();
+
+	// Tooltip
+	private currentTooltip: HTMLElement | null = null;
 
 	constructor(controller: any, containerEl: HTMLElement, plugin: TaskNotesPlugin) {
 		super(controller, containerEl, plugin);
@@ -74,6 +82,7 @@ export class MiniCalendarView extends BasesViewBase {
 
 		try {
 			this.dateProperty = (this.config.get('dateProperty') as string) || 'file.ctime';
+			this.titleProperty = (this.config.get('titleProperty') as string) || 'file.name';
 			this.configLoaded = true;
 		} catch (e) {
 			console.error("[TaskNotes][MiniCalendarView] Error reading view options:", e);
@@ -84,8 +93,8 @@ export class MiniCalendarView extends BasesViewBase {
 		if (!this.calendarEl || !this.rootElement) return;
 		if (!this.data?.data) return;
 
-		// Ensure view options are read (in case config wasn't available in onload)
-		if (!this.configLoaded && this.config) {
+		// Always re-read view options to catch config changes when switching views
+		if (this.config) {
 			this.readViewOptions();
 		}
 
@@ -128,10 +137,57 @@ export class MiniCalendarView extends BasesViewBase {
 				const dateKey = getDatePart(dateValue);
 				if (!dateKey) continue;
 
+				// Get title from configured property
+				let title = file.basename || file.name;
+				if (this.titleProperty) {
+					try {
+						// Try using getValue directly on the Bases item (preferred method)
+						const titleValue = item.getValue?.(this.titleProperty);
+
+						if (titleValue !== null && titleValue !== undefined) {
+							// Bases values have a toString() method
+							if (typeof titleValue === 'object' && titleValue.toString) {
+								const stringValue = titleValue.toString();
+								// Only use if toString() returns a non-null, non-empty value
+								if (stringValue && stringValue !== 'null' && stringValue !== '') {
+									title = stringValue;
+								}
+							} else if (typeof titleValue === 'string') {
+								title = titleValue;
+							} else {
+								const stringValue = String(titleValue);
+								if (stringValue && stringValue !== 'null' && stringValue !== '') {
+									title = stringValue;
+								}
+							}
+						} else {
+							// Fallback to dataAdapter
+							const adapterValue = this.dataAdapter.getPropertyValue(item, this.titleProperty);
+							if (adapterValue !== null && adapterValue !== undefined) {
+								if (typeof adapterValue === 'object' && adapterValue.toString) {
+									const stringValue = adapterValue.toString();
+									if (stringValue && stringValue !== 'null' && stringValue !== '') {
+										title = stringValue;
+									}
+								} else if (typeof adapterValue === 'string') {
+									title = adapterValue;
+								} else {
+									const stringValue = String(adapterValue);
+									if (stringValue && stringValue !== 'null' && stringValue !== '') {
+										title = stringValue;
+									}
+								}
+							}
+						}
+					} catch (error) {
+						console.warn("[TaskNotes][MiniCalendarView] Error getting title property:", error);
+					}
+				}
+
 				// Create note entry
 				const noteEntry: NoteEntry = {
 					file: file,
-					title: file.basename || file.name,
+					title: title,
 					path: file.path,
 					dateValue: dateValue,
 					basesEntry: item,
@@ -352,6 +408,13 @@ export class MiniCalendarView extends BasesViewBase {
 			attr: { role: "row" },
 		});
 
+		// Add empty cell for week number column
+		calendarHeader.createDiv({
+			text: "",
+			cls: "mini-calendar-view__week-header",
+			attr: { role: "columnheader" },
+		});
+
 		const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 		const reorderedDayNames = [
 			...dayNames.slice(firstDaySetting),
@@ -373,44 +436,76 @@ export class MiniCalendarView extends BasesViewBase {
 		const daysFromNextMonth = totalCells - daysThisMonth - daysFromPrevMonth;
 		const lastDayOfPrevMonth = new Date(Date.UTC(currentYear, currentMonth, 0)).getUTCDate();
 
-		// Render days
-		let currentWeekRow = calendarGrid.createDiv({
-			cls: "mini-calendar-view__week",
-			attr: { role: "row" },
-		});
+		// Render days - collect week data first
+		const weeks: Date[][] = [];
+		let currentWeekDays: Date[] = [];
 
 		// Previous month days
 		for (let i = 0; i < daysFromPrevMonth; i++) {
 			const dayNum = lastDayOfPrevMonth - daysFromPrevMonth + i + 1;
 			const dayDate = new Date(Date.UTC(currentYear, currentMonth - 1, dayNum));
-			this.renderDay(currentWeekRow, dayDate, dayNum, true);
+			currentWeekDays.push(dayDate);
 		}
 
 		// Current month days
 		for (let i = 1; i <= daysThisMonth; i++) {
-			if ((i + daysFromPrevMonth - 1) % 7 === 0 && i > 1) {
-				currentWeekRow = calendarGrid.createDiv({
-					cls: "mini-calendar-view__week",
-					attr: { role: "row" },
-				});
+			if (currentWeekDays.length === 7) {
+				weeks.push(currentWeekDays);
+				currentWeekDays = [];
 			}
 
 			const dayDate = new Date(Date.UTC(currentYear, currentMonth, i));
-			this.renderDay(currentWeekRow, dayDate, i, false);
+			currentWeekDays.push(dayDate);
 		}
 
 		// Next month days
 		for (let i = 1; i <= daysFromNextMonth; i++) {
-			if ((i + daysFromPrevMonth + daysThisMonth - 1) % 7 === 0 && i > 1) {
-				currentWeekRow = calendarGrid.createDiv({
-					cls: "mini-calendar-view__week",
-					attr: { role: "row" },
-				});
+			if (currentWeekDays.length === 7) {
+				weeks.push(currentWeekDays);
+				currentWeekDays = [];
 			}
 
 			const dayDate = new Date(Date.UTC(currentYear, currentMonth + 1, i));
-			this.renderDay(currentWeekRow, dayDate, i, true);
+			currentWeekDays.push(dayDate);
 		}
+
+		// Push the last week if it has days
+		if (currentWeekDays.length > 0) {
+			weeks.push(currentWeekDays);
+		}
+
+		// Render each week row with week number
+		weeks.forEach(weekDays => {
+			this.renderWeekRow(calendarGrid, weekDays);
+		});
+	}
+
+	private renderWeekRow(calendarGrid: HTMLElement, weekDays: Date[]): void {
+		const weekRow = calendarGrid.createDiv({
+			cls: "mini-calendar-view__week",
+			attr: { role: "row" },
+		});
+
+		// Add week number cell
+		const weekNum = this.getWeekNumber(weekDays[0]);
+		const weekCell = weekRow.createDiv({
+			cls: 'mini-calendar-week-number',
+			text: `W${weekNum}`
+		});
+
+		weekCell.addEventListener('click', (e) => {
+			e.stopPropagation();
+			this.selectWeek(weekDays);
+		});
+
+		// Render day cells
+		weekDays.forEach((dayDate, index) => {
+			const currentMonth = this.displayedMonth;
+			const currentYear = this.displayedYear;
+			const isOutsideMonth = dayDate.getUTCMonth() !== currentMonth || dayDate.getUTCFullYear() !== currentYear;
+			const dayNum = dayDate.getUTCDate();
+			this.renderDay(weekRow, dayDate, dayNum, isOutsideMonth);
+		});
 	}
 
 	private renderDay(weekRow: HTMLElement, dayDate: Date, dayNum: number, isOutsideMonth: boolean): void {
@@ -456,8 +551,18 @@ export class MiniCalendarView extends BasesViewBase {
 				dayEl.addClass("mini-calendar-view__day--has-notes-few");
 			}
 
+			// Add heat map intensity class
+			const intensity = this.getHeatMapIntensity(notesForDay.length);
+			dayEl.addClass(`mini-calendar-view__day--intensity-${intensity}`);
+
 			setTooltip(indicator, `${notesForDay.length} note${notesForDay.length > 1 ? "s" : ""}`, {
 				placement: "top",
+			});
+
+			// Add hover preview tooltip
+			dayEl.addEventListener('mouseenter', (e: MouseEvent) => {
+				const tooltip = this.createNotePreviewTooltip(notesForDay);
+				this.showTooltip(dayEl, tooltip, e);
 			});
 		}
 
@@ -587,6 +692,144 @@ export class MiniCalendarView extends BasesViewBase {
 		this.displayedYear = todayUTC.getUTCFullYear();
 		this.monthCalculationCache.clear();
 		this.refresh();
+	}
+
+	private getWeekNumber(date: Date): number {
+		// ISO week number calculation
+		const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+		const dayNum = d.getUTCDay() || 7;
+		d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+		const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+		return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+	}
+
+	private selectWeek(weekDays: Date[]): void {
+		this.multiSelectMode = true;
+		this.selectedDates.clear();
+
+		weekDays.forEach(day => {
+			this.selectedDates.add(formatDateForStorage(day));
+		});
+
+		this.refresh();
+		this.showCombinedNotes();
+	}
+
+	private showCombinedNotes(): void {
+		// Collect all notes from selected dates
+		const allNotes: NoteEntry[] = [];
+		this.selectedDates.forEach(dateKey => {
+			const notes = this.notesByDate.get(dateKey);
+			if (notes) {
+				allNotes.push(...notes);
+			}
+		});
+
+		if (allNotes.length > 0) {
+			// Show fuzzy selector with all combined notes
+			const modal = new NoteSelectionModal(
+				this.plugin.app,
+				this.plugin,
+				allNotes,
+				(selectedNote) => {
+					if (selectedNote) {
+						// Open the selected note
+						this.plugin.app.workspace.getLeaf(false).openFile(selectedNote.file);
+					}
+				}
+			);
+			modal.open();
+		} else {
+			new Notice("No notes found for selected dates");
+		}
+	}
+
+	private createNotePreviewTooltip(notes: NoteEntry[]): HTMLElement {
+		const tooltip = document.createElement('div');
+		tooltip.className = 'mini-calendar-note-preview';
+
+		tooltip.createEl('div', {
+			text: `${notes.length} note${notes.length > 1 ? 's' : ''}`,
+			cls: 'preview-header'
+		});
+
+		const list = tooltip.createEl('ul', { cls: 'preview-list' });
+
+		notes.slice(0, 5).forEach(note => {
+			const item = list.createEl('li');
+			item.createSpan({
+				text: note.title,
+				cls: 'preview-note-title'
+			});
+
+			// Add note type if available from basesEntry
+			const noteTypeValue = note.basesEntry?.getValue?.('type');
+			if (noteTypeValue) {
+				let noteType: string | null = null;
+				if (typeof noteTypeValue === 'object' && noteTypeValue.toString) {
+					const stringValue = noteTypeValue.toString();
+					if (stringValue && stringValue !== 'null' && stringValue !== '') {
+						noteType = stringValue;
+					}
+				} else if (typeof noteTypeValue === 'string') {
+					noteType = noteTypeValue;
+				}
+
+				if (noteType) {
+					item.createSpan({
+						text: ` (${noteType})`,
+						cls: 'preview-note-type'
+					});
+				}
+			}
+		});
+
+		if (notes.length > 5) {
+			list.createEl('li', {
+				text: `+ ${notes.length - 5} more...`,
+				cls: 'preview-more'
+			});
+		}
+
+		return tooltip;
+	}
+
+	private showTooltip(targetEl: HTMLElement, tooltip: HTMLElement, event: MouseEvent): void {
+		// Remove any existing tooltip
+		this.hideTooltip();
+
+		// Position tooltip
+		document.body.appendChild(tooltip);
+		this.currentTooltip = tooltip;
+
+		const rect = targetEl.getBoundingClientRect();
+		tooltip.style.position = 'absolute';
+		tooltip.style.left = `${rect.left + rect.width / 2}px`;
+		tooltip.style.top = `${rect.top - 10}px`;
+		tooltip.style.transform = 'translate(-50%, -100%)';
+		tooltip.style.zIndex = '1000';
+
+		// Add mouseout handler to remove tooltip
+		const removeTooltip = () => {
+			this.hideTooltip();
+			targetEl.removeEventListener('mouseleave', removeTooltip);
+		};
+		targetEl.addEventListener('mouseleave', removeTooltip);
+	}
+
+	private hideTooltip(): void {
+		if (this.currentTooltip) {
+			this.currentTooltip.remove();
+			this.currentTooltip = null;
+		}
+	}
+
+	private getHeatMapIntensity(noteCount: number): string {
+		if (noteCount === 0) return 'none';
+		if (noteCount === 1) return 'low';
+		if (noteCount <= 3) return 'medium';
+		if (noteCount <= 5) return 'high';
+		return 'very-high';
 	}
 
 	protected setupContainer(): void {

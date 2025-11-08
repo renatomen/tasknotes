@@ -934,3 +934,141 @@
     border: 2px solid var(--tn-interactive-accent);
     border-radius: var(--tn-radius-sm);
 }
+
+/* ================================================
+   MINI CALENDAR WEEK NUMBERS & SELECTION
+   ================================================ */
+
+/* Update grid layout to include week number column */
+.tasknotes-plugin .mini-calendar-view__grid-header {
+    grid-template-columns: 40px repeat(7, 1fr);
+}
+
+.tasknotes-plugin .mini-calendar-view__week {
+    grid-template-columns: 40px repeat(7, 1fr);
+}
+
+/* Week number header cell */
+.tasknotes-plugin .mini-calendar-view__week-header {
+    text-align: center;
+    font-weight: 500;
+    font-size: var(--tn-font-size-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: var(--tn-spacing-xs);
+    color: var(--tn-text-muted);
+    background: var(--tn-bg-secondary);
+    border: none;
+}
+
+/* Week number cell */
+.tasknotes-plugin .mini-calendar-week-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--tn-font-size-xs);
+    font-weight: 600;
+    color: var(--tn-text-muted);
+    background: var(--tn-bg-secondary);
+    cursor: pointer;
+    transition: all var(--tn-transition-fast);
+    border-right: 1px solid var(--tn-border-color);
+}
+
+.tasknotes-plugin .mini-calendar-week-number:hover {
+    background: var(--tn-interactive-hover);
+    color: var(--tn-interactive-accent);
+}
+
+/* ================================================
+   MINI CALENDAR NOTE PREVIEW TOOLTIP
+   ================================================ */
+
+.mini-calendar-note-preview {
+    position: absolute;
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    padding: var(--size-4-3);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    max-width: 300px;
+    min-width: 200px;
+    z-index: 1000;
+    pointer-events: none;
+    backdrop-filter: blur(8px);
+}
+
+.mini-calendar-note-preview .preview-header {
+    font-weight: 600;
+    font-size: var(--tn-font-size-sm);
+    color: var(--tn-text-normal);
+    margin-bottom: var(--tn-spacing-xs);
+    padding-bottom: var(--tn-spacing-xs);
+    border-bottom: 1px solid var(--tn-border-color);
+}
+
+.mini-calendar-note-preview .preview-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: var(--tn-font-size-xs);
+}
+
+.mini-calendar-note-preview .preview-list li {
+    padding: var(--tn-spacing-xs) 0;
+    color: var(--tn-text-normal);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mini-calendar-note-preview .preview-note-title {
+    color: var(--tn-text-normal);
+}
+
+.mini-calendar-note-preview .preview-note-type {
+    color: var(--tn-text-muted);
+    font-size: var(--tn-font-size-xs);
+    font-style: italic;
+}
+
+.mini-calendar-note-preview .preview-more {
+    color: var(--tn-text-muted);
+    font-style: italic;
+    margin-top: var(--tn-spacing-xs);
+}
+
+/* ================================================
+   MINI CALENDAR HEAT MAP INTENSITY
+   ================================================ */
+
+/* Heat map intensity levels (GitHub contributions style) */
+.tasknotes-plugin .mini-calendar-view__day--intensity-none {
+    /* Default background, no change */
+}
+
+.tasknotes-plugin .mini-calendar-view__day--intensity-low {
+    background: color-mix(in srgb, var(--tn-interactive-accent) 10%, var(--tn-bg-primary)) !important;
+}
+
+.tasknotes-plugin .mini-calendar-view__day--intensity-medium {
+    background: color-mix(in srgb, var(--tn-interactive-accent) 25%, var(--tn-bg-primary)) !important;
+}
+
+.tasknotes-plugin .mini-calendar-view__day--intensity-high {
+    background: color-mix(in srgb, var(--tn-interactive-accent) 45%, var(--tn-bg-primary)) !important;
+}
+
+.tasknotes-plugin .mini-calendar-view__day--intensity-very-high {
+    background: color-mix(in srgb, var(--tn-interactive-accent) 65%, var(--tn-bg-primary)) !important;
+    color: var(--tn-text-on-accent);
+    font-weight: 600;
+}
+
+/* Preserve hover effect on heat map days */
+.tasknotes-plugin .mini-calendar-view__day--intensity-low:hover,
+.tasknotes-plugin .mini-calendar-view__day--intensity-medium:hover,
+.tasknotes-plugin .mini-calendar-view__day--intensity-high:hover,
+.tasknotes-plugin .mini-calendar-view__day--intensity-very-high:hover {
+    background: color-mix(in srgb, var(--tn-interactive-accent) 35%, var(--tn-interactive-hover)) !important;
+}

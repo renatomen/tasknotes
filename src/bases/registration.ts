@@ -410,6 +410,17 @@ export async function registerBasesTaskList(plugin: TaskNotesPlugin): Promise<vo
 							return prop.startsWith("note.") || prop.startsWith("file.") || prop.startsWith("task.");
 						},
 					},
+					{
+						type: "property",
+						key: "titleProperty",
+						displayName: "Title Property",
+						placeholder: "Select property to use as title",
+						default: "file.name",
+						filter: (prop: string) => {
+							// Show text properties (note, formula, file)
+							return prop.startsWith("note.") || prop.startsWith("formula.") || prop.startsWith("file.");
+						},
+					},
 				],
 			});
 
