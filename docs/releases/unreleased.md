@@ -60,6 +60,11 @@ Example:
 
 ## Fixed
 
+- (#1050) Task modal no longer adds unwanted empty contexts and projects arrays
+  - FieldMapper now checks if arrays are empty before writing to frontmatter
+  - Prevents pollution of frontmatter with unnecessary empty fields
+  - Also fixed blockedBy from writing empty arrays
+  - Thanks to @nightroman for reporting
 - **NLP editor placeholder and cursor issues**
   - Fixed cursor appearing across all placeholder lines in multi-line NLP editor
   - Fixed placeholder line-height to reduce visual spacing
