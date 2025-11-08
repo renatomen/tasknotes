@@ -26,6 +26,28 @@ Example:
 
 ## Added
 
+- **Rich markdown editor for NLP task creation** (major feature)
+  - Replaced plain textarea with full CodeMirror markdown editor
+  - Live preview, syntax highlighting, and wikilink support
+  - Ctrl/Cmd+Enter keyboard shortcut to save task
+  - Esc/Tab keyboard shortcuts for modal control
+  - Animated typewriter placeholder effect for multi-line NLP field
+- **Customizable NLP triggers with autocomplete**
+  - Configure custom trigger characters/strings for each property type (tags, contexts, projects, status, priority)
+  - Supports user-defined field triggers
+  - CodeMirror-based autocomplete with keyboard navigation (arrow keys, Enter, Tab)
+  - Obsidian-styled autocomplete UI matching native theme
+  - Quote support for multi-word values in user fields
+  - Native tag suggester integration when using # trigger
+- **Inline task link overlay enhancements**
+  - Configurable visible properties for inline task cards
+  - PropertySelectorModal for selecting which properties to display
+  - Improved layout: title prioritized, horizontal scrolling for metadata
+  - Real-time updates when task data changes
+- **New utility services**
+  - `TriggerConfigService` - manages NLP trigger configurations
+  - `PropertySelectorModal` - reusable multi-select property picker
+  - Property helpers for consistent property handling across views
 - Kanban column reordering via drag and drop
   - Drag column headers to reorder columns
   - Column order is saved per grouping property
@@ -38,6 +60,21 @@ Example:
 
 ## Fixed
 
+- **NLP editor placeholder and cursor issues**
+  - Fixed cursor appearing across all placeholder lines in multi-line NLP editor
+  - Fixed placeholder line-height to reduce visual spacing
+  - Fixed placeholder line rendering and animation timing
+  - Fixed placeholder animation positioning and scroll behavior
+  - Fixed cursor bug with multi-line placeholder when using custom single-line placeholder
+- **Inline task link overlay fixes**
+  - Fixed layout prioritization: title now prioritized over metadata
+  - Added horizontal scrolling for metadata to prevent overflow
+  - Fixed real-time update listeners for task data changes
+- **NLP autocomplete improvements**
+  - Fixed native tag suggester interaction (# trigger)
+  - Fixed autocomplete priority to override native suggesters when needed
+  - Fixed keyboard navigation (arrow keys, Enter, Tab) in autocomplete
+  - Fixed internal padding in NLP markdown editor
 - Fixed titleInput undefined error in TaskEditModal
   - Edit modals now properly store titleInput reference for focus management
   - Prevents console errors when opening task edit modal
@@ -61,14 +98,30 @@ Example:
 
 ## Changed
 
+- **NLP system overhaul**
+  - Replaced `StatusSuggestionService` wrapper with direct `NaturalLanguageParser` usage
+  - Consolidated trigger configuration into unified `TriggerConfigService`
+  - Enhanced `NaturalLanguageParser` with full trigger and user field support
+  - Removed custom # tag autocomplete in favor of Obsidian's native tag suggester (when using # trigger)
+- **Task card and editor improvements**
+  - Simplified `TaskCard` interface - removed unused options (showCheckbox, showArchiveButton, groupByDate)
+  - Refactored `TaskLinkWidget` to use unified `TaskCard` component for consistency
+  - Added support for inline vs. block layout modes in task cards
+  - Improved task card BEM CSS with better styling for inline mode
+- **Settings UI enhancements**
+  - NLP triggers now configurable through Settings > Features tab
+  - Added settings for inline task card visible properties
+  - Improved appearance tab with property selector integration
+  - Better organization of NLP-related settings
 - Refactored Bases views to use Component lifecycle properly
   - Views now extend Component and use onload()/onunload()
   - Automatic cleanup of event listeners via Component.registerDomEvent()
   - Improved state management and ephemeral state handling
-- Simplified TaskCard interface
-  - Removed unused options (showCheckbox, showArchiveButton, groupByDate)
-  - Cleaner API surface
 - Improved development experience
   - Converted ESLint errors to warnings for non-blocking development
   - Fixed various linting issues and unused imports
+
+## Removed
+
+- Removed `StatusSuggestionService` (functionality consolidated into `NaturalLanguageParser`)
 
