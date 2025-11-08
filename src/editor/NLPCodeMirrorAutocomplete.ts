@@ -42,6 +42,11 @@ export function createNLPAutocomplete(plugin: TaskNotesPlugin): Extension[] {
 				const lastPlusIndex = textBeforeCursor.lastIndexOf("+");
 				const lastStatusIndex = statusTrigger ? textBeforeCursor.lastIndexOf(statusTrigger) : -1;
 
+				// Don't trigger if hash is part of markdown heading (##, ###, etc.)
+				if (lastHashIndex > 0 && textBeforeCursor[lastHashIndex - 1] === "#") {
+					return null;
+				}
+
 				// Determine which trigger is active (most recent valid one)
 				const candidates: Array<{ type: string; index: number; triggerLength: number }> = [
 					{ type: "@", index: lastAtIndex, triggerLength: 1 },
@@ -92,7 +97,7 @@ export function createNLPAutocomplete(plugin: TaskNotesPlugin): Extension[] {
 							info: "Context",
 						}));
 				} else if (active.type === "#") {
-					// Tag suggestions
+					// Tag suggestions - we handle ALL # to prevent native tag suggester
 					const tags = plugin.cacheManager.getAllTags();
 					options = tags
 						.filter((tag) => tag && typeof tag === "string")
@@ -104,6 +109,9 @@ export function createNLPAutocomplete(plugin: TaskNotesPlugin): Extension[] {
 							type: "text",
 							info: "Tag",
 						}));
+
+					// IMPORTANT: Return result even if empty to prevent native tag suggester
+					// This overrides Obsidian's built-in # tag autocomplete
 				} else if (active.type === "status") {
 					// Status suggestions
 					const statusService = new StatusSuggestionService(
@@ -167,7 +175,11 @@ export function createNLPAutocomplete(plugin: TaskNotesPlugin): Extension[] {
 					}
 				}
 
-				if (options.length === 0) return null;
+				// For # tag trigger, always return a result (even if empty) to prevent native tag suggester
+				// For other triggers, return null if no options
+				if (options.length === 0 && active.type !== "#") {
+					return null;
+				}
 
 				return {
 					from,
