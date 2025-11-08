@@ -1,5 +1,16 @@
-import { autocompletion, CompletionContext, CompletionResult, Completion } from "@codemirror/autocomplete";
+import {
+	autocompletion,
+	CompletionContext,
+	CompletionResult,
+	Completion,
+	completionKeymap,
+	acceptCompletion,
+	moveCompletionSelection,
+	startCompletion,
+	closeCompletion
+} from "@codemirror/autocomplete";
 import { Extension } from "@codemirror/state";
+import { keymap } from "@codemirror/view";
 import TaskNotesPlugin from "../main";
 import { StatusSuggestionService } from "../services/StatusSuggestionService";
 
@@ -7,8 +18,8 @@ import { StatusSuggestionService } from "../services/StatusSuggestionService";
  * CodeMirror autocomplete extension for NLP triggers (@, #, +, status)
  * Replaces the old NLPSuggest system for use with EmbeddableMarkdownEditor
  */
-export function createNLPAutocomplete(plugin: TaskNotesPlugin): Extension {
-	return autocompletion({
+export function createNLPAutocomplete(plugin: TaskNotesPlugin): Extension[] {
+	const autocomplete = autocompletion({
 		override: [
 			async (context: CompletionContext): Promise<CompletionResult | null> => {
 				const statusTrigger = (plugin.settings.statusSuggestionTrigger || "").trim();
@@ -173,4 +184,15 @@ export function createNLPAutocomplete(plugin: TaskNotesPlugin): Extension {
 		// Max options to show
 		maxRenderedOptions: 10,
 	});
+
+	// Add explicit keyboard navigation for autocomplete
+	const autocompleteKeymap = keymap.of([
+		{ key: "ArrowDown", run: moveCompletionSelection(true) },
+		{ key: "ArrowUp", run: moveCompletionSelection(false) },
+		{ key: "Enter", run: acceptCompletion },
+		{ key: "Tab", run: acceptCompletion },
+		{ key: "Escape", run: closeCompletion },
+	]);
+
+	return [autocomplete, autocompleteKeymap];
 }

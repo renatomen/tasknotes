@@ -633,6 +633,7 @@ export class TaskCreationModal extends TaskModal {
 
 		try {
 			// Create NLP autocomplete extension for @, #, +, status triggers
+			// Returns array: [autocomplete, keymap]
 			const nlpAutocomplete = createNLPAutocomplete(this.plugin);
 
 			// Create embeddable markdown editor with autocomplete
@@ -640,7 +641,7 @@ export class TaskCreationModal extends TaskModal {
 				value: "",
 				placeholder: this.t("modals.taskCreation.nlPlaceholder"),
 				cls: "nlp-editor",
-				extensions: [nlpAutocomplete], // Add autocomplete extension
+				extensions: nlpAutocomplete, // Add autocomplete extensions (array)
 				onChange: (value) => {
 					// Update preview as user types
 					if (value.trim()) {
