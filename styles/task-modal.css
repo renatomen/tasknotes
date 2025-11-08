@@ -120,7 +120,7 @@
     padding-bottom: 0 !important;
     font-family: var(--font-text);
     font-size: var(--font-ui-medium);
-    line-height: 1.3; /* Tighter line height to reduce placeholder spacing */
+    line-height: 1.5;
 }
 
 /* Ensure the editor line doesn't add extra padding */
@@ -134,14 +134,9 @@
     font-style: italic;
 }
 
-/* Remove extra margin/padding from placeholder lines */
-.nl-markdown-editor .cm-line:has(.cm-placeholder) {
-    min-height: auto;
-}
-
-/* Ensure placeholder renders inline without creating visual gaps */
-.nl-markdown-editor .cm-content:empty .cm-line {
-    display: block;
+/* Hide extra cursors when placeholder is showing (multi-line placeholder bug) */
+.nl-markdown-editor .cm-editor:has(.cm-placeholder) .cm-cursor:not(:first-of-type) {
+    display: none !important;
 }
 
 /* =====================================================================
