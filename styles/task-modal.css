@@ -98,13 +98,20 @@
 .nl-markdown-editor .cm-scroller {
     overflow: auto;
     max-height: 200px;
+    padding: var(--size-4-3) var(--size-4-2);
 }
 
 .nl-markdown-editor .cm-content {
-    padding: var(--size-4-3) var(--size-4-2);
+    padding: 0 !important; /* Reset CodeMirror's default padding */
     font-family: var(--font-text);
     font-size: var(--font-ui-medium);
     line-height: 1.5;
+}
+
+/* Ensure the editor line has proper padding */
+.nl-markdown-editor .cm-line {
+    padding-left: 0;
+    padding-right: 0;
 }
 
 .nl-markdown-editor .cm-placeholder {
