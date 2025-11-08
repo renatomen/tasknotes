@@ -573,19 +573,11 @@ export class TaskListView extends BasesViewBase {
 	}
 
 	private registerContainerListeners(): void {
-		if (!this.itemsContainer || this.containerListenersRegistered) return;
-		this.itemsContainer.addEventListener("click", this.handleItemClick);
-		this.itemsContainer.addEventListener("contextmenu", this.handleItemContextMenu);
-		this.itemsContainer.addEventListener("pointerover", this.handleItemPointerOver);
-		this.containerListenersRegistered = true;
+		// Task cards now handle their own events - no delegation needed
 	}
 
 	private unregisterContainerListeners(): void {
-		if (!this.itemsContainer || !this.containerListenersRegistered) return;
-		this.itemsContainer.removeEventListener("click", this.handleItemClick);
-		this.itemsContainer.removeEventListener("contextmenu", this.handleItemContextMenu);
-		this.itemsContainer.removeEventListener("pointerover", this.handleItemPointerOver);
-		this.containerListenersRegistered = false;
+		// No listeners to unregister
 	}
 
 	private getTaskContextFromEvent(event: Event): { task: TaskInfo; card: HTMLElement } | null {

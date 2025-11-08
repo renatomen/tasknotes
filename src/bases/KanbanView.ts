@@ -738,17 +738,11 @@ export class KanbanView extends BasesViewBase {
 	}
 
 	private registerBoardListeners(): void {
-		if (!this.boardEl || this.containerListenersRegistered) return;
-		this.boardEl.addEventListener("click", this.handleBoardClick);
-		this.boardEl.addEventListener("contextmenu", this.handleBoardContextMenu);
-		this.containerListenersRegistered = true;
+		// Task cards now handle their own events - no delegation needed
 	}
 
 	private unregisterBoardListeners(): void {
-		if (!this.boardEl || !this.containerListenersRegistered) return;
-		this.boardEl.removeEventListener("click", this.handleBoardClick);
-		this.boardEl.removeEventListener("contextmenu", this.handleBoardContextMenu);
-		this.containerListenersRegistered = false;
+		// No listeners to unregister
 	}
 
 	private getTaskContextFromEvent(event: Event): { task: TaskInfo; card: HTMLElement } | null {
