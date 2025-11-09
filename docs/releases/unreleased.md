@@ -26,6 +26,13 @@ Example:
 
 ## Added
 
+- **Bases "New" button integration**
+  - Clicking "New" in Bases views will open TaskNotes creation modal (when API support is available)
+  - Automatically extracts default values from Bases (dates, properties, etc.)
+  - Supports all TaskNotes properties including user-defined custom fields
+  - Respects custom field mappings via FieldMapper
+  - View automatically refreshes after task creation
+  - Note: Requires Obsidian API 1.10.2+ (currently in development)
 - **Configurable task modal fields** (major feature)
   - New "Modal Fields" settings tab for complete control over task creation and edit modals
   - Configure which fields appear in creation vs edit modals independently
