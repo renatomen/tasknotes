@@ -20,6 +20,7 @@ import {
 	showCardEmptyState,
 	createCardNumberInput,
 	createCardSelect,
+	createCardToggle,
 } from "../components/CardComponent";
 import { createFilterSettingsInputs } from "../components/FilterSettingsComponent";
 // import { ListEditorComponent, ListEditorItem } from '../components/ListEditorComponent';
@@ -291,15 +292,29 @@ function renderStatusList(container: HTMLElement, plugin: TaskNotesPlugin, save:
 		);
 		const colorInput = createCardInput("color", "", status.color);
 
-		const completedCheckbox = document.createElement("input");
-		completedCheckbox.type = "checkbox";
-		completedCheckbox.checked = status.isCompleted || false;
-		completedCheckbox.addClass("tasknotes-card-input");
+		const completedToggle = createCardToggle(status.isCompleted || false, (value) => {
+			status.isCompleted = value;
+			const metaContainer = statusCard?.querySelector(".tasknotes-settings__card-meta");
+			if (metaContainer) {
+				metaContainer.empty();
+				if (status.isCompleted) {
+					metaContainer.appendChild(
+						createStatusBadge(
+							translate("settings.taskProperties.taskStatuses.badges.completed"),
+							"completed"
+						)
+					);
+				}
+			}
+			save();
+		});
 
-		const autoArchiveCheckbox = document.createElement("input");
-		autoArchiveCheckbox.type = "checkbox";
-		autoArchiveCheckbox.checked = status.autoArchive || false;
-		autoArchiveCheckbox.addClass("tasknotes-card-input");
+		const autoArchiveToggle = createCardToggle(status.autoArchive || false, (value) => {
+			status.autoArchive = value;
+			save();
+			// Update delay input visibility without re-rendering
+			updateDelayInputVisibility();
+		});
 
 		const autoArchiveDelayInput = createCardNumberInput(
 			1,
@@ -316,6 +331,19 @@ function renderStatusList(container: HTMLElement, plugin: TaskNotesPlugin, save:
 					),
 				]
 			: [];
+
+		let statusCard: HTMLElement;
+
+		// Function to show/hide the delay input based on auto-archive setting
+		const updateDelayInputVisibility = () => {
+			// Find the delay input row by looking for the input element's parent row
+			const delayRow = autoArchiveDelayInput.closest(
+				".tasknotes-settings__card-config-row"
+			) as HTMLElement;
+			if (delayRow) {
+				delayRow.style.display = status.autoArchive ? "flex" : "none";
+			}
+		};
 
 		const deleteStatus = () => {
 			// eslint-disable-next-line no-alert
@@ -377,13 +405,13 @@ function renderStatusList(container: HTMLElement, plugin: TaskNotesPlugin, save:
 								label: translate(
 									"settings.taskProperties.taskStatuses.fields.completed"
 								),
-								input: completedCheckbox,
+								input: completedToggle,
 							},
 							{
 								label: translate(
 									"settings.taskProperties.taskStatuses.fields.autoArchive"
 								),
-								input: autoArchiveCheckbox,
+								input: autoArchiveToggle,
 							},
 							{
 								label: translate(
@@ -397,18 +425,7 @@ function renderStatusList(container: HTMLElement, plugin: TaskNotesPlugin, save:
 			},
 		};
 
-		const statusCard = createCard(container, cardConfig);
-
-		// Function to show/hide the delay input based on auto-archive setting
-		const updateDelayInputVisibility = () => {
-			// Find the delay input row by looking for the input element's parent row
-			const delayRow = autoArchiveDelayInput.closest(
-				".tasknotes-settings__card-config-row"
-			) as HTMLElement;
-			if (delayRow) {
-				delayRow.style.display = status.autoArchive ? "flex" : "none";
-			}
-		};
+		statusCard = createCard(container, cardConfig);
 
 		// Set initial visibility
 		updateDelayInputVisibility();
@@ -436,30 +453,6 @@ function renderStatusList(container: HTMLElement, plugin: TaskNotesPlugin, save:
 				colorIndicator.style.backgroundColor = status.color;
 			}
 			save();
-		});
-
-		completedCheckbox.addEventListener("change", () => {
-			status.isCompleted = completedCheckbox.checked;
-			const metaContainer = statusCard.querySelector(".tasknotes-settings__card-meta");
-			if (metaContainer) {
-				metaContainer.empty();
-				if (status.isCompleted) {
-					metaContainer.appendChild(
-						createStatusBadge(
-							translate("settings.taskProperties.taskStatuses.badges.completed"),
-							"completed"
-						)
-					);
-				}
-			}
-			save();
-		});
-
-		autoArchiveCheckbox.addEventListener("change", () => {
-			status.autoArchive = autoArchiveCheckbox.checked;
-			save();
-			// Update delay input visibility without re-rendering
-			updateDelayInputVisibility();
 		});
 
 		autoArchiveDelayInput.addEventListener("change", () => {
