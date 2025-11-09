@@ -65,6 +65,13 @@ Example:
   - Heat map intensity visualization
   - Note preview tooltips on hover
   - Multi-select mode for date ranges
+- **Unified Relationships widget**
+  - Consolidated project subtasks, task dependencies, and blocking relationships into a single dynamic widget
+  - Four automatic tabs: Subtasks (Kanban), Projects (List), Blocked By (List), Blocking (Kanban)
+  - Tabs automatically show/hide based on available relationship data
+  - Bases views handle all data updates reactively - no manual refresh needed
+  - Single configuration setting: show/hide and position (top/bottom)
+  - Significantly reduced code complexity (430 fewer lines)
 
 ## Fixed
 
@@ -141,4 +148,14 @@ Example:
 ## Removed
 
 - Removed `StatusSuggestionService` (functionality consolidated into `NaturalLanguageParser`)
+
+## Breaking Changes
+
+- **Relationships widget settings consolidated** (automatic migration)
+  - Old settings removed: `showProjectSubtasks`, `projectSubtasksPosition`, `showTaskDependencies`, `taskDependenciesPosition`
+  - New unified settings: `showRelationships`, `relationshipsPosition`
+  - Widget now appears on ALL notes (tasks, projects, regular notes) - Bases filtering controls which tabs are visible
+  - **Migration**: Existing users will see the new unified widget automatically. If you had project subtasks enabled, relationships widget will be enabled by default
+  - **Bases file change**: The command mapping changed from `'project-subtasks': 'TaskNotes/Views/project-subtasks.base'` to `'relationships': 'TaskNotes/Views/relationships.base'`
+  - Run "Create Default Files" in Settings > General to create the new `relationships.base` file
 
