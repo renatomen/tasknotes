@@ -1169,13 +1169,13 @@ export const en: TranslationTree = {
 					name: "Show tracked tasks in status bar",
 					description: "Display currently tracked tasks in Obsidian's status bar",
 				},
-				showProjectSubtasksWidget: {
-					name: "Show project subtasks widget",
-					description: "Display a widget showing subtasks for the current project note",
+				showRelationshipsWidget: {
+					name: "Show relationships widget",
+					description: "Display a widget showing all relationships for the current note (subtasks, projects, dependencies)",
 				},
-				projectSubtasksPosition: {
-					name: "Project subtasks position",
-					description: "Where to position the project subtasks widget",
+				relationshipsPosition: {
+					name: "Relationships position",
+					description: "Where to position the relationships widget",
 					options: {
 						top: "Top of note",
 						bottom: "Bottom of note",

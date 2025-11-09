@@ -70,9 +70,8 @@ import { ViewStateManager } from "./services/ViewStateManager";
 import { createTaskLinkOverlay, dispatchTaskUpdate } from "./editor/TaskLinkOverlay";
 import { createReadingModeTaskLinkProcessor } from "./editor/ReadingModeTaskLinkProcessor";
 import {
-	createProjectNoteDecorations,
-	dispatchProjectSubtasksUpdate,
-} from "./editor/ProjectNoteDecorations";
+	createRelationshipsDecorations,
+} from "./editor/RelationshipsDecorations";
 import {
 	createTaskCardNoteDecorations,
 } from "./editor/TaskCardNoteDecorations";
@@ -532,11 +531,11 @@ export default class TaskNotesPlugin extends Plugin {
 			// Register essential editor extensions (now safe after layout ready)
 			this.registerEditorExtension(createTaskLinkOverlay(this));
 
-			// Register task card note decorations for live preview (before project subtasks to ensure proper ordering)
+			// Register task card note decorations for live preview (before relationships to ensure proper ordering)
 			this.registerEditorExtension(createTaskCardNoteDecorations(this));
 
-			// Register project note decorations for live preview
-			this.registerEditorExtension(createProjectNoteDecorations(this));
+			// Register relationships decorations for live preview
+			this.registerEditorExtension(createRelationshipsDecorations(this));
 
 			// Register reading mode task link processor
 			this.registerMarkdownPostProcessor(createReadingModeTaskLinkProcessor(this));
@@ -668,11 +667,6 @@ export default class TaskNotesPlugin extends Plugin {
 										(editor as Editor & { cm: EditorView }).cm,
 										taskPath
 									);
-
-									// Also update project subtasks widgets
-									dispatchProjectSubtasksUpdate(
-										(editor as Editor & { cm: EditorView }).cm
-									);
 								}
 							}
 						});
@@ -690,10 +684,6 @@ export default class TaskNotesPlugin extends Plugin {
 									// Dispatch task update to refresh overlays when returning to a note
 									dispatchTaskUpdate((editor as Editor & { cm: EditorView }).cm);
 
-									// Also update project subtasks widgets
-									dispatchProjectSubtasksUpdate(
-										(editor as Editor & { cm: EditorView }).cm
-									);
 								}
 							}
 						}, 50);
@@ -712,10 +702,6 @@ export default class TaskNotesPlugin extends Plugin {
 									// Refresh overlays when switching to Live Preview mode
 									dispatchTaskUpdate((editor as Editor & { cm: EditorView }).cm);
 
-									// Also update project subtasks widgets
-									dispatchProjectSubtasksUpdate(
-										(editor as Editor & { cm: EditorView }).cm
-									);
 								}
 							}
 						}, 100);

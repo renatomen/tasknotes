@@ -540,38 +540,38 @@ export function renderAppearanceTab(
 	});
 
 	createToggleSetting(container, {
-		name: translate("settings.appearance.uiElements.showProjectSubtasksWidget.name"),
-		desc: translate("settings.appearance.uiElements.showProjectSubtasksWidget.description"),
-		getValue: () => plugin.settings.showProjectSubtasks,
+		name: translate("settings.appearance.uiElements.showRelationshipsWidget.name"),
+		desc: translate("settings.appearance.uiElements.showRelationshipsWidget.description"),
+		getValue: () => plugin.settings.showRelationships,
 		setValue: async (value: boolean) => {
-			plugin.settings.showProjectSubtasks = value;
+			plugin.settings.showRelationships = value;
 			save();
 			// Re-render to show position setting
 			renderAppearanceTab(container, plugin, save);
 		},
 	});
 
-	if (plugin.settings.showProjectSubtasks) {
+	if (plugin.settings.showRelationships) {
 		createDropdownSetting(container, {
-			name: translate("settings.appearance.uiElements.projectSubtasksPosition.name"),
-			desc: translate("settings.appearance.uiElements.projectSubtasksPosition.description"),
+			name: translate("settings.appearance.uiElements.relationshipsPosition.name"),
+			desc: translate("settings.appearance.uiElements.relationshipsPosition.description"),
 			options: [
 				{
 					value: "top",
 					label: translate(
-						"settings.appearance.uiElements.projectSubtasksPosition.options.top"
+						"settings.appearance.uiElements.relationshipsPosition.options.top"
 					),
 				},
 				{
 					value: "bottom",
 					label: translate(
-						"settings.appearance.uiElements.projectSubtasksPosition.options.bottom"
+						"settings.appearance.uiElements.relationshipsPosition.options.bottom"
 					),
 				},
 			],
-			getValue: () => plugin.settings.projectSubtasksPosition,
+			getValue: () => plugin.settings.relationshipsPosition,
 			setValue: async (value: string) => {
-				plugin.settings.projectSubtasksPosition = value as "top" | "bottom";
+				plugin.settings.relationshipsPosition = value as "top" | "bottom";
 				save();
 			},
 		});

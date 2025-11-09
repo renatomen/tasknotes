@@ -235,9 +235,9 @@ export function renderGeneralTab(
 			defaultPath: 'TaskNotes/Views/agenda-default.base',
 		},
 		{
-			id: 'project-subtasks',
-			name: 'Project Subtasks Widget',
-			defaultPath: 'TaskNotes/Views/project-subtasks.base',
+			id: 'relationships',
+			name: 'Relationships Widget',
+			defaultPath: 'TaskNotes/Views/relationships.base',
 		},
 	];
 

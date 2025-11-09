@@ -160,12 +160,13 @@ export interface TaskNotesSettings {
 	// Time tracking settings
 	autoStopTimeTrackingOnComplete: boolean;
 	autoStopTimeTrackingNotification: boolean;
-	// Project subtasks widget settings
-	showProjectSubtasks: boolean;
-	showExpandableSubtasks: boolean;
-	projectSubtasksPosition: "top" | "bottom";
+	// Relationships widget settings (unified subtasks, projects, and dependencies)
+	showRelationships: boolean;
+	relationshipsPosition: "top" | "bottom";
 	// Task card in note settings
 	showTaskCardInNote: boolean;
+	// Task card expandable subtasks settings
+	showExpandableSubtasks: boolean;
 	// Subtask chevron position in task cards
 	subtaskChevronPosition: "left" | "right";
 	// Filter toolbar layout
@@ -204,7 +205,7 @@ export interface TaskNotesSettings {
 		'open-tasks-view': string;
 		'open-advanced-calendar-view': string;
 		'open-agenda-view': string;
-		'project-subtasks': string; // Bases file for project subtasks widget
+		'relationships': string; // Bases file for unified relationships widget
 		[key: string]: string; // Allow string indexing
 	};
 	// Recurring task behavior

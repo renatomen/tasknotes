@@ -280,12 +280,13 @@ export const DEFAULT_SETTINGS: TaskNotesSettings = {
 	// Time tracking defaults
 	autoStopTimeTrackingOnComplete: true,
 	autoStopTimeTrackingNotification: false,
-	// Project subtasks widget defaults
-	showProjectSubtasks: true,
-	showExpandableSubtasks: true,
-	projectSubtasksPosition: "bottom",
+	// Relationships widget defaults (unified subtasks, projects, and dependencies)
+	showRelationships: true,
+	relationshipsPosition: "bottom",
 	// Task card in note defaults
 	showTaskCardInNote: true,
+	// Task card expandable subtasks defaults
+	showExpandableSubtasks: true,
 	// Subtask chevron position default
 	subtaskChevronPosition: "right",
 	// Filter toolbar layout defaults
@@ -332,7 +333,7 @@ export const DEFAULT_SETTINGS: TaskNotesSettings = {
 		'open-tasks-view': 'TaskNotes/Views/tasks-default.base',
 		'open-advanced-calendar-view': 'TaskNotes/Views/calendar-default.base',
 		'open-agenda-view': 'TaskNotes/Views/agenda-default.base',
-		'project-subtasks': 'TaskNotes/Views/project-subtasks.base',
+		'relationships': 'TaskNotes/Views/relationships.base',
 	},
 	// Recurring task behavior defaults
 	maintainDueDateOffsetInRecurring: false,

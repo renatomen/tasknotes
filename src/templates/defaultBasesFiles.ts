@@ -250,24 +250,55 @@ ${orderYaml}
     titleProperty: file.basename
 `;
 
-		case 'project-subtasks':
-			// This view needs a special filter that combines task filter AND project filter
-			const projectFilter = `note.${settings.fieldMapping.projects}.contains(this.file.asLink())`;
-			return `# Project Subtasks
-# This view shows all tasks that reference the current file in their projects field
-# Uses the 'this' keyword to reference the current file dynamically
+		case 'relationships': {
+			// Unified relationships widget that shows all relationship types
+			const projectsProperty = mapPropertyToBasesProperty('projects', settings);
+			const blockedByProperty = mapPropertyToBasesProperty('blockedBy', settings);
+			const statusProperty = mapPropertyToBasesProperty('status', settings);
 
-${formatFilterAsYAML([taskFilterCondition, projectFilter])}
+			return `# Relationships
+# This view shows all relationships for the current file
+# Dynamically shows/hides tabs based on available data
+
+${formatFilterAsYAML([taskFilterCondition])}
 
 views:
-  - type: tasknotesTaskList
+  - type: tasknotesKanban
     name: "Subtasks"
+    filters:
+      and:
+        - note.${projectsProperty}.contains(this.file.asLink())
     order:
 ${orderYaml}
-    sort:
-      - column: priority
-        direction: DESC
+    groupBy:
+      property: ${statusProperty}
+      direction: ASC
+  - type: tasknotesTaskList
+    name: "Projects"
+    filters:
+      and:
+        - list(this.note.${projectsProperty}).contains(file.asLink())
+    order:
+${orderYaml}
+  - type: tasknotesTaskList
+    name: "Blocked By"
+    filters:
+      and:
+        - list(this.note.${blockedByProperty}).map(value.uid).contains(file.asLink())
+    order:
+${orderYaml}
+  - type: tasknotesKanban
+    name: "Blocking"
+    filters:
+      and:
+        - note.${blockedByProperty}.map(value.uid).contains(this.file.asLink())
+    order:
+${orderYaml}
+    groupBy:
+      property: ${statusProperty}
+      direction: ASC
 `;
+		}
 
 		default:
 			return '';
@@ -339,17 +370,39 @@ export const DEFAULT_BASES_FILES: Record<string, string> = {
     titleProperty: file.basename
 `,
 
-	'project-subtasks': `# Project Subtasks
-# This view shows all tasks that reference the current file in their projects field
-# Uses the 'this' keyword to reference the current file dynamically
-
-filters: "note.projects.contains(this.file.asLink())"
+	'relationships': `# Relationships
+# This view shows all relationships for the current file
+# Dynamically shows/hides tabs based on available data
 
 views:
-  - type: tasknotesTaskList
+  - type: tasknotesKanban
     name: "Subtasks"
+    filters:
+      and:
+        - note.projects.contains(this.file.asLink())
+    groupBy:
+      property: status
+      direction: ASC
+  - type: tasknotesTaskList
+    name: "Projects"
+    filters:
+      and:
+        - list(this.projects).contains(file.asLink())
+  - type: tasknotesTaskList
+    name: "Blocked By"
+    filters:
+      and:
+        - list(this.blockedBy).map(value.uid).contains(file.asLink())
     sort:
       - column: priority
         direction: DESC
+  - type: tasknotesKanban
+    name: "Blocking"
+    filters:
+      and:
+        - note.blockedBy.map(value.uid).contains(this.file.asLink())
+    groupBy:
+      property: status
+      direction: ASC
 `,
 };
