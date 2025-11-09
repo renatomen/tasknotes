@@ -307,6 +307,8 @@ export const DEFAULT_SETTINGS: TaskNotesSettings = {
 	webhooks: [],
 	// User Fields defaults (multiple)
 	userFields: [],
+	// Modal Fields Configuration defaults
+	modalFieldsConfig: undefined, // Initialized on first use via migration
 	// Default visible properties for task cards
 	defaultVisibleProperties: [
 		"status", // Status dot
