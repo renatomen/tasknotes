@@ -217,6 +217,11 @@ export class TaskNotesSettingTab extends PluginSettingTab {
 				renderFn: renderTaskPropertiesTab,
 			},
 			{
+				id: "modal-fields",
+				nameKey: "settings.tabs.modalFields",
+				renderFn: renderModalFieldsTab,
+			},
+			{
 				id: "defaults",
 				nameKey: "settings.tabs.defaults",
 				renderFn: renderDefaultsTab,

@@ -5,6 +5,7 @@ import { createSectionHeader, createHelpText } from "../components/settingHelper
 import { createFieldManager, addFieldManagerStyles } from "../components/FieldManagerComponent";
 import { initializeFieldConfig } from "../../utils/fieldConfigDefaults";
 import type { TaskModalFieldsConfig, UserMappedField } from "../../types/settings";
+import { showConfirmationModal } from "../../modals/ConfirmationModal";
 
 /**
  * Renders the Modal Fields Configuration tab
@@ -28,6 +29,7 @@ export function renderModalFieldsTab(
 			undefined,
 			plugin.settings.userFields
 		);
+		save(); // Save the initialized config
 	}
 
 	// Header
@@ -63,6 +65,12 @@ export function renderModalFieldsTab(
 	// Field manager
 	const managerContainer = container.createDiv({ cls: "modal-fields-manager-container" });
 
+	// Double-check config exists before creating field manager
+	if (!plugin.settings.modalFieldsConfig) {
+		managerContainer.createDiv({ text: "Error: Could not initialize field configuration" });
+		return;
+	}
+
 	createFieldManager(
 		managerContainer,
 		plugin,
@@ -70,7 +78,8 @@ export function renderModalFieldsTab(
 		(updatedConfig: TaskModalFieldsConfig) => {
 			plugin.settings.modalFieldsConfig = updatedConfig;
 			save();
-		}
+		},
+		plugin.app
 	);
 
 	// Reset button
@@ -79,8 +88,16 @@ export function renderModalFieldsTab(
 		cls: "mod-warning",
 		text: "Reset to Defaults",
 	});
-	resetButton.onclick = () => {
-		if (confirm("Are you sure you want to reset field configuration to defaults? This will remove any custom field configurations.")) {
+	resetButton.onclick = async () => {
+		const confirmed = await showConfirmationModal(plugin.app, {
+			title: "Reset Field Configuration",
+			message: "Are you sure you want to reset field configuration to defaults? This will remove any custom field configurations.",
+			confirmText: "Reset",
+			cancelText: "Cancel",
+			isDestructive: true,
+		});
+
+		if (confirmed) {
 			plugin.settings.modalFieldsConfig = initializeFieldConfig(
 				undefined,
 				plugin.settings.userFields

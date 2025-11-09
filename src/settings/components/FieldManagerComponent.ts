@@ -1,7 +1,7 @@
-import { setIcon } from "obsidian";
+import { App } from "obsidian";
 import type TaskNotesPlugin from "../../main";
 import type { ModalFieldConfig, FieldGroup, TaskModalFieldsConfig } from "../../types/settings";
-import { createCard, createCardInput, createCardSelect, setupCardDragAndDrop } from "./CardComponent";
+import { createCard, setupCardDragAndDrop, createCardInput, createCardSelect } from "./CardComponent";
 
 /**
  * Creates the field manager UI component for configuring modal fields
@@ -10,13 +10,20 @@ export function createFieldManager(
 	container: HTMLElement,
 	plugin: TaskNotesPlugin,
 	config: TaskModalFieldsConfig,
-	onUpdate: (config: TaskModalFieldsConfig) => void
+	onUpdate: (config: TaskModalFieldsConfig) => void,
+	app: App
 ): void {
 	const translate = (key: string, params?: Record<string, string | number>) =>
 		plugin.i18n.translate(key as any, params);
 
 	container.empty();
 	container.addClass("field-manager");
+
+	// Safety check
+	if (!config || !config.groups || !config.fields) {
+		container.createDiv({ text: "Error: Invalid field configuration. Please reset to defaults." });
+		return;
+	}
 
 	// Create tabs for different field groups
 	const tabsContainer = container.createDiv({ cls: "field-manager__tabs" });
@@ -40,13 +47,13 @@ export function createFieldManager(
 			tab.addClass("field-manager__tab--active");
 
 			// Render fields for this group
-			renderFieldGroup(contentContainer, group.id, config, plugin, onUpdate);
+			renderFieldGroup(contentContainer, group.id, config, plugin, onUpdate, app);
 		};
 	});
 
 	// Render first group by default
 	if (sortedGroups.length > 0) {
-		renderFieldGroup(contentContainer, sortedGroups[0].id, config, plugin, onUpdate);
+		renderFieldGroup(contentContainer, sortedGroups[0].id, config, plugin, onUpdate, app);
 	}
 }
 
@@ -58,7 +65,8 @@ function renderFieldGroup(
 	groupId: FieldGroup,
 	config: TaskModalFieldsConfig,
 	plugin: TaskNotesPlugin,
-	onUpdate: (config: TaskModalFieldsConfig) => void
+	onUpdate: (config: TaskModalFieldsConfig) => void,
+	app: App
 ): void {
 	container.empty();
 
@@ -81,43 +89,12 @@ function renderFieldGroup(
 
 	// Render each field as a card
 	groupFields.forEach((field, index) => {
-		const card = createFieldCard(cardsContainer, field, index, config, plugin, onUpdate);
-
-		// Setup drag and drop for this card
-		setupCardDragAndDrop(card, cardsContainer, (draggedId: string, targetId: string, insertBefore: boolean) => {
-			const draggedIndex = config.fields.findIndex((f) => f.id === draggedId && f.group === groupId);
-			const targetIndex = config.fields.findIndex((f) => f.id === targetId && f.group === groupId);
-
-			if (draggedIndex === -1 || targetIndex === -1) return;
-
-			// Get only fields in this group
-			const groupFields = config.fields.filter((f) => f.group === groupId);
-
-			// Find positions within the group
-			const draggedGroupIndex = groupFields.findIndex((f) => f.id === draggedId);
-			const targetGroupIndex = groupFields.findIndex((f) => f.id === targetId);
-
-			// Reorder within group
-			const [movedField] = groupFields.splice(draggedGroupIndex, 1);
-			const insertIndex = targetGroupIndex + (insertBefore ? 0 : 1);
-			groupFields.splice(insertIndex, 0, movedField);
-
-			// Update order values
-			groupFields.forEach((f, i) => {
-				const fieldIndex = config.fields.findIndex((cf) => cf.id === f.id);
-				if (fieldIndex !== -1) {
-					config.fields[fieldIndex].order = i;
-				}
-			});
-
-			onUpdate(config);
-			renderFieldGroup(container, groupId, config, plugin, onUpdate);
-		});
+		createFieldCard(cardsContainer, field, index, config, plugin, onUpdate, app, groupId);
 	});
 }
 
 /**
- * Creates a card for a single field
+ * Creates a card for a single field using the CardComponent system
  */
 function createFieldCard(
 	container: HTMLElement,
@@ -125,116 +102,65 @@ function createFieldCard(
 	index: number,
 	config: TaskModalFieldsConfig,
 	plugin: TaskNotesPlugin,
-	onUpdate: (config: TaskModalFieldsConfig) => void
-): HTMLElement {
+	onUpdate: (config: TaskModalFieldsConfig) => void,
+	app: App,
+	groupId: FieldGroup
+): void {
 	const translate = (key: string, params?: Record<string, string | number>) =>
 		plugin.i18n.translate(key as any, params);
 
-	const card = container.createDiv({ cls: "field-card tasknotes-settings__card" });
-	card.setAttribute("data-field-id", field.id);
-	card.setAttribute("data-id", field.id);
+	// Create type badge
+	const typeBadge = document.createElement("span");
+	typeBadge.classList.add("field-card__type");
+	typeBadge.classList.add(`field-card__type--${field.fieldType}`);
+	typeBadge.textContent = field.fieldType;
 
-	// Header with drag handle and field name
-	const header = card.createDiv({ cls: "field-card__header" });
-
-	// Drag handle (use the class expected by setupCardDragAndDrop)
-	const dragHandle = header.createDiv({ cls: "field-card__drag-handle tasknotes-settings__card-drag-handle" });
-	setIcon(dragHandle, "grip-vertical");
-
-	// Field name and type
-	const nameContainer = header.createDiv({ cls: "field-card__name-container" });
-	const nameEl = nameContainer.createDiv({ cls: "field-card__name" });
-	nameEl.setText(field.displayName);
-
-	const typeEl = nameContainer.createDiv({ cls: "field-card__type" });
-	typeEl.setText(field.fieldType);
-	typeEl.addClass(`field-card__type--${field.fieldType}`);
-
-	// Toggle switches for visibility
-	const controls = header.createDiv({ cls: "field-card__controls" });
-
-	// Enable/disable toggle
-	const enableToggle = controls.createDiv({ cls: "field-card__toggle" });
-	const enableLabel = enableToggle.createSpan({ cls: "field-card__toggle-label" });
-	enableLabel.setText("Enabled");
-	const enableInput = enableToggle.createEl("input", {
-		type: "checkbox",
-		cls: "field-card__checkbox",
-	});
-	enableInput.checked = field.enabled;
-	enableInput.onchange = () => {
+	// Create toggle inputs
+	const enabledToggle = createCardInput("checkbox");
+	enabledToggle.checked = field.enabled;
+	enabledToggle.onchange = () => {
 		const fieldIndex = config.fields.findIndex((f) => f.id === field.id);
 		if (fieldIndex !== -1) {
-			config.fields[fieldIndex].enabled = enableInput.checked;
+			config.fields[fieldIndex].enabled = enabledToggle.checked;
+			onUpdate(config);
+			// Re-render to update visibility
+			const activeTab = document.querySelector(".field-manager__tab--active") as HTMLElement;
+			if (activeTab) {
+				const tabIndex = Array.from(activeTab.parentElement!.children).indexOf(activeTab);
+				const groups = [...config.groups].sort((a, b) => a.order - b.order);
+				const groupToRender = groups[tabIndex];
+				if (groupToRender) {
+					renderFieldGroup(container.parentElement!, groupToRender.id, config, plugin, onUpdate, app);
+				}
+			}
+		}
+	};
+
+	const creationToggle = createCardInput("checkbox");
+	creationToggle.checked = field.visibleInCreation;
+	creationToggle.onchange = () => {
+		const fieldIndex = config.fields.findIndex((f) => f.id === field.id);
+		if (fieldIndex !== -1) {
+			config.fields[fieldIndex].visibleInCreation = creationToggle.checked;
 			onUpdate(config);
 		}
 	};
 
-	// Body with visibility options (only shown when enabled)
-	const body = card.createDiv({ cls: "field-card__body" });
-	if (!field.enabled) {
-		body.style.display = "none";
-	}
-
-	enableInput.onchange = () => {
+	const editToggle = createCardInput("checkbox");
+	editToggle.checked = field.visibleInEdit;
+	editToggle.onchange = () => {
 		const fieldIndex = config.fields.findIndex((f) => f.id === field.id);
 		if (fieldIndex !== -1) {
-			config.fields[fieldIndex].enabled = enableInput.checked;
-			body.style.display = enableInput.checked ? "block" : "none";
+			config.fields[fieldIndex].visibleInEdit = editToggle.checked;
 			onUpdate(config);
 		}
 	};
 
-	// Visibility toggles
-	const visibilityRow = body.createDiv({ cls: "field-card__visibility" });
-
-	// Creation modal visibility
-	const creationToggle = visibilityRow.createDiv({ cls: "field-card__toggle" });
-	const creationLabel = creationToggle.createSpan({ cls: "field-card__toggle-label" });
-	creationLabel.setText("Show in Creation");
-	const creationInput = creationToggle.createEl("input", {
-		type: "checkbox",
-		cls: "field-card__checkbox",
-	});
-	creationInput.checked = field.visibleInCreation;
-	creationInput.onchange = () => {
-		const fieldIndex = config.fields.findIndex((f) => f.id === field.id);
-		if (fieldIndex !== -1) {
-			config.fields[fieldIndex].visibleInCreation = creationInput.checked;
-			onUpdate(config);
-		}
-	};
-
-	// Edit modal visibility
-	const editToggle = visibilityRow.createDiv({ cls: "field-card__toggle" });
-	const editLabel = editToggle.createSpan({ cls: "field-card__toggle-label" });
-	editLabel.setText("Show in Edit");
-	const editInput = editToggle.createEl("input", {
-		type: "checkbox",
-		cls: "field-card__checkbox",
-	});
-	editInput.checked = field.visibleInEdit;
-	editInput.onchange = () => {
-		const fieldIndex = config.fields.findIndex((f) => f.id === field.id);
-		if (fieldIndex !== -1) {
-			config.fields[fieldIndex].visibleInEdit = editInput.checked;
-			onUpdate(config);
-		}
-	};
-
-	// Group selector
-	const groupRow = body.createDiv({ cls: "field-card__group-row" });
-	const groupLabel = groupRow.createSpan({ cls: "field-card__label" });
-	groupLabel.setText("Group:");
-
-	const groupSelect = groupRow.createEl("select", { cls: "field-card__select" });
-	config.groups.forEach((group) => {
-		const option = groupSelect.createEl("option", { value: group.id });
-		option.setText(group.displayName);
-		if (group.id === field.group) {
-			option.selected = true;
-		}
-	});
+	// Create group selector
+	const groupSelect = createCardSelect(
+		config.groups.map((g) => ({ value: g.id, label: g.displayName })),
+		field.group
+	);
 	groupSelect.onchange = () => {
 		const fieldIndex = config.fields.findIndex((f) => f.id === field.id);
 		if (fieldIndex !== -1) {
@@ -248,7 +174,68 @@ function createFieldCard(
 		}
 	};
 
-	return card;
+	// Create the card using CardComponent
+	const card = createCard(container, {
+		id: field.id,
+		draggable: true,
+		header: {
+			primaryText: field.displayName,
+			secondaryText: `ID: ${field.id}`,
+			meta: [typeBadge],
+		},
+		content: {
+			sections: [
+				{
+					rows: [
+						{ label: "Enabled:", input: enabledToggle },
+					],
+				},
+				...(field.enabled
+					? [
+							{
+								rows: [
+									{ label: "Show in Creation:", input: creationToggle },
+									{ label: "Show in Edit:", input: editToggle },
+									{ label: "Group:", input: groupSelect, fullWidth: true },
+								],
+							},
+					  ]
+					: []),
+			],
+		},
+	});
+
+	// Setup drag and drop for reordering
+	setupCardDragAndDrop(card, container, (draggedId: string, targetId: string, insertBefore: boolean) => {
+		const draggedIndex = config.fields.findIndex((f) => f.id === draggedId && f.group === groupId);
+		const targetIndex = config.fields.findIndex((f) => f.id === targetId && f.group === groupId);
+
+		if (draggedIndex === -1 || targetIndex === -1) return;
+
+		// Get only fields in this group
+		const groupFields = config.fields.filter((f) => f.group === groupId);
+
+		// Find positions within the group
+		const draggedGroupIndex = groupFields.findIndex((f) => f.id === draggedId);
+		const targetGroupIndex = groupFields.findIndex((f) => f.id === targetId);
+
+		// Reorder within group
+		const [movedField] = groupFields.splice(draggedGroupIndex, 1);
+		const insertIndex = targetGroupIndex + (insertBefore ? 0 : 1);
+		groupFields.splice(insertIndex, 0, movedField);
+
+		// Update order values
+		groupFields.forEach((f, i) => {
+			const fieldIndex = config.fields.findIndex((cf) => cf.id === f.id);
+			if (fieldIndex !== -1) {
+				config.fields[fieldIndex].order = i;
+			}
+		});
+
+		onUpdate(config);
+		// Re-render the group
+		renderFieldGroup(container, groupId, config, plugin, onUpdate, app);
+	});
 }
 
 /**
@@ -306,42 +293,6 @@ export function addFieldManagerStyles(): void {
 			color: var(--text-muted);
 		}
 
-		.field-card {
-			background: var(--background-secondary);
-			border: 1px solid var(--background-modifier-border);
-			border-radius: 6px;
-			padding: 0.75rem;
-			cursor: grab;
-		}
-
-		.field-card:active {
-			cursor: grabbing;
-		}
-
-		.field-card__header {
-			display: flex;
-			align-items: center;
-			gap: 0.75rem;
-			margin-bottom: 0.75rem;
-		}
-
-		.field-card__drag-handle {
-			color: var(--text-muted);
-			cursor: grab;
-			flex-shrink: 0;
-		}
-
-		.field-card__name-container {
-			flex: 1;
-			display: flex;
-			align-items: center;
-			gap: 0.5rem;
-		}
-
-		.field-card__name {
-			font-weight: 500;
-		}
-
 		.field-card__type {
 			font-size: 0.75rem;
 			padding: 0.125rem 0.5rem;
@@ -367,55 +318,6 @@ export function addFieldManagerStyles(): void {
 		.field-card__type--organization {
 			background: var(--color-green);
 			color: white;
-		}
-
-		.field-card__controls {
-			display: flex;
-			gap: 1rem;
-		}
-
-		.field-card__toggle {
-			display: flex;
-			align-items: center;
-			gap: 0.5rem;
-		}
-
-		.field-card__toggle-label {
-			font-size: 0.875rem;
-		}
-
-		.field-card__checkbox {
-			cursor: pointer;
-		}
-
-		.field-card__body {
-			padding-top: 0.75rem;
-			border-top: 1px solid var(--background-modifier-border);
-		}
-
-		.field-card__visibility {
-			display: flex;
-			gap: 1.5rem;
-			margin-bottom: 0.75rem;
-		}
-
-		.field-card__group-row {
-			display: flex;
-			align-items: center;
-			gap: 0.5rem;
-		}
-
-		.field-card__label {
-			font-size: 0.875rem;
-			color: var(--text-muted);
-		}
-
-		.field-card__select {
-			flex: 1;
-			padding: 0.25rem 0.5rem;
-			border-radius: 3px;
-			border: 1px solid var(--background-modifier-border);
-			background: var(--background-primary);
 		}
 	`;
 
