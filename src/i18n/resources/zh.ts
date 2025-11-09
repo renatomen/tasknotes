@@ -401,6 +401,7 @@ export const zh: TranslationTree = {
 		tabs: {
 			general: "常规",
 			taskProperties: "任务属性",
+			modalFields: "模态框字段",
 			defaults: "默认值和模板",
 			appearance: "外观和界面",
 			features: "功能",
@@ -536,12 +537,12 @@ export const zh: TranslationTree = {
 			},
 			timeblocking: {
 				header: "时间块",
-				description: "配置时间块功能，在日记中进行轻量级调度。在高级日历视图中，按住Shift + 点击并拖拽创建时间块。",
+				description: "配置时间块功能，在日记中进行轻量级调度。在日历视图上拖动以创建事件 - 从上下文菜单中选择'时间块'。",
 				enableName: "启用时间块",
-				enableDesc: "启用时间块功能，在日记中进行轻量级调度",
+				enableDesc: "启用时间块功能，在日记中进行轻量级调度。启用后，'时间块'选项会出现在日历拖动上下文菜单中。",
 				showBlocksName: "显示时间块",
 				showBlocksDesc: "默认显示日记中的时间块",
-				usage: "用法：在高级日历视图中，按住Shift + 拖拽创建时间块。拖拽移动现有时间块。调整边缘以修改持续时间。",
+				usage: "用法：在日历上拖动以创建事件。从上下文菜单中选择'时间块'（仅在启用时间块时可见）。拖动以移动现有时间块。调整边缘以修改持续时间。",
 			},
 			performance: {
 				header: "性能和行为",
@@ -1133,6 +1134,18 @@ export const zh: TranslationTree = {
 				projectSubtasksPosition: {
 					name: "项目子任务位置",
 					description: "项目子任务小部件的定位位置",
+					options: {
+						top: "笔记顶部",
+						bottom: "笔记底部",
+					},
+				},
+				showRelationshipsWidget: {
+					name: "显示关系小部件",
+					description: "显示一个小部件，展示当前笔记的所有关系（子任务、项目、依赖项）",
+				},
+				relationshipsPosition: {
+					name: "关系位置",
+					description: "关系小部件的位置",
 					options: {
 						top: "笔记顶部",
 						bottom: "笔记底部",

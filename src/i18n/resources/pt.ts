@@ -401,6 +401,7 @@ export const pt: TranslationTree = {
 		tabs: {
 			general: "Geral",
 			taskProperties: "Propriedades da Tarefa",
+			modalFields: "Campos do Modal",
 			defaults: "Padrões e Modelos",
 			appearance: "Aparência e UI",
 			features: "Recursos",
@@ -1140,6 +1141,18 @@ export const pt: TranslationTree = {
 						top: "Topo da nota",
 						bottom: "Fundo da nota"
 					}
+				},
+				showRelationshipsWidget: {
+					name: "Mostrar widget de relacionamentos",
+					description: "Exibir um widget mostrando todos os relacionamentos da nota atual (subtarefas, projetos, dependências)",
+				},
+				relationshipsPosition: {
+					name: "Posição dos relacionamentos",
+					description: "Onde posicionar o widget de relacionamentos",
+					options: {
+						top: "Topo da nota",
+						bottom: "Final da nota",
+					},
 				},
 				showTaskCardInNote: {
 					name: "Mostrar cartão de tarefa na nota",
@@ -1944,7 +1957,7 @@ export const pt: TranslationTree = {
 				hideDetailedOptions: "Ocultar opções detalhadas",
 				showDetailedOptions: "Mostrar opções detalhadas"
 			},
-			nlPlaceholder: "Comprar pão amanhã às 15h @casa #compras\n\nAdicione detalhes aqui...",
+			nlPlaceholder: "Comprar mantimentos amanhã às 15h @casa #tarefas",
 			notices: {
 				titleRequired: "Por favor, insira um título para a tarefa",
 				success: 'Tarefa "{title}" criada com sucesso',

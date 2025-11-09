@@ -401,6 +401,7 @@ export const de: TranslationTree = {
 		tabs: {
 			general: "Allgemein",
 			taskProperties: "Aufgabeneigenschaften",
+			modalFields: "Modalfelder",
 			defaults: "Voreinstellungen & Vorlagen",
 			appearance: "Erscheinungsbild & UI",
 			features: "Funktionen",
@@ -536,12 +537,12 @@ export const de: TranslationTree = {
 			},
 			timeblocking: {
 				header: "Zeitblockierung",
-				description: "Konfiguriere Zeitblockfunktionalität für leichte Planung in täglichen Notizen. In der erweiterten Kalenderansicht, halte Shift + Klick und ziehe, um Zeitblöcke zu erstellen.",
+				description: "Konfiguriere Zeitblockfunktionalität für leichte Planung in täglichen Notizen. Ziehe in Kalenderansichten, um Ereignisse zu erstellen - wähle 'Zeitblock' aus dem Kontextmenü.",
 				enableName: "Zeitblockierung aktivieren",
-				enableDesc: "Zeitblockfunktionalität für leichte Planung in täglichen Notizen aktivieren",
+				enableDesc: "Zeitblockfunktionalität für leichte Planung in täglichen Notizen aktivieren. Wenn aktiviert, erscheint die Option 'Zeitblock' im Kalender-Ziehen-Kontextmenü.",
 				showBlocksName: "Zeitblöcke anzeigen",
 				showBlocksDesc: "Zeitblöcke aus täglichen Notizen standardmäßig anzeigen",
-				usage: "Verwendung: In der erweiterten Kalenderansicht, halte Shift + ziehen, um Zeitblöcke zu erstellen. Ziehen, um bestehende Zeitblöcke zu verschieben. Ränder anpassen, um Dauer zu ändern.",
+				usage: "Verwendung: Ziehe im Kalender, um Ereignisse zu erstellen. Wähle 'Zeitblock' aus dem Kontextmenü (nur sichtbar, wenn Zeitblockierung aktiviert ist). Ziehe, um bestehende Zeitblöcke zu verschieben. Ränder anpassen, um Dauer zu ändern.",
 			},
 			performance: {
 				header: "Leistung & Verhalten",
@@ -1133,6 +1134,18 @@ export const de: TranslationTree = {
 				projectSubtasksPosition: {
 					name: "Projekt-Unteraufgaben-Position",
 					description: "Wo das Projekt-Unteraufgaben-Widget positioniert werden soll",
+					options: {
+						top: "Oben in der Notiz",
+						bottom: "Unten in der Notiz",
+					},
+				},
+				showRelationshipsWidget: {
+					name: "Beziehungen-Widget anzeigen",
+					description: "Ein Widget anzeigen, das alle Beziehungen für die aktuelle Notiz zeigt (Unteraufgaben, Projekte, Abhängigkeiten)",
+				},
+				relationshipsPosition: {
+					name: "Beziehungen-Position",
+					description: "Wo das Beziehungen-Widget positioniert werden soll",
 					options: {
 						top: "Oben in der Notiz",
 						bottom: "Unten in der Notiz",
@@ -1936,7 +1949,7 @@ export const de: TranslationTree = {
 				hideDetailedOptions: "Detailoptionen ausblenden",
 				showDetailedOptions: "Detailoptionen anzeigen",
 			},
-			nlPlaceholder: "Einkaufen morgen um 15 Uhr @zuhause #besorgung\n\nDetails hier hinzufügen...",
+			nlPlaceholder: "Lebensmittel morgen um 15 Uhr kaufen @zuhause #besorgungen",
 			notices: {
 				titleRequired: "Bitte gib einen Aufgabentitel ein",
 				success: "Aufgabe \"{title}\" erfolgreich erstellt",

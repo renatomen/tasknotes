@@ -401,6 +401,7 @@ export const es: TranslationTree = {
 		tabs: {
 			general: "General",
 			taskProperties: "Propiedades de tareas",
+			modalFields: "Campos del modal",
 			defaults: "Predeterminados y plantillas",
 			appearance: "Apariencia e interfaz",
 			features: "Características",
@@ -536,12 +537,12 @@ export const es: TranslationTree = {
 			},
 			timeblocking: {
 				header: "Bloqueo de tiempo",
-				description: "Configura la funcionalidad de bloqueo de tiempo para programación ligera en notas diarias. En la vista de calendario avanzado, mantén Shift + clic y arrastra para crear bloques de tiempo.",
+				description: "Configura la funcionalidad de bloqueo de tiempo para programación ligera en notas diarias. Arrastra en las vistas de calendario para crear eventos - selecciona 'Timeblock' del menú contextual.",
 				enableName: "Habilitar bloqueo de tiempo",
-				enableDesc: "Habilitar funcionalidad de bloque de tiempo para programación ligera en notas diarias",
+				enableDesc: "Habilitar funcionalidad de bloque de tiempo para programación ligera en notas diarias. Cuando está habilitado, la opción 'Timeblock' aparece en el menú contextual de arrastrar del calendario.",
 				showBlocksName: "Mostrar bloques de tiempo",
 				showBlocksDesc: "Mostrar bloques de tiempo de notas diarias por defecto",
-				usage: "Uso: En la vista de calendario avanzado, mantén Shift + arrastra para crear bloques de tiempo. Arrastra para mover bloques existentes. Ajusta los bordes para cambiar la duración.",
+				usage: "Uso: Arrastra en el calendario para crear eventos. Selecciona 'Timeblock' del menú contextual (solo visible cuando el bloqueo de tiempo está habilitado). Arrastra para mover bloques de tiempo existentes. Ajusta los bordes para ajustar la duración.",
 			},
 			performance: {
 				header: "Rendimiento y comportamiento",
@@ -1136,6 +1137,18 @@ export const es: TranslationTree = {
 					options: {
 						top: "Parte superior de la nota",
 						bottom: "Parte inferior de la nota",
+					},
+				},
+				showRelationshipsWidget: {
+					name: "Mostrar widget de relaciones",
+					description: "Mostrar un widget que muestra todas las relaciones de la nota actual (subtareas, proyectos, dependencias)",
+				},
+				relationshipsPosition: {
+					name: "Posición de relaciones",
+					description: "Dónde posicionar el widget de relaciones",
+					options: {
+						top: "Arriba de la nota",
+						bottom: "Abajo de la nota",
 					},
 				},
 				showTaskCardInNote: {
@@ -1936,7 +1949,7 @@ export const es: TranslationTree = {
 				hideDetailedOptions: "Ocultar opciones detalladas",
 				showDetailedOptions: "Mostrar opciones detalladas",
 			},
-			nlPlaceholder: "Comprar comestibles mañana a las 3pm @casa #recados\n\nAgregar detalles aquí...",
+			nlPlaceholder: "Comprar víveres mañana a las 3pm @casa #diligencias",
 			notices: {
 				titleRequired: "Por favor ingresa un título de tarea",
 				success: "Tarea \"{title}\" creada exitosamente",

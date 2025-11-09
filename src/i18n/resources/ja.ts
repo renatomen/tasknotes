@@ -401,6 +401,7 @@ export const ja: TranslationTree = {
 		tabs: {
 			general: "一般",
 			taskProperties: "タスクプロパティ",
+			modalFields: "モーダルフィールド",
 			defaults: "デフォルトとテンプレート",
 			appearance: "外観とUI",
 			features: "機能",
@@ -536,12 +537,12 @@ export const ja: TranslationTree = {
 			},
 			timeblocking: {
 				header: "タイムブロッキング",
-				description: "デイリーノートでの軽量スケジューリングのためのタイムブロック機能を設定します。アドバンスドカレンダービューで、Shift + クリック＆ドラッグでタイムブロックを作成できます。",
+				description: "デイリーノートでの軽量スケジューリングのためのタイムブロック機能を設定します。カレンダービューでドラッグしてイベントを作成 - コンテキストメニューから'タイムブロック'を選択します。",
 				enableName: "タイムブロッキングを有効にする",
-				enableDesc: "デイリーノートでの軽量スケジューリングのためのタイムブロック機能を有効にする",
+				enableDesc: "デイリーノートでの軽量スケジューリングのためのタイムブロック機能を有効にする。有効にすると、カレンダーのドラッグコンテキストメニューに'タイムブロック'オプションが表示されます。",
 				showBlocksName: "タイムブロックを表示",
 				showBlocksDesc: "デイリーノートからのタイムブロックをデフォルトで表示",
-				usage: "使用方法：アドバンスドカレンダービューで、Shift + ドラッグでタイムブロックを作成。ドラッグで既存のブロックを移動。端を調整して時間を変更。",
+				usage: "使用方法：カレンダーでドラッグしてイベントを作成します。コンテキストメニューから'タイムブロック'を選択します（タイムブロッキングが有効な場合のみ表示されます）。ドラッグして既存のタイムブロックを移動します。端を調整して時間を変更します。",
 			},
 			performance: {
 				header: "パフォーマンスと動作",
@@ -1133,6 +1134,18 @@ export const ja: TranslationTree = {
 				projectSubtasksPosition: {
 					name: "プロジェクトサブタスク位置",
 					description: "プロジェクトサブタスクウィジェットの位置",
+					options: {
+						top: "ノートの上部",
+						bottom: "ノートの下部",
+					},
+				},
+				showRelationshipsWidget: {
+					name: "関係ウィジェットを表示",
+					description: "現在のノートのすべての関係（サブタスク、プロジェクト、依存関係）を表示するウィジェットを表示",
+				},
+				relationshipsPosition: {
+					name: "関係の位置",
+					description: "関係ウィジェットを配置する場所",
 					options: {
 						top: "ノートの上部",
 						bottom: "ノートの下部",
@@ -1936,7 +1949,7 @@ export const ja: TranslationTree = {
 				hideDetailedOptions: "詳細オプションを非表示",
 				showDetailedOptions: "詳細オプションを表示",
 			},
-			nlPlaceholder: "明日の午後3時に食料品を買う @home #errands\n\nここに詳細を追加...",
+			nlPlaceholder: "明日午後3時に食料品を買う @家 #用事",
 			notices: {
 				titleRequired: "タスクタイトルを入力してください",
 				success: "タスク\"{title}\"が正常に作成されました",

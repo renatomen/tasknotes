@@ -401,6 +401,7 @@ export const fr: TranslationTree = {
 		tabs: {
 			general: "Général",
 			taskProperties: "Propriétés des tâches",
+			modalFields: "Champs du modal",
 			defaults: "Défauts et modèles",
 			appearance: "Apparence et interface",
 			features: "Fonctionnalités",
@@ -536,12 +537,12 @@ export const fr: TranslationTree = {
 			},
 			timeblocking: {
 				header: "Planification par blocs",
-				description: "Configurez la fonctionnalité de planification par blocs pour une programmation légère dans les notes quotidiennes. Dans la vue calendrier avancée, maintenez Shift + clic et glissez pour créer des blocs de temps.",
+				description: "Configurez la fonctionnalité de planification par blocs pour une programmation légère dans les notes quotidiennes. Glissez sur les vues calendrier pour créer des événements - sélectionnez 'Timeblock' dans le menu contextuel.",
 				enableName: "Activer la planification par blocs",
-				enableDesc: "Activer la fonctionnalité de planification par blocs pour une programmation légère dans les notes quotidiennes",
+				enableDesc: "Activer la fonctionnalité de planification par blocs pour une programmation légère dans les notes quotidiennes. Lorsqu'activé, l'option 'Timeblock' apparaît dans le menu contextuel de glissement du calendrier.",
 				showBlocksName: "Afficher les blocs de temps",
 				showBlocksDesc: "Afficher les blocs de temps des notes quotidiennes par défaut",
-				usage: "Utilisation : Dans la vue calendrier avancée, maintenez Shift + glissez pour créer des blocs de temps. Glissez pour déplacer les blocs existants. Ajustez les bords pour modifier la durée.",
+				usage: "Utilisation : Glissez sur le calendrier pour créer des événements. Sélectionnez 'Timeblock' dans le menu contextuel (uniquement visible lorsque la planification par blocs est activée). Glissez pour déplacer les blocs de temps existants. Ajustez les bords pour modifier la durée.",
 			},
 			performance: {
 				header: "Performance et comportement",
@@ -1133,6 +1134,18 @@ export const fr: TranslationTree = {
 				projectSubtasksPosition: {
 					name: "Position des sous-tâches de projet",
 					description: "Où positionner le widget des sous-tâches de projet",
+					options: {
+						top: "Haut de la note",
+						bottom: "Bas de la note",
+					},
+				},
+				showRelationshipsWidget: {
+					name: "Afficher le widget de relations",
+					description: "Afficher un widget montrant toutes les relations de la note actuelle (sous-tâches, projets, dépendances)",
+				},
+				relationshipsPosition: {
+					name: "Position des relations",
+					description: "Où positionner le widget de relations",
 					options: {
 						top: "Haut de la note",
 						bottom: "Bas de la note",
@@ -1936,7 +1949,7 @@ export const fr: TranslationTree = {
 				hideDetailedOptions: "Masquer les options détaillées",
 				showDetailedOptions: "Afficher les options détaillées",
 			},
-			nlPlaceholder: "Acheter des courses demain à 15h @maison #courses\n\nAjoutez des détails ici...",
+			nlPlaceholder: "Acheter des courses demain à 15h @maison #courses",
 			notices: {
 				titleRequired: "Veuillez saisir un titre de tâche",
 				success: "Tâche \"{title}\" créée avec succès",
