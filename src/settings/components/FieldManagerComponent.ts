@@ -6,9 +6,7 @@ import {
 	setupCardDragAndDrop,
 	createCardInput,
 	createCardSelect,
-	createCardToggle,
-	onToggleChange,
-	getToggleValue
+	createCardToggle
 } from "./CardComponent";
 
 /**
@@ -123,9 +121,8 @@ function createFieldCard(
 	typeBadge.classList.add(`field-card__type--${field.fieldType}`);
 	typeBadge.textContent = field.fieldType;
 
-	// Create toggle switches
-	const enabledToggle = createCardToggle(field.enabled);
-	onToggleChange(enabledToggle, (value) => {
+	// Create toggle switches with callbacks
+	const enabledToggle = createCardToggle(field.enabled, (value) => {
 		const fieldIndex = config.fields.findIndex((f) => f.id === field.id);
 		if (fieldIndex !== -1) {
 			config.fields[fieldIndex].enabled = value;
@@ -143,8 +140,7 @@ function createFieldCard(
 		}
 	});
 
-	const creationToggle = createCardToggle(field.visibleInCreation);
-	onToggleChange(creationToggle, (value) => {
+	const creationToggle = createCardToggle(field.visibleInCreation, (value) => {
 		const fieldIndex = config.fields.findIndex((f) => f.id === field.id);
 		if (fieldIndex !== -1) {
 			config.fields[fieldIndex].visibleInCreation = value;
@@ -152,8 +148,7 @@ function createFieldCard(
 		}
 	});
 
-	const editToggle = createCardToggle(field.visibleInEdit);
-	onToggleChange(editToggle, (value) => {
+	const editToggle = createCardToggle(field.visibleInEdit, (value) => {
 		const fieldIndex = config.fields.findIndex((f) => f.id === field.id);
 		if (fieldIndex !== -1) {
 			config.fields[fieldIndex].visibleInEdit = value;

@@ -493,46 +493,23 @@ export function createCardInput(
 
 /**
  * Creates an Obsidian-style toggle switch for card content
+ * Returns the toggle component's toggleEl directly
  */
-export function createCardToggle(initialValue: boolean = false): HTMLElement {
-	const toggleContainer = document.createElement("div");
-	toggleContainer.addClass("checkbox-container");
+export function createCardToggle(initialValue: boolean = false, onChange?: (value: boolean) => void): HTMLElement {
+	const { Setting } = require("obsidian");
+	const tempContainer = document.createElement("div");
+	const setting = new Setting(tempContainer);
 
-	const toggle = toggleContainer.createEl("input", {
-		type: "checkbox",
-		cls: "task-list-item-checkbox",
+	let toggleEl: HTMLElement;
+	setting.addToggle((toggle: any) => {
+		toggle.setValue(initialValue);
+		if (onChange) {
+			toggle.onChange(onChange);
+		}
+		toggleEl = toggle.toggleEl;
 	});
-	toggle.checked = initialValue;
 
-	return toggleContainer;
-}
-
-/**
- * Gets the toggle value from a toggle container created by createCardToggle
- */
-export function getToggleValue(toggleContainer: HTMLElement): boolean {
-	const input = toggleContainer.querySelector("input[type='checkbox']") as HTMLInputElement;
-	return input?.checked ?? false;
-}
-
-/**
- * Sets the toggle value for a toggle container created by createCardToggle
- */
-export function setToggleValue(toggleContainer: HTMLElement, value: boolean): void {
-	const input = toggleContainer.querySelector("input[type='checkbox']") as HTMLInputElement;
-	if (input) {
-		input.checked = value;
-	}
-}
-
-/**
- * Adds a change listener to a toggle container created by createCardToggle
- */
-export function onToggleChange(toggleContainer: HTMLElement, callback: (value: boolean) => void): void {
-	const input = toggleContainer.querySelector("input[type='checkbox']") as HTMLInputElement;
-	if (input) {
-		input.addEventListener("change", () => callback(input.checked));
-	}
+	return toggleEl!;
 }
 
 /**
