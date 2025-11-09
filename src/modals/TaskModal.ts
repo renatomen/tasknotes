@@ -647,14 +647,19 @@ export abstract class TaskModal extends Modal {
 			this.detailsContainer.style.display = "none";
 		}
 
+		// Check field configuration to determine which fields to show
+		const config = this.plugin.settings.modalFieldsConfig;
+		const shouldShowTitle = this.shouldShowField("title", config);
+		const shouldShowDetails = this.shouldShowField("details", config);
+
 		// Title field appears in details section for:
-		// 1. Edit modals (always)
+		// 1. Edit modals (always, if enabled in config)
 		// 2. Creation modals when NLP is enabled (since the main title input is replaced by NLP textarea)
 		const isEditModal = this.isEditMode();
 		const isCreationWithNLP =
 			this.isCreationMode() && this.plugin.settings.enableNaturalLanguageInput;
 
-		if (isEditModal || isCreationWithNLP) {
+		if (shouldShowTitle && (isEditModal || isCreationWithNLP)) {
 			const titleLabel = this.detailsContainer.createDiv("detail-label");
 			titleLabel.textContent = this.t("modals.task.titleLabel");
 
@@ -676,7 +681,7 @@ export abstract class TaskModal extends Modal {
 		}
 
 		// Details textarea (only for creation modals, not edit modals)
-		if (!this.isEditMode()) {
+		if (shouldShowDetails && !this.isEditMode()) {
 			const detailsLabel = this.detailsContainer.createDiv("detail-label");
 			detailsLabel.textContent = this.t("modals.task.detailsLabel");
 
@@ -709,6 +714,27 @@ export abstract class TaskModal extends Modal {
 
 		// Additional form fields (contexts, tags, etc.) can be added here
 		this.createAdditionalFields(this.detailsContainer);
+	}
+
+	/**
+	 * Check if a field should be shown based on field configuration
+	 */
+	protected shouldShowField(fieldId: string, config?: any): boolean {
+		// If no config, show all fields (legacy behavior)
+		if (!config || !config.fields) {
+			return true;
+		}
+
+		// Find the field in config
+		const field = config.fields.find((f: any) => f.id === fieldId);
+		if (!field) {
+			// Field not in config, show it by default
+			return true;
+		}
+
+		// Check if field is enabled and visible for this modal type
+		const isVisible = this.isCreationMode() ? field.visibleInCreation : field.visibleInEdit;
+		return field.enabled && isVisible;
 	}
 
 	protected createAdditionalFields(container: HTMLElement): void {
