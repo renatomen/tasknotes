@@ -1,7 +1,15 @@
 import { App } from "obsidian";
 import type TaskNotesPlugin from "../../main";
 import type { ModalFieldConfig, FieldGroup, TaskModalFieldsConfig } from "../../types/settings";
-import { createCard, setupCardDragAndDrop, createCardInput, createCardSelect } from "./CardComponent";
+import {
+	createCard,
+	setupCardDragAndDrop,
+	createCardInput,
+	createCardSelect,
+	createCardToggle,
+	onToggleChange,
+	getToggleValue
+} from "./CardComponent";
 
 /**
  * Creates the field manager UI component for configuring modal fields
@@ -115,13 +123,12 @@ function createFieldCard(
 	typeBadge.classList.add(`field-card__type--${field.fieldType}`);
 	typeBadge.textContent = field.fieldType;
 
-	// Create toggle inputs
-	const enabledToggle = createCardInput("checkbox");
-	enabledToggle.checked = field.enabled;
-	enabledToggle.onchange = () => {
+	// Create toggle switches
+	const enabledToggle = createCardToggle(field.enabled);
+	onToggleChange(enabledToggle, (value) => {
 		const fieldIndex = config.fields.findIndex((f) => f.id === field.id);
 		if (fieldIndex !== -1) {
-			config.fields[fieldIndex].enabled = enabledToggle.checked;
+			config.fields[fieldIndex].enabled = value;
 			onUpdate(config);
 			// Re-render to update visibility
 			const activeTab = document.querySelector(".field-manager__tab--active") as HTMLElement;
@@ -134,27 +141,25 @@ function createFieldCard(
 				}
 			}
 		}
-	};
+	});
 
-	const creationToggle = createCardInput("checkbox");
-	creationToggle.checked = field.visibleInCreation;
-	creationToggle.onchange = () => {
+	const creationToggle = createCardToggle(field.visibleInCreation);
+	onToggleChange(creationToggle, (value) => {
 		const fieldIndex = config.fields.findIndex((f) => f.id === field.id);
 		if (fieldIndex !== -1) {
-			config.fields[fieldIndex].visibleInCreation = creationToggle.checked;
+			config.fields[fieldIndex].visibleInCreation = value;
 			onUpdate(config);
 		}
-	};
+	});
 
-	const editToggle = createCardInput("checkbox");
-	editToggle.checked = field.visibleInEdit;
-	editToggle.onchange = () => {
+	const editToggle = createCardToggle(field.visibleInEdit);
+	onToggleChange(editToggle, (value) => {
 		const fieldIndex = config.fields.findIndex((f) => f.id === field.id);
 		if (fieldIndex !== -1) {
-			config.fields[fieldIndex].visibleInEdit = editToggle.checked;
+			config.fields[fieldIndex].visibleInEdit = value;
 			onUpdate(config);
 		}
-	};
+	});
 
 	// Create group selector
 	const groupSelect = createCardSelect(
