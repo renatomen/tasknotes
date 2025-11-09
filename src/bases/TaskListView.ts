@@ -45,10 +45,18 @@ export class TaskListView extends BasesViewBase {
 	protected setupContainer(): void {
 		super.setupContainer();
 
+		// Make rootElement fill its container and establish flex context
+		if (this.rootElement) {
+			this.rootElement.style.cssText = "display: flex; flex-direction: column; height: 100%;";
+		}
+
 		// Create items container
 		const itemsContainer = document.createElement("div");
 		itemsContainer.className = "tn-bases-items-container";
-		itemsContainer.style.cssText = "margin-top: 12px; min-height: 400px; max-height: 100vh; overflow-y: auto; position: relative;";
+		// Use flex: 1 to fill available space in the rootElement flex container
+		// max-height: 100vh prevents unbounded growth when embedded in notes
+		// overflow-y: auto provides scrolling when content exceeds available height
+		itemsContainer.style.cssText = "margin-top: 12px; flex: 1; max-height: 100vh; overflow-y: auto; position: relative;";
 		this.rootElement?.appendChild(itemsContainer);
 		this.itemsContainer = itemsContainer;
 		this.registerContainerListeners();
