@@ -26,6 +26,14 @@ Example:
 
 ## Added
 
+- **Configurable task modal fields** (major feature)
+  - New "Modal Fields" settings tab for complete control over task creation and edit modals
+  - Configure which fields appear in creation vs edit modals independently
+  - Drag-and-drop reordering of fields within groups (metadata, organization, dependencies, custom)
+  - Enable/disable individual fields (including core fields like contexts, tags, time estimate)
+  - Organize fields into collapsible groups for better UX
+  - Automatic migration of existing user-defined fields
+  - Title and details fields support visibility toggling (ordering fixed for consistency)
 - **Rich markdown editor for NLP task creation** (major feature)
   - Replaced plain textarea with full CodeMirror markdown editor
   - Live preview, syntax highlighting, and wikilink support
