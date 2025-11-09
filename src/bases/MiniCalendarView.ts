@@ -532,32 +532,14 @@ export class MiniCalendarView extends BasesViewBase {
 			},
 		});
 
-		// Add dot indicator if notes exist for this date
+		// Add heatmap styling and tooltips if notes exist for this date
 		const dateKey = formatDateForStorage(dayDate);
 		const notesForDay = this.notesByDate.get(dateKey);
 
 		if (notesForDay && notesForDay.length > 0) {
-			const indicator = dayEl.createDiv({ cls: "note-indicator" });
-
-			// Style based on count
-			if (notesForDay.length >= 5) {
-				indicator.addClass("many-notes");
-				dayEl.addClass("mini-calendar-view__day--has-notes-many");
-			} else if (notesForDay.length >= 2) {
-				indicator.addClass("some-notes");
-				dayEl.addClass("mini-calendar-view__day--has-notes-some");
-			} else {
-				indicator.addClass("few-notes");
-				dayEl.addClass("mini-calendar-view__day--has-notes-few");
-			}
-
 			// Add heat map intensity class
 			const intensity = this.getHeatMapIntensity(notesForDay.length);
 			dayEl.addClass(`mini-calendar-view__day--intensity-${intensity}`);
-
-			setTooltip(indicator, `${notesForDay.length} note${notesForDay.length > 1 ? "s" : ""}`, {
-				placement: "top",
-			});
 
 			// Add hover preview tooltip
 			dayEl.addEventListener('mouseenter', (e: MouseEvent) => {
