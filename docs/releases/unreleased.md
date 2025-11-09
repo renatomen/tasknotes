@@ -82,6 +82,11 @@ Example:
 
 ## Fixed
 
+- (#1089) Fixed embedded task list bases growing unbounded and leaving large empty space
+  - Task list view now constrains height to viewport (max-height: 100vh) like kanban view
+  - Embedded bases now scroll internally instead of expanding to show all tasks
+  - Consistent behavior between task list and kanban embedded views
+  - Thanks to @same774 for reporting with screenshot
 - **Bases Calendar view options now working correctly**
   - Fixed "Highlight today" toggle not applying - now properly adds/removes CSS class when toggled
   - Fixed calendar view type (month/week/day/etc) not being saved when changed via calendar buttons

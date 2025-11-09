@@ -48,7 +48,7 @@ export class TaskListView extends BasesViewBase {
 		// Create items container
 		const itemsContainer = document.createElement("div");
 		itemsContainer.className = "tn-bases-items-container";
-		itemsContainer.style.cssText = "margin-top: 12px; min-height: 400px; flex: 1;";
+		itemsContainer.style.cssText = "margin-top: 12px; min-height: 400px; max-height: 100vh; overflow-y: auto; position: relative;";
 		this.rootElement?.appendChild(itemsContainer);
 		this.itemsContainer = itemsContainer;
 		this.registerContainerListeners();
