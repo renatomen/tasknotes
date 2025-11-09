@@ -81,21 +81,29 @@ function renderFieldGroup(
 
 	// Render each field as a card
 	groupFields.forEach((field, index) => {
-		createFieldCard(cardsContainer, field, index, config, plugin, onUpdate);
-	});
+		const card = createFieldCard(cardsContainer, field, index, config, plugin, onUpdate);
 
-	// Setup drag and drop for reordering
-	setupCardDragAndDrop(
-		cardsContainer,
-		".field-card",
-		(startIndex: number, endIndex: number) => {
-			// Update field orders
-			const reorderedFields = [...groupFields];
-			const [movedField] = reorderedFields.splice(startIndex, 1);
-			reorderedFields.splice(endIndex, 0, movedField);
+		// Setup drag and drop for this card
+		setupCardDragAndDrop(card, cardsContainer, (draggedId: string, targetId: string, insertBefore: boolean) => {
+			const draggedIndex = config.fields.findIndex((f) => f.id === draggedId && f.group === groupId);
+			const targetIndex = config.fields.findIndex((f) => f.id === targetId && f.group === groupId);
+
+			if (draggedIndex === -1 || targetIndex === -1) return;
+
+			// Get only fields in this group
+			const groupFields = config.fields.filter((f) => f.group === groupId);
+
+			// Find positions within the group
+			const draggedGroupIndex = groupFields.findIndex((f) => f.id === draggedId);
+			const targetGroupIndex = groupFields.findIndex((f) => f.id === targetId);
+
+			// Reorder within group
+			const [movedField] = groupFields.splice(draggedGroupIndex, 1);
+			const insertIndex = targetGroupIndex + (insertBefore ? 0 : 1);
+			groupFields.splice(insertIndex, 0, movedField);
 
 			// Update order values
-			reorderedFields.forEach((f, i) => {
+			groupFields.forEach((f, i) => {
 				const fieldIndex = config.fields.findIndex((cf) => cf.id === f.id);
 				if (fieldIndex !== -1) {
 					config.fields[fieldIndex].order = i;
@@ -104,8 +112,8 @@ function renderFieldGroup(
 
 			onUpdate(config);
 			renderFieldGroup(container, groupId, config, plugin, onUpdate);
-		}
-	);
+		});
+	});
 }
 
 /**
@@ -118,18 +126,19 @@ function createFieldCard(
 	config: TaskModalFieldsConfig,
 	plugin: TaskNotesPlugin,
 	onUpdate: (config: TaskModalFieldsConfig) => void
-): void {
+): HTMLElement {
 	const translate = (key: string, params?: Record<string, string | number>) =>
 		plugin.i18n.translate(key as any, params);
 
-	const card = container.createDiv({ cls: "field-card" });
+	const card = container.createDiv({ cls: "field-card tasknotes-settings__card" });
 	card.setAttribute("data-field-id", field.id);
+	card.setAttribute("data-id", field.id);
 
 	// Header with drag handle and field name
 	const header = card.createDiv({ cls: "field-card__header" });
 
-	// Drag handle
-	const dragHandle = header.createDiv({ cls: "field-card__drag-handle" });
+	// Drag handle (use the class expected by setupCardDragAndDrop)
+	const dragHandle = header.createDiv({ cls: "field-card__drag-handle tasknotes-settings__card-drag-handle" });
 	setIcon(dragHandle, "grip-vertical");
 
 	// Field name and type
@@ -238,6 +247,8 @@ function createFieldCard(
 			}
 		}
 	};
+
+	return card;
 }
 
 /**

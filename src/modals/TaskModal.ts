@@ -859,15 +859,8 @@ export abstract class TaskModal extends Modal {
 						}
 					});
 
-					// Add file autocomplete if filter is configured
-					if (userField.autosuggestFilter) {
-						new FileSuggest(
-							this.app,
-							text.inputEl,
-							this.plugin,
-							userField.autosuggestFilter
-						);
-					}
+					// Add autocomplete functionality
+					new UserFieldSuggest(this.app, text.inputEl, this.plugin, userField);
 				});
 				break;
 			}
