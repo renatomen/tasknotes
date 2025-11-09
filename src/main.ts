@@ -1303,6 +1303,15 @@ export default class TaskNotesPlugin extends Plugin {
 			}
 		}
 
+		// Migration: Initialize modal fields configuration if not present
+		if (loadedData && !loadedData.modalFieldsConfig) {
+			const { initializeFieldConfig } = require("./utils/fieldConfigDefaults");
+			loadedData.modalFieldsConfig = initializeFieldConfig(
+				undefined,
+				loadedData.userFields
+			);
+		}
+
 		// Deep merge settings with proper migration for nested objects
 		this.settings = {
 			...DEFAULT_SETTINGS,
@@ -1338,6 +1347,8 @@ export default class TaskNotesPlugin extends Plugin {
 				...(loadedData?.nlpTriggers || {}),
 				triggers: loadedData?.nlpTriggers?.triggers || DEFAULT_SETTINGS.nlpTriggers.triggers,
 			},
+			// Modal fields configuration (already migrated above if needed)
+			modalFieldsConfig: loadedData?.modalFieldsConfig,
 			// Array handling - maintain existing arrays or use defaults
 			customStatuses: loadedData?.customStatuses || DEFAULT_SETTINGS.customStatuses,
 			customPriorities: loadedData?.customPriorities || DEFAULT_SETTINGS.customPriorities,

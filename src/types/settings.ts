@@ -18,6 +18,51 @@ export interface UserMappedField {
 }
 
 /**
+ * Field types for task modal configuration
+ */
+export type FieldType = "core" | "user" | "dependency" | "organization";
+
+/**
+ * Field groups for organizing fields in the modal
+ */
+export type FieldGroup = "basic" | "metadata" | "organization" | "dependencies" | "custom";
+
+/**
+ * Configuration for a single field in task modals
+ */
+export interface ModalFieldConfig {
+	id: string; // Unique identifier (e.g., 'title', 'contexts', 'due-date', or user field id)
+	fieldType: FieldType; // Type of field (core, user, dependency, organization)
+	group: FieldGroup; // Which group this field belongs to
+	displayName: string; // Label shown in UI
+	visibleInCreation: boolean; // Show in creation modal
+	visibleInEdit: boolean; // Show in edit modal
+	order: number; // Display order within group
+	enabled: boolean; // Whether field is enabled at all
+	required?: boolean; // Whether field is required (future use)
+}
+
+/**
+ * Complete field configuration for task modals
+ */
+export interface TaskModalFieldsConfig {
+	version: number; // Config version for migrations
+	fields: ModalFieldConfig[]; // All configured fields
+	groups: FieldGroupConfig[]; // Group configuration
+}
+
+/**
+ * Configuration for field groups
+ */
+export interface FieldGroupConfig {
+	id: FieldGroup;
+	displayName: string;
+	order: number; // Order of groups in modal
+	collapsible: boolean; // Can be collapsed/expanded
+	defaultCollapsed: boolean; // Default collapsed state
+}
+
+/**
  * Configuration for a single NLP trigger
  */
 export interface PropertyTriggerConfig {
@@ -144,6 +189,8 @@ export interface TaskNotesSettings {
 	userFields?: UserMappedField[];
 	// Legacy single-field (for migration only)
 	userField?: UserFieldMapping;
+	// Task modal field configuration
+	modalFieldsConfig?: TaskModalFieldsConfig;
 	// Default visible properties for task cards (when no saved view is active)
 	defaultVisibleProperties?: string[];
 	// Default visible properties for inline task cards (task link widgets in editor)

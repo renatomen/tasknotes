@@ -712,7 +712,82 @@ export abstract class TaskModal extends Modal {
 	}
 
 	protected createAdditionalFields(container: HTMLElement): void {
-		// Contexts input with autocomplete
+		// Use field configuration if available
+		const config = this.plugin.settings.modalFieldsConfig;
+		if (config) {
+			this.createFieldsFromConfig(container, config);
+		} else {
+			// Fallback to legacy field creation
+			this.createLegacyFields(container);
+		}
+	}
+
+	protected createFieldsFromConfig(container: HTMLElement, config: any): void {
+		const { getFieldsByGroup } = require("../utils/fieldConfigDefaults");
+		const fieldGroups = getFieldsByGroup(config, this.isCreationMode());
+
+		// Render fields by group
+		const groupsToRender = [...config.groups].sort((a: any, b: any) => a.order - b.order);
+
+		for (const groupConfig of groupsToRender) {
+			const fields = fieldGroups.get(groupConfig.id);
+			if (!fields || fields.length === 0) continue;
+
+			// Skip basic group (title and details are handled separately)
+			if (groupConfig.id === "basic") continue;
+
+			// Create a section for this group if it has fields
+			const groupContainer = container.createDiv({ cls: "task-modal__field-group" });
+
+			// Add separator before non-metadata groups
+			if (groupConfig.id !== "metadata") {
+				container.createEl("hr", { cls: "task-modal__section-separator" });
+			}
+
+			// Render fields in this group
+			for (const field of fields) {
+				this.createField(groupContainer, field);
+			}
+		}
+	}
+
+	protected createField(container: HTMLElement, fieldConfig: any): void {
+		switch (fieldConfig.id) {
+			case "contexts":
+				this.createContextsField(container);
+				break;
+			case "tags":
+				this.createTagsField(container);
+				break;
+			case "time-estimate":
+				this.createTimeEstimateField(container);
+				break;
+			case "projects":
+			case "subtasks":
+				// Organization fields are grouped together
+				if (!container.querySelector(".task-modal__organization-fields")) {
+					const orgContainer = container.createDiv({ cls: "task-modal__organization-fields" });
+					this.createOrganizationFields(orgContainer);
+				}
+				break;
+			case "blocked-by":
+			case "blocking":
+				// Dependency fields are grouped together
+				if (!container.querySelector(".task-modal__dependency-fields")) {
+					const depContainer = container.createDiv({ cls: "task-modal__dependency-fields" });
+					this.createDependencyFields(depContainer);
+				}
+				break;
+			default:
+				// Check if it's a user field
+				if (fieldConfig.fieldType === "user") {
+					this.createUserFieldByConfig(container, fieldConfig);
+				}
+				break;
+		}
+	}
+
+	protected createContextsField(container: HTMLElement): void {
 		new Setting(container).setName(this.t("modals.task.contextsLabel")).addText((text) => {
 			text.setPlaceholder(this.t("modals.task.contextsPlaceholder"))
 				.setValue(this.contexts)
@@ -726,8 +801,9 @@ export abstract class TaskModal extends Modal {
 			// Add autocomplete functionality
 			new ContextSuggest(this.app, text.inputEl, this.plugin);
 		});
+	}
 
-		// Tags input with autocomplete
+	protected createTagsField(container: HTMLElement): void {
 		new Setting(container).setName(this.t("modals.task.tagsLabel")).addText((text) => {
 			text.setPlaceholder(this.t("modals.task.tagsPlaceholder"))
 				.setValue(this.tags)
@@ -741,8 +817,9 @@ export abstract class TaskModal extends Modal {
 			// Add autocomplete functionality
 			new TagSuggest(this.app, text.inputEl, this.plugin);
 		});
+	}
 
-		// Time estimate
+	protected createTimeEstimateField(container: HTMLElement): void {
 		new Setting(container).setName(this.t("modals.task.timeEstimateLabel")).addText((text) => {
 			text.setPlaceholder(this.t("modals.task.timeEstimatePlaceholder"))
 				.setValue(this.timeEstimate.toString())
@@ -752,6 +829,90 @@ export abstract class TaskModal extends Modal {
 
 			this.timeEstimateInput = text.inputEl;
 		});
+	}
+
+	protected createUserFieldByConfig(container: HTMLElement, fieldConfig: any): void {
+		// Find the user field definition
+		const userField = this.plugin.settings.userFields?.find((f: any) => f.id === fieldConfig.id);
+		if (!userField) return;
+
+		// Create the field based on its type (existing logic from createUserFields)
+		const setting = new Setting(container).setName(userField.displayName);
+
+		switch (userField.type) {
+			case "text":
+			case "list": {
+				setting.addText((text) => {
+					const currentValue = this.userFields[userField.id];
+					const displayValue = Array.isArray(currentValue)
+						? currentValue.join(", ")
+						: currentValue || "";
+
+					text.setValue(displayValue).onChange((value) => {
+						if (userField.type === "list") {
+							this.userFields[userField.id] = value
+								.split(",")
+								.map((v) => v.trim())
+								.filter((v) => v.length > 0);
+						} else {
+							this.userFields[userField.id] = value;
+						}
+					});
+
+					// Add file autocomplete if filter is configured
+					if (userField.autosuggestFilter) {
+						new FileSuggest(
+							this.app,
+							text.inputEl,
+							this.plugin,
+							userField.autosuggestFilter
+						);
+					}
+				});
+				break;
+			}
+			case "number": {
+				setting.addText((text) => {
+					const currentValue = this.userFields[userField.id];
+					text.setValue(currentValue?.toString() || "").onChange((value) => {
+						const numValue = parseFloat(value);
+						this.userFields[userField.id] = isNaN(numValue) ? null : numValue;
+					});
+					text.inputEl.type = "number";
+				});
+				break;
+			}
+			case "date": {
+				setting.addText((text) => {
+					const currentValue = this.userFields[userField.id];
+					text.setValue(currentValue || "").onChange((value) => {
+						this.userFields[userField.id] = value;
+					});
+					text.inputEl.type = "date";
+				});
+				break;
+			}
+			case "boolean": {
+				setting.addToggle((toggle) => {
+					const currentValue = this.userFields[userField.id];
+					toggle.setValue(currentValue === true).onChange((value) => {
+						this.userFields[userField.id] = value;
+					});
+				});
+				break;
+			}
+		}
+	}
+
+	protected createLegacyFields(container: HTMLElement): void {
+		// Contexts input with autocomplete
+		this.createContextsField(container);
+
+		// Tags input with autocomplete
+		this.createTagsField(container);
+
+		// Time estimate
+		this.createTimeEstimateField(container);
 
 		// Visual separator between primary task details and dependency settings
 		container.createEl("hr", { cls: "task-modal__section-separator" });

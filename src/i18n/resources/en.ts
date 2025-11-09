@@ -403,6 +403,7 @@ export const en: TranslationTree = {
 		tabs: {
 			general: "General",
 			taskProperties: "Task Properties",
+			modalFields: "Modal Fields",
 			defaults: "Defaults & Templates",
 			appearance: "Appearance & UI",
 			features: "Features",

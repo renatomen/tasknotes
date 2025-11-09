@@ -3,6 +3,7 @@ import TaskNotesPlugin from "../main";
 import { debounce } from "./components/settingHelpers";
 import { renderGeneralTab } from "./tabs/generalTab";
 import { renderTaskPropertiesTab } from "./tabs/taskPropertiesTab";
+import { renderModalFieldsTab } from "./tabs/modalFieldsTab";
 import { renderDefaultsTab } from "./tabs/defaultsTab";
 import { renderAppearanceTab } from "./tabs/appearanceTab";
 import { renderFeaturesTab } from "./tabs/featuresTab";
@@ -46,7 +47,7 @@ export class TaskNotesSettingTab extends PluginSettingTab {
 		// Create tab navigation
 		const tabNav = containerEl.createDiv("settings-tab-nav settings-view__tab-nav");
 
-		// Define the new 6-tab structure
+		// Define the new 7-tab structure
 		const allTabs: TabConfig[] = [
 			{
 				id: "general",
@@ -57,6 +58,11 @@ export class TaskNotesSettingTab extends PluginSettingTab {
 				id: "task-properties",
 				nameKey: "settings.tabs.taskProperties",
 				renderFn: renderTaskPropertiesTab,
+			},
+			{
+				id: "modal-fields",
+				nameKey: "settings.tabs.modalFields",
+				renderFn: renderModalFieldsTab,
 			},
 			{
 				id: "defaults",
