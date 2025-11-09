@@ -19,6 +19,7 @@ import {
 	createCard,
 	createStatusBadge,
 	createCardInput,
+	createCardToggle,
 	createDeleteHeaderButton,
 	createCardUrlInput,
 	createCardNumberInput,
@@ -1233,8 +1234,10 @@ function renderICSSubscriptionsList(
 
 	subscriptions.forEach((subscription) => {
 		// Create input elements
-		const enabledToggle = createCardInput("checkbox");
-		enabledToggle.checked = subscription.enabled;
+		const enabledToggle = createCardToggle(subscription.enabled, (value) => {
+			subscription.enabled = value;
+			save();
+		});
 
 		const nameInput = createCardInput("text", "Calendar name", subscription.name);
 
@@ -1287,10 +1290,7 @@ function renderICSSubscriptionsList(
 			}
 		};
 
-		// Update handlers
-		enabledToggle.addEventListener("change", () =>
-			updateSubscription({ enabled: enabledToggle.checked })
-		);
+		// Update handlers (enabledToggle handler is now in createCardToggle callback)
 		nameInput.addEventListener("blur", () =>
 			updateSubscription({ name: nameInput.value.trim() })
 		);
@@ -1580,20 +1580,8 @@ function renderWebhookList(
 
 		// Create inputs for inline editing
 		const urlInput = createCardUrlInput("Webhook URL", webhook.url);
-		const activeToggle = createCardInput("checkbox");
-		activeToggle.checked = webhook.active;
-
-		// Update handlers
-		urlInput.addEventListener("blur", () => {
-			if (urlInput.value.trim() !== webhook.url) {
-				webhook.url = urlInput.value.trim();
-				save();
-				new Notice(translate("settings.integrations.webhooks.notices.urlUpdated"));
-			}
-		});
-
-		activeToggle.addEventListener("change", () => {
-			webhook.active = activeToggle.checked;
+		const activeToggle = createCardToggle(webhook.active, (value) => {
+			webhook.active = value;
 			save();
 
 			// Update the status badge in place instead of re-rendering entire list
@@ -1621,6 +1609,15 @@ function renderWebhookList(
 					? translate("settings.integrations.webhooks.notices.enabled")
 					: translate("settings.integrations.webhooks.notices.disabled")
 			);
+		});
+
+		// Update handler for URL input
+		urlInput.addEventListener("blur", () => {
+			if (urlInput.value.trim() !== webhook.url) {
+				webhook.url = urlInput.value.trim();
+				save();
+				new Notice(translate("settings.integrations.webhooks.notices.urlUpdated"));
+			}
 		});
 
 		// Format webhook creation date
