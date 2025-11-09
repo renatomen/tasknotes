@@ -34,6 +34,10 @@ export abstract class BasesViewBase extends Component {
 
 		this.dataAdapter = new BasesDataAdapter(this);
 		this.propertyMapper = new PropertyMappingService(plugin, plugin.fieldMapper);
+
+		// Bind createFileForView to ensure Bases can find it
+		// Some versions of Bases may check hasOwnProperty rather than prototype chain
+		this.createFileForView = this.createFileForView.bind(this);
 	}
 
 	/**
@@ -177,6 +181,143 @@ export abstract class BasesViewBase extends Component {
 		// Note: We don't need to explicitly register cleanup for this timer
 		// because it's short-lived (150ms) and clears itself. If the component
 		// unloads before the timer fires, the worst case is a no-op render call.
+	}
+
+	/**
+	 * Override Bases "New" button to open TaskNotes creation modal instead of default file creation.
+	 * Called when user clicks the "New" button in the Bases toolbar.
+	 *
+	 * NOTE: This requires Obsidian API 1.10.2+ and Bases support for createFileForView.
+	 * As of the current implementation, Bases (still in beta) may not yet call this method.
+	 * When Obsidian 1.10.2 is released and Bases supports it, this will work automatically.
+	 *
+	 * @param baseFileName - Suggested filename from Bases (typically unused in TaskNotes)
+	 * @param frontmatterProcessor - Optional callback that Bases uses to set default frontmatter values
+	 */
+	async createFileForView(
+		baseFileName: string,
+		frontmatterProcessor?: (frontmatter: any) => void
+	): Promise<void> {
+		const { TaskCreationModal } = await import("../modals/TaskCreationModal");
+
+		// Extract any default values from the frontmatter processor if provided
+		const prePopulatedValues: Partial<TaskInfo> = {};
+		const customFrontmatter: Record<string, any> = {};
+
+		if (frontmatterProcessor) {
+			// Create a mock frontmatter object to extract defaults
+			const mockFrontmatter: any = {};
+			frontmatterProcessor(mockFrontmatter);
+
+			// Get field mapper for property name mapping
+			const fm = this.plugin.fieldMapper;
+
+			// Map core TaskNotes properties from frontmatter
+			if (mockFrontmatter[fm.toUserField("title")]) {
+				prePopulatedValues.title = String(mockFrontmatter[fm.toUserField("title")]);
+			}
+			if (mockFrontmatter[fm.toUserField("status")]) {
+				prePopulatedValues.status = String(mockFrontmatter[fm.toUserField("status")]);
+			}
+			if (mockFrontmatter[fm.toUserField("priority")]) {
+				prePopulatedValues.priority = String(mockFrontmatter[fm.toUserField("priority")]);
+			}
+			if (mockFrontmatter[fm.toUserField("due")]) {
+				prePopulatedValues.due = String(mockFrontmatter[fm.toUserField("due")]);
+			}
+			if (mockFrontmatter[fm.toUserField("scheduled")]) {
+				prePopulatedValues.scheduled = String(mockFrontmatter[fm.toUserField("scheduled")]);
+			}
+			if (mockFrontmatter[fm.toUserField("contexts")]) {
+				const contexts = mockFrontmatter[fm.toUserField("contexts")];
+				prePopulatedValues.contexts = Array.isArray(contexts) ? contexts : [contexts];
+			}
+			if (mockFrontmatter[fm.toUserField("projects")]) {
+				const projects = mockFrontmatter[fm.toUserField("projects")];
+				prePopulatedValues.projects = Array.isArray(projects) ? projects : [projects];
+			}
+
+			// Tags - check both the standard 'tags' property and archiveTag
+			if (mockFrontmatter.tags) {
+				const tags = mockFrontmatter.tags;
+				prePopulatedValues.tags = Array.isArray(tags) ? tags : [tags];
+			}
+
+			// Archived - check for archive tag
+			if (mockFrontmatter.tags && Array.isArray(mockFrontmatter.tags)) {
+				const archiveTag = fm.toUserField("archiveTag");
+				prePopulatedValues.archived = mockFrontmatter.tags.includes(archiveTag);
+			}
+
+			if (mockFrontmatter[fm.toUserField("timeEstimate")]) {
+				prePopulatedValues.timeEstimate = Number(mockFrontmatter[fm.toUserField("timeEstimate")]);
+			}
+			if (mockFrontmatter[fm.toUserField("recurrence")]) {
+				prePopulatedValues.recurrence = String(mockFrontmatter[fm.toUserField("recurrence")]);
+			}
+			if (mockFrontmatter[fm.toUserField("completedDate")]) {
+				prePopulatedValues.completedDate = String(mockFrontmatter[fm.toUserField("completedDate")]);
+			}
+			if (mockFrontmatter[fm.toUserField("dateCreated")]) {
+				prePopulatedValues.dateCreated = String(mockFrontmatter[fm.toUserField("dateCreated")]);
+			}
+			if (mockFrontmatter[fm.toUserField("blockedBy")]) {
+				const blockedBy = mockFrontmatter[fm.toUserField("blockedBy")];
+				prePopulatedValues.blockedBy = Array.isArray(blockedBy) ? blockedBy : [blockedBy];
+			}
+
+			// Handle user-defined custom fields
+			const userFields = this.plugin.settings.userFields || [];
+			for (const userField of userFields) {
+				if (mockFrontmatter[userField.key] !== undefined) {
+					// Store in customFrontmatter for TaskCreationData
+					customFrontmatter[userField.key] = mockFrontmatter[userField.key];
+				}
+			}
+
+			// Capture any other frontmatter properties that weren't mapped above
+			// This ensures we don't lose any Bases-specific values
+			const mappedKeys = new Set([
+				fm.toUserField("title"),
+				fm.toUserField("status"),
+				fm.toUserField("priority"),
+				fm.toUserField("due"),
+				fm.toUserField("scheduled"),
+				fm.toUserField("contexts"),
+				fm.toUserField("projects"),
+				"tags", // Not in FieldMapping
+				fm.toUserField("archiveTag"), // For archived status
+				fm.toUserField("timeEstimate"),
+				fm.toUserField("recurrence"),
+				fm.toUserField("completedDate"),
+				fm.toUserField("dateCreated"),
+				fm.toUserField("blockedBy"),
+				...userFields.map(uf => uf.key),
+			]);
+
+			for (const [key, value] of Object.entries(mockFrontmatter)) {
+				if (!mappedKeys.has(key)) {
+					customFrontmatter[key] = value;
+				}
+			}
+		}
+
+		// Build the complete pre-populated values (TaskCreationData structure)
+		const taskCreationData: any = { ...prePopulatedValues };
+		if (Object.keys(customFrontmatter).length > 0) {
+			taskCreationData.customFrontmatter = customFrontmatter;
+		}
+
+		// Open TaskNotes creation modal
+		const modal = new TaskCreationModal(this.app, this.plugin, {
+			prePopulatedValues: taskCreationData,
+			onTaskCreated: (task: TaskInfo) => {
+				// Refresh the view after task creation so it appears immediately
+				this.refresh();
+			},
+		});
+
+		modal.open();
 	}
 
 	/**
