@@ -738,14 +738,13 @@ export abstract class TaskModal extends Modal {
 	}
 
 	protected createAdditionalFields(container: HTMLElement): void {
-		// Use field configuration if available
+		// Use field configuration (always initialized via migration in main.ts)
 		const config = this.plugin.settings.modalFieldsConfig;
-		if (config) {
-			this.createFieldsFromConfig(container, config);
-		} else {
-			// Fallback to legacy field creation
-			this.createLegacyFields(container);
+		if (!config) {
+			console.error("TaskModal: modalFieldsConfig is not initialized. This should never happen.");
+			return;
 		}
+		this.createFieldsFromConfig(container, config);
 	}
 
 	protected createFieldsFromConfig(container: HTMLElement, config: any): void {
@@ -789,20 +788,16 @@ export abstract class TaskModal extends Modal {
 				this.createTimeEstimateField(container);
 				break;
 			case "projects":
+				this.createProjectsField(container);
+				break;
 			case "subtasks":
-				// Organization fields are grouped together
-				if (!container.querySelector(".task-modal__organization-fields")) {
-					const orgContainer = container.createDiv({ cls: "task-modal__organization-fields" });
-					this.createOrganizationFields(orgContainer);
-				}
+				this.createSubtasksField(container);
 				break;
 			case "blocked-by":
+				this.createBlockedByField(container);
+				break;
 			case "blocking":
-				// Dependency fields are grouped together
-				if (!container.querySelector(".task-modal__dependency-fields")) {
-					const depContainer = container.createDiv({ cls: "task-modal__dependency-fields" });
-					this.createDependencyFields(depContainer);
-				}
+				this.createBlockingField(container);
 				break;
 			default:
 				// Check if it's a user field
@@ -855,6 +850,93 @@ export abstract class TaskModal extends Modal {
 
 			this.timeEstimateInput = text.inputEl;
 		});
+	}
+
+	protected createProjectsField(container: HTMLElement): void {
+		new Setting(container)
+			.setName(this.t("modals.task.organization.projects"))
+			.addButton((button) => {
+				button
+					.setButtonText(this.t("modals.task.organization.addToProjectButton"))
+					.setTooltip(this.t("modals.task.projectsTooltip"))
+					.onClick(() => {
+						const modal = new ProjectSelectModal(this.app, this.plugin, (file) => {
+							this.addProject(file);
+						});
+						modal.open();
+					});
+				button.buttonEl.addClasses(["tn-btn", "tn-btn--ghost"]);
+			});
+
+		// Projects list container (create if it doesn't exist)
+		if (!this.projectsList) {
+			this.projectsList = container.createDiv({ cls: "task-projects-list" });
+		}
+
+		this.renderOrganizationLists();
+	}
+
+	protected createSubtasksField(container: HTMLElement): void {
+		new Setting(container)
+			.setName(this.t("modals.task.organization.subtasks"))
+			.addButton((button) => {
+				button
+					.setButtonText(this.t("modals.task.organization.addSubtasksButton"))
+					.setTooltip(this.t("modals.task.organization.addSubtasksTooltip"))
+					.onClick(() => {
+						void this.openSubtaskSelector();
+					});
+				button.buttonEl.addClasses(["tn-btn", "tn-btn--ghost"]);
+			});
+
+		// Subtasks list container (create if it doesn't exist)
+		if (!this.subtasksList) {
+			this.subtasksList = container.createDiv({ cls: "task-projects-list" });
+		}
+
+		this.renderOrganizationLists();
+	}
+
+	protected createBlockedByField(container: HTMLElement): void {
+		new Setting(container)
+			.setName(this.t("modals.task.dependencies.blockedBy"))
+			.addButton((button) => {
+				button
+					.setButtonText(this.t("modals.task.dependencies.addTaskButton"))
+					.setTooltip(this.t("modals.task.dependencies.selectTaskTooltip"))
+					.onClick(() => {
+						void this.openBlockedBySelector();
+					});
+				button.buttonEl.addClasses(["tn-btn", "tn-btn--ghost"]);
+			});
+
+		// Blocked by list container (create if it doesn't exist)
+		if (!this.blockedByList) {
+			this.blockedByList = container.createDiv({ cls: "task-projects-list" });
+		}
+
+		this.renderDependencyLists();
+	}
+
+	protected createBlockingField(container: HTMLElement): void {
+		new Setting(container)
+			.setName(this.t("modals.task.dependencies.blocking"))
+			.addButton((button) => {
+				button
+					.setButtonText(this.t("modals.task.dependencies.addTaskButton"))
+					.setTooltip(this.t("modals.task.dependencies.selectTaskTooltip"))
+					.onClick(() => {
+						void this.openBlockingSelector();
+					});
+				button.buttonEl.addClasses(["tn-btn", "tn-btn--ghost"]);
+			});
+
+		// Blocking list container (create if it doesn't exist)
+		if (!this.blockingList) {
+			this.blockingList = container.createDiv({ cls: "task-projects-list" });
+		}
+
+		this.renderDependencyLists();
 	}
 
 	protected createUserFieldByConfig(container: HTMLElement, fieldConfig: any): void {
@@ -921,99 +1003,6 @@ export abstract class TaskModal extends Modal {
 				break;
 			}
 		}
-	}
-
-	protected createLegacyFields(container: HTMLElement): void {
-		// Contexts input with autocomplete
-		this.createContextsField(container);
-
-		// Tags input with autocomplete
-		this.createTagsField(container);
-
-		// Time estimate
-		this.createTimeEstimateField(container);
-
-		// Visual separator between primary task details and dependency settings
-		container.createEl("hr", { cls: "task-modal__section-separator" });
-
-		// Organization fields (projects and subtasks)
-		this.createOrganizationFields(container);
-
-		this.createDependencyFields(container);
-
-		// Dynamic user fields
-		this.createUserFields(container);
-	}
-
-	protected createDependencyFields(container: HTMLElement): void {
-		new Setting(container)
-			.setName(this.t("modals.task.dependencies.blockedBy"))
-			.addButton((button) => {
-				button
-					.setButtonText(this.t("modals.task.dependencies.addTaskButton"))
-					.setTooltip(this.t("modals.task.dependencies.selectTaskTooltip"))
-					.onClick(() => {
-						void this.openBlockedBySelector();
-					});
-				button.buttonEl.addClasses(["tn-btn", "tn-btn--ghost"]);
-			});
-
-		this.blockedByList = container.createDiv({ cls: "task-projects-list" });
-
-		new Setting(container)
-			.setName(this.t("modals.task.dependencies.blocking"))
-			.addButton((button) => {
-				button
-					.setButtonText(this.t("modals.task.dependencies.addTaskButton"))
-					.setTooltip(this.t("modals.task.dependencies.selectTaskTooltip"))
-					.onClick(() => {
-						void this.openBlockingSelector();
-					});
-				button.buttonEl.addClasses(["tn-btn", "tn-btn--ghost"]);
-			});
-
-		this.blockingList = container.createDiv({ cls: "task-projects-list" });
-
-		this.renderDependencyLists();
-	}
-
-	protected createOrganizationFields(container: HTMLElement): void {
-		// Add to project section
-		new Setting(container)
-			.setName(this.t("modals.task.organization.projects"))
-			.addButton((button) => {
-				button
-					.setButtonText(this.t("modals.task.organization.addToProjectButton"))
-					.setTooltip(this.t("modals.task.projectsTooltip"))
-					.onClick(() => {
-						const modal = new ProjectSelectModal(this.app, this.plugin, (file) => {
-							this.addProject(file);
-						});
-						modal.open();
-					});
-				button.buttonEl.addClasses(["tn-btn", "tn-btn--ghost"]);
-			});
-
-		// Projects list container
-		this.projectsList = container.createDiv({ cls: "task-projects-list" });
-
-		// Add subtasks section
-		new Setting(container)
-			.setName(this.t("modals.task.organization.subtasks"))
-			.addButton((button) => {
-				button
-					.setButtonText(this.t("modals.task.organization.addSubtasksButton"))
-					.setTooltip(this.t("modals.task.organization.addSubtasksTooltip"))
-					.onClick(() => {
-						void this.openSubtaskSelector();
-					});
-				button.buttonEl.addClasses(["tn-btn", "tn-btn--ghost"]);
-			});
-
-		// Subtasks list container
-		this.subtasksList = container.createDiv({ cls: "task-projects-list" });
-
-		this.renderOrganizationLists();
 	}
 
 	protected createUserFields(container: HTMLElement): void {
