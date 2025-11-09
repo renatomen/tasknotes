@@ -35,6 +35,15 @@ export class BasesDataAdapter {
 
 	/**
 	 * Check if data is actually grouped (not just wrapped in single group).
+	 *
+	 * Note: When groupBy is configured but all items have the same value (or all null),
+	 * groupedData will have length 1. We need to check hasKey() to distinguish between:
+	 * - No groupBy configured: single group with no key (hasKey() = false)
+	 * - GroupBy configured, all null: single group with NullValue key (hasKey() = false)
+	 * - GroupBy configured, all same value: single group with value key (hasKey() = true)
+	 *
+	 * This means we cannot reliably detect "groupBy configured but all null" vs "no groupBy".
+	 * Use getGroupedData() for actual rendering, as it always returns valid groups.
 	 */
 	isGrouped(): boolean {
 		const groups = this.basesView.data.groupedData;

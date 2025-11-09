@@ -128,62 +128,34 @@ export class KanbanView extends BasesViewBase {
 	}
 
 	private getGroupByPropertyId(): string | null {
-		// Try to get from grouped data first (public API)
-		const isGrouped = this.dataAdapter.isGrouped();
+		// IMPORTANT: Public API doesn't expose groupBy property!
+		// Must use internal API to detect if groupBy is configured.
+		// We can't rely on isGrouped() because it returns false when all items have null values.
 
-		console.debug("[TaskNotes][KanbanView] Getting groupBy property", {
-			isGrouped,
-			hasBasesController: !!this.basesController,
-			hasQuery: !!this.basesController?.query,
-			hasViews: !!this.basesController?.query?.views,
-			viewName: this.basesController?.viewName,
-			hasGroupedData: !!this.data?.groupedData,
-			groupedDataLength: this.data?.groupedData?.length
-		});
+		const controller = this.basesController;
 
-		if (isGrouped) {
-			// Bases has groupBy configured - we need to determine what property
-			// IMPORTANT: Public API doesn't expose groupBy property!
-			// Must use internal API as fallback
-			const controller = this.basesController;
-			if (controller?.query?.views && controller?.viewName) {
-				const views = controller.query.views;
-				const viewName = controller.viewName;
+		// Try to get groupBy from internal API (controller.query.views)
+		if (controller?.query?.views && controller?.viewName) {
+			const views = controller.query.views;
+			const viewName = controller.viewName;
 
-				console.debug("[TaskNotes][KanbanView] Searching for view in query", {
-					viewName,
-					viewCount: views.length || 0
-				});
-
-				for (let i = 0; i < 20; i++) {
-					const view = views[i];
-					if (view && view.name === viewName) {
-						console.debug("[TaskNotes][KanbanView] Found matching view", {
-							viewName: view.name,
-							hasGroupBy: !!view.groupBy,
-							groupByType: typeof view.groupBy,
-							groupBy: view.groupBy
-						});
-
-						if (view.groupBy) {
-							if (typeof view.groupBy === 'object' && view.groupBy.property) {
-								return view.groupBy.property;
-							} else if (typeof view.groupBy === 'string') {
-								return view.groupBy;
-							}
+			for (let i = 0; i < 20; i++) {
+				const view = views[i];
+				if (view && view.name === viewName) {
+					if (view.groupBy) {
+						if (typeof view.groupBy === 'object' && view.groupBy.property) {
+							return view.groupBy.property;
+						} else if (typeof view.groupBy === 'string') {
+							return view.groupBy;
 						}
 					}
-				}
 
-				console.warn("[TaskNotes][KanbanView] View found but no groupBy property detected");
-			} else {
-				console.warn("[TaskNotes][KanbanView] Missing controller structure", {
-					hasQuery: !!controller?.query,
-					hasViews: !!controller?.query?.views,
-					hasViewName: !!controller?.viewName
-				});
+					// View found but no groupBy configured
+					return null;
+				}
 			}
 		}
+
 		return null;
 	}
 
@@ -192,24 +164,23 @@ export class KanbanView extends BasesViewBase {
 		groupByPropertyId: string,
 		pathToProps: Map<string, Record<string, any>>
 	): Map<string, TaskInfo[]> {
-		// Use Bases grouped data if available
+		// Always use Bases grouped data when groupBy is configured
+		// Note: We can't rely on isGrouped() because it returns false when all items have null values
 		const groups = new Map<string, TaskInfo[]>();
 
-		if (this.dataAdapter.isGrouped()) {
-			const basesGroups = this.dataAdapter.getGroupedData();
-			const tasksByPath = new Map(taskNotes.map(t => [t.path, t]));
+		const basesGroups = this.dataAdapter.getGroupedData();
+		const tasksByPath = new Map(taskNotes.map(t => [t.path, t]));
 
-			for (const group of basesGroups) {
-				const groupKey = this.dataAdapter.convertGroupKeyToString(group.key);
-				const groupTasks: TaskInfo[] = [];
+		for (const group of basesGroups) {
+			const groupKey = this.dataAdapter.convertGroupKeyToString(group.key);
+			const groupTasks: TaskInfo[] = [];
 
-				for (const entry of group.entries) {
-					const task = tasksByPath.get(entry.file.path);
-					if (task) groupTasks.push(task);
-				}
-
-				groups.set(groupKey, groupTasks);
+			for (const entry of group.entries) {
+				const task = tasksByPath.get(entry.file.path);
+				if (task) groupTasks.push(task);
 			}
+
+			groups.set(groupKey, groupTasks);
 		}
 
 		return groups;
@@ -943,8 +914,6 @@ export class KanbanView extends BasesViewBase {
 
 			// Save to config using BasesViewConfig API
 			this.config.set('columnOrder', orderJson);
-
-			console.debug(`[KanbanView] Saved column order for ${groupBy}:`, order);
 		} catch (error) {
 			console.error('[KanbanView] Failed to save column order:', error);
 		}

@@ -191,6 +191,27 @@ class RelationshipsDecorationsPlugin implements PluginValue {
 				return builder.finish();
 			}
 
+			// Get the current file
+			const file = this.currentFile || this.getFileFromView(view);
+			if (!file) {
+				console.warn("RelationshipsDecorations: Cannot create widget without file context");
+				return builder.finish();
+			}
+
+			// Only show widget in task notes
+			// Get the file's frontmatter to check if it's a task
+			const metadata = this.plugin.app.metadataCache.getFileCache(file);
+			if (!metadata?.frontmatter) {
+				// No frontmatter - not a task note
+				return builder.finish();
+			}
+
+			// Use the TaskManager's isTaskFile method to check if this is a task
+			if (!this.plugin.cacheManager.isTaskFile(metadata.frontmatter)) {
+				// Not a task note - don't show relationships widget
+				return builder.finish();
+			}
+
 			// Find insertion position after frontmatter/properties
 			let insertPos = this.findInsertionPosition(view, doc);
 
@@ -199,19 +220,7 @@ class RelationshipsDecorationsPlugin implements PluginValue {
 				insertPos = 0;
 			}
 
-			// Get the current file path for note-specific filter state
-			// Try multiple methods to get the file path to avoid "unknown"
-			let notePath = this.currentFile?.path;
-			if (!notePath) {
-				// Fallback: try to get file from the view
-				const viewFile = this.getFileFromView(view);
-				notePath = viewFile?.path;
-			}
-			if (!notePath) {
-				// Last resort: return early - don't create widget without proper file context
-				console.warn("RelationshipsDecorations: Cannot create widget without file context");
-				return builder.finish();
-			}
+			const notePath = file.path;
 
 			const widget = Decoration.widget({
 				widget: new RelationshipsWidget(
