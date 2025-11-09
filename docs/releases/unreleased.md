@@ -60,6 +60,10 @@ Example:
 
 ## Fixed
 
+- **Bases Calendar view options now working correctly**
+  - Fixed "Highlight today" toggle not applying - now properly adds/removes CSS class when toggled
+  - Fixed calendar view type (month/week/day/etc) not being saved when changed via calendar buttons
+  - View type is now persisted when users click month/week/day buttons in the calendar UI
 - (#1050) Task modal no longer adds unwanted empty contexts and projects arrays
   - FieldMapper now checks if arrays are empty before writing to frontmatter
   - Prevents pollution of frontmatter with unnecessary empty fields

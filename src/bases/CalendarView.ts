@@ -193,6 +193,11 @@ export class CalendarView extends BasesViewBase {
 			}
 			// Mark config as successfully loaded
 			this.configLoaded = true;
+
+			// Apply today highlight styling if calendar is already initialized
+			if (this.calendar) {
+				this.applyTodayHighlightStyling();
+			}
 		} catch (e) {
 			console.error("[TaskNotes][CalendarView] Error reading view options:", e);
 		}
@@ -358,11 +363,42 @@ export class CalendarView extends BasesViewBase {
 			eventDrop: (info) => this.handleEventDrop(info),
 			eventResize: (info) => this.handleEventResize(info),
 			select: (info) => this.handleDateSelect(info),
+			viewDidMount: (arg) => {
+				// Save the current view to config when it changes
+				const newViewType = arg.view.type;
+				if (newViewType && newViewType !== this.viewOptions.calendarView) {
+					this.viewOptions.calendarView = newViewType;
+					try {
+						this.config.set('calendarView', newViewType);
+					} catch (error) {
+						console.debug('[TaskNotes][CalendarView] Failed to save view type:', error);
+					}
+				}
+			},
 		};
 
 		// Create calendar
 		this.calendar = new Calendar(this.calendarEl, calendarOptions);
 		this.calendar.render();
+
+		// Apply showTodayHighlight option via CSS
+		this.applyTodayHighlightStyling();
+	}
+
+	/**
+	 * Apply or remove today's date highlighting based on showTodayHighlight option.
+	 * FullCalendar doesn't have a built-in option for this, so we control it via CSS.
+	 */
+	private applyTodayHighlightStyling(): void {
+		if (!this.calendarEl) return;
+
+		if (this.viewOptions.showTodayHighlight) {
+			// Remove the class that hides today highlighting
+			this.calendarEl.classList.remove('hide-today-highlight');
+		} else {
+			// Add the existing CSS class to hide today highlighting
+			this.calendarEl.classList.add('hide-today-highlight');
+		}
 	}
 
 	private determineInitialDate(taskNotes: TaskInfo[]): Date | string | undefined {
