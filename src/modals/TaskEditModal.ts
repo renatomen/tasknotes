@@ -340,54 +340,63 @@ export class TaskEditModal extends TaskModal {
 			this.detailsContainer.style.display = "none";
 		}
 
+		// Check field configuration to determine which fields to show
+		const config = this.plugin.settings.modalFieldsConfig;
+		const shouldShowTitle = this.shouldShowField("title", config);
+		const shouldShowDetails = this.shouldShowField("details", config);
+
 		// Title field for edit modal
-		const titleLabel = this.detailsContainer.createDiv("detail-label");
-		titleLabel.textContent = this.t("modals.task.titleLabel");
+		if (shouldShowTitle) {
+			const titleLabel = this.detailsContainer.createDiv("detail-label");
+			titleLabel.textContent = this.t("modals.task.titleLabel");
 
-		const titleInputDetailed = this.detailsContainer.createEl("input", {
-			type: "text",
-			cls: "title-input-detailed",
-			placeholder: this.t("modals.task.titleDetailedPlaceholder"),
-		});
+			const titleInputDetailed = this.detailsContainer.createEl("input", {
+				type: "text",
+				cls: "title-input-detailed",
+				placeholder: this.t("modals.task.titleDetailedPlaceholder"),
+			});
 
-		titleInputDetailed.value = this.title;
-		titleInputDetailed.addEventListener("input", (e) => {
-			this.title = (e.target as HTMLInputElement).value;
-		});
+			titleInputDetailed.value = this.title;
+			titleInputDetailed.addEventListener("input", (e) => {
+				this.title = (e.target as HTMLInputElement).value;
+			});
 
-		// Store reference for title input
-		if (!this.titleInput) {
-			this.titleInput = titleInputDetailed;
+			// Store reference for title input
+			if (!this.titleInput) {
+				this.titleInput = titleInputDetailed;
+			}
 		}
 
 		// Details section with embedded markdown editor
-		const detailsLabel = this.detailsContainer.createDiv("detail-label");
-		detailsLabel.textContent = this.t("modals.task.detailsLabel");
+		if (shouldShowDetails) {
+			const detailsLabel = this.detailsContainer.createDiv("detail-label");
+			detailsLabel.textContent = this.t("modals.task.detailsLabel");
 
-		const editorContainer = this.detailsContainer.createDiv("details-markdown-editor");
+			const editorContainer = this.detailsContainer.createDiv("details-markdown-editor");
 
-		// Create the embeddable markdown editor using shared method
-		this.markdownEditor = this.createMarkdownEditor(editorContainer, {
-			value: this.details,
-			placeholder: this.t("modals.task.detailsPlaceholder"),
-			cls: "task-details-editor",
-			onChange: (value) => {
-				this.details = value;
-			},
-			onSubmit: () => {
-				// Ctrl/Cmd+Enter - save the task
-				this.handleSave();
-			},
-			onEscape: () => {
-				// ESC - close the modal
-				this.close();
-			},
-			onTab: () => {
-				// Tab - jump to next input field
-				this.focusNextField();
-				return true; // Prevent default tab behavior
-			},
-		});
+			// Create the embeddable markdown editor using shared method
+			this.markdownEditor = this.createMarkdownEditor(editorContainer, {
+				value: this.details,
+				placeholder: this.t("modals.task.detailsPlaceholder"),
+				cls: "task-details-editor",
+				onChange: (value) => {
+					this.details = value;
+				},
+				onSubmit: () => {
+					// Ctrl/Cmd+Enter - save the task
+					this.handleSave();
+				},
+				onEscape: () => {
+					// ESC - close the modal
+					this.close();
+				},
+				onTab: () => {
+					// Tab - jump to next input field
+					this.focusNextField();
+					return true; // Prevent default tab behavior
+				},
+			});
+		}
 
 		// Additional form fields (contexts, tags, etc.)
 		this.createAdditionalFields(this.detailsContainer);
