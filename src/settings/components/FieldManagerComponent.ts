@@ -174,10 +174,14 @@ function createFieldCard(
 		}
 	};
 
+	// Determine if this field can be reordered
+	// Title and details are in the basic group and cannot be reordered
+	const canReorder = field.group !== "basic";
+
 	// Create the card using CardComponent
 	const card = createCard(container, {
 		id: field.id,
-		draggable: true,
+		draggable: canReorder,
 		header: {
 			primaryText: field.displayName,
 			secondaryText: `ID: ${field.id}`,
@@ -205,37 +209,39 @@ function createFieldCard(
 		},
 	});
 
-	// Setup drag and drop for reordering
-	setupCardDragAndDrop(card, container, (draggedId: string, targetId: string, insertBefore: boolean) => {
-		const draggedIndex = config.fields.findIndex((f) => f.id === draggedId && f.group === groupId);
-		const targetIndex = config.fields.findIndex((f) => f.id === targetId && f.group === groupId);
+	// Setup drag and drop for reordering (only for fields that can be reordered)
+	if (canReorder) {
+		setupCardDragAndDrop(card, container, (draggedId: string, targetId: string, insertBefore: boolean) => {
+			const draggedIndex = config.fields.findIndex((f) => f.id === draggedId && f.group === groupId);
+			const targetIndex = config.fields.findIndex((f) => f.id === targetId && f.group === groupId);
 
-		if (draggedIndex === -1 || targetIndex === -1) return;
+			if (draggedIndex === -1 || targetIndex === -1) return;
 
-		// Get only fields in this group
-		const groupFields = config.fields.filter((f) => f.group === groupId);
+			// Get only fields in this group
+			const groupFields = config.fields.filter((f) => f.group === groupId);
 
-		// Find positions within the group
-		const draggedGroupIndex = groupFields.findIndex((f) => f.id === draggedId);
-		const targetGroupIndex = groupFields.findIndex((f) => f.id === targetId);
+			// Find positions within the group
+			const draggedGroupIndex = groupFields.findIndex((f) => f.id === draggedId);
+			const targetGroupIndex = groupFields.findIndex((f) => f.id === targetId);
 
-		// Reorder within group
-		const [movedField] = groupFields.splice(draggedGroupIndex, 1);
-		const insertIndex = targetGroupIndex + (insertBefore ? 0 : 1);
-		groupFields.splice(insertIndex, 0, movedField);
+			// Reorder within group
+			const [movedField] = groupFields.splice(draggedGroupIndex, 1);
+			const insertIndex = targetGroupIndex + (insertBefore ? 0 : 1);
+			groupFields.splice(insertIndex, 0, movedField);
 
-		// Update order values
-		groupFields.forEach((f, i) => {
-			const fieldIndex = config.fields.findIndex((cf) => cf.id === f.id);
-			if (fieldIndex !== -1) {
-				config.fields[fieldIndex].order = i;
-			}
+			// Update order values
+			groupFields.forEach((f, i) => {
+				const fieldIndex = config.fields.findIndex((cf) => cf.id === f.id);
+				if (fieldIndex !== -1) {
+					config.fields[fieldIndex].order = i;
+				}
+			});
+
+			onUpdate(config);
+			// Re-render the group
+			renderFieldGroup(container, groupId, config, plugin, onUpdate, app);
 		});
-
-		onUpdate(config);
-		// Re-render the group
-		renderFieldGroup(container, groupId, config, plugin, onUpdate, app);
-	});
+	}
 }
 
 /**
