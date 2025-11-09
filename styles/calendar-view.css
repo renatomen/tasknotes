@@ -682,6 +682,11 @@
     border-radius: 0;
     background: transparent;
     gap: 1px;
+    outline: none;
+}
+
+.tasknotes-plugin .mini-calendar-view__grid:focus {
+    outline: none;
 }
 
 .tasknotes-plugin .mini-calendar-view__grid-header {

@@ -42,8 +42,8 @@ export class MiniCalendarView extends BasesViewBase {
 	private notesByDate: Map<string, NoteEntry[]> = new Map();
 	private monthCalculationCache: Map<string, { actualMonth: number; dateObj: Date; dateKey: string }> = new Map();
 
-	// Tooltip
-	private currentTooltip: HTMLElement | null = null;
+	// Keyboard navigation
+	private keyboardHandler: ((e: KeyboardEvent) => void) | null = null;
 
 	constructor(controller: any, containerEl: HTMLElement, plugin: TaskNotesPlugin) {
 		super(controller, containerEl, plugin);
@@ -111,6 +111,14 @@ export class MiniCalendarView extends BasesViewBase {
 			// Render calendar grid
 			this.renderCalendarControls();
 			this.renderCalendarGrid();
+
+			// Focus the grid after rendering (with slight delay to ensure DOM is ready)
+			setTimeout(() => {
+				const grid = this.calendarEl?.querySelector('.mini-calendar-view__grid') as HTMLElement;
+				if (grid) {
+					grid.focus();
+				}
+			}, 10);
 		} catch (error: any) {
 			console.error("[TaskNotes][MiniCalendarView] Error rendering:", error);
 			this.renderError(error);
@@ -399,7 +407,16 @@ export class MiniCalendarView extends BasesViewBase {
 			attr: {
 				role: "grid",
 				"aria-label": `Calendar for ${format(convertUTCToLocalCalendarDate(new Date(Date.UTC(currentYear, currentMonth, 1))), "MMMM yyyy")}`,
+				tabindex: "0",
 			},
+		});
+
+		// Set up keyboard navigation for the grid
+		this.setupKeyboardNavigation(calendarGrid);
+
+		// Make grid focusable and auto-focus when calendar is interacted with
+		calendarGrid.addEventListener('click', () => {
+			calendarGrid.focus();
 		});
 
 		// Day names header
@@ -494,8 +511,15 @@ export class MiniCalendarView extends BasesViewBase {
 		});
 
 		weekCell.addEventListener('click', (e) => {
+			e.preventDefault();
 			e.stopPropagation();
 			this.selectWeek(weekDays);
+
+			// Return focus to the grid after handling the click
+			const grid = this.calendarEl?.querySelector('.mini-calendar-view__grid') as HTMLElement;
+			if (grid) {
+				grid.focus();
+			}
 		});
 
 		// Render day cells
@@ -525,7 +549,6 @@ export class MiniCalendarView extends BasesViewBase {
 			text: dayNum.toString(),
 			attr: {
 				role: "gridcell",
-				tabindex: isSelected ? "0" : "-1",
 				"aria-label": format(convertUTCToLocalCalendarDate(dayDate), "EEEE, MMMM d, yyyy") + (isToday ? " (Today)" : ""),
 				"aria-selected": isSelected ? "true" : "false",
 				"aria-current": isToday ? "date" : null,
@@ -541,29 +564,21 @@ export class MiniCalendarView extends BasesViewBase {
 			const intensity = this.getHeatMapIntensity(notesForDay.length);
 			dayEl.addClass(`mini-calendar-view__day--intensity-${intensity}`);
 
-			// Add hover preview tooltip
-			dayEl.addEventListener('mouseenter', (e: MouseEvent) => {
-				const tooltip = this.createNotePreviewTooltip(notesForDay);
-				this.showTooltip(dayEl, tooltip, e);
-			});
+			// Add hover preview tooltip using Obsidian's built-in tooltip
+			const tooltipText = this.createNotePreviewText(notesForDay);
+			setTooltip(dayEl, tooltipText, { placement: 'top' });
 		}
 
 		// Click handler - select date or show fuzzy selector
 		dayEl.addEventListener("click", (e: MouseEvent) => {
+			e.preventDefault();
+			e.stopPropagation();
 			this.handleDayClick(dayDate, e);
-		});
 
-		// Keyboard handler
-		dayEl.addEventListener("keydown", async (e: KeyboardEvent) => {
-			if (e.key === "Enter" || e.key === " ") {
-				e.preventDefault();
-
-				// Check for ctrl/cmd+Enter to open daily note
-				if (e.ctrlKey || e.metaKey) {
-					await this.openDailyNoteForDate(dayDate);
-				} else {
-					await this.handleDayClick(dayDate);
-				}
+			// Return focus to the grid after handling the click
+			const grid = this.calendarEl?.querySelector('.mini-calendar-view__grid') as HTMLElement;
+			if (grid) {
+				grid.focus();
 			}
 		});
 	}
@@ -676,6 +691,231 @@ export class MiniCalendarView extends BasesViewBase {
 		this.refresh();
 	}
 
+	/**
+	 * Set up keyboard navigation for the calendar grid.
+	 */
+	private setupKeyboardNavigation(calendarGrid: HTMLElement): void {
+		// Remove previous handler if it exists
+		if (this.keyboardHandler) {
+			calendarGrid.removeEventListener('keydown', this.keyboardHandler);
+		}
+
+		// Create new handler
+		this.keyboardHandler = async (e: KeyboardEvent) => {
+			// Arrow keys - navigate between days
+			if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' ||
+				e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+				e.preventDefault();
+				this.navigateByArrowKey(e.key);
+				return;
+			}
+
+			// Page Up/Down - navigate months
+			if (e.key === 'PageUp') {
+				e.preventDefault();
+				if (e.shiftKey) {
+					// Shift+PageUp - previous year
+					this.navigateToYear(-1);
+				} else {
+					this.navigateToPreviousMonth();
+				}
+				return;
+			}
+
+			if (e.key === 'PageDown') {
+				e.preventDefault();
+				if (e.shiftKey) {
+					// Shift+PageDown - next year
+					this.navigateToYear(1);
+				} else {
+					this.navigateToNextMonth();
+				}
+				return;
+			}
+
+			// Home/End - navigate to start/end of week or month
+			if (e.key === 'Home') {
+				e.preventDefault();
+				if (e.ctrlKey || e.metaKey) {
+					// Ctrl+Home - first day of month
+					this.navigateToStartOfMonth();
+				} else {
+					// Home - start of week
+					this.navigateToStartOfWeek();
+				}
+				return;
+			}
+
+			if (e.key === 'End') {
+				e.preventDefault();
+				if (e.ctrlKey || e.metaKey) {
+					// Ctrl+End - last day of month
+					this.navigateToEndOfMonth();
+				} else {
+					// End - end of week
+					this.navigateToEndOfWeek();
+				}
+				return;
+			}
+
+			// T - jump to today
+			if (e.key === 't' || e.key === 'T') {
+				e.preventDefault();
+				this.navigateToToday();
+				return;
+			}
+
+			// Escape - clear multi-select mode
+			if (e.key === 'Escape') {
+				if (this.multiSelectMode) {
+					e.preventDefault();
+					this.multiSelectMode = false;
+					this.selectedDates.clear();
+					this.refresh();
+				}
+				return;
+			}
+
+			// Enter/Space - select date or open fuzzy selector
+			if (e.key === 'Enter' || e.key === ' ') {
+				e.preventDefault();
+				if (e.ctrlKey || e.metaKey) {
+					await this.openDailyNoteForDate(this.selectedDate);
+				} else {
+					await this.handleDayClick(this.selectedDate);
+				}
+				return;
+			}
+		};
+
+		calendarGrid.addEventListener('keydown', this.keyboardHandler);
+	}
+
+	/**
+	 * Navigate by arrow key.
+	 */
+	private navigateByArrowKey(key: string): void {
+		const newDate = new Date(this.selectedDate.getTime());
+
+		switch (key) {
+			case 'ArrowLeft':
+				newDate.setUTCDate(newDate.getUTCDate() - 1);
+				break;
+			case 'ArrowRight':
+				newDate.setUTCDate(newDate.getUTCDate() + 1);
+				break;
+			case 'ArrowUp':
+				newDate.setUTCDate(newDate.getUTCDate() - 7);
+				break;
+			case 'ArrowDown':
+				newDate.setUTCDate(newDate.getUTCDate() + 7);
+				break;
+		}
+
+		this.selectedDate = newDate;
+
+		// Update displayed month if we moved to a different month
+		if (newDate.getUTCMonth() !== this.displayedMonth ||
+			newDate.getUTCFullYear() !== this.displayedYear) {
+			this.displayedMonth = newDate.getUTCMonth();
+			this.displayedYear = newDate.getUTCFullYear();
+			this.monthCalculationCache.clear();
+		}
+
+		this.refresh();
+	}
+
+	/**
+	 * Navigate to start of current week.
+	 */
+	private navigateToStartOfWeek(): void {
+		const firstDaySetting = this.plugin.settings.calendarViewSettings.firstDay || 0;
+		const currentDay = this.selectedDate.getUTCDay();
+		const daysToSubtract = (currentDay - firstDaySetting + 7) % 7;
+
+		const newDate = new Date(this.selectedDate.getTime());
+		newDate.setUTCDate(newDate.getUTCDate() - daysToSubtract);
+
+		this.selectedDate = newDate;
+
+		// Update displayed month if needed
+		if (newDate.getUTCMonth() !== this.displayedMonth ||
+			newDate.getUTCFullYear() !== this.displayedYear) {
+			this.displayedMonth = newDate.getUTCMonth();
+			this.displayedYear = newDate.getUTCFullYear();
+			this.monthCalculationCache.clear();
+		}
+
+		this.refresh();
+	}
+
+	/**
+	 * Navigate to end of current week.
+	 */
+	private navigateToEndOfWeek(): void {
+		const firstDaySetting = this.plugin.settings.calendarViewSettings.firstDay || 0;
+		const currentDay = this.selectedDate.getUTCDay();
+		const lastDayOfWeek = (firstDaySetting + 6) % 7;
+		const daysToAdd = (lastDayOfWeek - currentDay + 7) % 7;
+
+		const newDate = new Date(this.selectedDate.getTime());
+		newDate.setUTCDate(newDate.getUTCDate() + daysToAdd);
+
+		this.selectedDate = newDate;
+
+		// Update displayed month if needed
+		if (newDate.getUTCMonth() !== this.displayedMonth ||
+			newDate.getUTCFullYear() !== this.displayedYear) {
+			this.displayedMonth = newDate.getUTCMonth();
+			this.displayedYear = newDate.getUTCFullYear();
+			this.monthCalculationCache.clear();
+		}
+
+		this.refresh();
+	}
+
+	/**
+	 * Navigate to first day of current month.
+	 */
+	private navigateToStartOfMonth(): void {
+		const newDate = new Date(Date.UTC(
+			this.selectedDate.getUTCFullYear(),
+			this.selectedDate.getUTCMonth(),
+			1
+		));
+
+		this.selectedDate = newDate;
+		this.refresh();
+	}
+
+	/**
+	 * Navigate to last day of current month.
+	 */
+	private navigateToEndOfMonth(): void {
+		const newDate = new Date(Date.UTC(
+			this.selectedDate.getUTCFullYear(),
+			this.selectedDate.getUTCMonth() + 1,
+			0
+		));
+
+		this.selectedDate = newDate;
+		this.refresh();
+	}
+
+	/**
+	 * Navigate by year offset.
+	 */
+	private navigateToYear(yearOffset: number): void {
+		const newDate = new Date(this.selectedDate.getTime());
+		newDate.setUTCFullYear(newDate.getUTCFullYear() + yearOffset);
+
+		this.selectedDate = newDate;
+		this.displayedMonth = newDate.getUTCMonth();
+		this.displayedYear = newDate.getUTCFullYear();
+		this.monthCalculationCache.clear();
+		this.refresh();
+	}
+
 	private getWeekNumber(date: Date): number {
 		// ISO week number calculation
 		const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
@@ -726,23 +966,19 @@ export class MiniCalendarView extends BasesViewBase {
 		}
 	}
 
-	private createNotePreviewTooltip(notes: NoteEntry[]): HTMLElement {
-		const tooltip = document.createElement('div');
-		tooltip.className = 'mini-calendar-note-preview';
+	/**
+	 * Create a simple text tooltip showing note titles.
+	 */
+	private createNotePreviewText(notes: NoteEntry[]): string {
+		const lines: string[] = [];
 
-		tooltip.createEl('div', {
-			text: `${notes.length} note${notes.length > 1 ? 's' : ''}`,
-			cls: 'preview-header'
-		});
+		// Header
+		lines.push(`${notes.length} note${notes.length > 1 ? 's' : ''}`);
+		lines.push(''); // Empty line for spacing
 
-		const list = tooltip.createEl('ul', { cls: 'preview-list' });
-
+		// List up to 5 notes
 		notes.slice(0, 5).forEach(note => {
-			const item = list.createEl('li');
-			item.createSpan({
-				text: note.title,
-				cls: 'preview-note-title'
-			});
+			let line = `• ${note.title}`;
 
 			// Add note type if available from basesEntry
 			const noteTypeValue = note.basesEntry?.getValue?.('type');
@@ -758,52 +994,19 @@ export class MiniCalendarView extends BasesViewBase {
 				}
 
 				if (noteType) {
-					item.createSpan({
-						text: ` (${noteType})`,
-						cls: 'preview-note-type'
-					});
+					line += ` (${noteType})`;
 				}
 			}
+
+			lines.push(line);
 		});
 
+		// Add "more" indicator if needed
 		if (notes.length > 5) {
-			list.createEl('li', {
-				text: `+ ${notes.length - 5} more...`,
-				cls: 'preview-more'
-			});
+			lines.push(`+ ${notes.length - 5} more...`);
 		}
 
-		return tooltip;
-	}
-
-	private showTooltip(targetEl: HTMLElement, tooltip: HTMLElement, event: MouseEvent): void {
-		// Remove any existing tooltip
-		this.hideTooltip();
-
-		// Position tooltip
-		document.body.appendChild(tooltip);
-		this.currentTooltip = tooltip;
-
-		const rect = targetEl.getBoundingClientRect();
-		tooltip.style.position = 'absolute';
-		tooltip.style.left = `${rect.left + rect.width / 2}px`;
-		tooltip.style.top = `${rect.top - 10}px`;
-		tooltip.style.transform = 'translate(-50%, -100%)';
-		tooltip.style.zIndex = '1000';
-
-		// Add mouseout handler to remove tooltip
-		const removeTooltip = () => {
-			this.hideTooltip();
-			targetEl.removeEventListener('mouseleave', removeTooltip);
-		};
-		targetEl.addEventListener('mouseleave', removeTooltip);
-	}
-
-	private hideTooltip(): void {
-		if (this.currentTooltip) {
-			this.currentTooltip.remove();
-			this.currentTooltip = null;
-		}
+		return lines.join('\n');
 	}
 
 	private getHeatMapIntensity(noteCount: number): string {
@@ -841,9 +1044,11 @@ export class MiniCalendarView extends BasesViewBase {
 
 	onunload(): void {
 		// Component.register() calls will be automatically cleaned up
+		// Obsidian's setTooltip handles its own cleanup automatically
 		this.calendarEl = null;
 		this.notesByDate.clear();
 		this.monthCalculationCache.clear();
+		this.keyboardHandler = null;
 	}
 }
 
