@@ -152,58 +152,70 @@ function getPropertyValue(task: TaskInfo, propertyId: string, plugin: TaskNotesP
 		// Handle Bases formula properties
 		if (propertyId.startsWith("formula.")) {
 			try {
-				const formulaName = propertyId.substring(8); // Remove 'formula.' prefix
 				const basesData = task.basesData;
 
-				if (!basesData?.formulaResults) {
-					return "";
-				}
-				// Access cached formula results from Bases
-				const formulaResults = basesData.formulaResults;
-				if (
-					formulaResults?.cachedFormulaOutputs &&
-					formulaResults.cachedFormulaOutputs[formulaName] !== undefined
-				) {
-					const cached = formulaResults.cachedFormulaOutputs[formulaName];
-
-					// Handle Bases formula result objects
-					if (cached && typeof cached === "object" && "icon" in cached) {
-						// Return data value if present (e.g., {icon: "lucide-binary", data: 11})
-						if ("data" in cached && cached.data !== null && cached.data !== undefined) {
-							return cached.data;
-						}
-
-						// Handle date results (e.g., {icon: "lucide-calendar", date: "2025-09-01"})
-						if (cached.icon === "lucide-calendar" && "date" in cached) {
-							return cached.date;
-						}
-
-						// Handle missing/empty data indicators
-						if (
-							cached.icon === "lucide-file-question" ||
-							cached.icon === "lucide-help-circle"
-						) {
-							return ""; // Show empty cell but keep column visible
-						}
-
-						// Handle other icon-only results (status indicators, etc.)
-						return cached.icon ? cached.icon.replace("lucide-", "") : "";
-					}
-
-					// Handle direct scalar values
-					if (cached !== null && cached !== undefined && cached !== "") {
-						return cached;
-					}
-
-					// Return empty string for null/undefined (maintains column visibility)
+				if (!basesData || typeof basesData.getValue !== "function") {
 					return "";
 				}
 
-				// No cached result available
+				// Use BasesEntry.getValue() to get formula result
+				// BasesEntry is from Obsidian's Bases API (1.10.0+)
+				const value = basesData.getValue(propertyId as any);
+
+				// Handle null/undefined
+				if (value === null || value === undefined) {
+					return "";
+				}
+
+				// Handle Bases Value objects (e.g., {icon: "...", data: ...})
+				if (value && typeof value === "object" && "icon" in value) {
+					// Return data value if present (e.g., {icon: "lucide-binary", data: 11})
+					if ("data" in value && value.data !== null && value.data !== undefined) {
+						return value.data;
+					}
+
+					// Handle date results (e.g., {icon: "lucide-calendar", date: "2025-09-01"})
+					if (value.icon === "lucide-calendar" && "date" in value) {
+						return value.date;
+					}
+
+					// Handle missing/empty data indicators
+					if (
+						value.icon === "lucide-file-question" ||
+						value.icon === "lucide-help-circle"
+					) {
+						return ""; // Show empty cell but keep column visible
+					}
+
+					// Handle other icon-only results (status indicators, etc.)
+					return value.icon ? value.icon.replace("lucide-", "") : "";
+				}
+
+				// Handle direct scalar values
+				if (value !== "") {
+					return value;
+				}
+
+				// Return empty string for empty values (maintains column visibility)
 				return "";
 			} catch (error) {
 				console.debug(`[TaskNotes] Error computing formula ${propertyId}:`, error);
 				return "[Formula Error]";
+			}
+		}
+
+		// Try to get property from Bases API first (for custom properties)
+		// This ensures we get the same value that Bases is displaying
+		if (task.basesData && typeof task.basesData.getValue === "function") {
+			try {
+				// Try with "note." prefix first (most common for custom frontmatter properties)
+				const notePropertyId = `note.${propertyId}`;
+				const value = task.basesData.getValue(notePropertyId as any);
+				if (value !== null && value !== undefined) {
+					return value;
+				}
+			} catch (error) {
+				// Property doesn't exist in Bases, try fallback
 			}
 		}
 
