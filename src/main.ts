@@ -145,10 +145,6 @@ export default class TaskNotesPlugin extends Plugin {
 	private readyPromise: Promise<void>;
 	private resolveReady: () => void;
 
-	// Shared state between views
-	// Initialize with UTC anchor for today's calendar date
-	selectedDate: Date = createUTCDateFromLocalCalendarDate(getTodayLocal());
-
 	// Task manager for just-in-time task lookups (also handles events)
 	cacheManager: TaskManager;
 	emitter: TaskManager;
@@ -1019,14 +1015,6 @@ export default class TaskNotesPlugin extends Plugin {
 	}
 
 	// Methods for updating shared state and emitting events
-
-	/**
-	 * Update the selected date and notify all views
-	 */
-	setSelectedDate(date: Date): void {
-		this.selectedDate = date;
-		this.emitter.trigger(EVENT_DATE_SELECTED, date);
-	}
 
 	/**
 	 * Notify views that data has changed and views should refresh
@@ -2693,7 +2681,10 @@ export default class TaskNotesPlugin extends Plugin {
 
 			// Open TaskActionPaletteModal with detected task
 			const { TaskActionPaletteModal } = await import("./modals/TaskActionPaletteModal");
-			const modal = new TaskActionPaletteModal(this.app, taskInfo, this, this.selectedDate);
+			// Use fresh UTC-anchored "today" for recurring task handling
+			const now = new Date();
+			const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+			const modal = new TaskActionPaletteModal(this.app, taskInfo, this, today);
 			modal.open();
 		} catch (error) {
 			console.error("Error opening quick actions:", error);

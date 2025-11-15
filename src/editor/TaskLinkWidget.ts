@@ -25,10 +25,9 @@ export class TaskLinkWidget extends WidgetType {
 
 	toDOM(view: EditorView): HTMLElement {
 		// Get target date for recurring task status calculation
-		const targetDate = this.plugin.selectedDate || (() => {
-			const now = new Date();
-			return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
-		})();
+		// Use fresh UTC-anchored "today" to ensure correct recurring task completion status
+		const now = new Date();
+		const targetDate = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
 
 		// Get visible properties from settings, with fallback to defaults
 		const visibleProperties = this.plugin.settings.inlineVisibleProperties || [

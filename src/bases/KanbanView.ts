@@ -923,8 +923,11 @@ export class KanbanView extends BasesViewBase {
 	 * Get consistent card rendering options for all kanban cards
 	 */
 	private getCardOptions() {
+		// Use UTC-anchored "today" for correct recurring task completion status
+		const now = new Date();
+		const targetDate = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
 		return {
-			targetDate: new Date(),
+			targetDate,
 		};
 	}
 

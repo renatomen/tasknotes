@@ -904,7 +904,12 @@ export function createTaskCard(
 	options: Partial<TaskCardOptions> = {}
 ): HTMLElement {
 	const opts = { ...DEFAULT_TASK_CARD_OPTIONS, ...options };
-	const targetDate = opts.targetDate || plugin.selectedDate || new Date();
+	// Use fresh UTC-anchored "today" if no targetDate provided
+	// This ensures recurring tasks show correct completion status for the current day
+	const targetDate = opts.targetDate || (() => {
+		const todayLocal = new Date();
+		return new Date(Date.UTC(todayLocal.getFullYear(), todayLocal.getMonth(), todayLocal.getDate()));
+	})();
 
 	// Determine effective status for recurring tasks
 	const effectiveStatus = task.recurrence
@@ -1500,7 +1505,12 @@ export function updateTaskCard(
 	options: Partial<TaskCardOptions> = {}
 ): void {
 	const opts = { ...DEFAULT_TASK_CARD_OPTIONS, ...options };
-	const targetDate = opts.targetDate || plugin.selectedDate || new Date();
+	// Use fresh UTC-anchored "today" if no targetDate provided
+	// This ensures recurring tasks show correct completion status for the current day
+	const targetDate = opts.targetDate || (() => {
+		const todayLocal = new Date();
+		return new Date(Date.UTC(todayLocal.getFullYear(), todayLocal.getMonth(), todayLocal.getDate()));
+	})();
 
 	// Update effective status
 	const effectiveStatus = task.recurrence

@@ -38,3 +38,10 @@ Example:
   - Default Bases files now generate with correct property paths and appear reliably in the file explorer
   - Thanks to @kmaustral for reporting
 
+- (#1110) Fixed open recurring tasks appearing crossed out in Tasks view
+  - Removed stale `selectedDate` property that was never updated in v4
+  - Tasks view now uses fresh UTC-anchored "today" for correct recurring task completion status
+  - Fixes issue where tasks completed yesterday would appear crossed out today for users in positive UTC offset timezones
+  - Also fixed KanbanView to use UTC-anchored dates for consistency
+  - Thanks to @kmaustral for reporting
+
