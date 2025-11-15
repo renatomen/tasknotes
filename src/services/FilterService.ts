@@ -2743,7 +2743,6 @@ export class FilterService extends EventEmitter {
 
 	/**
 	 * Extract project names from a task project value, handling [[link]] format
-	 * This mirrors the logic from MinimalNativeCache.extractProjectNamesFromValue
 	 */
 	private extractProjectNamesFromTaskValue(projectValue: string, sourcePath: string): string[] {
 		if (!projectValue || projectValue.trim() === "" || projectValue === '""') {

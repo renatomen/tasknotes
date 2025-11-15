@@ -1,5 +1,5 @@
 import { FilterService } from '../../../src/services/FilterService';
-import { MinimalNativeCache } from '../../../src/utils/MinimalNativeCache';
+import { TaskManager } from '../../../src/utils/TaskManager';
 import { StatusManager } from '../../../src/services/StatusManager';
 import { PriorityManager } from '../../../src/services/PriorityManager';
 import { MockObsidian, App } from '../../__mocks__/obsidian';
@@ -14,12 +14,12 @@ function makeApp(): App {
 function makeCache(app: App, settingsOverride: Partial<typeof DEFAULT_SETTINGS> = {}) {
   const mapper = new FieldMapper(DEFAULT_FIELD_MAPPING);
   const settings = { ...DEFAULT_SETTINGS, ...settingsOverride } as any;
-  const cache = new MinimalNativeCache(app as any, settings, mapper);
+  const cache = new TaskManager(app as any, settings, mapper);
   cache.initialize();
   return cache;
 }
 
-function makeFilterService(cache: MinimalNativeCache, plugin: any) {
+function makeFilterService(cache: TaskManager, plugin: any) {
   const status = new StatusManager([]);
   const priority = new PriorityManager([]);
   return new FilterService(cache, status, priority, plugin);

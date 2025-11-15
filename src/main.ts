@@ -537,7 +537,7 @@ export default class TaskNotesPlugin extends Plugin {
 			// Initialize notification service
 			await this.notificationService.initialize();
 
-			// Ensure MinimalNativeCache project indexes are warmed up
+			// Warm up TaskManager indexes for better performance
 			await this.warmupProjectIndexes();
 
 			// Initialize and start auto-archive service
@@ -702,7 +702,7 @@ export default class TaskNotesPlugin extends Plugin {
 	}
 
 	/**
-	 * Warmup project indexes in MinimalNativeCache for better performance
+	 * Warm up TaskManager indexes for better performance
 	 */
 	private async warmupProjectIndexes(): Promise<void> {
 		try {

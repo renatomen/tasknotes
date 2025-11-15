@@ -3,7 +3,7 @@
  */
 
 import { FilterService } from '../../../src/services/FilterService';
-import { MinimalNativeCache } from '../../../src/utils/MinimalNativeCache';
+import { TaskManager } from '../../../src/utils/TaskManager';
 import { StatusManager } from '../../../src/services/StatusManager';
 import { PriorityManager } from '../../../src/services/PriorityManager';
 import { TaskInfo, FilterQuery } from '../../../src/types';
@@ -27,7 +27,7 @@ describe('Date comparison logic', () => {
 
 describe('FilterService - Issue 153 Fix Verification', () => {
     let filterService: FilterService;
-    let mockCacheManager: jest.Mocked<MinimalNativeCache>;
+    let mockCacheManager: jest.Mocked<TaskManager>;
     let mockStatusManager: jest.Mocked<StatusManager>;
     let mockPriorityManager: jest.Mocked<PriorityManager>;
 

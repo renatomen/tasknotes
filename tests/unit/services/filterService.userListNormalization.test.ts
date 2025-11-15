@@ -1,5 +1,5 @@
 import { FilterService } from '../../../src/services/FilterService';
-import { MinimalNativeCache } from '../../../src/utils/MinimalNativeCache';
+import { TaskManager } from '../../../src/utils/TaskManager';
 import { StatusManager } from '../../../src/services/StatusManager';
 import { PriorityManager } from '../../../src/services/PriorityManager';
 import { MockObsidian } from '../../__mocks__/obsidian';
@@ -14,7 +14,7 @@ function createPluginWithUserFields(userFields: any[]) {
 
 function makeFilterService(plugin: any) {
   const app = MockObsidian.createMockApp();
-  const cache = new MinimalNativeCache(app as any, DEFAULT_SETTINGS);
+  const cache = new TaskManager(app as any, DEFAULT_SETTINGS);
   const status = new StatusManager([]);
   const priority = new PriorityManager([]);
   return new FilterService(cache, status, priority, plugin);

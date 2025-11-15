@@ -389,7 +389,7 @@ export const PluginFactory = {
     };
 
     const mockCache = {
-      // Core MinimalNativeCache methods
+      // Core TaskManager methods
       initialize: jest.fn(),
       getAllTasks: jest.fn().mockResolvedValue([]),
       getAllTaskPaths: jest.fn().mockReturnValue(new Set()),
