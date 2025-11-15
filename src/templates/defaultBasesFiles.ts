@@ -49,6 +49,14 @@ ${formattedConditions}`;
 }
 
 /**
+ * Extract just the property name from a fully-qualified property path
+ * e.g., "note.projects" -> "projects", "file.ctime" -> "ctime"
+ */
+function getPropertyName(fullPath: string): string {
+	return fullPath.replace(/^(note\.|file\.|task\.|formula\.)/, '');
+}
+
+/**
  * Map internal TaskNotes property names to Bases property names
  */
 function mapPropertyToBasesProperty(property: string, settings: TaskNotesSettings): string {
@@ -252,9 +260,10 @@ ${orderYaml}
 
 		case 'relationships': {
 			// Unified relationships widget that shows all relationship types
-			const projectsProperty = mapPropertyToBasesProperty('projects', settings);
-			const blockedByProperty = mapPropertyToBasesProperty('blockedBy', settings);
-			const statusProperty = mapPropertyToBasesProperty('status', settings);
+			// Extract just the property names (without prefixes) since the template controls the context
+			const projectsProperty = getPropertyName(mapPropertyToBasesProperty('projects', settings));
+			const blockedByProperty = getPropertyName(mapPropertyToBasesProperty('blockedBy', settings));
+			const statusProperty = getPropertyName(mapPropertyToBasesProperty('status', settings));
 
 			return `# Relationships
 # This view shows all relationships for the current file
@@ -277,7 +286,7 @@ ${orderYaml}
     name: "Projects"
     filters:
       and:
-        - list(this.note.${projectsProperty}).contains(file.asLink())
+        - list(this.${projectsProperty}).contains(file.asLink())
     order:
 ${orderYaml}
   - type: tasknotesTaskList

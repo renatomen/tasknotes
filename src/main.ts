@@ -369,9 +369,6 @@ export default class TaskNotesPlugin extends Plugin {
 		const { BasesFilterConverter } = await import("./services/BasesFilterConverter");
 		this.basesFilterConverter = new BasesFilterConverter(this);
 
-		// Ensure default Bases command files exist so commands work immediately
-		await this.ensureBasesViewFiles();
-
 		// Create ICS services early so views can register event listeners
 		// (initialization will be deferred to lazy loading)
 		this.icsSubscriptionService = new ICSSubscriptionService(this);
@@ -512,6 +509,10 @@ export default class TaskNotesPlugin extends Plugin {
 		this.initializationComplete = true;
 
 		try {
+			// Ensure default Bases command files exist
+			// Deferred to here (after layout ready) to avoid race conditions with file explorer cache
+			await this.ensureBasesViewFiles();
+
 			// Inject dynamic styles for custom statuses and priorities
 			this.injectCustomStyles();
 

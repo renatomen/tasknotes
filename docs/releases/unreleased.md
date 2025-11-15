@@ -24,3 +24,17 @@ Example:
 
 -->
 
+## Fixed
+
+- (#1097) Fixed custom properties and formulas not displaying in Bases views
+  - Updated TaskCard to use Bases API's getValue() method for formulas and custom note properties
+  - Formulas now work correctly using `formula.NAME` syntax
+  - Custom note properties now work correctly using `note.PROPERTY` syntax
+  - Thanks to @cathywu for reporting
+
+- (#1099) Fixed issues with default Bases file creation
+  - Fixed double-prefix bug in relationships template that generated invalid filter expressions like `note.note.projects`
+  - Fixed race condition where files created during plugin load wouldn't appear in file explorer
+  - Default Bases files now generate with correct property paths and appear reliably in the file explorer
+  - Thanks to @kmaustral for reporting
+
