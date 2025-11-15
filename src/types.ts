@@ -1,8 +1,6 @@
-// View types
+// View types (active views)
 export const MINI_CALENDAR_VIEW_TYPE = "tasknotes-mini-calendar-view";
-export const ADVANCED_CALENDAR_VIEW_TYPE = "tasknotes-advanced-calendar-view";
 export const TASK_LIST_VIEW_TYPE = "tasknotes-task-list-view";
-export const NOTES_VIEW_TYPE = "tasknotes-notes-view";
 export const AGENDA_VIEW_TYPE = "tasknotes-agenda-view";
 export const POMODORO_VIEW_TYPE = "tasknotes-pomodoro-view";
 export const POMODORO_STATS_VIEW_TYPE = "tasknotes-pomodoro-stats-view";
@@ -476,6 +474,7 @@ export interface TaskInfo {
 	contexts?: string[];
 	projects?: string[];
 	recurrence?: string | RecurrenceInfo | undefined; // RFC 5545 recurrence rule string (preferred) or legacy RecurrenceInfo object (deprecated)
+	recurrence_anchor?: 'scheduled' | 'completion'; // Determines if recurrence is from scheduled date (fixed) or completion date (flexible). Defaults to 'scheduled'
 	complete_instances?: string[]; // Array of dates (YYYY-MM-DD) when recurring task was completed
 	completedDate?: string; // Date (YYYY-MM-DD) when task was marked as done
 	timeEstimate?: number; // Estimated time in minutes
@@ -660,6 +659,7 @@ export interface FieldMapping {
 	dateCreated: string;
 	dateModified: string;
 	recurrence: string; // RFC 5545 recurrence rule string or legacy RecurrenceInfo object
+	recurrenceAnchor: string; // User-configurable property name for recurrence_anchor field
 	archiveTag: string; // For the archive tag in the tags array
 	timeEntries: string;
 	completeInstances: string;

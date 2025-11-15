@@ -37,10 +37,6 @@ import {
 	EVENT_TASK_UPDATED,
 	EVENT_DATE_CHANGED,
 } from "./types";
-// Deprecated views - excluded from compilation
-// import { MiniCalendarView } from "./views/MiniCalendarView";
-// import { AgendaView } from "./views/AgendaView";
-// import { KanbanView } from "./views/KanbanView";
 
 // Active views
 import { PomodoroView } from "./views/PomodoroView";
@@ -387,11 +383,6 @@ export default class TaskNotesPlugin extends Plugin {
 		this.addRibbonIcon("check-square", "Open task list", async () => {
 			await this.openBasesFileForCommand('open-tasks-view');
 		});
-
-		// v4: Notes view deprecated - ribbon icon removed
-		// this.addRibbonIcon("sticky-note", "Open notes", async () => {
-		// 	await this.activateNotesView();
-		// });
 
 		this.addRibbonIcon("list", "Open agenda", async () => {
 			await this.openBasesFileForCommand('open-agenda-view');
@@ -1452,14 +1443,6 @@ export default class TaskNotesPlugin extends Plugin {
 					await this.openBasesFileForCommand('open-tasks-view');
 				},
 			},
-			// v4: Notes view deprecated - command removed
-// 			{
-// 				id: "open-notes-view",
-// 				nameKey: "commands.openNotesView",
-// 				callback: async () => {
-// 					await this.activateNotesView();
-// 				},
-// 			},
 			{
 				id: "open-agenda-view",
 				nameKey: "commands.openAgendaView",
@@ -1716,21 +1699,6 @@ export default class TaskNotesPlugin extends Plugin {
 		return this.openBasesFileForCommand('open-calendar-view');
 	}
 
-	// v4: Removed - Advanced Calendar now uses Bases
-	// async activateAdvancedCalendarView() {
-	// 	return this.activateView(ADVANCED_CALENDAR_VIEW_TYPE);
-	// }
-
-	// v4: Removed - Task List now uses Bases
-	// async activateTasksView() {
-	// 	return this.activateView(TASK_LIST_VIEW_TYPE);
-	// }
-
-	// v4: Removed - Notes view deprecated
-	// async activateNotesView() {
-	// 	return this.activateView(NOTES_VIEW_TYPE);
-	// }
-
 	async activateAgendaView() {
 		return this.activateView(AGENDA_VIEW_TYPE);
 	}
@@ -1746,11 +1714,6 @@ export default class TaskNotesPlugin extends Plugin {
 	async activateStatsView() {
 		return this.activateView(STATS_VIEW_TYPE);
 	}
-
-	// v4: Removed - Kanban now uses Bases
-	// async activateKanbanView() {
-	// 	return this.activateView(KANBAN_VIEW_TYPE);
-	// }
 
 	async activateReleaseNotesView() {
 		return this.activateView(RELEASE_NOTES_VIEW_TYPE);
