@@ -2103,7 +2103,7 @@ export class FilterService extends EventEmitter {
 	}
 
 	/**
-	 * Get available filter options for building FilterBar UI
+	 * Get available filter options for building filter UI
 	 * Uses event-driven caching - cache is invalidated only when new options are detected
 	 */
 	async getFilterOptions(): Promise<FilterOptions> {

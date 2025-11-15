@@ -403,24 +403,6 @@ export const FILTER_OPERATORS: OperatorDefinition[] = [
 	{ id: "is-less-than-or-equal", label: "is equal or less than", requiresValue: true },
 ];
 
-export interface FilterBarConfig {
-	showSearch?: boolean;
-	showGroupBy?: boolean;
-	showSortBy?: boolean;
-	showAdvancedFilters?: boolean;
-	showDateRangePicker?: boolean;
-	showViewOptions?: boolean; // Legacy calendar view options
-	showShowDropdown?: boolean; // New unified show dropdown
-	allowedSortKeys?: readonly TaskSortKey[];
-	allowedGroupKeys?: readonly TaskGroupKey[];
-	customButtons?: readonly FilterBarCustomButton[];
-}
-
-export interface FilterBarCustomButton {
-	id: string;
-	onCreate: (container: HTMLElement) => void;
-}
-
 export interface FilterOptions {
 	statuses: readonly StatusConfig[];
 	priorities: readonly PriorityConfig[];

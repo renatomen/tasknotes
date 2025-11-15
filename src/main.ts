@@ -1355,7 +1355,7 @@ export default class TaskNotesPlugin extends Plugin {
 			this.statusBarService.updateVisibility();
 		}
 
-		// Invalidate filter options cache so new settings (e.g., user fields) appear immediately in FilterBar
+		// Invalidate filter options cache so new settings (e.g., user fields) appear immediately
 		this.filterService?.refreshFilterOptions();
 
 		// If settings have changed, notify views to refresh their data
@@ -2093,9 +2093,9 @@ export default class TaskNotesPlugin extends Plugin {
 				return;
 			}
 
-			// Note: This feature requires views with FilterBar (deprecated in v4)
+			// Note: This feature was part of the old view system (deprecated in v4)
 			// TODO: Re-implement for Bases views if needed
-			new Notice("Project subtask filtering not available (requires deprecated views)");
+			new Notice("Project subtask filtering not available");
 		} catch (error) {
 			console.error("Error applying project subtask filter:", error);
 			new Notice("Failed to apply project filter");
@@ -2103,7 +2103,7 @@ export default class TaskNotesPlugin extends Plugin {
 	}
 
 	/**
-	 * Add a project filter condition to the FilterBar with proper grouping
+	 * Legacy method: Add a project filter condition (no longer used)
 	 * Uses the same pattern as search to ensure correct AND/OR logic
 	 */
 	private addProjectCondition(filterBar: any, projectName: string): void {
