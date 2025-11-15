@@ -283,6 +283,7 @@ export class TaskManager extends Events {
 				contexts: Array.isArray(mappedTask.contexts) ? mappedTask.contexts : [],
 				projects: Array.isArray(mappedTask.projects) ? mappedTask.projects : [],
 				recurrence: mappedTask.recurrence,
+				recurrence_anchor: mappedTask.recurrence_anchor,
 				complete_instances: mappedTask.complete_instances,
 				completedDate: mappedTask.completedDate,
 				timeEstimate: mappedTask.timeEstimate,

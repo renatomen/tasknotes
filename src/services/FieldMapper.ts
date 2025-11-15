@@ -110,7 +110,6 @@ export class FieldMapper {
 
 		if (frontmatter[this.mapping.recurrenceAnchor] !== undefined) {
 			const anchorValue = frontmatter[this.mapping.recurrenceAnchor];
-			console.log(`[FieldMapper] Found recurrence_anchor in frontmatter: ${anchorValue}`);
 			// Validate value
 			if (anchorValue === 'scheduled' || anchorValue === 'completion') {
 				mapped.recurrence_anchor = anchorValue;
@@ -118,8 +117,6 @@ export class FieldMapper {
 				console.warn(`Invalid recurrence_anchor value: ${anchorValue}, defaulting to 'scheduled'`);
 				mapped.recurrence_anchor = 'scheduled';
 			}
-		} else {
-			console.log(`[FieldMapper] No recurrence_anchor found in frontmatter, field name: ${this.mapping.recurrenceAnchor}`);
 		}
 
 		if (frontmatter[this.mapping.dateCreated] !== undefined) {

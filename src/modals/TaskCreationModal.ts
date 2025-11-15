@@ -785,7 +785,6 @@ export class TaskCreationModal extends TaskModal {
 			// Focus the editor after a short delay and reset scroll position
 			setTimeout(() => {
 				if (this.nlMarkdownEditor) {
-					// @ts-expect-error - accessing CodeMirror internals
 					const cm = this.nlMarkdownEditor.editor?.cm;
 					if (cm) {
 						cm.focus();

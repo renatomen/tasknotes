@@ -558,8 +558,6 @@ export function getNextUncompletedOccurrence(task: TaskInfo): Date | null {
 
 	const anchor = task.recurrence_anchor || 'scheduled'; // Default to scheduled
 
-	console.log(`[getNextUncompletedOccurrence] Task: ${task.title}, anchor: ${anchor}, complete_instances: ${JSON.stringify(task.complete_instances)}`);
-
 	if (anchor === 'completion') {
 		return getNextCompletionBasedOccurrence(task);
 	} else {
@@ -628,14 +626,12 @@ function getNextCompletionBasedOccurrence(task: TaskInfo): Date | null {
 			} else {
 				return null;
 			}
-			console.log(`[Completion-based] No completions, using scheduled/created: ${anchorDate.toISOString().split('T')[0]}`);
 		} else {
 			// Get latest completion date - this is the key difference from scheduled-based!
 			// We calculate from when the task was actually completed, not from the original schedule
 			const sortedCompletions = [...completedInstances].sort();
 			const latestCompletion = sortedCompletions[sortedCompletions.length - 1];
 			anchorDate = parseDateToUTC(latestCompletion);
-			console.log(`[Completion-based] Latest completion: ${latestCompletion}, anchor: ${anchorDate.toISOString().split('T')[0]}`);
 		}
 
 		// Parse RRULE (strip DTSTART if present to avoid conflicts)
@@ -652,8 +648,6 @@ function getNextCompletionBasedOccurrence(task: TaskInfo): Date | null {
 		// Add 1 second to ensure we get the NEXT occurrence, not the anchor date itself
 		const nextAfterAnchor = new Date(anchorDate.getTime() + 1000);
 		const nextOccurrence = rrule.after(nextAfterAnchor, false);
-
-		console.log(`[Completion-based] Next occurrence from ${anchorDate.toISOString().split('T')[0]}: ${nextOccurrence ? nextOccurrence.toISOString().split('T')[0] : 'null'}`);
 
 		// For completion-based recurrence, we DON'T filter by complete_instances
 		// The next occurrence is simply: anchorDate + interval

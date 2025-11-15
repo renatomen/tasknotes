@@ -125,7 +125,6 @@ export class EmbeddableMarkdownEditor extends resolveEditorPrototype(app) {
 	private uninstaller?: () => void;
 
 	constructor(app: App, container: HTMLElement, options: Partial<MarkdownEditorProps> = {}) {
-		// @ts-expect-error - Calling internal constructor
 		super(app, container, {
 			app,
 			onMarkdownScroll: () => {},
@@ -139,9 +138,7 @@ export class EmbeddableMarkdownEditor extends resolveEditorPrototype(app) {
 		// Override Mod+Enter to prevent default workspace behavior
 		this.scope.register(["Mod"], "Enter", (e, ctx) => true);
 
-		// @ts-expect-error - Setting internal properties
 		this.owner.editMode = this;
-		// @ts-expect-error
 		this.owner.editor = this.editor;
 
 		// IMPORTANT: From Obsidian 1.5.8+, must explicitly set value
@@ -149,14 +146,10 @@ export class EmbeddableMarkdownEditor extends resolveEditorPrototype(app) {
 
 		// Prevent workspace from stealing focus when editing
 		this.uninstaller = around(this.app.workspace, {
-			// @ts-expect-error
-			setActiveLeaf: (
-				oldMethod: (leaf: WorkspaceLeaf, params?: { focus?: boolean }) => void
-			) => {
-				return function (this: any, leaf: WorkspaceLeaf, params?: { focus?: boolean }) {
-					// @ts-expect-error
+			setActiveLeaf: (oldMethod: any) => {
+				return function (this: any, ...args: any[]) {
 					if (!this.activeCM?.hasFocus) {
-						oldMethod.call(this, leaf, params);
+						oldMethod.call(this, ...args);
 					}
 				};
 			},
@@ -164,31 +157,25 @@ export class EmbeddableMarkdownEditor extends resolveEditorPrototype(app) {
 
 		// Set up blur handler
 		if (this.options.onBlur !== defaultProperties.onBlur) {
-			// @ts-expect-error
 			this.editor.cm.contentDOM.addEventListener("blur", () => {
 				this.app.keymap.popScope(this.scope);
-				// @ts-expect-error
 				if (this._loaded) this.options.onBlur(this);
 			});
 		}
 
 		// Set up focus handler
-		// @ts-expect-error
-		this.editor.cm.contentDOM.addEventListener("focusin", (e) => {
+		this.editor.cm.contentDOM.addEventListener("focusin", () => {
 			this.app.keymap.pushScope(this.scope);
-			// @ts-expect-error
 			this.app.workspace.activeEditor = this.owner;
 		});
 
 		// Add custom CSS class if provided
 		if (options.cls) {
-			// @ts-expect-error
 			this.editorEl.classList.add(options.cls);
 		}
 
 		// Set initial cursor position
 		if (options.cursorLocation) {
-			// @ts-expect-error
 			this.editor.cm.dispatch({
 				selection: EditorSelection.range(
 					options.cursorLocation.anchor,
@@ -202,7 +189,6 @@ export class EmbeddableMarkdownEditor extends resolveEditorPrototype(app) {
 	 * Get the current text content of the editor
 	 */
 	get value(): string {
-		// @ts-expect-error
 		return this.editor.cm.state.doc.toString();
 	}
 
@@ -217,7 +203,6 @@ export class EmbeddableMarkdownEditor extends resolveEditorPrototype(app) {
 	 * Override to handle content changes
 	 */
 	onUpdate(update: ViewUpdate, changed: boolean): void {
-		// @ts-expect-error
 		super.onUpdate(update, changed);
 		if (changed) {
 			this.options.onChange(this.value, update);
@@ -229,7 +214,6 @@ export class EmbeddableMarkdownEditor extends resolveEditorPrototype(app) {
 	 * This is where we add keyboard handlers and other editor features
 	 */
 	buildLocalExtensions(): Extension[] {
-		// @ts-expect-error
 		const extensions = super.buildLocalExtensions();
 
 		// Add placeholder if specified
@@ -291,13 +275,11 @@ export class EmbeddableMarkdownEditor extends resolveEditorPrototype(app) {
 	 * Clean up the editor and remove all event listeners
 	 */
 	destroy(): void {
-		// @ts-expect-error
 		if (this._loaded) {
 			this.unload();
 		}
 
 		this.app.keymap.popScope(this.scope);
-		// @ts-expect-error
 		this.app.workspace.activeEditor = null;
 
 		// Call uninstaller to remove monkey-patching
@@ -307,7 +289,6 @@ export class EmbeddableMarkdownEditor extends resolveEditorPrototype(app) {
 		}
 
 		this.containerEl.empty();
-		// @ts-expect-error
 		super.destroy();
 	}
 
@@ -315,8 +296,6 @@ export class EmbeddableMarkdownEditor extends resolveEditorPrototype(app) {
 	 * Obsidian lifecycle method
 	 */
 	onunload(): void {
-		// @ts-expect-error
-		super.onunload();
 		this.destroy();
 	}
 }
