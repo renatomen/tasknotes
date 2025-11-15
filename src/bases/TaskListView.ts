@@ -811,13 +811,21 @@ export class TaskListView extends BasesViewBase {
 	private showRecurrenceMenu(task: TaskInfo, event: MouseEvent): void {
 		const menu = new RecurrenceContextMenu({
 			currentValue: typeof task.recurrence === "string" ? task.recurrence : undefined,
-			onSelect: async (newRecurrence: string | null) => {
+			currentAnchor: task.recurrence_anchor || 'scheduled',
+			onSelect: async (newRecurrence: string | null, anchor?: 'scheduled' | 'completion') => {
 				try {
 					await this.plugin.updateTaskProperty(
 						task,
 						"recurrence",
 						newRecurrence || undefined
 					);
+					if (anchor !== undefined) {
+						await this.plugin.updateTaskProperty(
+							task,
+							"recurrence_anchor",
+							anchor
+						);
+					}
 				} catch (error) {
 					console.error("[TaskNotes][TaskListView] Failed to update recurrence", error);
 					new Notice("Failed to update recurrence");

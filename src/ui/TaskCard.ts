@@ -1109,13 +1109,21 @@ export function createTaskCard(
 			e.stopPropagation(); // Don't trigger card click
 			const menu = new RecurrenceContextMenu({
 				currentValue: typeof task.recurrence === "string" ? task.recurrence : undefined,
-				onSelect: async (newRecurrence: string | null) => {
+				currentAnchor: task.recurrence_anchor || 'scheduled',
+				onSelect: async (newRecurrence: string | null, anchor?: 'scheduled' | 'completion') => {
 					try {
 						await plugin.updateTaskProperty(
 							task,
 							"recurrence",
 							newRecurrence || undefined
 						);
+						if (anchor !== undefined) {
+							await plugin.updateTaskProperty(
+								task,
+								"recurrence_anchor",
+								anchor
+							);
+						}
 					} catch (error) {
 						console.error("Error updating recurrence:", error);
 						new Notice("Failed to update recurrence");

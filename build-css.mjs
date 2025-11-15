@@ -30,7 +30,6 @@ const CSS_FILES = [
     'styles/advanced-calendar-view.css', // AdvancedCalendarView component with proper BEM scoping
     'styles/kanban-view.css',        // KanbanView component with proper BEM scoping
     'styles/agenda-view.css',        // AgendaView component with proper BEM scoping
-    'styles/notes-view.css',         // NotesView component with proper BEM scoping
     'styles/pomodoro-view.css',      // PomodoroView component with proper BEM scoping
     'styles/pomodoro-stats-view.css', // PomodoroStatsView component with proper BEM scoping
     'styles/stats-view.css',         // StatsView component with proper BEM scoping
@@ -65,7 +64,6 @@ const MAIN_CSS_TEMPLATE = `/* TaskNotes Plugin Styles */
    - styles/calendar-view.css: CalendarView component with proper BEM scoping
    - styles/kanban-view.css: KanbanView component with proper BEM scoping
    - styles/agenda-view.css: AgendaView component with proper BEM scoping
-   - styles/notes-view.css: NotesView component with proper BEM scoping
    - styles/pomodoro-view.css: PomodoroView component with proper BEM scoping
    - styles/pomodoro-stats-view.css: PomodoroStatsView component with proper BEM scoping
    - styles/settings-view.css: SettingsView component with proper BEM scoping

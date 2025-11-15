@@ -383,6 +383,7 @@ export abstract class TaskModal extends Modal {
 	protected tags = "";
 	protected timeEstimate = 0;
 	protected recurrenceRule = "";
+	protected recurrenceAnchor: 'scheduled' | 'completion' = 'scheduled';
 	protected reminders: Reminder[] = [];
 
 	// User-defined fields (dynamic based on settings)
@@ -1260,8 +1261,12 @@ export abstract class TaskModal extends Modal {
 	protected showRecurrenceContextMenu(event: UIEvent): void {
 		const menu = new RecurrenceContextMenu({
 			currentValue: this.recurrenceRule,
-			onSelect: (value) => {
+			currentAnchor: this.recurrenceAnchor,
+			onSelect: (value, anchor) => {
 				this.recurrenceRule = value || "";
+				if (anchor !== undefined) {
+					this.recurrenceAnchor = anchor;
+				}
 				this.updateRecurrenceIconState();
 			},
 			app: this.app,

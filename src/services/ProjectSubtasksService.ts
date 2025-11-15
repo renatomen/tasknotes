@@ -94,20 +94,6 @@ export class ProjectSubtasksService {
 	}
 
 	/**
-	 * Legacy method kept for compatibility - now just a no-op since we use native APIs
-	 */
-	async buildProjectStatusCache(): Promise<void> {
-		// No longer needed - using native resolvedLinks API directly
-		console.log("[ProjectSubtasksService] Using native APIs, cache building skipped");
-	}
-
-	// Removed - no longer needed with native API approach
-
-	// Removed - project resolution now handled by native resolvedLinks API
-
-	// Removed - project reference tracking now handled by native resolvedLinks API
-
-	/**
 	 * Check if a link from source to target comes from the projects field
 	 */
 	private async isLinkFromProjectsField(
@@ -239,24 +225,6 @@ export class ProjectSubtasksService {
 			this.buildProjectIndex();
 		}
 	}
-
-	// Removed - cache no longer used
-
-	// Removed - cache no longer used
-
-	// Removed - cache no longer used
-
-	// Removed - cache no longer used
-
-	// Removed - cache no longer used
-
-	// Removed - no longer needed without cache management
-
-	// Removed - no cache to clean up
-
-	// Removed - no cache to monitor
-
-	// Removed - no cache to clean up
 
 	/**
 	 * Cleanup when service is destroyed

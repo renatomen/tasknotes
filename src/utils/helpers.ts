@@ -15,7 +15,6 @@ import {
 	formatDateAsUTCString,
 	hasTimeComponent,
 } from "./dateUtils";
-// import { RegexOptimizer } from './RegexOptimizer'; // Temporarily disabled
 
 /**
  * Extracts frontmatter from a markdown file content using Obsidian's native parser
@@ -321,41 +320,6 @@ export function splitFrontmatterAndBody(content: string): {
 }
 
 /**
- * Checks if a task is overdue (either due date or scheduled date is in the past)
- * @deprecated Use isOverdueTimeAware from dateUtils.ts instead. This function has timezone
- * bugs due to mixing UTC-anchored dates with local-timezone dates in comparisons.
- */
-export function isTaskOverdue(task: { due?: string; scheduled?: string }): boolean {
-	const today = getTodayLocal();
-
-	// Check due date
-	if (task.due) {
-		try {
-			// Use consistent date parsing for both datetime and date-only strings
-			const dueDate = parseDateToUTC(task.due);
-			if (isBefore(startOfDay(dueDate), startOfDay(today))) return true;
-		} catch (e) {
-			// If parsing fails, fall back to string comparison
-			if (isBeforeDateSafe(task.due, getTodayString())) return true;
-		}
-	}
-
-	// Check scheduled date
-	if (task.scheduled) {
-		try {
-			// Use consistent date parsing for both datetime and date-only strings
-			const scheduledDate = parseDateToUTC(task.scheduled);
-			if (isBefore(startOfDay(scheduledDate), startOfDay(today))) return true;
-		} catch (e) {
-			// If parsing fails, fall back to string comparison
-			if (isBeforeDateSafe(task.scheduled, getTodayString())) return true;
-		}
-	}
-
-	return false;
-}
-
-/**
  * Checks if a recurring task is due on a specific date using RFC 5545 rrule
  */
 export function isDueByRRule(task: TaskInfo, date: Date): boolean {
@@ -430,111 +394,8 @@ export function isDueByRRule(task: TaskInfo, date: Date): boolean {
 		}
 	}
 
-	// If recurrence is an object (legacy format), handle it inline
-	// Legacy recurrence object handling
-	const frequency = task.recurrence.frequency;
-	const targetDate = parseDateToUTC(formatDateForStorage(date));
-	const dayOfWeek = targetDate.getUTCDay();
-	const dayOfMonth = targetDate.getUTCDate();
-	const monthOfYear = targetDate.getUTCMonth() + 1; // JavaScript months are 0-indexed
-	// Map JavaScript's day of week (0-6, where 0 is Sunday) to our day abbreviations
-	const weekdayMap = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
-
-	switch (frequency) {
-		case "daily":
-			return true;
-		case "weekly": {
-			// Check if the day of week is in the specified days
-			const daysOfWeek = task.recurrence.days_of_week || [];
-			return daysOfWeek.includes(weekdayMap[dayOfWeek]);
-		}
-		case "monthly":
-			// Check if the day of month matches
-			return dayOfMonth === task.recurrence.day_of_month;
-		case "yearly": {
-			// Check if it's the specific day of month in the correct month
-			// First check if we have explicit month_of_year in recurrence
-			if (task.recurrence.month_of_year && task.recurrence.day_of_month) {
-				return (
-					dayOfMonth === task.recurrence.day_of_month &&
-					monthOfYear === task.recurrence.month_of_year
-				);
-			}
-			// Fall back to using the original due date
-			else if (task.due) {
-				try {
-					const originalDueDate = parseDateToUTC(task.due); // Safe parsing
-					return (
-						originalDueDate.getUTCDate() === dayOfMonth &&
-						originalDueDate.getUTCMonth() === targetDate.getUTCMonth()
-					);
-				} catch (error) {
-					console.error(`Error parsing due date ${task.due}:`, error);
-					return false;
-				}
-			}
-			return false;
-		}
-		default:
-			return false;
-	}
-}
-
-/**
- * Checks if a recurring task is due on a specific date (legacy implementation)
- * @deprecated Use isDueByRRule instead
- */
-export function isRecurringTaskDueOn(task: any, date: Date): boolean {
-	if (!task.recurrence) return true; // Non-recurring tasks are always shown
-
-	// If recurrence is a string (rrule), this legacy function can't handle it
-	if (typeof task.recurrence === "string") return true;
-
-	const frequency = task.recurrence.frequency;
-	const targetDate = parseDateToUTC(formatDateForStorage(date));
-	const dayOfWeek = targetDate.getUTCDay();
-	const dayOfMonth = targetDate.getUTCDate();
-	const monthOfYear = targetDate.getUTCMonth() + 1; // JavaScript months are 0-indexed
-	// Map JavaScript's day of week (0-6, where 0 is Sunday) to our day abbreviations
-	const weekdayMap = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
-
-	switch (frequency) {
-		case "daily":
-			return true;
-		case "weekly": {
-			// Check if the day of week is in the specified days
-			const daysOfWeek = task.recurrence.days_of_week || [];
-			return daysOfWeek.includes(weekdayMap[dayOfWeek]);
-		}
-		case "monthly":
-			// Check if the day of month matches
-			return dayOfMonth === task.recurrence.day_of_month;
-		case "yearly":
-			// Check if it's the specific day of month in the correct month
-			// First check if we have explicit month_of_year in recurrence
-			if (task.recurrence.month_of_year && task.recurrence.day_of_month) {
-				return (
-					dayOfMonth === task.recurrence.day_of_month &&
-					monthOfYear === task.recurrence.month_of_year
-				);
-			}
-			// Fall back to using the original due date
-			else if (task.due) {
-				try {
-					const originalDueDate = parseDateToUTC(task.due); // Safe parsing
-					return (
-						originalDueDate.getUTCDate() === dayOfMonth &&
-						originalDueDate.getUTCMonth() === targetDate.getUTCMonth()
-					);
-				} catch (error) {
-					console.error(`Error parsing due date ${task.due}:`, error);
-					return false;
-				}
-			}
-			return false;
-		default:
-			return false;
-	}
+	// If we get here, it's a non-rrule recurrence string - treat as always due
+	return true;
 }
 
 /**
@@ -695,6 +556,25 @@ export function getNextUncompletedOccurrence(task: TaskInfo): Date | null {
 		return null;
 	}
 
+	const anchor = task.recurrence_anchor || 'scheduled'; // Default to scheduled
+
+	console.log(`[getNextUncompletedOccurrence] Task: ${task.title}, anchor: ${anchor}, complete_instances: ${JSON.stringify(task.complete_instances)}`);
+
+	if (anchor === 'completion') {
+		return getNextCompletionBasedOccurrence(task);
+	} else {
+		return getNextScheduledBasedOccurrence(task);
+	}
+}
+
+/**
+ * Gets next occurrence for scheduled-based (fixed) recurrence
+ */
+function getNextScheduledBasedOccurrence(task: TaskInfo): Date | null {
+	if (!task.recurrence) {
+		return null;
+	}
+
 	try {
 		// Get current date as starting point using UTC anchor principle
 		const todayStr = getTodayString(); // YYYY-MM-DD format
@@ -717,7 +597,70 @@ export function getNextUncompletedOccurrence(task: TaskInfo): Date | null {
 
 		return null; // No future occurrences or all completed
 	} catch (error) {
-		console.error("Error calculating next uncompleted occurrence:", error, {
+		console.error("Error calculating next scheduled-based occurrence:", error, {
+			task: task.title,
+		});
+		return null;
+	}
+}
+
+/**
+ * Gets next occurrence for completion-based (flexible) recurrence
+ * Calculates from the latest completion date, or from scheduled date if no completions exist
+ */
+function getNextCompletionBasedOccurrence(task: TaskInfo): Date | null {
+	if (!task.recurrence || typeof task.recurrence !== 'string') {
+		return null;
+	}
+
+	try {
+		const completedInstances = task.complete_instances || [];
+
+		// Determine the anchor date (latest completion or scheduled/created date)
+		let anchorDate: Date;
+
+		if (completedInstances.length === 0) {
+			// No completions yet - use scheduled date or created date as first anchor
+			if (task.scheduled) {
+				anchorDate = parseDateToUTC(task.scheduled);
+			} else if (task.dateCreated) {
+				anchorDate = parseDateToUTC(task.dateCreated);
+			} else {
+				return null;
+			}
+			console.log(`[Completion-based] No completions, using scheduled/created: ${anchorDate.toISOString().split('T')[0]}`);
+		} else {
+			// Get latest completion date - this is the key difference from scheduled-based!
+			// We calculate from when the task was actually completed, not from the original schedule
+			const sortedCompletions = [...completedInstances].sort();
+			const latestCompletion = sortedCompletions[sortedCompletions.length - 1];
+			anchorDate = parseDateToUTC(latestCompletion);
+			console.log(`[Completion-based] Latest completion: ${latestCompletion}, anchor: ${anchorDate.toISOString().split('T')[0]}`);
+		}
+
+		// Parse RRULE (strip DTSTART if present to avoid conflicts)
+		const rruleString = task.recurrence.replace(/DTSTART:[^;]+;?/, '');
+		const rruleOptions = RRule.parseString(rruleString);
+
+		// CRITICAL: Set dtstart to anchor date so recurrence calculates from completion
+		// This is different from scheduled-based which uses the original DTSTART
+		rruleOptions.dtstart = anchorDate;
+
+		const rrule = new RRule(rruleOptions);
+
+		// Get the next occurrence after the anchor date
+		// Add 1 second to ensure we get the NEXT occurrence, not the anchor date itself
+		const nextAfterAnchor = new Date(anchorDate.getTime() + 1000);
+		const nextOccurrence = rrule.after(nextAfterAnchor, false);
+
+		console.log(`[Completion-based] Next occurrence from ${anchorDate.toISOString().split('T')[0]}: ${nextOccurrence ? nextOccurrence.toISOString().split('T')[0] : 'null'}`);
+
+		// For completion-based recurrence, we DON'T filter by complete_instances
+		// The next occurrence is simply: anchorDate + interval
+		// If someone completes late, the next occurrence moves forward accordingly
+		return nextOccurrence;
+	} catch (error) {
+		console.error("Error calculating completion-based recurrence:", error, {
 			task: task.title,
 		});
 		return null;
@@ -781,88 +724,18 @@ export function updateToNextScheduledOccurrence(
 }
 
 /**
- * Converts legacy RecurrenceInfo to RFC 5545 rrule string
- * Used for migration from old recurrence format
+ * Converts rrule string to human-readable text
  */
-export function convertLegacyRecurrenceToRRule(recurrence: any): string {
-	if (!recurrence || !recurrence.frequency) {
-		throw new Error("Invalid recurrence object");
-	}
-
-	try {
-		let rruleOptions: any = {};
-
-		switch (recurrence.frequency) {
-			case "daily":
-				rruleOptions.freq = RRule.DAILY;
-				break;
-			case "weekly":
-				rruleOptions.freq = RRule.WEEKLY;
-				if (recurrence.days_of_week && Array.isArray(recurrence.days_of_week)) {
-					// Map day abbreviations to RRule weekday constants
-					const dayMap: { [key: string]: any } = {
-						sun: RRule.SU,
-						mon: RRule.MO,
-						tue: RRule.TU,
-						wed: RRule.WE,
-						thu: RRule.TH,
-						fri: RRule.FR,
-						sat: RRule.SA,
-					};
-					rruleOptions.byweekday = recurrence.days_of_week
-						.map((day: string) => dayMap[day.toLowerCase()])
-						.filter(Boolean);
-				}
-				break;
-			case "monthly":
-				rruleOptions.freq = RRule.MONTHLY;
-				if (recurrence.day_of_month) {
-					rruleOptions.bymonthday = [recurrence.day_of_month];
-				}
-				break;
-			case "yearly":
-				rruleOptions.freq = RRule.YEARLY;
-				if (recurrence.month_of_year) {
-					rruleOptions.bymonth = [recurrence.month_of_year];
-				}
-				if (recurrence.day_of_month) {
-					rruleOptions.bymonthday = [recurrence.day_of_month];
-				}
-				break;
-			default:
-				throw new Error(`Unsupported frequency: ${recurrence.frequency}`);
-		}
-
-		// Create RRule object and return string representation
-		const rrule = new RRule(rruleOptions);
-		return rrule.toString();
-	} catch (error) {
-		console.error("Error converting legacy recurrence to rrule:", error, { recurrence });
-		throw error;
-	}
-}
-
-/**
- * Converts rrule string or RecurrenceInfo to human-readable text
- */
-export function getRecurrenceDisplayText(recurrence: string | any): string {
+export function getRecurrenceDisplayText(recurrence: string): string {
 	if (!recurrence) {
 		return "";
 	}
 
 	try {
 		// Handle rrule string format
-		if (typeof recurrence === "string" && recurrence.includes("FREQ=")) {
+		if (recurrence.includes("FREQ=")) {
 			// Remove DTSTART from the string before parsing since RRule.fromString() expects only RRULE parameters
 			const rruleString = recurrence.replace(/DTSTART:[^;]+;?/, "");
-			const rrule = RRule.fromString(rruleString);
-			return rrule.toText();
-		}
-
-		// Handle legacy RecurrenceInfo object
-		if (typeof recurrence === "object" && recurrence.frequency) {
-			// Convert to rrule first, then get text
-			const rruleString = convertLegacyRecurrenceToRRule(recurrence);
 			const rrule = RRule.fromString(rruleString);
 			return rrule.toText();
 		}

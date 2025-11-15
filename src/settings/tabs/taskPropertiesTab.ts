@@ -2,12 +2,10 @@ import { Notice, Setting } from "obsidian";
 import TaskNotesPlugin from "../../main";
 import { FieldMapping } from "../../types";
 import { TranslationKey } from "../../i18n";
-// import { UserMappedField } from '../../types/settings';
 import {
 	createSectionHeader,
 	createHelpText,
 	createValidationNote,
-	// createListHeaders,
 	createButtonSetting,
 } from "../components/settingHelpers";
 import {
@@ -23,11 +21,6 @@ import {
 	createCardToggle,
 } from "../components/CardComponent";
 import { createFilterSettingsInputs } from "../components/FilterSettingsComponent";
-// import { ListEditorComponent, ListEditorItem } from '../components/ListEditorComponent';
-
-// interface StatusItem extends ListEditorItem, StatusConfig {}
-// interface PriorityItem extends ListEditorItem, PriorityConfig {}
-// interface UserFieldItem extends ListEditorItem, UserMappedField {}
 
 /**
  * Renders the Task Properties tab - custom statuses, priorities, and user fields

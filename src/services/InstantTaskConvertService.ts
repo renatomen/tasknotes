@@ -448,7 +448,7 @@ export class InstantTaskConvertService {
 		// Only add task tag if using tag-based identification
 		let tagsArray = this.plugin.settings.taskIdentificationMethod === 'tag' ? [this.plugin.settings.taskTag] : [];
 		let timeEstimate: number | undefined;
-		let recurrence: string | import("../types").RecurrenceInfo | undefined;
+		let recurrence: string | undefined;
 
 		// Extract parsed tags, contexts, and projects
 		const parsedTags = parsedData.tags || [];
@@ -523,13 +523,17 @@ export class InstantTaskConvertService {
 
 			// Apply recurrence: parsed value takes priority over defaults
 			if (parsedData.recurrence) {
-				// Use the RRule string directly (preferred format)
+				// Use the RRule string directly
 				recurrence = parsedData.recurrence;
 			} else if (defaults.defaultRecurrence && defaults.defaultRecurrence !== "none") {
-				// Defaults use the legacy RecurrenceInfo format
-				recurrence = {
-					frequency: defaults.defaultRecurrence,
+				// Convert default recurrence frequency to rrule string
+				const freqMap: Record<string, string> = {
+					daily: "FREQ=DAILY",
+					weekly: "FREQ=WEEKLY",
+					monthly: "FREQ=MONTHLY",
+					yearly: "FREQ=YEARLY",
 				};
+				recurrence = freqMap[defaults.defaultRecurrence] || undefined;
 			}
 		} else {
 			// Minimal behavior: only use parsed data, use "none" for unset values

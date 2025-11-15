@@ -22,6 +22,7 @@ export const DEFAULT_FIELD_MAPPING: FieldMapping = {
 	dateCreated: "dateCreated",
 	dateModified: "dateModified",
 	recurrence: "recurrence",
+	recurrenceAnchor: "recurrence_anchor",
 	archiveTag: "archived",
 	timeEntries: "timeEntries",
 	completeInstances: "complete_instances",

@@ -439,16 +439,6 @@ export interface TimeInfo {
 }
 
 // Task types
-/**
- * @deprecated Use rrule string instead. This interface will be removed in a future version.
- */
-export interface RecurrenceInfo {
-	frequency: "daily" | "weekly" | "monthly" | "yearly";
-	days_of_week?: string[]; // For weekly recurrence: ['mon', 'tue', etc.]
-	day_of_month?: number; // For monthly/yearly recurrence: 1-31
-	month_of_year?: number; // For yearly recurrence: 1-12
-}
-
 export type TaskDependencyRelType =
 	| "FINISHTOSTART"
 	| "FINISHTOFINISH"
@@ -473,7 +463,7 @@ export interface TaskInfo {
 	tags?: string[];
 	contexts?: string[];
 	projects?: string[];
-	recurrence?: string | RecurrenceInfo | undefined; // RFC 5545 recurrence rule string (preferred) or legacy RecurrenceInfo object (deprecated)
+	recurrence?: string; // RFC 5545 recurrence rule string
 	recurrence_anchor?: 'scheduled' | 'completion'; // Determines if recurrence is from scheduled date (fixed) or completion date (flexible). Defaults to 'scheduled'
 	complete_instances?: string[]; // Array of dates (YYYY-MM-DD) when recurring task was completed
 	completedDate?: string; // Date (YYYY-MM-DD) when task was marked as done
@@ -571,7 +561,7 @@ export interface TaskFrontmatter {
 	priority: "low" | "normal" | "high";
 	contexts?: string[];
 	projects?: string[];
-	recurrence?: string | RecurrenceInfo | undefined; // RFC 5545 recurrence rule string (preferred) or legacy RecurrenceInfo object (deprecated)
+	recurrence?: string; // RFC 5545 recurrence rule string
 	complete_instances?: string[];
 	completedDate?: string;
 	timeEstimate?: number;
@@ -658,7 +648,7 @@ export interface FieldMapping {
 	completedDate: string;
 	dateCreated: string;
 	dateModified: string;
-	recurrence: string; // RFC 5545 recurrence rule string or legacy RecurrenceInfo object
+	recurrence: string; // RFC 5545 recurrence rule string
 	recurrenceAnchor: string; // User-configurable property name for recurrence_anchor field
 	archiveTag: string; // For the archive tag in the tags array
 	timeEntries: string;

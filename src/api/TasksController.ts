@@ -493,9 +493,14 @@ export class TasksController extends BaseController {
 			defaults.defaultRecurrence &&
 			defaults.defaultRecurrence !== "none"
 		) {
-			taskData.recurrence = {
-				frequency: defaults.defaultRecurrence,
+			// Convert default recurrence frequency to rrule string
+			const freqMap: Record<string, string> = {
+				daily: "FREQ=DAILY",
+				weekly: "FREQ=WEEKLY",
+				monthly: "FREQ=MONTHLY",
+				yearly: "FREQ=YEARLY",
 			};
+			taskData.recurrence = freqMap[defaults.defaultRecurrence] || undefined;
 		}
 
 		// Apply default reminders if not provided

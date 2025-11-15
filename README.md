@@ -34,9 +34,10 @@ Each task being a full note means you can write descriptions, jot down thoughts 
 - Properties: title, status, priority, due date, scheduled date, contexts, projects, tags, time estimates, completion date
 - Project organization using note-based linking
 - Recurring tasks with per-date completion tracking
+- Flexible recurrence: choose between fixed schedule (scheduled-based) or flexible schedule (completion-based) recurrence
 - Time tracking with multiple sessions per task
 - Dependency management with blocked-by and blocking relationships
-- Archive function using tags 
+- Archive function using tags
 - Filtering and grouping options
 
 ### Calendar Integration

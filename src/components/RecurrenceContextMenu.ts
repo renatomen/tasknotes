@@ -7,11 +7,13 @@ export interface RecurrenceOption {
 	label: string;
 	value: string;
 	icon?: string;
+	anchor?: 'scheduled' | 'completion'; // NEW: Determines if recurrence is from scheduled date or completion date
 }
 
 export interface RecurrenceContextMenuOptions {
 	currentValue?: string;
-	onSelect: (value: string | null) => void;
+	currentAnchor?: 'scheduled' | 'completion';
+	onSelect: (value: string | null, anchor?: 'scheduled' | 'completion') => void;
 	app: App;
 	plugin: TaskNotesPlugin;
 }
@@ -33,6 +35,12 @@ export class RecurrenceContextMenu {
 
 		// Add quick recurrence options
 		recurrenceOptions.forEach((option) => {
+			// Handle separator
+			if (option.label.startsWith("─")) {
+				this.menu.addSeparator();
+				return;
+			}
+
 			this.menu.addItem((item) => {
 				let title = option.label;
 
@@ -48,7 +56,8 @@ export class RecurrenceContextMenu {
 				item.setTitle(title);
 
 				item.onClick(async () => {
-					this.options.onSelect(option.value);
+					const anchorValue = option.anchor || 'scheduled';
+					this.options.onSelect(option.value, anchorValue);
 				});
 			});
 		});
@@ -176,6 +185,42 @@ export class RecurrenceContextMenu {
 			icon: "briefcase",
 		});
 
+		// Separator (visual only - will be filtered out)
+		options.push({
+			label: "─────────",
+			value: "",
+			icon: undefined,
+		});
+
+		// Completion-based options
+		options.push({
+			label: this.translate("components.recurrenceContextMenu.dailyAfterCompletion"),
+			value: `DTSTART:${todayDTSTART};FREQ=DAILY;INTERVAL=1`,
+			icon: "calendar-days",
+			anchor: "completion",
+		});
+
+		options.push({
+			label: this.translate("components.recurrenceContextMenu.every3DaysAfterCompletion"),
+			value: `DTSTART:${todayDTSTART};FREQ=DAILY;INTERVAL=3`,
+			icon: "calendar-days",
+			anchor: "completion",
+		});
+
+		options.push({
+			label: this.translate("components.recurrenceContextMenu.weeklyAfterCompletion"),
+			value: `DTSTART:${todayDTSTART};FREQ=WEEKLY;INTERVAL=1`,
+			icon: "calendar",
+			anchor: "completion",
+		});
+
+		options.push({
+			label: this.translate("components.recurrenceContextMenu.monthlyAfterCompletion"),
+			value: `DTSTART:${todayDTSTART};FREQ=MONTHLY;INTERVAL=1`,
+			icon: "calendar-range",
+			anchor: "completion",
+		});
+
 		return options;
 	}
 
@@ -193,11 +238,16 @@ export class RecurrenceContextMenu {
 	}
 
 	private showCustomRecurrenceModal(): void {
-		new CustomRecurrenceModal(this.options.app, this.options.currentValue || "", (result) => {
-			if (result) {
-				this.options.onSelect(result);
+		new CustomRecurrenceModal(
+			this.options.app,
+			this.options.currentValue || "",
+			this.options.currentAnchor || 'scheduled',
+			(result, anchor) => {
+				if (result) {
+					this.options.onSelect(result, anchor);
+				}
 			}
-		}).open();
+		).open();
 	}
 
 	public show(event: UIEvent): void {
@@ -207,7 +257,7 @@ export class RecurrenceContextMenu {
 
 class CustomRecurrenceModal extends Modal {
 	private currentValue: string;
-	private onSubmit: (result: string | null) => void;
+	private onSubmit: (result: string | null, anchor?: 'scheduled' | 'completion') => void;
 	private frequency = "DAILY";
 	private interval = 1;
 	private byDay: string[] = [];
@@ -219,10 +269,12 @@ class CustomRecurrenceModal extends Modal {
 	private endType: "never" | "count" | "until" = "never";
 	private dtstart = "";
 	private dtstartTime = "";
+	private recurrenceAnchor: 'scheduled' | 'completion' = 'scheduled'; // NEW: Recurrence anchor
 
-	constructor(app: App, currentValue: string, onSubmit: (result: string | null) => void) {
+	constructor(app: App, currentValue: string, currentAnchor: 'scheduled' | 'completion', onSubmit: (result: string | null, anchor?: 'scheduled' | 'completion') => void) {
 		super(app);
 		this.currentValue = currentValue;
+		this.recurrenceAnchor = currentAnchor;
 		this.onSubmit = onSubmit;
 		this.parseCurrentValue();
 	}
@@ -351,6 +403,20 @@ class CustomRecurrenceModal extends Modal {
 				text.setValue(this.dtstartTime).onChange((value) => {
 					this.dtstartTime = value;
 				});
+			});
+
+		// Recurrence anchor selection
+		new Setting(contentEl)
+			.setName("Recur from")
+			.setDesc("When should the next occurrence be calculated from?")
+			.addDropdown((dropdown) => {
+				dropdown
+					.addOption('scheduled', 'Scheduled date (fixed schedule)')
+					.addOption('completion', 'Completion date (flexible schedule)')
+					.setValue(this.recurrenceAnchor)
+					.onChange((value) => {
+						this.recurrenceAnchor = value as 'scheduled' | 'completion';
+					});
 			});
 
 		// Frequency selection
@@ -749,7 +815,7 @@ class CustomRecurrenceModal extends Modal {
 			}
 
 			const rrule = this.buildRRule(monthlyType, yearlyType);
-			this.onSubmit(rrule);
+			this.onSubmit(rrule, this.recurrenceAnchor);
 			this.close();
 		});
 	}

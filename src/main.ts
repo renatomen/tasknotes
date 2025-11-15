@@ -24,7 +24,7 @@ import {
 import { TaskNotesSettings } from "./types/settings";
 import { DEFAULT_SETTINGS } from "./settings/defaults";
 import { TaskNotesSettingTab } from "./settings/TaskNotesSettingTab";
-import { DEFAULT_BASES_FILES, generateBasesFileTemplate } from "./templates/defaultBasesFiles";
+import { generateBasesFileTemplate } from "./templates/defaultBasesFiles";
 import {
 	MINI_CALENDAR_VIEW_TYPE,
 	AGENDA_VIEW_TYPE,
@@ -80,8 +80,6 @@ import {
 } from "./utils/dateUtils";
 import { ICSSubscriptionService } from "./services/ICSSubscriptionService";
 import { ICSNoteService } from "./services/ICSNoteService";
-import { MigrationService } from "./services/MigrationService";
-import { showMigrationPrompt } from "./modals/MigrationModal";
 import { StatusBarService } from "./services/StatusBarService";
 import { ProjectSubtasksService } from "./services/ProjectSubtasksService";
 import { ExpandedProjectsService } from "./services/ExpandedProjectsService";
@@ -187,9 +185,6 @@ export default class TaskNotesPlugin extends Plugin {
 
 	// Auto export service for continuous ICS export
 	autoExportService: AutoExportService;
-
-	// Migration service
-	migrationService: MigrationService;
 
 	// Status bar service
 	statusBarService: StatusBarService;
@@ -352,7 +347,6 @@ export default class TaskNotesPlugin extends Plugin {
 		this.expandedProjectsService = new ExpandedProjectsService(this);
 		this.autoArchiveService = new AutoArchiveService(this);
 		this.dragDropManager = new DragDropManager(this);
-		this.migrationService = new MigrationService(this.app);
 		this.statusBarService = new StatusBarService(this);
 		this.notificationService = new NotificationService(this);
 		this.viewPerformanceService = new ViewPerformanceService(this);
@@ -543,9 +537,6 @@ export default class TaskNotesPlugin extends Plugin {
 			// Initialize notification service
 			await this.notificationService.initialize();
 
-			// Build project status cache for better TaskCard performance
-			await this.projectSubtasksService.buildProjectStatusCache();
-
 			// Ensure MinimalNativeCache project indexes are warmed up
 			await this.warmupProjectIndexes();
 
@@ -701,9 +692,6 @@ export default class TaskNotesPlugin extends Plugin {
 
 				// Set up time tracking event listeners
 				this.setupTimeTrackingEventListeners();
-
-				// Migration check was moved to early startup - just show prompts here if needed
-				await this.showMigrationPromptsIfNeeded();
 
 				// Check for version updates and show release notes if needed
 				await this.checkForVersionUpdate();
@@ -902,55 +890,12 @@ export default class TaskNotesPlugin extends Plugin {
 				await this.viewStateManager.performMigration();
 			}
 
-			// Check if recurrence migration has already been completed
-			if (this.settings.recurrenceMigrated === true) {
-				this.migrationComplete = true;
-				return;
-			}
-
-			// Check if recurrence migration is needed
-			const needsRecurrenceMigration = await this.migrationService.needsMigration();
-			if (!needsRecurrenceMigration) {
-				// No migration needed - mark as migrated to prevent future checks
-				this.settings.recurrenceMigrated = true;
-				await this.saveSettings();
-				this.migrationComplete = true;
-				return;
-			}
-
-			// Recurrence migration is needed but will be prompted later
-			// For now, just mark that migration check is complete
+			// Migration check complete
 			this.migrationComplete = true;
-			console.log(
-				"TaskNotes: Early migration check complete. Will show prompts after UI initialization."
-			);
 		} catch (error) {
 			console.error("Error during early migration check:", error);
 			// Don't fail the entire plugin load due to migration check issues
 			this.migrationComplete = true;
-		}
-	}
-
-	/**
-	 * Show migration prompts after UI is ready (only if needed)
-	 */
-	private async showMigrationPromptsIfNeeded(): Promise<void> {
-		try {
-			// Check if recurrence migration has already been completed or dismissed this session
-			if (this.settings.recurrenceMigrated === true) {
-				return;
-			}
-
-			// Check if migration is needed
-			const needsMigration = await this.migrationService.needsMigration();
-			if (needsMigration) {
-				// Show migration prompt after a small delay to ensure UI is ready
-				setTimeout(() => {
-					showMigrationPrompt(this.app, this.migrationService, this);
-				}, 1000);
-			}
-		} catch (error) {
-			console.error("Error showing migration prompts:", error);
 		}
 	}
 
@@ -1853,18 +1798,11 @@ export default class TaskNotesPlugin extends Plugin {
 				// Generate template with user settings
 				const template = generateBasesFileTemplate(commandId, this.settings);
 				if (!template) {
-					// Fall back to legacy template if generation fails
-					const legacyTemplate = DEFAULT_BASES_FILES[commandId];
-					if (!legacyTemplate) {
-						skipped.push(rawPath);
-						continue;
-					}
-					// eslint-disable-next-line no-await-in-loop
-					await this.app.vault.create(normalizedPath, legacyTemplate);
-				} else {
-					// eslint-disable-next-line no-await-in-loop
-					await this.app.vault.create(normalizedPath, template);
+					skipped.push(rawPath);
+					continue;
 				}
+				// eslint-disable-next-line no-await-in-loop
+				await this.app.vault.create(normalizedPath, template);
 				created.push(rawPath);
 			}
 		} catch (error) {

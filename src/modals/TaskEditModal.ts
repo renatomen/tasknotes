@@ -101,17 +101,11 @@ export class TaskEditModal extends TaskModal {
 			: "";
 		this.timeEstimate = this.task.timeEstimate || 0;
 
-		// Handle recurrence - support both new rrule strings and old RecurrenceInfo objects
-		if (this.task.recurrence) {
-			if (typeof this.task.recurrence === "string") {
-				this.recurrenceRule = this.task.recurrence;
-			} else if (typeof this.task.recurrence === "object" && this.task.recurrence.frequency) {
-				// Legacy recurrence object - convert to string representation for display
-				this.recurrenceRule = this.convertLegacyRecurrenceToString(this.task.recurrence);
-			}
-		} else {
-			this.recurrenceRule = "";
-		}
+		// Handle recurrence
+		this.recurrenceRule = this.task.recurrence || "";
+
+		// Initialize recurrence anchor
+		this.recurrenceAnchor = this.task.recurrence_anchor || 'scheduled';
 
 		// Initialize reminders
 		this.reminders = this.task.reminders ? [...this.task.reminders] : [];
@@ -194,28 +188,6 @@ export class TaskEditModal extends TaskModal {
 		}
 
 		return true;
-	}
-
-	private convertLegacyRecurrenceToString(recurrence: {
-		frequency?: string;
-		days_of_week?: string[];
-		day_of_month?: number;
-	}): string {
-		// Convert legacy recurrence object to a readable string
-		// This is for display purposes in the edit modal
-		if (!recurrence.frequency) return "";
-
-		let recurrenceText = recurrence.frequency;
-
-		if (recurrence.frequency === "weekly" && recurrence.days_of_week) {
-			recurrenceText += ` on ${recurrence.days_of_week.join(", ")}`;
-		}
-
-		if (recurrence.frequency === "monthly" && recurrence.day_of_month) {
-			recurrenceText += ` on day ${recurrence.day_of_month}`;
-		}
-
-		return recurrenceText;
 	}
 
 	protected showReminderContextMenu(event: MouseEvent): void {
@@ -771,6 +743,13 @@ export class TaskEditModal extends TaskModal {
 
 		if (this.recurrenceRule !== oldRecurrence) {
 			changes.recurrence = this.recurrenceRule || undefined;
+		}
+
+		// Compare recurrence anchor
+		const oldRecurrenceAnchor = this.task.recurrence_anchor || 'scheduled';
+
+		if (this.recurrenceAnchor !== oldRecurrenceAnchor) {
+			changes.recurrence_anchor = this.recurrenceAnchor;
 		}
 
 		// Compare reminders

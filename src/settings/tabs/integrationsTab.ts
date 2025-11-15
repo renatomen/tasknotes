@@ -11,9 +11,7 @@ import {
 	createNumberSetting,
 	createHelpText,
 	createButtonSetting,
-	// createValidationNote
 } from "../components/settingHelpers";
-// import { ListEditorComponent, ListEditorItem } from '../components/ListEditorComponent';
 import { showConfirmationModal } from "../../modals/ConfirmationModal";
 import {
 	createCard,

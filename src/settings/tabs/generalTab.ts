@@ -1,4 +1,3 @@
-// import { TAbstractFile } from 'obsidian';
 import { Setting, Notice } from "obsidian";
 import TaskNotesPlugin from "../../main";
 import {

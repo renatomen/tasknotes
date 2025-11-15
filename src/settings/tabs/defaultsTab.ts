@@ -18,7 +18,6 @@ import {
 	showCardEmptyState,
 	CardRow,
 } from "../components/CardComponent";
-// import { ListEditorComponent, ListEditorItem } from '../components/ListEditorComponent';
 import { ProjectSelectModal } from "../../modals/ProjectSelectModal";
 import { splitListPreservingLinksAndQuotes } from "../../utils/stringSplit";
 import type { TranslationKey } from "../../i18n";

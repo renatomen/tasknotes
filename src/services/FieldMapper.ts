@@ -107,6 +107,20 @@ export class FieldMapper {
 			mapped.recurrence = frontmatter[this.mapping.recurrence];
 		}
 
+		if (frontmatter[this.mapping.recurrenceAnchor] !== undefined) {
+			const anchorValue = frontmatter[this.mapping.recurrenceAnchor];
+			console.log(`[FieldMapper] Found recurrence_anchor in frontmatter: ${anchorValue}`);
+			// Validate value
+			if (anchorValue === 'scheduled' || anchorValue === 'completion') {
+				mapped.recurrence_anchor = anchorValue;
+			} else {
+				console.warn(`Invalid recurrence_anchor value: ${anchorValue}, defaulting to 'scheduled'`);
+				mapped.recurrence_anchor = 'scheduled';
+			}
+		} else {
+			console.log(`[FieldMapper] No recurrence_anchor found in frontmatter, field name: ${this.mapping.recurrenceAnchor}`);
+		}
+
 		if (frontmatter[this.mapping.dateCreated] !== undefined) {
 			mapped.dateCreated = frontmatter[this.mapping.dateCreated];
 		}
@@ -220,6 +234,10 @@ export class FieldMapper {
 
 		if (taskData.recurrence !== undefined) {
 			frontmatter[this.mapping.recurrence] = taskData.recurrence;
+		}
+
+		if (taskData.recurrence_anchor !== undefined) {
+			frontmatter[this.mapping.recurrenceAnchor] = taskData.recurrence_anchor;
 		}
 
 		if (taskData.dateCreated !== undefined) {
