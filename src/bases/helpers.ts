@@ -1,6 +1,9 @@
+/* eslint-disable no-console */
 import TaskNotesPlugin from "../main";
 import { TaskInfo } from "../types";
 import { setIcon } from "obsidian";
+import { calculateTotalTimeSpent } from "../utils/helpers";
+import { format } from "date-fns";
 
 export interface BasesDataItem {
 	key?: string;
@@ -135,7 +138,6 @@ function createTaskInfoFromProperties(
 	});
 
 	// Calculate total tracked time from time entries
-	const { calculateTotalTimeSpent } = require("../utils/helpers");
 	const totalTrackedTime = props.timeEntries
 		? calculateTotalTimeSpent(props.timeEntries)
 		: 0;
@@ -564,7 +566,6 @@ export async function renderGroupedTasksInBasesView(
 			// Note: Bases returns local Date objects, but we format to YYYY-MM-DD which represents
 			// the calendar date the user sees. This is intentional - group headers should show
 			// the date as the user perceives it (e.g., "2025-06-10" for June 10th in their timezone)
-			const { format } = require("date-fns");
 			groupName = format(groupKey, "yyyy-MM-dd");
 		} else if (groupKey === null || groupKey === undefined || groupKey === "") {
 			groupName = "None";

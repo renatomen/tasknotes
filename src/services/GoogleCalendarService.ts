@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { requestUrl, Notice } from "obsidian";
 import TaskNotesPlugin from "../main";
 import { OAuthService } from "./OAuthService";

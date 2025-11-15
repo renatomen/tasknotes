@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { Notice, requestUrl, TFile } from "obsidian";
 import ICAL from "ical.js";
 import { ICSSubscription, ICSEvent, ICSCache } from "../types";

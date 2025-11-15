@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { requestUrl } from "obsidian";
 import TaskNotesPlugin from "../main";
 

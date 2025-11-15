@@ -96,6 +96,7 @@ export class NaturalLanguageParser {
 		// Initialize trigger configuration service
 		// If no config provided, use defaults
 		const effectiveTriggers = nlpTriggers || (() => {
+			// eslint-disable-next-line @typescript-eslint/no-require-imports
 			const { DEFAULT_NLP_TRIGGERS } = require("../settings/defaults");
 			return DEFAULT_NLP_TRIGGERS;
 		})();

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { EventRef } from "obsidian";
 import TaskNotesPlugin from "../main";
 import { TaskInfo, EVENT_TASK_UPDATED } from "../types";

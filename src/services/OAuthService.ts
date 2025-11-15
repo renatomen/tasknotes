@@ -16,6 +16,7 @@ function ensureHttpModule(): typeof import("http") {
 
 	if (!cachedHttpModule) {
 		// Lazy-load the Node http module so mobile builds don't crash at load time
+		// eslint-disable-next-line @typescript-eslint/no-require-imports
 		cachedHttpModule = require("http");
 	}
 

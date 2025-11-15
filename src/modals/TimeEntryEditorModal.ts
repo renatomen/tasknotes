@@ -1,3 +1,4 @@
+/* eslint-disable @microsoft/sdl/no-inner-html */
 import { App, Modal, Notice, Setting } from "obsidian";
 import { TimeEntry, TaskInfo } from "../types";
 import type TaskNotesPlugin from "../main";

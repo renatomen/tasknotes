@@ -1,4 +1,4 @@
-import { TFile, setIcon } from "obsidian";
+import { setIcon } from "obsidian";
 import TaskNotesPlugin from "../main";
 
 export interface PropertyEventCardOptions {

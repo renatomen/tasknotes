@@ -3,10 +3,8 @@ import {
 	CompletionContext,
 	CompletionResult,
 	Completion,
-	completionKeymap,
 	acceptCompletion,
 	moveCompletionSelection,
-	startCompletion,
 	closeCompletion
 } from "@codemirror/autocomplete";
 import { Extension, Prec } from "@codemirror/state";

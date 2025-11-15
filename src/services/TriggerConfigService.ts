@@ -68,7 +68,7 @@ export class TriggerConfigService {
 	 */
 	usesNativeTagSuggester(): boolean {
 		const tagTrigger = this.getTriggerForProperty("tags");
-		return tagTrigger?.trigger === "#" && tagTrigger?.enabled === true;
+		return tagTrigger?.trigger === "#" && tagTrigger?.enabled;
 	}
 
 	/**

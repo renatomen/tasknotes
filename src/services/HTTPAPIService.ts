@@ -92,6 +92,7 @@ export class HTTPAPIService implements IWebhookNotifier {
 	 * Generate OpenAPI spec from all registered controllers
 	 */
 	generateOpenAPISpec(): any {
+		// eslint-disable-next-line @typescript-eslint/no-require-imports
 		const { generateOpenAPISpec } = require("../utils/OpenAPIDecorators");
 
 		// Get base spec structure

@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { FieldMapping, TaskInfo } from "../types";
 import {
 	normalizeDependencyEntry,

@@ -32,7 +32,6 @@ import {
 	POMODORO_STATS_VIEW_TYPE,
 	STATS_VIEW_TYPE,
 	TaskInfo,
-	EVENT_DATE_SELECTED,
 	EVENT_DATA_CHANGED,
 	EVENT_TASK_UPDATED,
 	EVENT_DATE_CHANGED,
@@ -74,9 +73,9 @@ import {
 import { DragDropManager } from "./utils/DragDropManager";
 import {
 	formatDateForStorage,
-	getTodayLocal,
 	createUTCDateFromLocalCalendarDate,
 	parseDateToLocal,
+	getTodayLocal,
 } from "./utils/dateUtils";
 import { ICSSubscriptionService } from "./services/ICSSubscriptionService";
 import { ICSNoteService } from "./services/ICSNoteService";
@@ -1200,6 +1199,7 @@ export default class TaskNotesPlugin extends Plugin {
 
 		// Migration: Migrate statusSuggestionTrigger to nlpTriggers if needed
 		if (loadedData && !loadedData.nlpTriggers && loadedData.statusSuggestionTrigger !== undefined) {
+			// eslint-disable-next-line @typescript-eslint/no-require-imports
 			const { DEFAULT_NLP_TRIGGERS } = require("./settings/defaults");
 			loadedData.nlpTriggers = {
 				triggers: [...DEFAULT_NLP_TRIGGERS.triggers],
@@ -1216,6 +1216,7 @@ export default class TaskNotesPlugin extends Plugin {
 
 		// Migration: Initialize modal fields configuration if not present
 		if (loadedData && !loadedData.modalFieldsConfig) {
+			// eslint-disable-next-line @typescript-eslint/no-require-imports
 			const { initializeFieldConfig } = require("./utils/fieldConfigDefaults");
 			loadedData.modalFieldsConfig = initializeFieldConfig(
 				undefined,

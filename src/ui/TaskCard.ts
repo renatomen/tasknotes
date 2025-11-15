@@ -7,6 +7,7 @@ import {
 	getEffectiveTaskStatus,
 	getRecurrenceDisplayText,
 	filterEmptyProjects,
+	calculateTotalTimeSpent,
 } from "../utils/helpers";
 import { FilterUtils } from "../utils/FilterUtils";
 import {
@@ -420,10 +421,6 @@ const PROPERTY_RENDERERS: Record<string, PropertyRenderer> = {
 	blockedBy: (element, value, task, plugin) => {
 		// Show list of tasks blocking this one
 		if (Array.isArray(value) && value.length > 0) {
-			const linkServices: LinkServices = {
-				metadataCache: plugin.app.metadataCache,
-				workspace: plugin.app.workspace,
-			};
 			element.createEl("span", { text: "Blocked by: " });
 			const linksContainer = element.createEl("span");
 			value.forEach((dep, idx) => {
@@ -468,7 +465,6 @@ const PROPERTY_RENDERERS: Record<string, PropertyRenderer> = {
 	timeEntries: (element, value, _, plugin) => {
 		// Show total tracked time from time entries
 		if (Array.isArray(value) && value.length > 0) {
-			const { calculateTotalTimeSpent } = require("../utils/helpers");
 			const totalTime = calculateTotalTimeSpent(value);
 			if (totalTime > 0) {
 				element.textContent = `${plugin.formatTime(totalTime)} tracked (${value.length} ${value.length === 1 ? "entry" : "entries"})`;

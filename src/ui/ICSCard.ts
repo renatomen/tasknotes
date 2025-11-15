@@ -3,6 +3,7 @@ import TaskNotesPlugin from "../main";
 import { ICSEvent } from "../types";
 import { ICSEventContextMenu } from "../components/ICSEventContextMenu";
 import { formatTime } from "../utils/dateUtils";
+import { ICSEventInfoModal } from "../modals/ICSEventInfoModal";
 
 export interface ICSCardOptions {
 	showDate: boolean;
@@ -95,7 +96,6 @@ export function createICSEventCard(
 
 	// Left-click to open detailed info modal
 	card.addEventListener("click", () => {
-		const { ICSEventInfoModal } = require("../modals/ICSEventInfoModal");
 		const modal = new ICSEventInfoModal(plugin.app, plugin, icsEvent, sourceName);
 		modal.open();
 	});

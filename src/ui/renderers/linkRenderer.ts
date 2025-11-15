@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 // Link and tag rendering utilities for UI components
 
-import { App, TFile, Notice, parseLinktext } from "obsidian";
+import { App, TFile, Notice } from "obsidian";
 
 /** Minimal services required to render internal links (DI-friendly) */
 export interface LinkServices {

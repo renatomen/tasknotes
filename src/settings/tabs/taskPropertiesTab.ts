@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion, @microsoft/sdl/no-inner-html */
 import { Notice, Setting } from "obsidian";
 import TaskNotesPlugin from "../../main";
 import { FieldMapping } from "../../types";

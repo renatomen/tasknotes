@@ -1,19 +1,19 @@
 import { normalizePath, TFile, Vault, App, parseYaml, stringifyYaml } from "obsidian";
-import { format, isBefore, startOfDay } from "date-fns";
+import { format } from "date-fns";
 import { RRule } from "rrule";
 import { TimeInfo, TaskInfo, TimeEntry, TimeBlock, DailyNoteFrontmatter } from "../types";
 import { FieldMapper } from "../services/FieldMapper";
 import { DEFAULT_FIELD_MAPPING } from "../settings/defaults";
 import {
-	isBeforeDateSafe,
 	getTodayString,
 	parseDateToLocal,
-	parseDateToUTC,
 	createUTCDateForRRule,
 	formatDateForStorage,
-	getTodayLocal,
 	formatDateAsUTCString,
 	hasTimeComponent,
+	parseDateToUTC,
+	isBeforeDateSafe as _isBeforeDateSafe,
+	getTodayLocal as _getTodayLocal,
 } from "./dateUtils";
 
 /**

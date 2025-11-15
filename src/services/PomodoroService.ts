@@ -1,4 +1,4 @@
-/* eslint-disable no-console */
+/* eslint-disable no-console, @typescript-eslint/no-non-null-assertion */
 import { Notice } from "obsidian";
 import TaskNotesPlugin from "../main";
 import {

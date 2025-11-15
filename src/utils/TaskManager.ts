@@ -5,12 +5,10 @@ import { FieldMapper } from "../services/FieldMapper";
 import { FilterUtils } from "./FilterUtils";
 import {
 	getTodayString,
-	isBeforeDateSafe,
-	getDatePart,
-	parseDateToUTC,
 	formatDateForStorage,
+	isBeforeDateSafe,
 } from "./dateUtils";
-import { filterEmptyProjects, calculateTotalTimeSpent } from "./helpers";
+import { calculateTotalTimeSpent } from "./helpers";
 import { TaskNotesSettings } from "../types/settings";
 
 /**

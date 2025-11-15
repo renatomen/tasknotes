@@ -495,7 +495,8 @@ export function createCardInput(
  * Creates an Obsidian-style toggle switch for card content
  * Returns the toggle component's toggleEl directly
  */
-export function createCardToggle(initialValue: boolean = false, onChange?: (value: boolean) => void): HTMLElement {
+export function createCardToggle(initialValue = false, onChange?: (value: boolean) => void): HTMLElement {
+	// eslint-disable-next-line @typescript-eslint/no-require-imports
 	const { Setting } = require("obsidian");
 	const tempContainer = document.createElement("div");
 	const setting = new Setting(tempContainer);

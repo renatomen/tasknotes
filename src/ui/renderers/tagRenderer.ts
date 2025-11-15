@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 // Tag rendering utilities following TaskNotes coding standards
 
 export interface TagServices {

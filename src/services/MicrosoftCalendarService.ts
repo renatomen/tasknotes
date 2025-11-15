@@ -401,6 +401,7 @@ export class MicrosoftCalendarService extends CalendarProvider {
 			start = msEvent.start.dateTime.split("T")[0];
 			end = msEvent.end.dateTime.split("T")[0];
 		} else {
+			// eslint-disable-next-line @typescript-eslint/no-require-imports
 			const { format, parseISO } = require("date-fns");
 
 			const startIso = this.ensureUtcDateTime(msEvent.start.dateTime, msEvent.start.timeZone);

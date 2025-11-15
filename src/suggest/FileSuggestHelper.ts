@@ -2,7 +2,7 @@ import type TaskNotesPlugin from "../main";
 import { parseFrontMatterAliases } from "obsidian";
 import { scoreMultiword } from "../utils/fuzzyMatch";
 import { parseDisplayFieldsRow } from "../utils/projectAutosuggestDisplayFieldsParser";
-import { getProjectPropertyFilter, matchesProjectProperty } from "../utils/projectFilterUtils";
+import { matchesProjectProperty } from "../utils/projectFilterUtils";
 import { FilterUtils } from "../utils/FilterUtils";
 
 export interface FileSuggestionItem {

@@ -749,6 +749,7 @@ export abstract class TaskModal extends Modal {
 	}
 
 	protected createFieldsFromConfig(container: HTMLElement, config: any): void {
+		// eslint-disable-next-line @typescript-eslint/no-require-imports
 		const { getFieldsByGroup } = require("../utils/fieldConfigDefaults");
 		const fieldGroups = getFieldsByGroup(config, this.isCreationMode());
 
