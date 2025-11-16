@@ -706,10 +706,25 @@ export function generateRecurringTaskInstances(
 	}
 
 	// 2. Generate pattern instances from recurrence rule
-	const recurringDates = generateRecurringInstances(task, startDate, endDate);
+	// For yearly recurring tasks, extend the look-ahead period to ensure we find occurrences
+	// even when viewing short calendar ranges (weekly, 3-day, day views)
+	let adjustedEndDate = endDate;
+	if (typeof task.recurrence === "string" && task.recurrence.includes("FREQ=YEARLY")) {
+		// For yearly tasks, look ahead ~2.2 years to ensure we find at least one occurrence
+		const lookAheadDays = 800;
+		adjustedEndDate = new Date(startDate.getTime() + lookAheadDays * 24 * 60 * 60 * 1000);
+	}
+	const recurringDates = generateRecurringInstances(task, startDate, adjustedEndDate);
 
+	// Filter instances to only show those within the original visible date range
+	const endDateTime = endDate.getTime();
 	for (const date of recurringDates) {
 		const instanceDate = formatDateForStorage(date);
+
+		// Skip instances outside the original visible range (for yearly tasks with extended look-ahead)
+		if (date.getTime() > endDateTime) {
+			continue;
+		}
 
 		// Skip if conflicts with next scheduled occurrence
 		if (instanceDate === nextScheduledDate) {
