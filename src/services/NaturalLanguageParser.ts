@@ -318,17 +318,12 @@ export class NaturalLanguageParser {
 			.getAllEnabledTriggers()
 			.filter((t) => this.triggerConfig.isUserField(t.propertyId));
 
-		console.debug("[NLP Parser] Processing user field triggers:", userFieldTriggers);
-
 		// Process each user field trigger
 		for (const triggerDef of userFieldTriggers) {
 			const userField = this.triggerConfig.getUserField(triggerDef.propertyId);
 			if (!userField) {
-				console.debug(`[NLP Parser] No user field found for ${triggerDef.propertyId}`);
 				continue;
 			}
-
-			console.debug(`[NLP Parser] Processing user field: ${userField.displayName} (${userField.id}) with trigger "${triggerDef.trigger}"`);
 
 			const escapedTrigger = this.escapeRegex(triggerDef.trigger);
 
@@ -347,13 +342,10 @@ export class NaturalLanguageParser {
 					values.push(value);
 				}
 
-				console.debug(`[NLP Parser] List field pattern: ${pattern}, matches:`, values);
-
 				if (values.length > 0) {
 					if (!result.userFields) result.userFields = {};
 					result.userFields[userField.id] = values;
 					workingText = this.cleanupWhitespace(workingText.replace(pattern, ""));
-					console.debug(`[NLP Parser] Extracted list values:`, values);
 				}
 			}
 			// For text/boolean/number fields, extract single value (supports quoted multi-word)
@@ -363,7 +355,6 @@ export class NaturalLanguageParser {
 				// 2. Single word: word or word-with-dash
 				const pattern = new RegExp(`${escapedTrigger}(?:"([^"]+)"|([\\w/-]+))`);
 				const match = workingText.match(pattern);
-				console.debug(`[NLP Parser] Single field pattern: ${pattern}, match:`, match);
 
 				if (match) {
 					// Group 1 is quoted value, Group 2 is unquoted value
@@ -379,7 +370,6 @@ export class NaturalLanguageParser {
 					}
 
 					workingText = this.cleanupWhitespace(workingText.replace(pattern, ""));
-					console.debug(`[NLP Parser] Extracted value: ${value}`);
 				}
 			}
 			// For date fields, try to parse as date (supports quoted values too)
@@ -393,12 +383,10 @@ export class NaturalLanguageParser {
 					if (!result.userFields) result.userFields = {};
 					result.userFields[userField.id] = value; // Store as-is, let consuming code parse
 					workingText = this.cleanupWhitespace(workingText.replace(pattern, ""));
-					console.debug(`[NLP Parser] Extracted date value: ${value}`);
 				}
 			}
 		}
 
-		console.debug("[NLP Parser] Final user fields:", result.userFields);
 		return workingText;
 	}
 

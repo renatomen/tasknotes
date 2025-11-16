@@ -613,6 +613,25 @@ export class InstantTaskConvertService {
 			}
 		}
 
+		// Prepare custom frontmatter from user fields
+		const customFrontmatter: Record<string, any> = {};
+		if (parsedData.userFields) {
+			for (const [fieldId, value] of Object.entries(parsedData.userFields)) {
+				// Find the user field definition to get the frontmatter key
+				const userField = this.plugin.settings.userFields?.find((f) => f.id === fieldId);
+				if (userField) {
+					// Use the frontmatter key, not the field ID
+					if (Array.isArray(value)) {
+						customFrontmatter[userField.key] = value.join(", ");
+					} else {
+						customFrontmatter[userField.key] = value;
+					}
+				} else {
+					console.warn(`[InstantTaskConvert] No user field definition found for field ID: ${fieldId}`);
+				}
+			}
+		}
+
 		// Create TaskCreationData object with all the data
 		const taskData: TaskCreationData = {
 			title: title,
@@ -631,6 +650,7 @@ export class InstantTaskConvertService {
 			creationContext: "inline-conversion", // Mark as inline conversion for folder logic
 			dateCreated: getCurrentTimestamp(),
 			dateModified: getCurrentTimestamp(),
+			customFrontmatter: Object.keys(customFrontmatter).length > 0 ? customFrontmatter : undefined,
 		};
 
 		// Use the centralized task creation service
@@ -917,6 +937,7 @@ export class InstantTaskConvertService {
 					nlpResult.contexts && nlpResult.contexts.length > 0
 						? nlpResult.contexts
 						: undefined,
+				userFields: nlpResult.userFields,
 				// TasksPlugin specific fields that NLP doesn't have
 				startDate: undefined,
 				createdDate: undefined,

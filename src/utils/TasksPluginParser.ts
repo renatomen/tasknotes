@@ -23,6 +23,7 @@ export interface ParsedTaskData {
 	contexts?: string[];
 	projects?: string[];
 	isCompleted: boolean;
+	userFields?: Record<string, string | string[]>; // Custom user-defined fields
 }
 
 export interface TaskLineInfo {
