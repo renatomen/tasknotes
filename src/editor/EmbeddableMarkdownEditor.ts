@@ -216,20 +216,21 @@ export class EmbeddableMarkdownEditor extends resolveEditorPrototype(app) {
 	buildLocalExtensions(): Extension[] {
 		const extensions = super.buildLocalExtensions();
 
-		// Disable line numbers (filter out the lineNumbers extension)
-		const filteredExtensions = extensions.filter(ext => {
-			// Check if this is the lineNumbers extension by checking its toString
-			const extStr = ext?.toString?.() || '';
-			return !extStr.includes('lineNumbers');
-		});
+		// Explicitly hide line numbers with CSS
+		extensions.push(
+			EditorView.theme({
+				".cm-lineNumbers": { display: "none !important" },
+				".cm-gutters": { display: "none !important" },
+			})
+		);
 
 		// Add placeholder if specified
 		if (this.options.placeholder) {
-			filteredExtensions.push(placeholder(this.options.placeholder));
+			extensions.push(placeholder(this.options.placeholder));
 		}
 
 		// Add paste handler
-		filteredExtensions.push(
+		extensions.push(
 			EditorView.domEventHandlers({
 				paste: (event) => {
 					this.options.onPaste(event, this);
@@ -238,7 +239,7 @@ export class EmbeddableMarkdownEditor extends resolveEditorPrototype(app) {
 		);
 
 		// Add keyboard handlers with highest precedence
-		filteredExtensions.push(
+		extensions.push(
 			Prec.highest(
 				keymap.of([
 					{
@@ -272,10 +273,10 @@ export class EmbeddableMarkdownEditor extends resolveEditorPrototype(app) {
 
 		// Add any custom extensions (e.g., autocomplete)
 		if (this.options.extensions && this.options.extensions.length > 0) {
-			filteredExtensions.push(...this.options.extensions);
+			extensions.push(...this.options.extensions);
 		}
 
-		return filteredExtensions;
+		return extensions;
 	}
 
 	/**
