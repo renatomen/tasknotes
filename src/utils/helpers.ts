@@ -583,6 +583,19 @@ function getNextScheduledBasedOccurrence(task: TaskInfo): Date | null {
 		const todayStr = getTodayString(); // YYYY-MM-DD format
 		const today = parseDateToUTC(todayStr); // UTC anchored for consistent logic
 
+		// Determine look-ahead period based on recurrence frequency
+		// This ensures we can find at least one future occurrence
+		let lookAheadDays = 365; // Default: 1 year
+		if (task.recurrence.includes("FREQ=DAILY")) {
+			lookAheadDays = 30; // 30 days for daily tasks
+		} else if (task.recurrence.includes("FREQ=WEEKLY")) {
+			lookAheadDays = 90; // ~13 weeks for weekly tasks
+		} else if (task.recurrence.includes("FREQ=MONTHLY")) {
+			lookAheadDays = 400; // ~13 months for monthly tasks
+		} else if (task.recurrence.includes("FREQ=YEARLY")) {
+			lookAheadDays = 800; // ~2.2 years for yearly tasks to ensure we find the next occurrence
+		}
+
 		// Start from the DTSTART (or earlier) to ensure we catch all occurrences
 		// This handles cases where DTSTART is in the past
 		let startDate = today;
@@ -602,7 +615,7 @@ function getNextScheduledBasedOccurrence(task: TaskInfo): Date | null {
 			}
 		}
 
-		const endDate = new Date(today.getTime() + 365 * 24 * 60 * 60 * 1000); // Look ahead 1 year from today
+		const endDate = new Date(today.getTime() + lookAheadDays * 24 * 60 * 60 * 1000);
 
 		// Generate all occurrences from startDate onwards
 		const occurrences = generateRecurringInstances(task, startDate, endDate);
@@ -645,6 +658,19 @@ function getNextCompletionBasedOccurrence(task: TaskInfo): Date | null {
 		const todayStr = getTodayString(); // YYYY-MM-DD format
 		const today = parseDateToUTC(todayStr); // UTC anchored for consistent logic
 
+		// Determine look-ahead period based on recurrence frequency
+		// This ensures we can find at least one future occurrence
+		let lookAheadDays = 365; // Default: 1 year
+		if (task.recurrence.includes("FREQ=DAILY")) {
+			lookAheadDays = 30; // 30 days for daily tasks
+		} else if (task.recurrence.includes("FREQ=WEEKLY")) {
+			lookAheadDays = 90; // ~13 weeks for weekly tasks
+		} else if (task.recurrence.includes("FREQ=MONTHLY")) {
+			lookAheadDays = 400; // ~13 months for monthly tasks
+		} else if (task.recurrence.includes("FREQ=YEARLY")) {
+			lookAheadDays = 800; // ~2.2 years for yearly tasks to ensure we find the next occurrence
+		}
+
 		// Extract DTSTART date from the RRULE
 		let dtstartDate: Date | null = null;
 		if (task.recurrence.includes("DTSTART:")) {
@@ -664,7 +690,7 @@ function getNextCompletionBasedOccurrence(task: TaskInfo): Date | null {
 		// For completion-based recurrence, we want the NEXT occurrence AFTER the DTSTART (completion date)
 		// Start from DTSTART (if available) and look forward
 		const startDate = dtstartDate || today;
-		const endDate = new Date(startDate.getTime() + 365 * 24 * 60 * 60 * 1000); // Look ahead 1 year from startDate
+		const endDate = new Date(startDate.getTime() + lookAheadDays * 24 * 60 * 60 * 1000);
 
 		// Generate occurrences from the RRULE
 		const occurrences = generateRecurringInstances(task, startDate, endDate);
