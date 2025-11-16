@@ -21,6 +21,7 @@ import {
 } from "../utils/templateProcessor";
 import {
 	addDTSTARTToRecurrenceRule,
+	updateDTSTARTInRecurrenceRule,
 	ensureFolderExists,
 	updateToNextScheduledOccurrence,
 	splitFrontmatterAndBody,
@@ -1608,15 +1609,26 @@ export class TaskService {
 			updatedTask.complete_instances = completeInstances.filter((d) => d !== dateStr);
 		}
 
-		// Add DTSTART to recurrence rule if it's missing (only when completing)
-		if (
-			newComplete &&
-			typeof updatedTask.recurrence === "string" &&
-			!updatedTask.recurrence.includes("DTSTART:")
-		) {
-			const updatedRecurrence = addDTSTARTToRecurrenceRule(updatedTask);
-			if (updatedRecurrence) {
-				updatedTask.recurrence = updatedRecurrence;
+		// Handle DTSTART in recurrence rule when completing
+		if (newComplete && typeof updatedTask.recurrence === "string") {
+			const recurrenceAnchor = updatedTask.recurrence_anchor || "scheduled";
+
+			if (recurrenceAnchor === "completion") {
+				// For completion-based recurrence, update DTSTART to the completion date
+				// This shifts the anchor point so future occurrences calculate from this completion
+				const updatedRecurrence = updateDTSTARTInRecurrenceRule(
+					updatedTask.recurrence,
+					dateStr
+				);
+				if (updatedRecurrence) {
+					updatedTask.recurrence = updatedRecurrence;
+				}
+			} else if (!updatedTask.recurrence.includes("DTSTART:")) {
+				// For scheduled-based recurrence, just add DTSTART if missing (preserves original anchor)
+				const updatedRecurrence = addDTSTARTToRecurrenceRule(updatedTask);
+				if (updatedRecurrence) {
+					updatedTask.recurrence = updatedRecurrence;
+				}
 			}
 		}
 

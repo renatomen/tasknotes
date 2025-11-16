@@ -559,8 +559,13 @@ export function getNextUncompletedOccurrence(task: TaskInfo): Date | null {
 	const anchor = task.recurrence_anchor || 'scheduled'; // Default to scheduled
 
 	if (anchor === 'completion') {
+		// For completion-based recurrence, DTSTART is updated on each completion
+		// So we just need to get the next occurrence from the RRULE
+		// We don't filter by complete_instances because the DTSTART has already been shifted
 		return getNextCompletionBasedOccurrence(task);
 	} else {
+		// For scheduled-based recurrence, DTSTART is fixed
+		// We need to generate occurrences and filter out completed ones
 		return getNextScheduledBasedOccurrence(task);
 	}
 }
@@ -577,18 +582,38 @@ function getNextScheduledBasedOccurrence(task: TaskInfo): Date | null {
 		// Get current date as starting point using UTC anchor principle
 		const todayStr = getTodayString(); // YYYY-MM-DD format
 		const today = parseDateToUTC(todayStr); // UTC anchored for consistent logic
-		const endDate = new Date(today.getTime() + 365 * 24 * 60 * 60 * 1000); // Look ahead 1 year
 
-		// Generate all occurrences from today onwards
-		const occurrences = generateRecurringInstances(task, today, endDate);
+		// Start from the DTSTART (or earlier) to ensure we catch all occurrences
+		// This handles cases where DTSTART is in the past
+		let startDate = today;
+		if (task.recurrence.includes("DTSTART:")) {
+			const dtstartMatch = task.recurrence.match(/DTSTART:(\d{8}(?:T\d{6}Z?)?)/);
+			if (dtstartMatch) {
+				const dtstartStr = dtstartMatch[1];
+				if (dtstartStr.length === 8) {
+					// YYYYMMDD format
+					const year = parseInt(dtstartStr.slice(0, 4));
+					const month = parseInt(dtstartStr.slice(4, 6)) - 1;
+					const day = parseInt(dtstartStr.slice(6, 8));
+					const dtstart = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
+					// Use the earlier of today or dtstart
+					startDate = dtstart < today ? dtstart : today;
+				}
+			}
+		}
+
+		const endDate = new Date(today.getTime() + 365 * 24 * 60 * 60 * 1000); // Look ahead 1 year from today
+
+		// Generate all occurrences from startDate onwards
+		const occurrences = generateRecurringInstances(task, startDate, endDate);
 
 		// Get completed instances as Set for faster lookup
 		const completedInstances = new Set(task.complete_instances || []);
 
-		// Find the first occurrence that hasn't been completed
+		// Find the first occurrence that hasn't been completed AND is today or in the future
 		for (const occurrence of occurrences) {
 			const occurrenceStr = formatDateForStorage(occurrence);
-			if (!completedInstances.has(occurrenceStr)) {
+			if (!completedInstances.has(occurrenceStr) && occurrence >= today) {
 				return occurrence;
 			}
 		}
@@ -604,7 +629,8 @@ function getNextScheduledBasedOccurrence(task: TaskInfo): Date | null {
 
 /**
  * Gets next occurrence for completion-based (flexible) recurrence
- * Calculates from the latest completion date, or from scheduled date if no completions exist
+ * For completion-based recurrence, the DTSTART in the RRULE is updated on each completion
+ * to the completion date, so we simply get the next occurrence from the current DTSTART
  */
 function getNextCompletionBasedOccurrence(task: TaskInfo): Date | null {
 	if (!task.recurrence || typeof task.recurrence !== 'string') {
@@ -612,47 +638,43 @@ function getNextCompletionBasedOccurrence(task: TaskInfo): Date | null {
 	}
 
 	try {
-		const completedInstances = task.complete_instances || [];
+		// Get current date as starting point using UTC anchor principle
+		const todayStr = getTodayString(); // YYYY-MM-DD format
+		const today = parseDateToUTC(todayStr); // UTC anchored for consistent logic
 
-		// Determine the anchor date (latest completion or scheduled/created date)
-		let anchorDate: Date;
-
-		if (completedInstances.length === 0) {
-			// No completions yet - use scheduled date or created date as first anchor
-			if (task.scheduled) {
-				anchorDate = parseDateToUTC(task.scheduled);
-			} else if (task.dateCreated) {
-				anchorDate = parseDateToUTC(task.dateCreated);
-			} else {
-				return null;
+		// Start from the DTSTART to ensure we catch occurrences even if DTSTART is in the past
+		let startDate = today;
+		if (task.recurrence.includes("DTSTART:")) {
+			const dtstartMatch = task.recurrence.match(/DTSTART:(\d{8}(?:T\d{6}Z?)?)/);
+			if (dtstartMatch) {
+				const dtstartStr = dtstartMatch[1];
+				if (dtstartStr.length === 8) {
+					// YYYYMMDD format
+					const year = parseInt(dtstartStr.slice(0, 4));
+					const month = parseInt(dtstartStr.slice(4, 6)) - 1;
+					const day = parseInt(dtstartStr.slice(6, 8));
+					const dtstart = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
+					// Use the earlier of today or dtstart
+					startDate = dtstart < today ? dtstart : today;
+				}
 			}
-		} else {
-			// Get latest completion date - this is the key difference from scheduled-based!
-			// We calculate from when the task was actually completed, not from the original schedule
-			const sortedCompletions = [...completedInstances].sort();
-			const latestCompletion = sortedCompletions[sortedCompletions.length - 1];
-			anchorDate = parseDateToUTC(latestCompletion);
 		}
 
-		// Parse RRULE (strip DTSTART if present to avoid conflicts)
-		const rruleString = task.recurrence.replace(/DTSTART:[^;]+;?/, '');
-		const rruleOptions = RRule.parseString(rruleString);
+		const endDate = new Date(today.getTime() + 365 * 24 * 60 * 60 * 1000); // Look ahead 1 year from today
 
-		// CRITICAL: Set dtstart to anchor date so recurrence calculates from completion
-		// This is different from scheduled-based which uses the original DTSTART
-		rruleOptions.dtstart = anchorDate;
-
-		const rrule = new RRule(rruleOptions);
-
-		// Get the next occurrence after the anchor date
-		// Add 1 second to ensure we get the NEXT occurrence, not the anchor date itself
-		const nextAfterAnchor = new Date(anchorDate.getTime() + 1000);
-		const nextOccurrence = rrule.after(nextAfterAnchor, false);
+		// Generate occurrences from the RRULE (which has DTSTART set to latest completion or initial scheduled date)
+		const occurrences = generateRecurringInstances(task, startDate, endDate);
 
 		// For completion-based recurrence, we DON'T filter by complete_instances
-		// The next occurrence is simply: anchorDate + interval
-		// If someone completes late, the next occurrence moves forward accordingly
-		return nextOccurrence;
+		// because the DTSTART has already been shifted to the latest completion date
+		// Find the first occurrence that is today or in the future
+		for (const occurrence of occurrences) {
+			if (occurrence >= today) {
+				return occurrence;
+			}
+		}
+
+		return null; // No future occurrences
 	} catch (error) {
 		console.error("Error calculating completion-based recurrence:", error, {
 			task: task.title,
@@ -1238,6 +1260,58 @@ export function addDTSTARTToRecurrenceRule(task: TaskInfo): string | null {
 	} catch (error) {
 		console.error("Error parsing date for DTSTART:", error, { sourceDateString });
 		return null; // Return null on parsing errors
+	}
+}
+
+/**
+ * Updates the DTSTART in a recurrence rule to a specific date
+ * Used for completion-based recurrence to shift the anchor point
+ * @param recurrence - The RRULE string (may or may not have DTSTART)
+ * @param dateStr - Date string in YYYY-MM-DD format (or with time component)
+ * @returns Updated RRULE string with new DTSTART, or null on error
+ */
+export function updateDTSTARTInRecurrenceRule(
+	recurrence: string,
+	dateStr: string
+): string | null {
+	if (!recurrence || typeof recurrence !== "string") {
+		return null;
+	}
+
+	try {
+		// Format the new DTSTART value
+		let dtstartValue: string;
+
+		if (hasTimeComponent(dateStr)) {
+			// Has time component - parse as local time for accuracy, then format for DTSTART
+			const dateTime = parseDateToLocal(dateStr);
+			const year = dateTime.getFullYear();
+			const month = String(dateTime.getMonth() + 1).padStart(2, "0");
+			const day = String(dateTime.getDate()).padStart(2, "0");
+			const hours = String(dateTime.getHours()).padStart(2, "0");
+			const minutes = String(dateTime.getMinutes()).padStart(2, "0");
+			const seconds = String(dateTime.getSeconds()).padStart(2, "0");
+			dtstartValue = `${year}${month}${day}T${hours}${minutes}${seconds}Z`;
+		} else {
+			// Date-only - use UTC anchor principle for consistency
+			const date = parseDateToUTC(dateStr);
+			const year = date.getUTCFullYear();
+			const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+			const day = String(date.getUTCDate()).padStart(2, "0");
+			dtstartValue = `${year}${month}${day}`;
+		}
+
+		// Check if DTSTART is already present
+		if (recurrence.includes("DTSTART:")) {
+			// Replace existing DTSTART
+			return recurrence.replace(/DTSTART:[^;]+;?/, `DTSTART:${dtstartValue};`);
+		} else {
+			// Add DTSTART at the beginning
+			return `DTSTART:${dtstartValue};${recurrence}`;
+		}
+	} catch (error) {
+		console.error("Error updating DTSTART in recurrence rule:", error, { dateStr });
+		return null;
 	}
 }
 
