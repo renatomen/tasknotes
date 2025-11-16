@@ -957,6 +957,9 @@ export function createTaskCard(
 	const isCompleted = task.recurrence
 		? task.complete_instances?.includes(formatDateForStorage(targetDate)) || false // Direct check of complete_instances
 		: plugin.statusManager.isCompletedStatus(effectiveStatus); // Regular tasks use status config
+	const isSkipped = task.recurrence
+		? task.skipped_instances?.includes(formatDateForStorage(targetDate)) || false // Direct check of skipped_instances
+		: false; // Only recurring tasks can have skipped instances
 	const isRecurring = !!task.recurrence;
 
 	// Build BEM class names
@@ -970,6 +973,7 @@ export function createTaskCard(
 
 	// Add modifiers
 	if (isCompleted) cardClasses.push("task-card--completed");
+	if (isSkipped) cardClasses.push("task-card--skipped");
 	if (task.archived) cardClasses.push("task-card--archived");
 	if (isActivelyTracked) cardClasses.push("task-card--actively-tracked");
 	if (isRecurring) cardClasses.push("task-card--recurring");
@@ -1561,6 +1565,9 @@ export function updateTaskCard(
 	const isCompleted = task.recurrence
 		? task.complete_instances?.includes(formatDateForStorage(targetDate)) || false // Direct check of complete_instances
 		: plugin.statusManager.isCompletedStatus(effectiveStatus); // Regular tasks use status config
+	const isSkipped = task.recurrence
+		? task.skipped_instances?.includes(formatDateForStorage(targetDate)) || false // Direct check of skipped_instances
+		: false; // Only recurring tasks can have skipped instances
 	const isRecurring = !!task.recurrence;
 
 	// Build BEM class names for update
@@ -1568,6 +1575,7 @@ export function updateTaskCard(
 
 	// Add modifiers
 	if (isCompleted) cardClasses.push("task-card--completed");
+	if (isSkipped) cardClasses.push("task-card--skipped");
 	if (task.archived) cardClasses.push("task-card--archived");
 	if (isActivelyTracked) cardClasses.push("task-card--actively-tracked");
 	if (isRecurring) cardClasses.push("task-card--recurring");

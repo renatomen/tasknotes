@@ -638,6 +638,22 @@
     color: var(--tn-text-muted);
 }
 
+/* Skipped State - Muted appearance for skipped recurring instances */
+.tasknotes-plugin .task-card--skipped {
+    opacity: 0.5;
+}
+
+.tasknotes-plugin .task-card--skipped > .task-card__main-row .task-card__title {
+    text-decoration: line-through;
+    color: var(--text-muted);
+}
+
+.tasknotes-plugin .task-card--skipped > .task-card__main-row .task-card__status-dot {
+    background-color: rgba(128, 128, 128, 0.4);
+    border-color: var(--text-faint);
+    border-style: dashed;
+}
+
 /* Archived State */
 .tasknotes-plugin .task-card--archived {
     opacity: 0.5;
