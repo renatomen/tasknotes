@@ -35,6 +35,12 @@
     box-shadow: 0 1px 3px color-mix(in srgb, var(--tn-shadow-color, black) 5%, transparent);
 }
 
+/* Prevent parent hover when hovering over subtasks or blocking tasks */
+.tasknotes-plugin .task-card:has(.task-card__subtasks:hover, .task-card__blocking:hover) {
+    background-color: transparent;
+    box-shadow: none;
+}
+
 .tasknotes-plugin .task-card:focus {
     background-color: var(--tn-interactive-hover);
     outline: 2px solid color-mix(in srgb, var(--tn-interactive-accent) 30%, transparent);
