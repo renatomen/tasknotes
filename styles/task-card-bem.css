@@ -1174,7 +1174,6 @@
 .tasknotes-plugin .task-card--layout-inline .task-card__title {
     font-size: inherit; /* Use editor's font size */
     font-weight: 400;
-    min-width: 100px; /* Ensure title is always visible */
     max-width: 300px;
     overflow: hidden;
     text-overflow: ellipsis;
