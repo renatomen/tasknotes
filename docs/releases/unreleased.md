@@ -36,7 +36,34 @@ Example:
   - Example: Complete a weekly task 2 days late, and the next occurrence will be 7 days from the completion date (not the original scheduled date)
   - Thanks to @luciolebrillante for the original feature request, and @jhedlund, @nschenone, @BryanWall, @realJohnDoe, and @kazerniel for additional input and interest
 
+- (#416) Added support for skipped recurrence instances with `skipped_instances` field
+  - Recurring tasks can now have individual instances marked as "skipped" without completing them
+  - Skipped instances are stored in the `skipped_instances` frontmatter array (e.g., `["2025-11-15", "2025-11-22"]`)
+  - Right-click on a recurring task instance in calendar views to skip/unskip it
+  - Visual styling differentiates skipped instances:
+    - Calendar views: Gray background with muted appearance
+    - Task cards: Strike-through text with gray styling
+  - Skipped instances don't affect the recurrence pattern - future instances continue as scheduled
+  - Useful for holidays, vacations, or other planned exceptions to recurring tasks
+  - Thanks to @mdbraber for the suggestion to use an array similar to `complete_instances`, and @jerzy-dudzic for reporting the issue
+
 ## Fixed
+
+- (#893) Fixed yearly recurring tasks not always updating scheduled date to next occurrence when completed
+  - Increased look-ahead period for yearly recurrence from 365 days to 800 days (~2.2 years)
+  - Also optimized look-ahead periods for other frequencies: daily (30 days), weekly (90 days), monthly (400 days)
+  - Ensures the next occurrence is always found when completing recurring task instances
+  - Thanks to @VenturaNotes for reporting
+
+- (#889) Fixed git merge conflicts in calendar subscription metadata
+  - Calendar subscription `lastFetched` and `lastError` fields are now stored in memory instead of being saved to disk
+  - Prevents git conflicts when syncing vaults across multiple computers that independently fetch calendar subscriptions
+  - The "last synced" timestamp in settings will reset on plugin reload, but subscriptions will re-fetch automatically
+  - Thanks to @karlfrohlich for reporting
+
+- Fixed recurrence modal not loading DTSTART date/time when editing existing recurrence rules
+  - The custom recurrence modal now correctly parses and displays the start date and time fields
+  - Fixed parser that was splitting on `=` instead of `:` for DTSTART values
 
 - (#1097) Fixed custom properties and formulas not displaying in Bases views
   - Updated TaskCard to use Bases API's getValue() method for formulas and custom note properties
