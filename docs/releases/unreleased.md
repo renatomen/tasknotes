@@ -30,8 +30,10 @@ Example:
   - Tasks can now recur based on completion date instead of scheduled date
   - Set `recurrence_anchor: completion` in task frontmatter to enable this behavior
   - When completing a recurring task, the next occurrence will be scheduled relative to the completion date
+  - The DTSTART in the RRULE automatically updates to the completion date, ensuring calendar views show future occurrences at the correct dates
   - Defaults to `scheduled` (original behavior) if not specified
   - Useful for tasks like "Exercise weekly" where you want the next occurrence 7 days after you actually complete it, not 7 days after it was scheduled
+  - Example: Complete a weekly task 2 days late, and the next occurrence will be 7 days from the completion date (not the original scheduled date)
   - Thanks to @luciolebrillante for the original feature request, and @jhedlund, @nschenone, @BryanWall, @realJohnDoe, and @kazerniel for additional input and interest
 
 ## Fixed
