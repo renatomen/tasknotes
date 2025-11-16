@@ -6,7 +6,7 @@ import {
 	WorkspaceLeaf,
 } from "obsidian";
 import { EditorSelection, Extension, Prec } from "@codemirror/state";
-import { EditorView, keymap, placeholder, ViewUpdate } from "@codemirror/view";
+import { EditorView, keymap, lineNumbers, placeholder, ViewUpdate } from "@codemirror/view";
 import { around } from "monkey-around";
 
 /* eslint-disable no-undef, no-restricted-globals */
@@ -216,13 +216,20 @@ export class EmbeddableMarkdownEditor extends resolveEditorPrototype(app) {
 	buildLocalExtensions(): Extension[] {
 		const extensions = super.buildLocalExtensions();
 
+		// Disable line numbers (filter out the lineNumbers extension)
+		const filteredExtensions = extensions.filter(ext => {
+			// Check if this is the lineNumbers extension by checking its toString
+			const extStr = ext?.toString?.() || '';
+			return !extStr.includes('lineNumbers');
+		});
+
 		// Add placeholder if specified
 		if (this.options.placeholder) {
-			extensions.push(placeholder(this.options.placeholder));
+			filteredExtensions.push(placeholder(this.options.placeholder));
 		}
 
 		// Add paste handler
-		extensions.push(
+		filteredExtensions.push(
 			EditorView.domEventHandlers({
 				paste: (event) => {
 					this.options.onPaste(event, this);
@@ -231,7 +238,7 @@ export class EmbeddableMarkdownEditor extends resolveEditorPrototype(app) {
 		);
 
 		// Add keyboard handlers with highest precedence
-		extensions.push(
+		filteredExtensions.push(
 			Prec.highest(
 				keymap.of([
 					{
@@ -265,10 +272,10 @@ export class EmbeddableMarkdownEditor extends resolveEditorPrototype(app) {
 
 		// Add any custom extensions (e.g., autocomplete)
 		if (this.options.extensions && this.options.extensions.length > 0) {
-			extensions.push(...this.options.extensions);
+			filteredExtensions.push(...this.options.extensions);
 		}
 
-		return extensions;
+		return filteredExtensions;
 	}
 
 	/**
