@@ -184,7 +184,43 @@ export class KanbanView extends BasesViewBase {
 			groups.set(groupKey, groupTasks);
 		}
 
+		// Augment with empty status columns if grouping by status
+		this.augmentWithEmptyStatusColumns(groups, groupByPropertyId);
+
 		return groups;
+	}
+
+	/**
+	 * Augment groups with empty columns for user-defined statuses.
+	 * Only applies when grouping by status property.
+	 */
+	private augmentWithEmptyStatusColumns(
+		groups: Map<string, TaskInfo[]>,
+		groupByPropertyId: string
+	): void {
+		// Check if we're grouping by status
+		// The internal field name is "status", which maps to "task.status" in Bases
+		const internalFieldName = this.propertyMapper.basesToInternal(groupByPropertyId);
+		if (internalFieldName !== 'status') {
+			return; // Not grouping by status, don't augment
+		}
+
+		// Get all user-defined statuses from settings
+		const customStatuses = this.plugin.settings.customStatuses;
+		if (!customStatuses || customStatuses.length === 0) {
+			return; // No custom statuses defined
+		}
+
+		// Add empty groups for any status values not already present
+		for (const statusConfig of customStatuses) {
+			// Use the status value (what gets written to YAML) as the group key
+			const statusValue = statusConfig.value;
+
+			if (!groups.has(statusValue)) {
+				// This status has no tasks - add an empty group
+				groups.set(statusValue, []);
+			}
+		}
 	}
 
 	private async renderFlat(
@@ -243,11 +279,12 @@ export class KanbanView extends BasesViewBase {
 		}
 
 		// Initialize swimlane -> column -> tasks structure
+		// Note: groups already includes empty status columns from augmentWithEmptyStatusColumns()
 		for (const swimLaneKey of swimLaneValues) {
 			const swimLaneMap = new Map<string, TaskInfo[]>();
 			swimLanes.set(swimLaneKey, swimLaneMap);
 
-			// Initialize each column in this swimlane
+			// Initialize each column in this swimlane (including empty status columns)
 			for (const [columnKey] of groups) {
 				swimLaneMap.set(columnKey, []);
 			}

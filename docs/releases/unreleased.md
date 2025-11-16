@@ -59,6 +59,13 @@ Example:
   - Useful for holidays, vacations, or other planned exceptions to recurring tasks
   - Thanks to @mdbraber for the suggestion to use an array similar to `complete_instances`, and @jerzy-dudzic for reporting the issue
 
+- Kanban view now shows empty columns for all user-defined statuses when grouping by status
+  - Empty columns appear for custom statuses defined in settings, even when no tasks have that status
+  - Allows users to drag tasks into empty status columns
+  - Works in both flat kanban view and swimlane mode
+  - Respects the existing "Hide empty columns" setting
+  - Thanks to @williamcheuk03 for requesting this feature
+
 ## Fixed
 
 - (#893) Fixed yearly recurring tasks not always updating scheduled date to next occurrence when completed
@@ -95,4 +102,15 @@ Example:
   - Fixes issue where tasks completed yesterday would appear crossed out today for users in positive UTC offset timezones
   - Also fixed KanbanView to use UTC-anchored dates for consistency
   - Thanks to @kmaustral for reporting
+
+- (#1118) Fixed user-defined fields not working in inline task conversion
+  - User-defined fields like `>customfield value` now properly convert to frontmatter when using the "TaskNote: Convert task to TaskNote" command
+  - Fixed fields appearing with internal IDs (e.g., `field_1761435101864`) instead of configured frontmatter key names
+  - Array values are now properly joined with commas
+  - Added `userFields` property to `ParsedTaskData` interface to support custom fields throughout the conversion flow
+  - Thanks to @guncav for reporting
+
+- Fixed kanban column width CSS constraints not matching settings
+  - Updated CSS min-width from 280px to 200px and max-width from 350px to 500px to match slider range
+  - Column width slider now works correctly across the full 200-500px range
 
