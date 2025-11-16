@@ -26,15 +26,17 @@ Example:
 
 ## Added
 
-- Improved task card visual design with refined minimalist styling
-  - Enhanced visual hierarchy with subtle depth using shadows and smooth transitions
-  - Improved hover states with scale transforms and glow effects for better interaction feedback
-  - Larger, more tactile status dots (18px) with animated completion state including checkmark icon
-  - Refined metadata pills with backdrop blur and improved spacing
-  - Enhanced clickable elements (dates, projects, tags) with lift-on-hover effects
-  - Smoother micro-animations using cubic-bezier easing for polished feel
-  - Better visual separation of subtasks and blocking tasks with gradient accents
-  - All improvements maintain minimalist aesthetic while increasing visual appeal and usability
+- Updated task card styling
+  - Increased status dot size from 16px to 18px
+  - Added subtle shadows and transitions to card hover states
+  - Updated hover effects on status and priority dots with scale and glow
+  - Modified metadata pills with backdrop blur and adjusted spacing
+  - Added box shadows to interactive elements (dates, projects, tags) on hover
+  - Updated animations to use cubic-bezier easing
+  - Added gradient accents to subtask and blocking task borders
+  - Fixed subtasks appearing behind parent card hover backgrounds
+  - Fixed subtask click and context menu events bubbling to parent cards
+  - Fixed subtasks inheriting parent priority and status colors
 
 - (#361) Added completion-based recurrence support with `recurrence_anchor` field
   - Tasks can now recur based on completion date instead of scheduled date
