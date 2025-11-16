@@ -1,15 +1,13 @@
 /**
- * RRule Migration and Helper Functions Tests
- * 
+ * RRule Helper Functions Tests
+ *
  * Tests for rrule-related utility functions including:
- * - Legacy recurrence to rrule conversion
- * - RRule-based task due date checking  
+ * - RRule-based task due date checking
  * - Recurring instance generation
  * - Recurrence display text formatting
  */
 
 import {
-  convertLegacyRecurrenceToRRule,
   isDueByRRule,
   generateRecurringInstances,
   getRecurrenceDisplayText
@@ -63,243 +61,6 @@ describe('RRule Helper Functions', () => {
     });
   });
 
-  describe('convertLegacyRecurrenceToRRule', () => {
-    it('should convert daily recurrence', () => {
-      const legacyRecurrence = {
-        frequency: 'daily'
-      };
-
-      const mockRRuleInstance = {
-        toString: jest.fn(() => 'FREQ=DAILY')
-      };
-      mockRRuleConstructor.mockReturnValue(mockRRuleInstance as any);
-
-      const result = convertLegacyRecurrenceToRRule(legacyRecurrence);
-
-      expect(mockRRule).toHaveBeenCalledWith({
-        freq: RRule.DAILY
-      });
-      expect(result).toBe('FREQ=DAILY');
-    });
-
-    it('should convert weekly recurrence with specific days', () => {
-      const legacyRecurrence = {
-        frequency: 'weekly',
-        days_of_week: ['mon', 'wed', 'fri']
-      };
-
-      const mockRRuleInstance = {
-        toString: jest.fn(() => 'FREQ=WEEKLY;BYDAY=MO,WE,FR')
-      };
-      mockRRuleConstructor.mockReturnValue(mockRRuleInstance as any);
-
-      const result = convertLegacyRecurrenceToRRule(legacyRecurrence);
-
-      expect(mockRRule).toHaveBeenCalledWith({
-        freq: RRule.WEEKLY,
-        byweekday: [RRule.MO, RRule.WE, RRule.FR]
-      });
-      expect(result).toBe('FREQ=WEEKLY;BYDAY=MO,WE,FR');
-    });
-
-    it('should convert weekly recurrence without specific days', () => {
-      const legacyRecurrence = {
-        frequency: 'weekly'
-      };
-
-      const mockRRuleInstance = {
-        toString: jest.fn(() => 'FREQ=WEEKLY')
-      };
-      mockRRuleConstructor.mockReturnValue(mockRRuleInstance as any);
-
-      const result = convertLegacyRecurrenceToRRule(legacyRecurrence);
-
-      expect(mockRRule).toHaveBeenCalledWith({
-        freq: RRule.WEEKLY
-      });
-      expect(result).toBe('FREQ=WEEKLY');
-    });
-
-    it('should handle case-insensitive day names', () => {
-      const legacyRecurrence = {
-        frequency: 'weekly',
-        days_of_week: ['MON', 'Wed', 'FRI']
-      };
-
-      const mockRRuleInstance = {
-        toString: jest.fn(() => 'FREQ=WEEKLY;BYDAY=MO,WE,FR')
-      };
-      mockRRuleConstructor.mockReturnValue(mockRRuleInstance as any);
-
-      convertLegacyRecurrenceToRRule(legacyRecurrence);
-
-      expect(mockRRule).toHaveBeenCalledWith({
-        freq: RRule.WEEKLY,
-        byweekday: [RRule.MO, RRule.WE, RRule.FR]
-      });
-    });
-
-    it('should filter out invalid day names', () => {
-      const legacyRecurrence = {
-        frequency: 'weekly',
-        days_of_week: ['mon', 'invalid', 'fri', '']
-      };
-
-      const mockRRuleInstance = {
-        toString: jest.fn(() => 'FREQ=WEEKLY;BYDAY=MO,FR')
-      };
-      mockRRuleConstructor.mockReturnValue(mockRRuleInstance as any);
-
-      convertLegacyRecurrenceToRRule(legacyRecurrence);
-
-      expect(mockRRule).toHaveBeenCalledWith({
-        freq: RRule.WEEKLY,
-        byweekday: [RRule.MO, RRule.FR]
-      });
-    });
-
-    it('should convert monthly recurrence with day of month', () => {
-      const legacyRecurrence = {
-        frequency: 'monthly',
-        day_of_month: 15
-      };
-
-      const mockRRuleInstance = {
-        toString: jest.fn(() => 'FREQ=MONTHLY;BYMONTHDAY=15')
-      };
-      mockRRuleConstructor.mockReturnValue(mockRRuleInstance as any);
-
-      const result = convertLegacyRecurrenceToRRule(legacyRecurrence);
-
-      expect(mockRRule).toHaveBeenCalledWith({
-        freq: RRule.MONTHLY,
-        bymonthday: [15]
-      });
-      expect(result).toBe('FREQ=MONTHLY;BYMONTHDAY=15');
-    });
-
-    it('should convert monthly recurrence without day of month', () => {
-      const legacyRecurrence = {
-        frequency: 'monthly'
-      };
-
-      const mockRRuleInstance = {
-        toString: jest.fn(() => 'FREQ=MONTHLY')
-      };
-      mockRRuleConstructor.mockReturnValue(mockRRuleInstance as any);
-
-      const result = convertLegacyRecurrenceToRRule(legacyRecurrence);
-
-      expect(mockRRule).toHaveBeenCalledWith({
-        freq: RRule.MONTHLY
-      });
-      expect(result).toBe('FREQ=MONTHLY');
-    });
-
-    it('should convert yearly recurrence with month and day', () => {
-      const legacyRecurrence = {
-        frequency: 'yearly',
-        month_of_year: 12,
-        day_of_month: 25
-      };
-
-      const mockRRuleInstance = {
-        toString: jest.fn(() => 'FREQ=YEARLY;BYMONTH=12;BYMONTHDAY=25')
-      };
-      mockRRuleConstructor.mockReturnValue(mockRRuleInstance as any);
-
-      const result = convertLegacyRecurrenceToRRule(legacyRecurrence);
-
-      expect(mockRRule).toHaveBeenCalledWith({
-        freq: RRule.YEARLY,
-        bymonth: [12],
-        bymonthday: [25]
-      });
-      expect(result).toBe('FREQ=YEARLY;BYMONTH=12;BYMONTHDAY=25');
-    });
-
-    it('should convert yearly recurrence with only month', () => {
-      const legacyRecurrence = {
-        frequency: 'yearly',
-        month_of_year: 6
-      };
-
-      const mockRRuleInstance = {
-        toString: jest.fn(() => 'FREQ=YEARLY;BYMONTH=6')
-      };
-      mockRRuleConstructor.mockReturnValue(mockRRuleInstance as any);
-
-      const result = convertLegacyRecurrenceToRRule(legacyRecurrence);
-
-      expect(mockRRule).toHaveBeenCalledWith({
-        freq: RRule.YEARLY,
-        bymonth: [6]
-      });
-      expect(result).toBe('FREQ=YEARLY;BYMONTH=6');
-    });
-
-    it('should convert yearly recurrence with only day', () => {
-      const legacyRecurrence = {
-        frequency: 'yearly',
-        day_of_month: 1
-      };
-
-      const mockRRuleInstance = {
-        toString: jest.fn(() => 'FREQ=YEARLY;BYMONTHDAY=1')
-      };
-      mockRRuleConstructor.mockReturnValue(mockRRuleInstance as any);
-
-      const result = convertLegacyRecurrenceToRRule(legacyRecurrence);
-
-      expect(mockRRule).toHaveBeenCalledWith({
-        freq: RRule.YEARLY,
-        bymonthday: [1]
-      });
-      expect(result).toBe('FREQ=YEARLY;BYMONTHDAY=1');
-    });
-
-    it('should throw error for invalid recurrence object', () => {
-      expect(() => convertLegacyRecurrenceToRRule(null)).toThrow('Invalid recurrence object');
-      expect(() => convertLegacyRecurrenceToRRule({})).toThrow('Invalid recurrence object');
-      expect(() => convertLegacyRecurrenceToRRule({ invalid: true })).toThrow('Invalid recurrence object');
-    });
-
-    it('should throw error for unsupported frequency', () => {
-      const legacyRecurrence = {
-        frequency: 'hourly'
-      };
-
-      expect(() => convertLegacyRecurrenceToRRule(legacyRecurrence))
-        .toThrow('Unsupported frequency: hourly');
-    });
-
-    it('should handle RRule creation errors', () => {
-      const legacyRecurrence = {
-        frequency: 'daily'
-      };
-
-      mockRRule.mockImplementation(() => {
-        throw new Error('RRule creation failed');
-      });
-
-      expect(() => convertLegacyRecurrenceToRRule(legacyRecurrence))
-        .toThrow('RRule creation failed');
-    });
-
-    it('should handle all valid day abbreviations', () => {
-      const legacyRecurrence = {
-        frequency: 'weekly',
-        days_of_week: ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
-      };
-
-      convertLegacyRecurrenceToRRule(legacyRecurrence);
-
-      expect(mockRRule).toHaveBeenCalledWith({
-        freq: RRule.WEEKLY,
-        byweekday: [RRule.SU, RRule.MO, RRule.TU, RRule.WE, RRule.TH, RRule.FR, RRule.SA]
-      });
-    });
-  });
 
   describe('isDueByRRule', () => {
     it('should return true for non-recurring tasks', () => {
@@ -701,46 +462,12 @@ describe('RRule Helper Functions', () => {
       expect(result).toBe('daily');
     });
 
-    it('should convert legacy object to human text via rrule', () => {
-      const legacyRecurrence = {
-        frequency: 'weekly',
-        days_of_week: ['mon', 'fri']
-      };
-
-      // Mock convertLegacyRecurrenceToRRule
-      const mockConvertedRRule = 'FREQ=WEEKLY;BYDAY=MO,FR';
-      const mockRRuleInstance = {
-        toString: jest.fn(() => mockConvertedRRule)
-      };
-      const mockFromStringInstance = {
-        toText: jest.fn(() => 'weekly on Monday and Friday')
-      };
-      
-      mockRRuleConstructor.mockReturnValue(mockRRuleInstance as any);
-      mockRRule.fromString = jest.fn(() => mockFromStringInstance as any);
-
-      const result = getRecurrenceDisplayText(legacyRecurrence);
-
-      expect(mockRRule.fromString).toHaveBeenCalledWith(mockConvertedRRule);
-      expect(result).toBe('weekly on Monday and Friday');
-    });
-
     it('should return fallback text on rrule parsing error', () => {
       mockRRule.fromString = jest.fn(() => {
         throw new Error('Invalid rrule');
       });
 
       const result = getRecurrenceDisplayText('INVALID_RRULE');
-      expect(result).toBe('rrule');
-    });
-
-    it('should return fallback text on legacy conversion error', () => {
-      const legacyRecurrence = {
-        frequency: 'invalid'
-      };
-
-      // convertLegacyRecurrenceToRRule will throw
-      const result = getRecurrenceDisplayText(legacyRecurrence);
       expect(result).toBe('rrule');
     });
 

@@ -28,7 +28,6 @@ import {
   getEffectiveTaskStatus,
   shouldShowRecurringTaskOnDate,
   generateRecurringInstances,
-  convertLegacyRecurrenceToRRule,
   getRecurrenceDisplayText,
   extractNoteInfo,
   validateTimeBlock,
