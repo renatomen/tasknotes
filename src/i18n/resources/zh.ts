@@ -2215,6 +2215,8 @@ export const zh: TranslationTree = {
 			},
 			markComplete: "标记此日期完成",
 			markIncomplete: "标记此日期未完成",
+			skipInstance: "跳过实例",
+			unskipInstance: "取消跳过实例",
 			quickReminders: {
 				atTime: "在事件时间",
 				fiveMinutes: "提前5分钟",
@@ -2224,6 +2226,7 @@ export const zh: TranslationTree = {
 			},
 			notices: {
 				toggleCompletionFailure: "切换重复任务完成失败：{message}",
+				toggleSkipFailure: "切换重复任务跳过失败：{message}",
 				updateDueDateFailure: "更新任务到期日期失败：{message}",
 				updateScheduledFailure: "更新任务安排日期失败：{message}",
 				updateRemindersFailure: "更新提醒失败",

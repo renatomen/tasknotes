@@ -5656,6 +5656,14 @@
       "source": "8d0d3b84c6c7d795e205c345054f9335ae222c21",
       "translation": "43ae72ca3b91df47c5bcf8a608d9c051ac8293a5"
     },
+    "contextMenus.task.skipInstance": {
+      "source": "ebb18d68bb33bb3188ca558e22656fa8f4cb7e95",
+      "translation": "71608a971b5cb765567ca91ceea124c580ad90ad"
+    },
+    "contextMenus.task.unskipInstance": {
+      "source": "f58b99fdb842bddf12fa964f933eb1d9bd54843e",
+      "translation": "dc50f18bbaa3249131904a53adc71400e7ebcd31"
+    },
     "contextMenus.task.quickReminders.atTime": {
       "source": "87270e0d6c46f3d0c3510c6c2a2f1e31e8b0ab60",
       "translation": "13edcc9c4ebe474df17518c264115a00ddf30433"
@@ -5679,6 +5687,10 @@
     "contextMenus.task.notices.toggleCompletionFailure": {
       "source": "c0849078ec010ef4cb774a02411858762779d04d",
       "translation": "133e88db9b1a69b00b5faca8121dbfb47ac73ca3"
+    },
+    "contextMenus.task.notices.toggleSkipFailure": {
+      "source": "307026dbdae7db5794336dc4e9130f3ec1fdfc4a",
+      "translation": "f761bed87a4003148ae0fdeb7d74e56fddfb3c38"
     },
     "contextMenus.task.notices.updateDueDateFailure": {
       "source": "3a727f6b8747787aa677d845bc202eea1f10ec7a",
@@ -6788,6 +6800,22 @@
       "source": "2f7a5c5b8e4bc8a4324a837113b4a50be4d84ee4",
       "translation": "9dccc020e7ddecc20f42595dccb6bf03be1022a8"
     },
+    "components.recurrenceContextMenu.dailyAfterCompletion": {
+      "source": "7b53be8a440c6ed047b401bb0e6a0cd2862e5bcc",
+      "translation": "a15daef54bdf9d4bc3f5b12267a800be0d01fc86"
+    },
+    "components.recurrenceContextMenu.every3DaysAfterCompletion": {
+      "source": "9d399a8146e899b33790b31f5c943b4089c401ea",
+      "translation": "55178c134ab2ea897dda7b64b75483f20dd5e800"
+    },
+    "components.recurrenceContextMenu.weeklyAfterCompletion": {
+      "source": "c019409976ef3802442c6f327d2177bd5a008c41",
+      "translation": "daf5c44cec166928ceb1a704a54fe5fc62d0aadd"
+    },
+    "components.recurrenceContextMenu.monthlyAfterCompletion": {
+      "source": "7f93cead92812762d0a71f70b19146ac1455f1cf",
+      "translation": "17ce13b6ef4da16cc482fa8076dd69824c0b3872"
+    },
     "components.recurrenceContextMenu.customRecurrence": {
       "source": "679d804e3d523e432f58ba49b33f7991ae69a60a",
       "translation": "a464032c6f25b2f05a9fb6c5951fca23dc0a1c0b"
@@ -6815,6 +6843,22 @@
     "components.recurrenceContextMenu.customRecurrenceModal.startTimeDesc": {
       "source": "e42ac4ffe9370ba7a138bf9dd3de66804d65cc44",
       "translation": "bab47835d50e19d22f10039ca94ca173c5d440ff"
+    },
+    "components.recurrenceContextMenu.customRecurrenceModal.recurFrom": {
+      "source": "4c9111cfb61f928210fe303ec9687ce85ddfb118",
+      "translation": "face12cf890f9c6edab1a1ca0affebcd5368af28"
+    },
+    "components.recurrenceContextMenu.customRecurrenceModal.recurFromDesc": {
+      "source": "5c4d3e73390987ee9ab6cd43de03d95ece48518b",
+      "translation": "3b24fb698bba6ebd2cedca13613c2451284a092d"
+    },
+    "components.recurrenceContextMenu.customRecurrenceModal.scheduledDate": {
+      "source": "b41cf063eca8243b7b8039af57f2b039fc868668",
+      "translation": "d50b75bfdfc1fdcae3dac198a673c8267cc22491"
+    },
+    "components.recurrenceContextMenu.customRecurrenceModal.completionDate": {
+      "source": "181f114bea80ef79164a40ea4c5ed7e48f155ef3",
+      "translation": "8ab4b7664dcc10383a464fdc702528fb35e30775"
     },
     "components.recurrenceContextMenu.customRecurrenceModal.frequency": {
       "source": "89836a870e44fb467d13116254b39e2482f5cdf1",
@@ -12646,6 +12690,14 @@
       "source": "8d0d3b84c6c7d795e205c345054f9335ae222c21",
       "translation": "0d2ea9ac3120df7daac6fb663b6452b7ca9ac0bd"
     },
+    "contextMenus.task.skipInstance": {
+      "source": "ebb18d68bb33bb3188ca558e22656fa8f4cb7e95",
+      "translation": "0ca765cfa61b7e48f2027559939b77ae05946ae2"
+    },
+    "contextMenus.task.unskipInstance": {
+      "source": "f58b99fdb842bddf12fa964f933eb1d9bd54843e",
+      "translation": "968673d261b5844d3efa0738be3c13af2077c0d9"
+    },
     "contextMenus.task.quickReminders.atTime": {
       "source": "87270e0d6c46f3d0c3510c6c2a2f1e31e8b0ab60",
       "translation": "2838cecba7368421d90e0f07c0d0f1e28830ffa4"
@@ -12669,6 +12721,10 @@
     "contextMenus.task.notices.toggleCompletionFailure": {
       "source": "c0849078ec010ef4cb774a02411858762779d04d",
       "translation": "440fd18e17a2a206d27218be0e9aadb9084885f3"
+    },
+    "contextMenus.task.notices.toggleSkipFailure": {
+      "source": "307026dbdae7db5794336dc4e9130f3ec1fdfc4a",
+      "translation": "9b0a181245457bf11831e3e6b7ab5f954eea5e34"
     },
     "contextMenus.task.notices.updateDueDateFailure": {
       "source": "3a727f6b8747787aa677d845bc202eea1f10ec7a",
@@ -13778,6 +13834,22 @@
       "source": "2f7a5c5b8e4bc8a4324a837113b4a50be4d84ee4",
       "translation": "9ceab9d05cb38454d16497e261c32cbd9190d319"
     },
+    "components.recurrenceContextMenu.dailyAfterCompletion": {
+      "source": "7b53be8a440c6ed047b401bb0e6a0cd2862e5bcc",
+      "translation": "802be82ba45ab5817fbf6864f451447f0d8ae66b"
+    },
+    "components.recurrenceContextMenu.every3DaysAfterCompletion": {
+      "source": "9d399a8146e899b33790b31f5c943b4089c401ea",
+      "translation": "e921a7843bd1393c268003c795467847ff0aca47"
+    },
+    "components.recurrenceContextMenu.weeklyAfterCompletion": {
+      "source": "c019409976ef3802442c6f327d2177bd5a008c41",
+      "translation": "3a0f63ba6717e0cfadbe59d0cefb9aa54ef3a47a"
+    },
+    "components.recurrenceContextMenu.monthlyAfterCompletion": {
+      "source": "7f93cead92812762d0a71f70b19146ac1455f1cf",
+      "translation": "45f6f9cceb34f7f3a173896d173748d3b898705c"
+    },
     "components.recurrenceContextMenu.customRecurrence": {
       "source": "679d804e3d523e432f58ba49b33f7991ae69a60a",
       "translation": "388838d7ed5ae14b133e6e92a3189fae81c7c2f0"
@@ -13805,6 +13877,22 @@
     "components.recurrenceContextMenu.customRecurrenceModal.startTimeDesc": {
       "source": "e42ac4ffe9370ba7a138bf9dd3de66804d65cc44",
       "translation": "f41ec3940c26165fa585f822508f29b2411006f9"
+    },
+    "components.recurrenceContextMenu.customRecurrenceModal.recurFrom": {
+      "source": "4c9111cfb61f928210fe303ec9687ce85ddfb118",
+      "translation": "c46150de70be6ca6edaf7822221de28e609a9ba3"
+    },
+    "components.recurrenceContextMenu.customRecurrenceModal.recurFromDesc": {
+      "source": "5c4d3e73390987ee9ab6cd43de03d95ece48518b",
+      "translation": "a820b5b06f664951ebdccaf8d97c1d4d36fd7dea"
+    },
+    "components.recurrenceContextMenu.customRecurrenceModal.scheduledDate": {
+      "source": "b41cf063eca8243b7b8039af57f2b039fc868668",
+      "translation": "d993412cdda43c87b63b68675e3b219add3bb102"
+    },
+    "components.recurrenceContextMenu.customRecurrenceModal.completionDate": {
+      "source": "181f114bea80ef79164a40ea4c5ed7e48f155ef3",
+      "translation": "0e0819da46286f82e17b71a8c319a18429f65102"
     },
     "components.recurrenceContextMenu.customRecurrenceModal.frequency": {
       "source": "89836a870e44fb467d13116254b39e2482f5cdf1",
@@ -19636,6 +19724,14 @@
       "source": "8d0d3b84c6c7d795e205c345054f9335ae222c21",
       "translation": "268d9c08f64e5dd6bc54437b6858743325a57134"
     },
+    "contextMenus.task.skipInstance": {
+      "source": "ebb18d68bb33bb3188ca558e22656fa8f4cb7e95",
+      "translation": "dbc1e972f83784b38cf27920442e81cb4889f512"
+    },
+    "contextMenus.task.unskipInstance": {
+      "source": "f58b99fdb842bddf12fa964f933eb1d9bd54843e",
+      "translation": "dddefd2443584c9cf6331b468a73c21e6fe8556e"
+    },
     "contextMenus.task.quickReminders.atTime": {
       "source": "87270e0d6c46f3d0c3510c6c2a2f1e31e8b0ab60",
       "translation": "c6fa1b8853d66e5ede8d309bb9f6d82dc4f10657"
@@ -19659,6 +19755,10 @@
     "contextMenus.task.notices.toggleCompletionFailure": {
       "source": "c0849078ec010ef4cb774a02411858762779d04d",
       "translation": "bbb5bfa929f0cfc806b07ed5a2691092845b7adb"
+    },
+    "contextMenus.task.notices.toggleSkipFailure": {
+      "source": "307026dbdae7db5794336dc4e9130f3ec1fdfc4a",
+      "translation": "a0e717777909377f758e1462adda673530896d0a"
     },
     "contextMenus.task.notices.updateDueDateFailure": {
       "source": "3a727f6b8747787aa677d845bc202eea1f10ec7a",
@@ -20768,6 +20868,22 @@
       "source": "2f7a5c5b8e4bc8a4324a837113b4a50be4d84ee4",
       "translation": "bde91bf3a2c0ef311b58d7b94f68735345b9218a"
     },
+    "components.recurrenceContextMenu.dailyAfterCompletion": {
+      "source": "7b53be8a440c6ed047b401bb0e6a0cd2862e5bcc",
+      "translation": "64830f0e556869a44700308ea6ced7665341dab3"
+    },
+    "components.recurrenceContextMenu.every3DaysAfterCompletion": {
+      "source": "9d399a8146e899b33790b31f5c943b4089c401ea",
+      "translation": "820bf1a23ec44987e7c2e56b051492e10e6c5bb9"
+    },
+    "components.recurrenceContextMenu.weeklyAfterCompletion": {
+      "source": "c019409976ef3802442c6f327d2177bd5a008c41",
+      "translation": "ed653cbff4df6d8d104295a60c46928a83bf69fb"
+    },
+    "components.recurrenceContextMenu.monthlyAfterCompletion": {
+      "source": "7f93cead92812762d0a71f70b19146ac1455f1cf",
+      "translation": "b4c04aed81e15e06f9044f6439be4435e55cbe8d"
+    },
     "components.recurrenceContextMenu.customRecurrence": {
       "source": "679d804e3d523e432f58ba49b33f7991ae69a60a",
       "translation": "e71bb37723cf63b81099b3ac16aed23f963c4def"
@@ -20795,6 +20911,22 @@
     "components.recurrenceContextMenu.customRecurrenceModal.startTimeDesc": {
       "source": "e42ac4ffe9370ba7a138bf9dd3de66804d65cc44",
       "translation": "8ee5bf000bfb87fdb872a6a9b389fd106de10172"
+    },
+    "components.recurrenceContextMenu.customRecurrenceModal.recurFrom": {
+      "source": "4c9111cfb61f928210fe303ec9687ce85ddfb118",
+      "translation": "15d310f5eed6864d1f16adce96160463c40c407e"
+    },
+    "components.recurrenceContextMenu.customRecurrenceModal.recurFromDesc": {
+      "source": "5c4d3e73390987ee9ab6cd43de03d95ece48518b",
+      "translation": "a26d92bcbfbbe4c69bdf27243589bbc78dcb9045"
+    },
+    "components.recurrenceContextMenu.customRecurrenceModal.scheduledDate": {
+      "source": "b41cf063eca8243b7b8039af57f2b039fc868668",
+      "translation": "377f53348f5627bc00a602d439649ce956d3ac69"
+    },
+    "components.recurrenceContextMenu.customRecurrenceModal.completionDate": {
+      "source": "181f114bea80ef79164a40ea4c5ed7e48f155ef3",
+      "translation": "3b162aa9c29edbda9b54ce74cebd393dc735d36e"
     },
     "components.recurrenceContextMenu.customRecurrenceModal.frequency": {
       "source": "89836a870e44fb467d13116254b39e2482f5cdf1",
@@ -26626,6 +26758,14 @@
       "source": "8d0d3b84c6c7d795e205c345054f9335ae222c21",
       "translation": "6954a923aedc39bc484c1b158d7d40b5f4aa23c5"
     },
+    "contextMenus.task.skipInstance": {
+      "source": "ebb18d68bb33bb3188ca558e22656fa8f4cb7e95",
+      "translation": "e07f35d511578d5dc57c3af47ba11a5d027863e8"
+    },
+    "contextMenus.task.unskipInstance": {
+      "source": "f58b99fdb842bddf12fa964f933eb1d9bd54843e",
+      "translation": "7cd7d70058059bb1602bce7e2c25a6edaf8ef029"
+    },
     "contextMenus.task.quickReminders.atTime": {
       "source": "87270e0d6c46f3d0c3510c6c2a2f1e31e8b0ab60",
       "translation": "7fdead3a6d8aaccda120699da7e45e369edc108c"
@@ -26649,6 +26789,10 @@
     "contextMenus.task.notices.toggleCompletionFailure": {
       "source": "c0849078ec010ef4cb774a02411858762779d04d",
       "translation": "d575fbaf56ba94d65b4169dd161fbe5d24498b31"
+    },
+    "contextMenus.task.notices.toggleSkipFailure": {
+      "source": "307026dbdae7db5794336dc4e9130f3ec1fdfc4a",
+      "translation": "325b5c1df6ef8078694bc4de177ee52b4824d3ee"
     },
     "contextMenus.task.notices.updateDueDateFailure": {
       "source": "3a727f6b8747787aa677d845bc202eea1f10ec7a",
@@ -27758,6 +27902,22 @@
       "source": "2f7a5c5b8e4bc8a4324a837113b4a50be4d84ee4",
       "translation": "4c5e2b353922a801c3fe777c5be4fd73f3e08534"
     },
+    "components.recurrenceContextMenu.dailyAfterCompletion": {
+      "source": "7b53be8a440c6ed047b401bb0e6a0cd2862e5bcc",
+      "translation": "ec11a419dc39266220838b58ebee6ca62058cb62"
+    },
+    "components.recurrenceContextMenu.every3DaysAfterCompletion": {
+      "source": "9d399a8146e899b33790b31f5c943b4089c401ea",
+      "translation": "ba340c11100cbc4897c50ff958e222d4f391248d"
+    },
+    "components.recurrenceContextMenu.weeklyAfterCompletion": {
+      "source": "c019409976ef3802442c6f327d2177bd5a008c41",
+      "translation": "2f57de04295199e5181703363a6b8405a99ebf59"
+    },
+    "components.recurrenceContextMenu.monthlyAfterCompletion": {
+      "source": "7f93cead92812762d0a71f70b19146ac1455f1cf",
+      "translation": "5609145dda0e17145120b36efded96fb2b9c725d"
+    },
     "components.recurrenceContextMenu.customRecurrence": {
       "source": "679d804e3d523e432f58ba49b33f7991ae69a60a",
       "translation": "902643d1cecb8a2ddbcc99a68a135f04f363e9cc"
@@ -27785,6 +27945,22 @@
     "components.recurrenceContextMenu.customRecurrenceModal.startTimeDesc": {
       "source": "e42ac4ffe9370ba7a138bf9dd3de66804d65cc44",
       "translation": "77544c66204aa48a6fa535ac140876e1259cc9f6"
+    },
+    "components.recurrenceContextMenu.customRecurrenceModal.recurFrom": {
+      "source": "4c9111cfb61f928210fe303ec9687ce85ddfb118",
+      "translation": "0e5e54f89664f3614fd29618f719c6371d630288"
+    },
+    "components.recurrenceContextMenu.customRecurrenceModal.recurFromDesc": {
+      "source": "5c4d3e73390987ee9ab6cd43de03d95ece48518b",
+      "translation": "c4301ce1ef610744d6d360ec83e35577134ffaf9"
+    },
+    "components.recurrenceContextMenu.customRecurrenceModal.scheduledDate": {
+      "source": "b41cf063eca8243b7b8039af57f2b039fc868668",
+      "translation": "c1a4728e83ab35ff2b84086e1ba8d7c2fc6279d2"
+    },
+    "components.recurrenceContextMenu.customRecurrenceModal.completionDate": {
+      "source": "181f114bea80ef79164a40ea4c5ed7e48f155ef3",
+      "translation": "c93be1fc42c7428bb0e2b56c2071de1d055cb5cf"
     },
     "components.recurrenceContextMenu.customRecurrenceModal.frequency": {
       "source": "89836a870e44fb467d13116254b39e2482f5cdf1",
@@ -33616,6 +33792,14 @@
       "source": "8d0d3b84c6c7d795e205c345054f9335ae222c21",
       "translation": "f8f67ad20a52fc7ec85dc0fdd165c14e1d68efd0"
     },
+    "contextMenus.task.skipInstance": {
+      "source": "ebb18d68bb33bb3188ca558e22656fa8f4cb7e95",
+      "translation": "c5cbadd16f52a5f47d3452181284c4d6b9cd2772"
+    },
+    "contextMenus.task.unskipInstance": {
+      "source": "f58b99fdb842bddf12fa964f933eb1d9bd54843e",
+      "translation": "5c886f6f62aeb8f203759a44e10a075079e1555e"
+    },
     "contextMenus.task.quickReminders.atTime": {
       "source": "87270e0d6c46f3d0c3510c6c2a2f1e31e8b0ab60",
       "translation": "a2936a5b99f3ba9aef0ef806a85097d30db91392"
@@ -33639,6 +33823,10 @@
     "contextMenus.task.notices.toggleCompletionFailure": {
       "source": "c0849078ec010ef4cb774a02411858762779d04d",
       "translation": "8db171afcbec133b24e354aad3faa799692aaf26"
+    },
+    "contextMenus.task.notices.toggleSkipFailure": {
+      "source": "307026dbdae7db5794336dc4e9130f3ec1fdfc4a",
+      "translation": "8b4dc5404c47eeb884fe5e04a182f9b51824fa1a"
     },
     "contextMenus.task.notices.updateDueDateFailure": {
       "source": "3a727f6b8747787aa677d845bc202eea1f10ec7a",
@@ -34748,6 +34936,22 @@
       "source": "2f7a5c5b8e4bc8a4324a837113b4a50be4d84ee4",
       "translation": "ec5a83b84f0efbba73d7174ce1e878fd55b66132"
     },
+    "components.recurrenceContextMenu.dailyAfterCompletion": {
+      "source": "7b53be8a440c6ed047b401bb0e6a0cd2862e5bcc",
+      "translation": "5dd65065cf1dcc582915d6a38439ad1e85881783"
+    },
+    "components.recurrenceContextMenu.every3DaysAfterCompletion": {
+      "source": "9d399a8146e899b33790b31f5c943b4089c401ea",
+      "translation": "93e4bd496638325c246d61daf3e8f1056cd36315"
+    },
+    "components.recurrenceContextMenu.weeklyAfterCompletion": {
+      "source": "c019409976ef3802442c6f327d2177bd5a008c41",
+      "translation": "3bb73c063c7a08b19ee58a3e45de767a17000977"
+    },
+    "components.recurrenceContextMenu.monthlyAfterCompletion": {
+      "source": "7f93cead92812762d0a71f70b19146ac1455f1cf",
+      "translation": "c2026751dfc2dd2cb6011aebda5b59ea23649979"
+    },
     "components.recurrenceContextMenu.customRecurrence": {
       "source": "679d804e3d523e432f58ba49b33f7991ae69a60a",
       "translation": "d65782ce19b921546b1e55013d188bd7b713c0cb"
@@ -34775,6 +34979,22 @@
     "components.recurrenceContextMenu.customRecurrenceModal.startTimeDesc": {
       "source": "e42ac4ffe9370ba7a138bf9dd3de66804d65cc44",
       "translation": "1f12befa017e7d1277a3f3b9e20a2478444d2690"
+    },
+    "components.recurrenceContextMenu.customRecurrenceModal.recurFrom": {
+      "source": "4c9111cfb61f928210fe303ec9687ce85ddfb118",
+      "translation": "31f8147190ab5096b17f7cf520efe3f4a31f9e3b"
+    },
+    "components.recurrenceContextMenu.customRecurrenceModal.recurFromDesc": {
+      "source": "5c4d3e73390987ee9ab6cd43de03d95ece48518b",
+      "translation": "2280119ede8751fa2198e932162487b07df06968"
+    },
+    "components.recurrenceContextMenu.customRecurrenceModal.scheduledDate": {
+      "source": "b41cf063eca8243b7b8039af57f2b039fc868668",
+      "translation": "17ca4e5ed72e97e99908a38a242d40e177b39c45"
+    },
+    "components.recurrenceContextMenu.customRecurrenceModal.completionDate": {
+      "source": "181f114bea80ef79164a40ea4c5ed7e48f155ef3",
+      "translation": "f5d709195ba465c580eeca2d706f82bb91c63b7f"
     },
     "components.recurrenceContextMenu.customRecurrenceModal.frequency": {
       "source": "89836a870e44fb467d13116254b39e2482f5cdf1",
@@ -40606,6 +40826,14 @@
       "source": "8d0d3b84c6c7d795e205c345054f9335ae222c21",
       "translation": "604a2914dd30a1bb8512a7587a6d2abe570a3b76"
     },
+    "contextMenus.task.skipInstance": {
+      "source": "ebb18d68bb33bb3188ca558e22656fa8f4cb7e95",
+      "translation": "63fb37fec806cb931de26b320682dafc270c319e"
+    },
+    "contextMenus.task.unskipInstance": {
+      "source": "f58b99fdb842bddf12fa964f933eb1d9bd54843e",
+      "translation": "4b21cae430620be61f61dc2db0e6dc1ed867b28d"
+    },
     "contextMenus.task.quickReminders.atTime": {
       "source": "87270e0d6c46f3d0c3510c6c2a2f1e31e8b0ab60",
       "translation": "0a461c2b22896eac59c259415fdbbe96b207b9bc"
@@ -40629,6 +40857,10 @@
     "contextMenus.task.notices.toggleCompletionFailure": {
       "source": "c0849078ec010ef4cb774a02411858762779d04d",
       "translation": "82a30eb99c1cfc68a55a9ae41625206af28d5971"
+    },
+    "contextMenus.task.notices.toggleSkipFailure": {
+      "source": "307026dbdae7db5794336dc4e9130f3ec1fdfc4a",
+      "translation": "4e0b7efc68272e28c14c8fedce2dc41164e5bc4a"
     },
     "contextMenus.task.notices.updateDueDateFailure": {
       "source": "3a727f6b8747787aa677d845bc202eea1f10ec7a",
@@ -41738,6 +41970,22 @@
       "source": "2f7a5c5b8e4bc8a4324a837113b4a50be4d84ee4",
       "translation": "7e6ecf4c93515ca681b97a2a405d0a726b40e93b"
     },
+    "components.recurrenceContextMenu.dailyAfterCompletion": {
+      "source": "7b53be8a440c6ed047b401bb0e6a0cd2862e5bcc",
+      "translation": "f9c86f4470bb594f5d7a68167181fb07bdad19af"
+    },
+    "components.recurrenceContextMenu.every3DaysAfterCompletion": {
+      "source": "9d399a8146e899b33790b31f5c943b4089c401ea",
+      "translation": "53f20e57d10fc70f27b211151caedffc21042f68"
+    },
+    "components.recurrenceContextMenu.weeklyAfterCompletion": {
+      "source": "c019409976ef3802442c6f327d2177bd5a008c41",
+      "translation": "d3697ba5ee56d305a95a506c46982476a3684a42"
+    },
+    "components.recurrenceContextMenu.monthlyAfterCompletion": {
+      "source": "7f93cead92812762d0a71f70b19146ac1455f1cf",
+      "translation": "5d8c9c71167c53645ce316b284594b2476ba06b4"
+    },
     "components.recurrenceContextMenu.customRecurrence": {
       "source": "679d804e3d523e432f58ba49b33f7991ae69a60a",
       "translation": "35b061a61d724b497bb74f8ec6c6d9eb3e81dbbb"
@@ -41765,6 +42013,22 @@
     "components.recurrenceContextMenu.customRecurrenceModal.startTimeDesc": {
       "source": "e42ac4ffe9370ba7a138bf9dd3de66804d65cc44",
       "translation": "b638ce609b2932101ad54170e189f90154a6325e"
+    },
+    "components.recurrenceContextMenu.customRecurrenceModal.recurFrom": {
+      "source": "4c9111cfb61f928210fe303ec9687ce85ddfb118",
+      "translation": "0221fd8a5327ed7a61c610289ee3886f8485ba4e"
+    },
+    "components.recurrenceContextMenu.customRecurrenceModal.recurFromDesc": {
+      "source": "5c4d3e73390987ee9ab6cd43de03d95ece48518b",
+      "translation": "3dfe099d3cd288d360cad34184624470a6a5d166"
+    },
+    "components.recurrenceContextMenu.customRecurrenceModal.scheduledDate": {
+      "source": "b41cf063eca8243b7b8039af57f2b039fc868668",
+      "translation": "cd12b1152eedf79bce5dd2cee1664c0384f6990e"
+    },
+    "components.recurrenceContextMenu.customRecurrenceModal.completionDate": {
+      "source": "181f114bea80ef79164a40ea4c5ed7e48f155ef3",
+      "translation": "aec9b258ffae2d32e21b76929fed13250b828e10"
     },
     "components.recurrenceContextMenu.customRecurrenceModal.frequency": {
       "source": "89836a870e44fb467d13116254b39e2482f5cdf1",
@@ -47596,6 +47860,14 @@
       "source": "8d0d3b84c6c7d795e205c345054f9335ae222c21",
       "translation": "424dee59d00a0542c6d171043300fc5bf48bb425"
     },
+    "contextMenus.task.skipInstance": {
+      "source": "ebb18d68bb33bb3188ca558e22656fa8f4cb7e95",
+      "translation": "e3841d9885b05ca2cc7708484cb932674402d943"
+    },
+    "contextMenus.task.unskipInstance": {
+      "source": "f58b99fdb842bddf12fa964f933eb1d9bd54843e",
+      "translation": "5d08dfcf44803b1604301a2e36d0eb317fa81ca2"
+    },
     "contextMenus.task.quickReminders.atTime": {
       "source": "87270e0d6c46f3d0c3510c6c2a2f1e31e8b0ab60",
       "translation": "7aaeb02feb12bd8334344d70a17e16b367174054"
@@ -47619,6 +47891,10 @@
     "contextMenus.task.notices.toggleCompletionFailure": {
       "source": "c0849078ec010ef4cb774a02411858762779d04d",
       "translation": "7966c0a632ff38facda0414024bdddeb06752929"
+    },
+    "contextMenus.task.notices.toggleSkipFailure": {
+      "source": "307026dbdae7db5794336dc4e9130f3ec1fdfc4a",
+      "translation": "db96f22ee7977092d41f85947b465e2c9ddc96b9"
     },
     "contextMenus.task.notices.updateDueDateFailure": {
       "source": "3a727f6b8747787aa677d845bc202eea1f10ec7a",
@@ -48728,6 +49004,22 @@
       "source": "2f7a5c5b8e4bc8a4324a837113b4a50be4d84ee4",
       "translation": "4832af2441e43106b2d592bd33e8bc6dabe0a67d"
     },
+    "components.recurrenceContextMenu.dailyAfterCompletion": {
+      "source": "7b53be8a440c6ed047b401bb0e6a0cd2862e5bcc",
+      "translation": "c4227d30e315f0e74424e959340f06a823c06970"
+    },
+    "components.recurrenceContextMenu.every3DaysAfterCompletion": {
+      "source": "9d399a8146e899b33790b31f5c943b4089c401ea",
+      "translation": "328c46554e16f49b0e9352e44b4ef931d2fc1d69"
+    },
+    "components.recurrenceContextMenu.weeklyAfterCompletion": {
+      "source": "c019409976ef3802442c6f327d2177bd5a008c41",
+      "translation": "66ace041a1c417a8888653b1d9030716120cf7ac"
+    },
+    "components.recurrenceContextMenu.monthlyAfterCompletion": {
+      "source": "7f93cead92812762d0a71f70b19146ac1455f1cf",
+      "translation": "98168bc46b0d413e01db1320449daafdded70e7e"
+    },
     "components.recurrenceContextMenu.customRecurrence": {
       "source": "679d804e3d523e432f58ba49b33f7991ae69a60a",
       "translation": "0f6b35262945f3a5844ce199287478aba1e2737a"
@@ -48755,6 +49047,22 @@
     "components.recurrenceContextMenu.customRecurrenceModal.startTimeDesc": {
       "source": "e42ac4ffe9370ba7a138bf9dd3de66804d65cc44",
       "translation": "72b7d60e3f0c13026b4d30402aeecccc8d0b9ffc"
+    },
+    "components.recurrenceContextMenu.customRecurrenceModal.recurFrom": {
+      "source": "4c9111cfb61f928210fe303ec9687ce85ddfb118",
+      "translation": "0b944677b741a44a459eb1d937165e80aee45522"
+    },
+    "components.recurrenceContextMenu.customRecurrenceModal.recurFromDesc": {
+      "source": "5c4d3e73390987ee9ab6cd43de03d95ece48518b",
+      "translation": "6cf76d33c2755e57b59fbd610a5c9a7e0aa6c4ef"
+    },
+    "components.recurrenceContextMenu.customRecurrenceModal.scheduledDate": {
+      "source": "b41cf063eca8243b7b8039af57f2b039fc868668",
+      "translation": "d0f48e113d6802fdb4c3bbeda77a95fa817230ea"
+    },
+    "components.recurrenceContextMenu.customRecurrenceModal.completionDate": {
+      "source": "181f114bea80ef79164a40ea4c5ed7e48f155ef3",
+      "translation": "02cb025ca36535fde353b9f20b199e484fafa2eb"
     },
     "components.recurrenceContextMenu.customRecurrenceModal.frequency": {
       "source": "89836a870e44fb467d13116254b39e2482f5cdf1",

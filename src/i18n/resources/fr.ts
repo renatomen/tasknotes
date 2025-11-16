@@ -2215,6 +2215,8 @@ export const fr: TranslationTree = {
 			},
 			markComplete: "Marquer comme terminée pour cette date",
 			markIncomplete: "Marquer comme incomplète pour cette date",
+			skipInstance: "Ignorer l'instance",
+			unskipInstance: "Ne plus ignorer l'instance",
 			quickReminders: {
 				atTime: "À l'heure de l'événement",
 				fiveMinutes: "5 minutes avant",
@@ -2224,6 +2226,7 @@ export const fr: TranslationTree = {
 			},
 			notices: {
 				toggleCompletionFailure: "Impossible de modifier l'achèvement récurrent : {message}",
+				toggleSkipFailure: "Impossible de modifier l'omission de tâche récurrente : {message}",
 				updateDueDateFailure: "Impossible de mettre à jour l'échéance : {message}",
 				updateScheduledFailure: "Impossible de mettre à jour la date planifiée : {message}",
 				updateRemindersFailure: "Impossible de mettre à jour les rappels",

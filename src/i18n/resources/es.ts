@@ -2215,6 +2215,8 @@ export const es: TranslationTree = {
 			},
 			markComplete: "Marcar como completo para esta fecha",
 			markIncomplete: "Marcar como incompleto para esta fecha",
+			skipInstance: "Omitir instancia",
+			unskipInstance: "Deshacer omisión de instancia",
 			quickReminders: {
 				atTime: "A la hora del evento",
 				fiveMinutes: "5 minutos antes",
@@ -2224,6 +2226,7 @@ export const es: TranslationTree = {
 			},
 			notices: {
 				toggleCompletionFailure: "Error al alternar finalización de tarea recurrente: {message}",
+				toggleSkipFailure: "Error al alternar omisión de tarea recurrente: {message}",
 				updateDueDateFailure: "Error al actualizar fecha de vencimiento de tarea: {message}",
 				updateScheduledFailure: "Error al actualizar fecha programada de tarea: {message}",
 				updateRemindersFailure: "Error al actualizar recordatorios",

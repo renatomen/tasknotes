@@ -2215,6 +2215,8 @@ export const ru: TranslationTree = {
 			},
 			markComplete: "Отметить как выполненную для этой даты",
 			markIncomplete: "Отметить как невыполненную для этой даты",
+			skipInstance: "Пропустить экземпляр",
+			unskipInstance: "Отменить пропуск экземпляра",
 			quickReminders: {
 				atTime: "Во время события",
 				fiveMinutes: "За 5 минут",
@@ -2224,6 +2226,7 @@ export const ru: TranslationTree = {
 			},
 			notices: {
 				toggleCompletionFailure: "Не удалось переключить завершение повторяющейся задачи: {message}",
+				toggleSkipFailure: "Не удалось переключить пропуск повторяющейся задачи: {message}",
 				updateDueDateFailure: "Не удалось обновить срок выполнения задачи: {message}",
 				updateScheduledFailure: "Не удалось обновить запланированную дату задачи: {message}",
 				updateRemindersFailure: "Не удалось обновить напоминания",

@@ -2215,6 +2215,8 @@ export const ja: TranslationTree = {
 			},
 			markComplete: "この日付で完了としてマーク",
 			markIncomplete: "この日付で未完了としてマーク",
+			skipInstance: "インスタンスをスキップ",
+			unskipInstance: "インスタンスのスキップを解除",
 			quickReminders: {
 				atTime: "イベント時刻に",
 				fiveMinutes: "5分前",
@@ -2224,6 +2226,7 @@ export const ja: TranslationTree = {
 			},
 			notices: {
 				toggleCompletionFailure: "繰り返しタスクの完了切り替えに失敗しました：{message}",
+				toggleSkipFailure: "繰り返しタスクのスキップ切り替えに失敗しました：{message}",
 				updateDueDateFailure: "タスク期限日の更新に失敗しました：{message}",
 				updateScheduledFailure: "タスク予定日の更新に失敗しました：{message}",
 				updateRemindersFailure: "リマインダーの更新に失敗しました",

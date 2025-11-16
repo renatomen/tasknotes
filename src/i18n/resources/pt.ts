@@ -2223,6 +2223,8 @@ export const pt: TranslationTree = {
 			},
 			markComplete: "Marcar como concluída para esta data",
 			markIncomplete: "Marcar como incompleta para esta data",
+			skipInstance: "Pular instância",
+			unskipInstance: "Desfazer pulo de instância",
 			quickReminders: {
 				atTime: "Na hora do evento",
 				fiveMinutes: "5 minutos antes",
@@ -2232,6 +2234,7 @@ export const pt: TranslationTree = {
 			},
 			notices: {
 				toggleCompletionFailure: "Falha ao alternar conclusão de tarefa recorrente: {message}",
+				toggleSkipFailure: "Falha ao alternar pulo de tarefa recorrente: {message}",
 				updateDueDateFailure: "Falha ao atualizar data de vencimento da tarefa: {message}",
 				updateScheduledFailure: "Falha ao atualizar data agendada da tarefa: {message}",
 				updateRemindersFailure: "Falha ao atualizar lembretes",
