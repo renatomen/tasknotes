@@ -273,7 +273,6 @@
     border-color: var(--tn-interactive-accent);
     border-width: 2.5px;
     transform: scale(1.15);
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--tn-interactive-accent) 12%, transparent);
 }
 
 /* Completed status - filled circle with status color */
@@ -285,7 +284,7 @@
 }
 
 .tasknotes-plugin .task-card--completed > .task-card__main-row .task-card__status-dot:hover {
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--current-status-color, var(--tn-color-success)) 15%, transparent);
+    /* No glow effect */
 }
 
 /* Completion animation - subtle pulse when task is completed */
@@ -662,8 +661,6 @@
 
 .tasknotes-plugin .task-card__priority-dot:hover {
     transform: scale(1.3);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--priority-color, var(--interactive-accent)) 20%, transparent),
-                0 2px 8px color-mix(in srgb, var(--priority-color, var(--interactive-accent)) 25%, transparent);
 }
 
 /* Hoverable date text elements */
