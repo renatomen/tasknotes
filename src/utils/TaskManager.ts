@@ -254,49 +254,39 @@ export class TaskManager extends Events {
 				this.storeTitleInFilename
 			);
 
-			// Calculate total tracked time from time entries
+			// Calculate computed fields that aren't stored in frontmatter
 			const totalTrackedTime = mappedTask.timeEntries
 				? calculateTotalTimeSpent(mappedTask.timeEntries)
 				: 0;
 
-			// Calculate isBlocked from blockedBy array (tasks that block this task)
 			const isBlocked = Array.isArray(mappedTask.blockedBy) && mappedTask.blockedBy.length > 0;
 
 			// Get blocking tasks from DependencyCache (tasks that this task blocks)
 			let blockingTasks: string[] = [];
-			let isBlocking = false;
 			if (this._dependencyCache) {
 				blockingTasks = this._dependencyCache.getBlockedTaskPaths(path);
-				isBlocking = blockingTasks.length > 0;
 			}
+			const isBlocking = blockingTasks.length > 0;
 
+			// Return all FieldMapper fields plus computed fields
+			// This ensures new fields from FieldMapper automatically flow through
 			return {
+				...mappedTask,
+				// Override/add fields with defaults or computed values
 				id: path, // Add id field for API consistency
+				path, // Ensure path is set (FieldMapper should set this, but be explicit)
 				title: mappedTask.title || "Untitled task",
 				status: mappedTask.status || "open",
 				priority: mappedTask.priority || "normal",
-				due: mappedTask.due,
-				scheduled: mappedTask.scheduled,
-				path,
 				archived: mappedTask.archived || false,
 				tags: Array.isArray(mappedTask.tags) ? mappedTask.tags : [],
 				contexts: Array.isArray(mappedTask.contexts) ? mappedTask.contexts : [],
 				projects: Array.isArray(mappedTask.projects) ? mappedTask.projects : [],
-				recurrence: mappedTask.recurrence,
-				recurrence_anchor: mappedTask.recurrence_anchor,
-				complete_instances: mappedTask.complete_instances,
-				skipped_instances: mappedTask.skipped_instances,
-				completedDate: mappedTask.completedDate,
-				timeEstimate: mappedTask.timeEstimate,
-				timeEntries: mappedTask.timeEntries,
-				totalTrackedTime: totalTrackedTime,
-				dateCreated: mappedTask.dateCreated,
-				dateModified: mappedTask.dateModified,
-				reminders: mappedTask.reminders,
-				blockedBy: mappedTask.blockedBy,
+				// Computed fields
+				totalTrackedTime,
+				isBlocked,
+				isBlocking,
 				blocking: blockingTasks.length > 0 ? blockingTasks : undefined,
-				isBlocked: isBlocked,
-				isBlocking: isBlocking,
 			};
 		} catch (error) {
 			console.error(`Error extracting task info from native metadata for ${path}:`, error);
