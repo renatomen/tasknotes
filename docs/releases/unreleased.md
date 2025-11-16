@@ -26,6 +26,16 @@ Example:
 
 ## Added
 
+- Improved task card visual design with refined minimalist styling
+  - Enhanced visual hierarchy with subtle depth using shadows and smooth transitions
+  - Improved hover states with scale transforms and glow effects for better interaction feedback
+  - Larger, more tactile status dots (18px) with animated completion state including checkmark icon
+  - Refined metadata pills with backdrop blur and improved spacing
+  - Enhanced clickable elements (dates, projects, tags) with lift-on-hover effects
+  - Smoother micro-animations using cubic-bezier easing for polished feel
+  - Better visual separation of subtasks and blocking tasks with gradient accents
+  - All improvements maintain minimalist aesthetic while increasing visual appeal and usability
+
 - (#361) Added completion-based recurrence support with `recurrence_anchor` field
   - Tasks can now recur based on completion date instead of scheduled date
   - Set `recurrence_anchor: completion` in task frontmatter to enable this behavior
