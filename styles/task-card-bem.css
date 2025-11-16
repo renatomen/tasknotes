@@ -33,7 +33,6 @@
 .tasknotes-plugin .task-card:hover {
     background-color: var(--tn-interactive-hover);
     box-shadow: 0 1px 3px color-mix(in srgb, var(--tn-shadow-color, black) 5%, transparent);
-    transform: translateY(-0.5px);
 }
 
 .tasknotes-plugin .task-card:focus {
@@ -90,7 +89,6 @@
     display: flex;
     align-items: center;
     gap: var(--tn-spacing-sm);
-    letter-spacing: -0.01em;
 }
 
 .tasknotes-plugin .task-card__title-text {
@@ -137,7 +135,6 @@
 .tasknotes-plugin .task-card__metadata-pill:hover {
     background: var(--tn-bg-secondary);
     border-color: var(--tn-border-color);
-    transform: translateY(-1px);
     box-shadow: 0 2px 4px color-mix(in srgb, var(--tn-shadow-color, black) 8%, transparent);
 }
 
@@ -146,6 +143,12 @@
     color: var(--tn-bg-primary);
     border-color: color-mix(in srgb, var(--tn-color-error) 85%, var(--tn-bg-primary));
     padding-inline: var(--tn-spacing-md);
+}
+
+.tasknotes-plugin .task-card__metadata-pill--blocked:hover {
+    background: var(--tn-color-error);
+    color: var(--tn-bg-primary);
+    border-color: var(--tn-color-error);
 }
 
 .tasknotes-plugin .task-card__metadata-pill--blocking {
@@ -273,19 +276,6 @@
     border-color: var(--current-status-color, var(--tn-color-success));
     box-shadow: 0 0 0 0 transparent;
     position: relative;
-}
-
-/* Checkmark icon inside completed status dot */
-.tasknotes-plugin .task-card--completed > .task-card__main-row .task-card__status-dot::after {
-    content: '✓';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: var(--tn-bg-primary);
-    font-size: 11px;
-    font-weight: 700;
-    line-height: 1;
 }
 
 .tasknotes-plugin .task-card--completed > .task-card__main-row .task-card__status-dot:hover {
@@ -601,7 +591,6 @@
 
 .tasknotes-plugin .task-card--subtask:hover {
     background: color-mix(in srgb, var(--tn-interactive-hover) 60%, var(--tn-bg-secondary));
-    transform: translateX(2px);
 }
 
 .tasknotes-plugin .task-card__subtasks-loading {
@@ -617,8 +606,8 @@
     position: absolute;
     top: 8px;
     right: 8px;
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
     color: var(--tn-text-faint);
     cursor: pointer;
     opacity: 0;
@@ -682,7 +671,6 @@
 .tasknotes-plugin .task-card__metadata-date:hover {
     background: var(--background-modifier-hover);
     color: var(--interactive-accent);
-    transform: translateY(-1px);
     box-shadow: 0 2px 4px color-mix(in srgb, var(--tn-shadow-color, black) 8%, transparent);
 }
 
@@ -715,7 +703,6 @@
     background: var(--background-modifier-hover);
     color: var(--interactive-accent-hover);
     outline: none;
-    transform: translateY(-1px);
     box-shadow: 0 2px 4px color-mix(in srgb, var(--tn-shadow-color, black) 8%, transparent);
 }
 
