@@ -810,18 +810,44 @@ export class TaskEditModal extends TaskModal {
 		// Apply completed instances changes
 		if (this.completedInstancesChanges.length > 0) {
 			const currentCompleted = new Set(this.task.complete_instances || []);
+			let latestAddedCompletion: string | null = null;
+
 			for (const dateStr of this.completedInstancesChanges) {
 				if (currentCompleted.has(dateStr)) {
 					currentCompleted.delete(dateStr);
 				} else {
 					currentCompleted.add(dateStr);
+					// Track the latest date being added (for completion-based recurrence)
+					if (!latestAddedCompletion || dateStr > latestAddedCompletion) {
+						latestAddedCompletion = dateStr;
+					}
 				}
 			}
 			changes.complete_instances = Array.from(currentCompleted);
 
-			// If task has recurrence, update scheduled date to next uncompleted occurrence
-			if (this.task.recurrence) {
-				const tempTask: TaskInfo = { ...this.task, ...changes };
+			// If task has recurrence, handle DTSTART update and scheduled date calculation
+			if (this.task.recurrence && typeof this.task.recurrence === 'string') {
+				const recurrenceAnchor = this.task.recurrence_anchor || 'scheduled';
+
+				// For completion-based recurrence, update DTSTART when adding a completion
+				if (recurrenceAnchor === 'completion' && latestAddedCompletion) {
+					const { updateDTSTARTInRecurrenceRule } = require('../utils/helpers');
+					const updatedRecurrence = updateDTSTARTInRecurrenceRule(
+						this.task.recurrence,
+						latestAddedCompletion
+					);
+					if (updatedRecurrence) {
+						changes.recurrence = updatedRecurrence;
+					}
+				}
+
+				// Calculate next scheduled date
+				const tempTask: TaskInfo = {
+					...this.task,
+					...changes,
+					// Use updated recurrence if it was changed
+					recurrence: changes.recurrence || this.task.recurrence
+				};
 				const nextDates = updateToNextScheduledOccurrence(
 					tempTask,
 					this.plugin.settings.maintainDueDateOffsetInRecurring

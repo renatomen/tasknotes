@@ -642,8 +642,8 @@ function getNextCompletionBasedOccurrence(task: TaskInfo): Date | null {
 		const todayStr = getTodayString(); // YYYY-MM-DD format
 		const today = parseDateToUTC(todayStr); // UTC anchored for consistent logic
 
-		// Start from the DTSTART to ensure we catch occurrences even if DTSTART is in the past
-		let startDate = today;
+		// Extract DTSTART date from the RRULE
+		let dtstartDate: Date | null = null;
 		if (task.recurrence.includes("DTSTART:")) {
 			const dtstartMatch = task.recurrence.match(/DTSTART:(\d{8}(?:T\d{6}Z?)?)/);
 			if (dtstartMatch) {
@@ -653,23 +653,25 @@ function getNextCompletionBasedOccurrence(task: TaskInfo): Date | null {
 					const year = parseInt(dtstartStr.slice(0, 4));
 					const month = parseInt(dtstartStr.slice(4, 6)) - 1;
 					const day = parseInt(dtstartStr.slice(6, 8));
-					const dtstart = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
-					// Use the earlier of today or dtstart
-					startDate = dtstart < today ? dtstart : today;
+					dtstartDate = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
 				}
 			}
 		}
 
-		const endDate = new Date(today.getTime() + 365 * 24 * 60 * 60 * 1000); // Look ahead 1 year from today
+		// For completion-based recurrence, we want the NEXT occurrence AFTER the DTSTART (completion date)
+		// Start from DTSTART (if available) and look forward
+		const startDate = dtstartDate || today;
+		const endDate = new Date(startDate.getTime() + 365 * 24 * 60 * 60 * 1000); // Look ahead 1 year from startDate
 
-		// Generate occurrences from the RRULE (which has DTSTART set to latest completion or initial scheduled date)
+		// Generate occurrences from the RRULE
 		const occurrences = generateRecurringInstances(task, startDate, endDate);
 
 		// For completion-based recurrence, we DON'T filter by complete_instances
 		// because the DTSTART has already been shifted to the latest completion date
-		// Find the first occurrence that is today or in the future
+		// Find the first occurrence that is AFTER the DTSTART (not equal to it)
+		const dtstartTime = dtstartDate ? dtstartDate.getTime() : 0;
 		for (const occurrence of occurrences) {
-			if (occurrence >= today) {
+			if (occurrence.getTime() > dtstartTime && occurrence >= today) {
 				return occurrence;
 			}
 		}
