@@ -285,6 +285,7 @@ export class TaskManager extends Events {
 				recurrence: mappedTask.recurrence,
 				recurrence_anchor: mappedTask.recurrence_anchor,
 				complete_instances: mappedTask.complete_instances,
+				skipped_instances: mappedTask.skipped_instances,
 				completedDate: mappedTask.completedDate,
 				timeEstimate: mappedTask.timeEstimate,
 				timeEntries: mappedTask.timeEntries,
