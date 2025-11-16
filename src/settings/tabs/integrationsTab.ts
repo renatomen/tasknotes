@@ -1405,17 +1405,19 @@ function renderICSSubscriptionsList(
 		const metaBadges = [statusBadge, typeBadge];
 
 		// Add last sync badge if available
-		if (subscription.lastFetched) {
-			const lastSyncDate = new Date(subscription.lastFetched);
+		const lastFetched = plugin.icsSubscriptionService.getLastFetched(subscription.id);
+		if (lastFetched) {
+			const lastSyncDate = new Date(lastFetched);
 			const timeAgo = getRelativeTime(lastSyncDate, translate);
 			const syncBadge = createInfoBadge(`Synced ${timeAgo}`);
 			metaBadges.push(syncBadge);
 		}
 
 		// Add error badge if there's an error
-		if (subscription.lastError) {
+		const lastError = plugin.icsSubscriptionService.getLastError(subscription.id);
+		if (lastError) {
 			const errorBadge = createStatusBadge("Error", "inactive");
-			errorBadge.title = subscription.lastError; // Show error on hover
+			errorBadge.title = lastError; // Show error on hover
 			metaBadges.push(errorBadge);
 		}
 

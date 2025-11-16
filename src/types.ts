@@ -758,8 +758,6 @@ export interface ICSSubscription {
 	color: string;
 	enabled: boolean;
 	refreshInterval: number; // minutes (for remote) or check interval (for local)
-	lastFetched?: string; // ISO timestamp
-	lastError?: string;
 }
 
 export interface ICSEvent {

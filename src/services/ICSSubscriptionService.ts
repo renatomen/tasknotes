@@ -13,6 +13,8 @@ export class ICSSubscriptionService extends EventEmitter {
 	private refreshTimers: Map<string, number> = new Map();
 	private fileWatchers: Map<string, () => void> = new Map(); // For local file change tracking
 	private pendingRefreshes: Set<string> = new Set(); // Track in-progress refreshes to avoid duplicates
+	private lastFetched: Map<string, string> = new Map(); // In-memory storage for last fetch timestamps (ISO strings)
+	private lastError: Map<string, string> = new Map(); // In-memory storage for last error messages
 
 	// Grace period after cache expiration to show stale data while refreshing (5 minutes)
 	private readonly CACHE_GRACE_PERIOD = 5 * 60 * 1000;
@@ -112,6 +114,14 @@ export class ICSSubscriptionService extends EventEmitter {
 		return [...this.subscriptions];
 	}
 
+	getLastFetched(id: string): string | undefined {
+		return this.lastFetched.get(id);
+	}
+
+	getLastError(id: string): string | undefined {
+		return this.lastError.get(id);
+	}
+
 	async addSubscription(subscription: Omit<ICSSubscription, "id">): Promise<ICSSubscription> {
 		const newSubscription: ICSSubscription = {
 			...subscription,
@@ -184,6 +194,8 @@ export class ICSSubscriptionService extends EventEmitter {
 		this.stopRefreshTimer(id);
 		this.stopFileWatcher(id);
 		this.cache.delete(id);
+		this.lastFetched.delete(id);
+		this.lastError.delete(id);
 
 		this.emit("data-changed");
 	}
@@ -237,20 +249,16 @@ export class ICSSubscriptionService extends EventEmitter {
 			};
 			this.cache.set(id, cache);
 
-			// Update subscription metadata
-			await this.updateSubscription(id, {
-				lastFetched: new Date().toISOString(),
-				lastError: undefined,
-			});
+			// Update in-memory metadata
+			this.lastFetched.set(id, new Date().toISOString());
+			this.lastError.delete(id);
 
 			this.emit("data-changed");
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error);
 
-			// Update subscription with error
-			await this.updateSubscription(id, {
-				lastError: errorMessage,
-			});
+			// Update in-memory error
+			this.lastError.set(id, errorMessage);
 
 			// Show user notification for errors with more helpful message
 			if (subscription.type === "remote") {
@@ -608,9 +616,7 @@ export class ICSSubscriptionService extends EventEmitter {
 		const renameRef = this.plugin.app.vault.on("rename", watcherCallback);
 		const deleteRef = this.plugin.app.vault.on("delete", (file) => {
 			if (file.path === subscription.filePath) {
-				this.updateSubscription(subscription.id, {
-					lastError: "Local ICS file was deleted",
-				});
+				this.lastError.set(subscription.id, "Local ICS file was deleted");
 			}
 		});
 
