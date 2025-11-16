@@ -2283,6 +2283,8 @@ export const en: TranslationTree = {
 			},
 			markComplete: "Mark complete for this date",
 			markIncomplete: "Mark incomplete for this date",
+			skipInstance: "Skip instance",
+			unskipInstance: "Unskip instance",
 			quickReminders: {
 				atTime: "At time of event",
 				fiveMinutes: "5 minutes before",
@@ -2292,6 +2294,7 @@ export const en: TranslationTree = {
 			},
 			notices: {
 				toggleCompletionFailure: "Failed to toggle recurring task completion: {message}",
+				toggleSkipFailure: "Failed to toggle recurring task skip: {message}",
 				updateDueDateFailure: "Failed to update task due date: {message}",
 				updateScheduledFailure: "Failed to update task scheduled date: {message}",
 				updateRemindersFailure: "Failed to update reminders",

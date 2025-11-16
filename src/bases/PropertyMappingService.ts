@@ -37,9 +37,11 @@ export class PropertyMappingService {
 	basesToInternal(basesPropertyId: string): string {
 		// Step 1: Try custom field mapping on full ID first (edge case: user configured "note.state")
 		if (this.fieldMapper) {
-			const internalFieldName = this.fieldMapper.fromUserField(basesPropertyId);
-			if (internalFieldName) {
-				return this.applySpecialTransformations(internalFieldName);
+			const mappingKey = this.fieldMapper.fromUserField(basesPropertyId);
+			if (mappingKey) {
+				// Property is recognized, return the original property name
+				// (not the mapping key, since TaskCard extractors use property names)
+				return this.applySpecialTransformations(basesPropertyId);
 			}
 		}
 
@@ -49,9 +51,11 @@ export class PropertyMappingService {
 
 			// Try custom field mapping on stripped name (main case!)
 			if (this.fieldMapper) {
-				const internalFieldName = this.fieldMapper.fromUserField(stripped);
-				if (internalFieldName) {
-					return this.applySpecialTransformations(internalFieldName);
+				const mappingKey = this.fieldMapper.fromUserField(stripped);
+				if (mappingKey) {
+					// Property is recognized, return the stripped property name
+					// (not the mapping key, since TaskCard extractors use property names)
+					return this.applySpecialTransformations(stripped);
 				}
 			}
 
@@ -68,9 +72,10 @@ export class PropertyMappingService {
 
 			// Try custom field mapping on stripped name
 			if (this.fieldMapper) {
-				const internalFieldName = this.fieldMapper.fromUserField(stripped);
-				if (internalFieldName) {
-					return this.applySpecialTransformations(internalFieldName);
+				const mappingKey = this.fieldMapper.fromUserField(stripped);
+				if (mappingKey) {
+					// Property is recognized, return the stripped property name
+					return this.applySpecialTransformations(stripped);
 				}
 			}
 

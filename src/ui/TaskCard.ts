@@ -116,6 +116,8 @@ const PROPERTY_EXTRACTORS: Record<string, (task: TaskInfo) => any> = {
 	completedDate: (task) => task.completedDate,
 	reminders: (task) => task.reminders,
 	icsEventId: (task) => task.icsEventId,
+	complete_instances: (task) => task.complete_instances,
+	skipped_instances: (task) => task.skipped_instances,
 	"file.ctime": (task) => task.dateCreated,
 	"file.mtime": (task) => task.dateModified,
 };
@@ -125,19 +127,10 @@ const PROPERTY_EXTRACTORS: Record<string, (task: TaskInfo) => any> = {
  */
 function getPropertyValue(task: TaskInfo, propertyId: string, plugin: TaskNotesPlugin): unknown {
 	try {
-		// Map display property ID to internal field name using FieldMapper
-		// This handles user-configured property mappings (e.g., "task-status" → "status")
-		let internalFieldName = propertyId;
-		if (plugin.fieldMapper && !propertyId.startsWith("user:") && !propertyId.startsWith("formula.")) {
-			const mapped = plugin.fieldMapper.fromUserField(propertyId);
-			if (mapped) {
-				internalFieldName = mapped;
-			}
-		}
-
-		// Use extractors for standard properties (now using internal field names)
-		if (internalFieldName in PROPERTY_EXTRACTORS) {
-			return PROPERTY_EXTRACTORS[internalFieldName](task);
+		// Use extractors for standard properties directly
+		// The propertyId should already be the internal property name (e.g., "complete_instances")
+		if (propertyId in PROPERTY_EXTRACTORS) {
+			return PROPERTY_EXTRACTORS[propertyId](task);
 		}
 
 		// Handle user properties
@@ -375,6 +368,29 @@ const PROPERTY_RENDERERS: Record<string, PropertyRenderer> = {
 			element.textContent = `Recurring: ${getRecurrenceDisplayText(value)}`;
 		}
 	},
+	complete_instances: (element, value, task) => {
+		if (Array.isArray(value) && value.length > 0) {
+			const count = value.length;
+			const skippedCount = task.skipped_instances?.length || 0;
+			const total = count + skippedCount;
+
+			if (total > 0) {
+				const completionRate = Math.round((count / total) * 100);
+				element.textContent = `✓ ${count} completed (${completionRate}%)`;
+				element.classList.add("task-card__metadata-pill--completed-instances");
+			} else {
+				element.textContent = `✓ ${count} completed`;
+				element.classList.add("task-card__metadata-pill--completed-instances");
+			}
+		}
+	},
+	skipped_instances: (element, value, task) => {
+		if (Array.isArray(value) && value.length > 0) {
+			const count = value.length;
+			element.textContent = `⊘ ${count} skipped`;
+			element.classList.add("task-card__metadata-pill--skipped-instances");
+		}
+	},
 	completedDate: (element, value, task, plugin) => {
 		if (typeof value === "string") {
 			element.textContent = `Completed: ${formatDateTimeForDisplay(value, {
@@ -513,6 +529,13 @@ function renderPropertyMetadata(
 			// Fallback: render arbitrary property with generic format
 			renderGenericProperty(element, propertyId, value, plugin);
 		}
+
+		// If the renderer didn't add any content, remove the element and return null
+		if (!element.textContent && !element.hasChildNodes()) {
+			element.remove();
+			return null;
+		}
+
 		return element;
 	} catch (error) {
 		console.warn(`TaskCard: Error rendering property ${propertyId}:`, error);

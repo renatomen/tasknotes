@@ -36,11 +36,13 @@ export function mapBasesPropertyToTaskCardProperty(
 	let mappedId = propId;
 
 	// Step 1: Try custom field mapping first (highest priority)
+	// If this is a known frontmatter field, keep it as-is since TaskCard
+	// property extractors use the actual property names (e.g., "complete_instances")
 	if (plugin?.fieldMapper) {
-		const internalFieldName = plugin.fieldMapper.fromUserField(propId);
-		if (internalFieldName) {
-			mappedId = internalFieldName;
-			return applySpecialTransformations(mappedId);
+		const mappingKey = plugin.fieldMapper.fromUserField(propId);
+		if (mappingKey) {
+			// Property is recognized, just apply transformations and return
+			return applySpecialTransformations(propId);
 		}
 	}
 
@@ -54,10 +56,11 @@ export function mapBasesPropertyToTaskCardProperty(
 		const stripped = propId.substring(5);
 
 		// Try custom field mapping on stripped name
+		// If recognized, use the stripped name as-is (it's already the frontmatter property name)
 		if (plugin?.fieldMapper) {
-			const internalFieldName = plugin.fieldMapper.fromUserField(stripped);
-			if (internalFieldName) {
-				return applySpecialTransformations(internalFieldName);
+			const mappingKey = plugin.fieldMapper.fromUserField(stripped);
+			if (mappingKey) {
+				return applySpecialTransformations(stripped);
 			}
 		}
 
@@ -126,6 +129,7 @@ function createTaskInfoFromProperties(
 		"reminders",
 		"icsEventId",
 		"complete_instances",
+		"skipped_instances",
 		"blockedBy",
 		"blocking",
 	]);
@@ -186,6 +190,7 @@ function createTaskInfoFromProperties(
 		reminders: props.reminders,
 		icsEventId: props.icsEventId,
 		complete_instances: props.complete_instances,
+		skipped_instances: props.skipped_instances,
 		blockedBy: props.blockedBy,
 		blocking: blockingTasks.length > 0 ? blockingTasks : undefined,
 		isBlocked: isBlocked,

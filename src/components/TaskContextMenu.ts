@@ -83,6 +83,37 @@ export class TaskContextMenu {
 					}
 				});
 			});
+
+			const isSkippedForDate = task.skipped_instances?.includes(dateStr) || false;
+
+			this.menu.addItem((item) => {
+				item.setTitle(
+					isSkippedForDate
+						? this.t("contextMenus.task.unskipInstance")
+						: this.t("contextMenus.task.skipInstance")
+				);
+				item.setIcon(isSkippedForDate ? "undo" : "x-circle");
+				item.onClick(async () => {
+					try {
+						await plugin.taskService.toggleRecurringTaskSkipped(
+							task,
+							this.options.targetDate
+						);
+						this.options.onUpdate?.();
+					} catch (error) {
+						const errorMessage = error instanceof Error ? error.message : String(error);
+						console.error("Error toggling recurring task skip:", {
+							error: errorMessage,
+							taskPath: task.path,
+						});
+						new Notice(
+							this.t("contextMenus.task.notices.toggleSkipFailure", {
+								message: errorMessage,
+							})
+						);
+					}
+				});
+			});
 		}
 
 		this.menu.addSeparator();

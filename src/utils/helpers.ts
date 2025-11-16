@@ -607,18 +607,21 @@ function getNextScheduledBasedOccurrence(task: TaskInfo): Date | null {
 		// Generate all occurrences from startDate onwards
 		const occurrences = generateRecurringInstances(task, startDate, endDate);
 
-		// Get completed instances as Set for faster lookup
-		const completedInstances = new Set(task.complete_instances || []);
+		// Combine completed AND skipped instances for faster lookup
+		const processedInstances = new Set([
+			...(task.complete_instances || []),
+			...(task.skipped_instances || []),
+		]);
 
-		// Find the first occurrence that hasn't been completed AND is today or in the future
+		// Find the first occurrence that hasn't been completed OR skipped AND is today or in the future
 		for (const occurrence of occurrences) {
 			const occurrenceStr = formatDateForStorage(occurrence);
-			if (!completedInstances.has(occurrenceStr) && occurrence >= today) {
+			if (!processedInstances.has(occurrenceStr) && occurrence >= today) {
 				return occurrence;
 			}
 		}
 
-		return null; // No future occurrences or all completed
+		return null; // No future occurrences or all completed/skipped
 	} catch (error) {
 		console.error("Error calculating next scheduled-based occurrence:", error, {
 			task: task.title,
@@ -668,10 +671,18 @@ function getNextCompletionBasedOccurrence(task: TaskInfo): Date | null {
 
 		// For completion-based recurrence, we DON'T filter by complete_instances
 		// because the DTSTART has already been shifted to the latest completion date
-		// Find the first occurrence that is AFTER the DTSTART (not equal to it)
+		// However, we DO filter out skipped instances
+		const skippedInstances = new Set(task.skipped_instances || []);
+
+		// Find the first occurrence that is AFTER the DTSTART (not equal to it) and not skipped
 		const dtstartTime = dtstartDate ? dtstartDate.getTime() : 0;
 		for (const occurrence of occurrences) {
-			if (occurrence.getTime() > dtstartTime && occurrence >= today) {
+			const occurrenceStr = formatDateForStorage(occurrence);
+			if (
+				occurrence.getTime() > dtstartTime &&
+				occurrence >= today &&
+				!skippedInstances.has(occurrenceStr)
+			) {
 				return occurrence;
 			}
 		}

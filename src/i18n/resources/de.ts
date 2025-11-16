@@ -2215,6 +2215,8 @@ export const de: TranslationTree = {
 			},
 			markComplete: "Als abgeschlossen für dieses Datum markieren",
 			markIncomplete: "Als unvollständig für dieses Datum markieren",
+			skipInstance: "Instanz überspringen", // Skip instance
+			unskipInstance: "Instanz nicht überspringen", // Unskip instance
 			quickReminders: {
 				atTime: "Zur Zeit des Events",
 				fiveMinutes: "5 Minuten vorher",
@@ -2224,6 +2226,7 @@ export const de: TranslationTree = {
 			},
 			notices: {
 				toggleCompletionFailure: "Abschluss der wiederkehrenden Aufgabe konnte nicht umgeschaltet werden: {message}",
+				toggleSkipFailure: "Überspringen der wiederkehrenden Aufgabe konnte nicht umgeschaltet werden: {message}",
 				updateDueDateFailure: "Aufgaben-Fälligkeitsdatum konnte nicht aktualisiert werden: {message}",
 				updateScheduledFailure: "Aufgaben-Planungsdatum konnte nicht aktualisiert werden: {message}",
 				updateRemindersFailure: "Erinnerungen konnten nicht aktualisiert werden",

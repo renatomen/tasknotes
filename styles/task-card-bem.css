@@ -289,6 +289,16 @@
     height: 100%;
 }
 
+/* Recurrence instance statistics pills */
+.tasknotes-plugin .task-card__metadata-pill--completed-instances {
+    color: var(--text-success);
+}
+
+.tasknotes-plugin .task-card__metadata-pill--skipped-instances {
+    color: var(--text-muted);
+    opacity: 0.7;
+}
+
 /* Reminder indicator - positioned to not overlap with other indicators */
 .tasknotes-plugin .task-card__reminder-indicator {
     position: absolute;
@@ -660,6 +670,18 @@
 /* Recurring Task */
 .tasknotes-plugin .task-card--recurring .task-card__recurring-indicator {
     display: flex;
+}
+
+/* Skipped recurring instance styling */
+.tasknotes-plugin .recurring-skipped,
+.tasknotes-plugin .task-card--recurring-skipped {
+    opacity: 0.6;
+}
+
+.tasknotes-plugin .recurring-skipped .task-card__title,
+.tasknotes-plugin .task-card--recurring-skipped .task-card__title {
+    text-decoration: line-through;
+    color: var(--text-muted);
 }
 
 /* Priority indicators - Use user's priority settings */

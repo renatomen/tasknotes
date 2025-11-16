@@ -448,6 +448,7 @@ export interface TaskInfo {
 	recurrence?: string; // RFC 5545 recurrence rule string
 	recurrence_anchor?: 'scheduled' | 'completion'; // Determines if recurrence is from scheduled date (fixed) or completion date (flexible). Defaults to 'scheduled'
 	complete_instances?: string[]; // Array of dates (YYYY-MM-DD) when recurring task was completed
+	skipped_instances?: string[]; // Array of dates (YYYY-MM-DD) when recurring task was skipped
 	completedDate?: string; // Date (YYYY-MM-DD) when task was marked as done
 	timeEstimate?: number; // Estimated time in minutes
 	timeEntries?: TimeEntry[]; // Individual time tracking sessions
@@ -635,6 +636,7 @@ export interface FieldMapping {
 	archiveTag: string; // For the archive tag in the tags array
 	timeEntries: string;
 	completeInstances: string;
+	skippedInstances: string; // User-configurable property name for skipped instances
 	blockedBy: string;
 	pomodoros: string; // For daily note pomodoro tracking
 	icsEventId: string; // For linking to ICS calendar events (stored as array in frontmatter)
@@ -762,6 +764,7 @@ export type WebhookEvent =
 	| "pomodoro.completed"
 	| "pomodoro.interrupted"
 	| "recurring.instance.completed"
+	| "recurring.instance.skipped"
 	| "reminder.triggered";
 
 export interface WebhookConfig {

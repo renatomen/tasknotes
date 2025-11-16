@@ -140,6 +140,13 @@ export class FieldMapper {
 			);
 		}
 
+		if (frontmatter[this.mapping.skippedInstances] !== undefined) {
+			// Validate and clean the skipped_instances array
+			mapped.skipped_instances = validateCompleteInstances(
+				frontmatter[this.mapping.skippedInstances]
+			);
+		}
+
 		if (this.mapping.blockedBy && frontmatter[this.mapping.blockedBy] !== undefined) {
 			const dependencies = normalizeDependencyList(frontmatter[this.mapping.blockedBy]);
 			if (dependencies) {
@@ -252,6 +259,10 @@ export class FieldMapper {
 
 		if (taskData.complete_instances !== undefined) {
 			frontmatter[this.mapping.completeInstances] = taskData.complete_instances;
+		}
+
+		if (taskData.skipped_instances !== undefined && taskData.skipped_instances.length > 0) {
+			frontmatter[this.mapping.skippedInstances] = taskData.skipped_instances;
 		}
 
 		if (taskData.blockedBy !== undefined) {

@@ -17,6 +17,8 @@ export function getAvailableProperties(
 		{ id: "timeEstimate", label: "Time Estimate" },
 		{ id: "totalTrackedTime", label: "Total Tracked Time" },
 		{ id: "recurrence", label: "Recurrence" },
+		{ id: "complete_instances", label: "Completed Instances" },
+		{ id: "skipped_instances", label: "Skipped Instances" },
 		{ id: "completedDate", label: "Completed Date" },
 		{ id: "file.ctime", label: "Created Date" },
 		{ id: "file.mtime", label: "Modified Date" },

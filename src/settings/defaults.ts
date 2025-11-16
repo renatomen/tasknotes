@@ -26,6 +26,7 @@ export const DEFAULT_FIELD_MAPPING: FieldMapping = {
 	archiveTag: "archived",
 	timeEntries: "timeEntries",
 	completeInstances: "complete_instances",
+	skippedInstances: "skipped_instances",
 	blockedBy: "blockedBy",
 	pomodoros: "pomodoros",
 	icsEventId: "icsEventId",
