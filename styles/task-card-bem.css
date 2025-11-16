@@ -507,6 +507,7 @@
     border-left: 2px solid color-mix(in srgb, var(--tn-border-color) 40%, transparent);
     padding-left: 14px;
     position: relative;
+    z-index: 1;
 }
 
 .tasknotes-plugin .task-card__subtasks::before {
@@ -553,6 +554,7 @@
     flex-direction: column;
     gap: 4px;
     position: relative;
+    z-index: 1;
 }
 
 .tasknotes-plugin .task-card__blocking::before {
