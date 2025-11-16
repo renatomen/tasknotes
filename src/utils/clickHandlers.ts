@@ -78,6 +78,9 @@ export function createTaskClickHandler(options: ClickHandlerOptions) {
 			}
 		}
 
+		// Stop propagation to prevent clicks from bubbling to parent cards
+		e.stopPropagation();
+
 		if (plugin.settings.doubleClickAction === "none") {
 			await handleSingleClick(e);
 			return;
@@ -101,6 +104,7 @@ export function createTaskClickHandler(options: ClickHandlerOptions) {
 
 	const contextmenuHandler = async (e: MouseEvent) => {
 		e.preventDefault();
+		e.stopPropagation(); // Prevent event from bubbling to parent cards
 		if (contextMenuHandler) {
 			await contextMenuHandler(e);
 		}
