@@ -290,7 +290,9 @@ class CustomRecurrenceModal extends Modal {
 		const parts = this.currentValue.split(";");
 
 		for (const part of parts) {
-			const [key, value] = part.split("=");
+			// DTSTART uses colon, other properties use equals
+			const separator = part.includes(":") && part.startsWith("DTSTART") ? ":" : "=";
+			const [key, value] = part.split(separator);
 
 			switch (key) {
 				case "DTSTART":
