@@ -820,26 +820,29 @@
 }
 
 /* Dynamic priority colors using CSS variables set by PriorityManager */
-.tasknotes-plugin .task-card[data-priority] .task-card__priority-dot {
+/* Use child combinator (>) to prevent subtasks from inheriting parent priority styling */
+.tasknotes-plugin .task-card[data-priority] > .task-card__main-row .task-card__priority-dot {
     background-color: var(--current-priority-color, var(--tn-text-muted));
 }
 
 /* Fallback priority colors using existing system */
-.tasknotes-plugin .task-card--priority-high .task-card__priority-dot {
+/* Use child combinator (>) to prevent subtasks from inheriting parent priority styling */
+.tasknotes-plugin .task-card--priority-high > .task-card__main-row .task-card__priority-dot {
     background-color: var(--priority-high-color, var(--tn-color-error));
 }
 
-.tasknotes-plugin .task-card--priority-medium .task-card__priority-dot,
-.tasknotes-plugin .task-card--priority-normal .task-card__priority-dot {
+.tasknotes-plugin .task-card--priority-medium > .task-card__main-row .task-card__priority-dot,
+.tasknotes-plugin .task-card--priority-normal > .task-card__main-row .task-card__priority-dot {
     background-color: var(--priority-normal-color, var(--tn-interactive-accent));
 }
 
-.tasknotes-plugin .task-card--priority-low .task-card__priority-dot {
+.tasknotes-plugin .task-card--priority-low > .task-card__main-row .task-card__priority-dot {
     background-color: var(--priority-low-color, var(--tn-text-muted));
 }
 
 /* Status colors - Use dynamic status colors from user settings */
-.tasknotes-plugin .task-card[data-status] .task-card__status-dot {
+/* Use child combinator (>) to prevent subtasks from inheriting parent status styling */
+.tasknotes-plugin .task-card[data-status] > .task-card__main-row .task-card__status-dot {
     border-color: var(--current-status-color, var(--tn-border-color));
 }
 
