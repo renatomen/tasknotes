@@ -45,6 +45,7 @@ export interface CalendarEvent {
 		file?: any; // For property-based events
 		basesEntry?: any; // For property-based events - full Bases entry with getValue()
 		isCompleted?: boolean;
+		isSkipped?: boolean;
 		isRecurringInstance?: boolean;
 		isNextScheduledOccurrence?: boolean;
 		isPatternInstance?: boolean;
@@ -580,7 +581,15 @@ export function createNextScheduledEvent(
 	const priorityConfig = plugin.priorityManager.getPriorityConfig(task.priority);
 	const borderColor = priorityConfig?.color || "var(--color-accent)";
 	const isInstanceCompleted = task.complete_instances?.includes(instanceDate) || false;
-	const backgroundColor = isInstanceCompleted ? "rgba(0,0,0,0.3)" : "transparent";
+	const isInstanceSkipped = task.skipped_instances?.includes(instanceDate) || false;
+
+	// Determine background color based on instance state
+	let backgroundColor = "transparent";
+	if (isInstanceCompleted) {
+		backgroundColor = "rgba(0,0,0,0.3)";
+	} else if (isInstanceSkipped) {
+		backgroundColor = "rgba(128,128,128,0.2)"; // Gray for skipped
+	}
 
 	return {
 		id: `next-scheduled-${task.path}-${instanceDate}`,
@@ -596,6 +605,7 @@ export function createNextScheduledEvent(
 			taskInfo: task,
 			eventType: "scheduled",
 			isCompleted: isInstanceCompleted,
+			isSkipped: isInstanceSkipped,
 			isNextScheduledOccurrence: true,
 			instanceDate: instanceDate,
 			recurringTemplateTime: templateTime,
@@ -627,9 +637,17 @@ export function createRecurringEvent(
 	const priorityConfig = plugin.priorityManager.getPriorityConfig(task.priority);
 	const borderColor = priorityConfig?.color || "var(--color-accent)";
 	const isInstanceCompleted = task.complete_instances?.includes(instanceDate) || false;
+	const isInstanceSkipped = task.skipped_instances?.includes(instanceDate) || false;
 
 	const fadedBorderColor = hexToRgba(borderColor, 0.5);
-	const backgroundColor = isInstanceCompleted ? "rgba(0,0,0,0.2)" : "transparent";
+
+	// Determine background color based on instance state
+	let backgroundColor = "transparent";
+	if (isInstanceCompleted) {
+		backgroundColor = "rgba(0,0,0,0.2)";
+	} else if (isInstanceSkipped) {
+		backgroundColor = "rgba(128,128,128,0.15)"; // Lighter gray for skipped pattern instances
+	}
 
 	return {
 		id: `recurring-${task.path}-${instanceDate}`,
@@ -645,6 +663,7 @@ export function createRecurringEvent(
 			taskInfo: task,
 			eventType: "recurring",
 			isCompleted: isInstanceCompleted,
+			isSkipped: isInstanceSkipped,
 			isPatternInstance: true,
 			instanceDate: instanceDate,
 			recurringTemplateTime: templateTime,

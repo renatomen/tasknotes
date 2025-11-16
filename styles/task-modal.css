@@ -837,6 +837,18 @@
     background: var(--interactive-accent-hover);
 }
 
+.tasknotes-plugin .recurring-calendar__day--skipped {
+    background: rgba(128, 128, 128, 0.3);
+    color: var(--text-muted);
+    border: 1px solid var(--text-faint);
+    text-decoration: line-through;
+}
+
+.tasknotes-plugin .recurring-calendar__day--skipped:hover {
+    background: rgba(128, 128, 128, 0.4);
+    border-color: var(--text-muted);
+}
+
 .tasknotes-plugin .nl-preview-container {
     margin-top: var(--size-4-2);
     padding: var(--size-4-2);

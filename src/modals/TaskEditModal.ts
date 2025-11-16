@@ -517,6 +517,9 @@ export class TaskEditModal extends TaskModal {
 			}
 		}
 
+		// Get skipped instances (read-only display)
+		const skippedInstances = new Set(this.task.skipped_instances || []);
+
 		// Render each day (no headers, just numbers)
 		allDays.forEach((day) => {
 			const dayStr = formatDateForStorage(day);
@@ -524,6 +527,7 @@ export class TaskEditModal extends TaskModal {
 			const isCurrentMonth = day.getUTCMonth() === displayDate.getUTCMonth();
 			const isRecurring = recurringDateStrings.has(dayStr);
 			const isCompleted = completedInstances.has(dayStr);
+			const isSkipped = skippedInstances.has(dayStr);
 
 			const dayElement = grid.createDiv("recurring-calendar__day");
 			// FIX: Use UTC date method instead of timezone-sensitive format()
@@ -543,6 +547,10 @@ export class TaskEditModal extends TaskModal {
 
 			if (isCompleted) {
 				dayElement.addClass("recurring-calendar__day--completed");
+			}
+
+			if (isSkipped) {
+				dayElement.addClass("recurring-calendar__day--skipped");
 			}
 
 			// Make all dates clickable
