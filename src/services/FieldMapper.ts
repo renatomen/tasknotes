@@ -322,16 +322,49 @@ export class FieldMapper {
 	}
 
 	/**
+	 * Look up the FieldMapping key for a given frontmatter property name.
+	 *
+	 * IMPORTANT: This returns the MAPPING KEY (e.g., "completeInstances"),
+	 * NOT the frontmatter property name (e.g., "complete_instances").
+	 *
+	 * Use this to check if a property is recognized/mapped, but DO NOT use
+	 * the returned key directly as a property identifier for TaskCard.
+	 *
+	 * @param frontmatterPropertyName - The property name from YAML (e.g., "complete_instances")
+	 * @returns The FieldMapping key (e.g., "completeInstances") or null if not found
+	 *
+	 * @example
+	 * // Given mapping: { completeInstances: "complete_instances" }
+	 * lookupMappingKey("complete_instances") // Returns: "completeInstances"
+	 * lookupMappingKey("unknown_field")      // Returns: null
+	 */
+	lookupMappingKey(frontmatterPropertyName: string): keyof FieldMapping | null {
+		for (const [mappingKey, propertyName] of Object.entries(this.mapping)) {
+			if (propertyName === frontmatterPropertyName) {
+				return mappingKey as keyof FieldMapping;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Check if a frontmatter property name is a recognized/configured field.
+	 * Returns true if the property has a mapping, false otherwise.
+	 *
+	 * @param frontmatterPropertyName - The property name from YAML
+	 * @returns true if the property is recognized, false otherwise
+	 */
+	isRecognizedProperty(frontmatterPropertyName: string): boolean {
+		return this.lookupMappingKey(frontmatterPropertyName) !== null;
+	}
+
+	/**
+	 * @deprecated Use lookupMappingKey() instead for clarity about what is returned
 	 * Convert user's property name back to internal field name
 	 * This is the reverse of toUserField()
 	 */
 	fromUserField(userPropertyName: string): keyof FieldMapping | null {
-		for (const [internalName, userName] of Object.entries(this.mapping)) {
-			if (userName === userPropertyName) {
-				return internalName as keyof FieldMapping;
-			}
-		}
-		return null;
+		return this.lookupMappingKey(userPropertyName);
 	}
 
 	/**

@@ -1,19 +1,32 @@
 import TaskNotesPlugin from "../main";
 import { FieldMapper } from "../services/FieldMapper";
+import type { FrontmatterPropertyName, TaskCardPropertyId } from "../types";
 
 /**
- * Complete property mapping chain:
- * 1. Bases Property ID → Internal Field Name (via FieldMapper)
- * 2. Internal Field Name → User-Configured Property Name (for frontmatter I/O)
+ * PropertyMappingService - Centralized property name mapping for Bases integration
  *
- * Example flow (user configured "state" as their status property):
- * - User adds "note.state" column in Bases
- * - basesToInternal("note.state"):
- *   1. Strip prefix: "note.state" → "state"
- *   2. FieldMapper.fromUserField("state") → "status"
- *   3. Returns: "status" (internal field name)
- * - TaskCard uses PROPERTY_EXTRACTORS["status"] to get task.status
- * - TaskCard uses PROPERTY_RENDERERS["status"] to render status UI (checkbox, dot)
+ * This service handles the transformation of Bases column IDs to TaskCard property IDs.
+ *
+ * IMPORTANT CONCEPTS:
+ * - Bases Column ID: The property identifier from Bases (e.g., "note.complete_instances", "file.name")
+ * - Frontmatter Property Name: The actual YAML property (e.g., "complete_instances", "due")
+ * - TaskCard Property ID: The identifier for extractors/renderers (usually same as frontmatter name)
+ * - FieldMapping Key: The internal key in FieldMapping (e.g., "completeInstances")
+ *
+ * KEY PRINCIPLE: TaskCard extractors and renderers are keyed by frontmatter property names,
+ * NOT by FieldMapping keys. So we must preserve the frontmatter property names through
+ * the mapping chain.
+ *
+ * Example flow (user has default mapping: completeInstances="complete_instances"):
+ * 1. Bases gives us: "note.complete_instances"
+ * 2. Strip prefix: "complete_instances"
+ * 3. Check if recognized: FieldMapper.isRecognizedProperty("complete_instances") → true
+ * 4. Return: "complete_instances" (NOT "completeInstances")
+ * 5. TaskCard uses PROPERTY_EXTRACTORS["complete_instances"] ✓
+ *
+ * Special transformations (for computed properties):
+ * - "timeEntries" → "totalTrackedTime" (show total instead of raw array)
+ * - "blockedBy" → "blocked" (show status pill instead of array)
  */
 export class PropertyMappingService {
 	constructor(
@@ -22,41 +35,39 @@ export class PropertyMappingService {
 	) {}
 
 	/**
-	 * Map Bases property ID to the internal field name used by TaskInfo.
-	 * This is the complete chain: Bases → TaskCard → Internal.
+	 * Map Bases property ID to TaskCard property ID.
 	 *
-	 * Example: User configures "state" as their status property
-	 * - Bases gives us: "note.state"
-	 * - We strip prefix: "state"
-	 * - FieldMapper maps: "state" → "status"
-	 * - Returns: "status" (internal field name)
+	 * CRITICAL: Returns the frontmatter property name (or computed property name),
+	 * NOT the FieldMapping key. TaskCard extractors/renderers are keyed by
+	 * frontmatter property names.
 	 *
-	 * @param basesPropertyId - Property ID from Bases (e.g., "note.state", "file.name")
-	 * @returns Internal field name (e.g., "status", "title")
+	 * @param basesPropertyId - Property ID from Bases (e.g., "note.complete_instances", "file.name")
+	 * @returns TaskCard property ID (e.g., "complete_instances", "title", "totalTrackedTime")
+	 *
+	 * @example
+	 * // Default mapping: completeInstances = "complete_instances"
+	 * basesToTaskCardProperty("note.complete_instances") // Returns: "complete_instances"
+	 * basesToTaskCardProperty("complete_instances")      // Returns: "complete_instances"
+	 * basesToTaskCardProperty("timeEntries")             // Returns: "totalTrackedTime" (special transformation)
 	 */
-	basesToInternal(basesPropertyId: string): string {
+	basesToTaskCardProperty(basesPropertyId: string): TaskCardPropertyId {
 		// Step 1: Try custom field mapping on full ID first (edge case: user configured "note.state")
 		if (this.fieldMapper) {
-			const mappingKey = this.fieldMapper.fromUserField(basesPropertyId);
-			if (mappingKey) {
-				// Property is recognized, return the original property name
-				// (not the mapping key, since TaskCard extractors use property names)
+			if (this.fieldMapper.isRecognizedProperty(basesPropertyId)) {
+				// Property is recognized, keep the original property name
+				// (TaskCard extractors use frontmatter property names, not mapping keys)
 				return this.applySpecialTransformations(basesPropertyId);
 			}
 		}
 
-		// Step 2: Handle dotted prefixes - strip and try FieldMapper again
+		// Step 2: Handle dotted prefixes - strip and check again
 		if (basesPropertyId.startsWith("note.")) {
-			const stripped = basesPropertyId.substring(5); // "note.state" → "state"
+			const stripped = basesPropertyId.substring(5); // "note.complete_instances" → "complete_instances"
 
 			// Try custom field mapping on stripped name (main case!)
-			if (this.fieldMapper) {
-				const mappingKey = this.fieldMapper.fromUserField(stripped);
-				if (mappingKey) {
-					// Property is recognized, return the stripped property name
-					// (not the mapping key, since TaskCard extractors use property names)
-					return this.applySpecialTransformations(stripped);
-				}
+			if (this.fieldMapper && this.fieldMapper.isRecognizedProperty(stripped)) {
+				// Property is recognized, return the frontmatter property name
+				return this.applySpecialTransformations(stripped);
 			}
 
 			// Handle known note properties
@@ -71,12 +82,9 @@ export class PropertyMappingService {
 			const stripped = basesPropertyId.substring(5);
 
 			// Try custom field mapping on stripped name
-			if (this.fieldMapper) {
-				const mappingKey = this.fieldMapper.fromUserField(stripped);
-				if (mappingKey) {
-					// Property is recognized, return the stripped property name
-					return this.applySpecialTransformations(stripped);
-				}
+			if (this.fieldMapper && this.fieldMapper.isRecognizedProperty(stripped)) {
+				// Property is recognized, return the frontmatter property name
+				return this.applySpecialTransformations(stripped);
 			}
 
 			return this.applySpecialTransformations(stripped);
@@ -149,14 +157,22 @@ export class PropertyMappingService {
 	}
 
 	/**
+	 * Alias for basesToTaskCardProperty() for backward compatibility.
+	 * @deprecated Use basesToTaskCardProperty() for clarity
+	 */
+	basesToInternal(basesPropertyId: string): string {
+		return this.basesToTaskCardProperty(basesPropertyId);
+	}
+
+	/**
 	 * Map a list of Bases property IDs to TaskCard property IDs.
 	 * Simply maps each property - no filtering.
 	 * If a property is in the Bases config, it will be shown.
 	 *
 	 * @param basesPropertyIds - Property IDs from Bases config
-	 * @returns Mapped property IDs for TaskCard rendering
+	 * @returns TaskCard property IDs for rendering
 	 */
-	mapVisibleProperties(basesPropertyIds: string[]): string[] {
-		return basesPropertyIds.map((id) => this.basesToInternal(id));
+	mapVisibleProperties(basesPropertyIds: string[]): TaskCardPropertyId[] {
+		return basesPropertyIds.map((id) => this.basesToTaskCardProperty(id));
 	}
 }

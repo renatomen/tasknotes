@@ -619,6 +619,39 @@ export interface PomodoroHistoryStats {
 }
 
 // Field mapping and customization types
+
+/**
+ * Property Naming Concepts
+ *
+ * The codebase uses three related but distinct property naming concepts:
+ *
+ * 1. FrontmatterPropertyName: The actual property name in YAML frontmatter
+ *    Examples: "complete_instances", "due", "status", "my_custom_field"
+ *    Source: FieldMapping values (e.g., mapping.completeInstances = "complete_instances")
+ *
+ * 2. FieldMappingKey: The key in the FieldMapping configuration object
+ *    Examples: "completeInstances", "due", "status"
+ *    Source: FieldMapping keys (keyof FieldMapping)
+ *
+ * 3. TaskCardPropertyId: The property identifier used by TaskCard extractors/renderers
+ *    Examples: "complete_instances", "totalTrackedTime", "due"
+ *    Notes: Usually matches FrontmatterPropertyName, but may differ for computed properties
+ *           (e.g., "totalTrackedTime" is the display property for "timeEntries" data)
+ *
+ * Key Insight: FieldMappingKey and FrontmatterPropertyName are often DIFFERENT
+ * (e.g., key="completeInstances" -> value="complete_instances")
+ * This distinction is critical for proper property mapping throughout the system.
+ */
+
+/** Property name as it appears in YAML frontmatter (e.g., "complete_instances", "due") */
+export type FrontmatterPropertyName = string;
+
+/** Key in the FieldMapping configuration object (e.g., "completeInstances", "due") */
+export type FieldMappingKey = keyof FieldMapping;
+
+/** Property identifier for TaskCard extractors/renderers (e.g., "complete_instances", "totalTrackedTime") */
+export type TaskCardPropertyId = string;
+
 export interface FieldMapping {
 	title: string;
 	status: string;

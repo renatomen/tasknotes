@@ -123,12 +123,24 @@ const PROPERTY_EXTRACTORS: Record<string, (task: TaskInfo) => any> = {
 };
 
 /**
- * Get property value from a task with improved error handling and type safety
+ * Get property value from a task with improved error handling and type safety.
+ *
+ * IMPORTANT: The propertyId parameter should be the frontmatter property name
+ * (e.g., "complete_instances", "due") or a computed property name (e.g., "totalTrackedTime"),
+ * NOT a FieldMapping key (e.g., "completeInstances").
+ *
+ * Property extractors are keyed by frontmatter property names to ensure consistency
+ * with how properties are stored and accessed throughout the system.
+ *
+ * @param task - The task to extract the property from
+ * @param propertyId - The property identifier (frontmatter name or computed property)
+ * @param plugin - TaskNotes plugin instance
+ * @returns The property value, or undefined if not found
  */
 function getPropertyValue(task: TaskInfo, propertyId: string, plugin: TaskNotesPlugin): unknown {
 	try {
-		// Use extractors for standard properties directly
-		// The propertyId should already be the internal property name (e.g., "complete_instances")
+		// Use extractors for standard properties
+		// Property extractors are keyed by frontmatter property names (e.g., "complete_instances")
 		if (propertyId in PROPERTY_EXTRACTORS) {
 			return PROPERTY_EXTRACTORS[propertyId](task);
 		}

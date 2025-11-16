@@ -19,72 +19,32 @@ export interface BasesDataItem {
 /**
  * Map Bases property IDs to TaskCard-compatible property names.
  *
+ * DEPRECATED: This function delegates to PropertyMappingService for consistency.
+ * New code should use PropertyMappingService.basesToTaskCardProperty() directly.
+ *
  * Handles various Bases property naming conventions:
- * - Custom field mappings (e.g., "status_custom" → "status")
+ * - Custom field mappings (frontmatter property names preserved)
  * - Dotted prefixes (task.*, note.*, file.*)
  * - Special transformations (timeEntries → totalTrackedTime, blockedBy → blocked)
  * - Formula properties (formula.NAME)
  *
- * @param propId - The property ID from Bases (e.g., "note.blockedBy", "task.due")
+ * @param propId - The property ID from Bases (e.g., "note.complete_instances", "task.due")
  * @param plugin - TaskNotes plugin instance for FieldMapper access
- * @returns Mapped property ID suitable for TaskCard rendering
+ * @returns TaskCard property ID suitable for rendering
  */
 export function mapBasesPropertyToTaskCardProperty(
 	propId: string,
 	plugin?: TaskNotesPlugin
 ): string {
-	let mappedId = propId;
-
-	// Step 1: Try custom field mapping first (highest priority)
-	// If this is a known frontmatter field, keep it as-is since TaskCard
-	// property extractors use the actual property names (e.g., "complete_instances")
-	if (plugin?.fieldMapper) {
-		const mappingKey = plugin.fieldMapper.fromUserField(propId);
-		if (mappingKey) {
-			// Property is recognized, just apply transformations and return
-			return applySpecialTransformations(propId);
-		}
+	// Delegate to PropertyMappingService if available (preferred path)
+	if (plugin) {
+		// Import PropertyMappingService inline to avoid circular dependencies
+		const { PropertyMappingService } = require("./PropertyMappingService");
+		const mapper = new PropertyMappingService(plugin, plugin.fieldMapper);
+		return mapper.basesToTaskCardProperty(propId);
 	}
 
-	// Step 2: Handle dotted prefixes
-	if (propId.startsWith("task.")) {
-		mappedId = propId.substring(5);
-		return applySpecialTransformations(mappedId);
-	}
-
-	if (propId.startsWith("note.")) {
-		const stripped = propId.substring(5);
-
-		// Try custom field mapping on stripped name
-		// If recognized, use the stripped name as-is (it's already the frontmatter property name)
-		if (plugin?.fieldMapper) {
-			const mappingKey = plugin.fieldMapper.fromUserField(stripped);
-			if (mappingKey) {
-				return applySpecialTransformations(stripped);
-			}
-		}
-
-		// Map known note properties
-		if (stripped === "dateCreated") return "dateCreated";
-		if (stripped === "dateModified") return "dateModified";
-		if (stripped === "completedDate") return "completedDate";
-
-		// Apply special transformations to stripped name
-		return applySpecialTransformations(stripped);
-	}
-
-	if (propId.startsWith("file.")) {
-		if (propId === "file.ctime") return "dateCreated";
-		if (propId === "file.mtime") return "dateModified";
-		if (propId === "file.name") return "title";
-	}
-
-	// Step 3: Keep formula properties unchanged
-	if (propId.startsWith("formula.")) {
-		return propId;
-	}
-
-	// Step 4: Apply special transformations to direct properties
+	// Fallback for when no plugin is available (shouldn't happen in practice)
 	return applySpecialTransformations(propId);
 }
 
