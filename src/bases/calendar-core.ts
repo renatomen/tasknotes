@@ -851,23 +851,19 @@ export async function generateCalendarEvents(
 			}
 		} else {
 			// Handle non-recurring tasks
-			const hasScheduled = !!task.scheduled;
-			const hasDue = !!task.due;
-
-			if (!hasScheduled && !hasDue) continue;
-
-			if (showScheduled && hasScheduled) {
+			// Only add scheduled/due events if they exist
+			if (showScheduled && task.scheduled) {
 				const scheduledEvent = createScheduledEvent(task, plugin);
 				if (scheduledEvent) events.push(scheduledEvent);
 			}
 
-			if (showDue && hasDue) {
+			if (showDue && task.due) {
 				const dueEvent = createDueEvent(task, plugin);
 				if (dueEvent) events.push(dueEvent);
 			}
 		}
 
-		// Add time entry events
+		// Add time entry events (regardless of whether task has scheduled/due dates)
 		if (showTimeEntries && task.timeEntries) {
 			const timeEvents = createTimeEntryEvents(task, plugin);
 			events.push(...timeEvents);

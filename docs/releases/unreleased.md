@@ -35,3 +35,12 @@ Example:
   - Custom fields now save and load correctly with their configured property names
   - Thanks to @guncav for reporting
 
+- (#1123) Fixed relationships widget only displaying on task notes, not project notes
+  - Widget now appears on both task notes and project notes (notes referenced via the project property)
+  - Project notes now show all tasks that reference them in the relationships view
+  - Thanks to @dblinnikov for reporting
+
+- Fixed time entries not showing in calendar view for tasks without scheduled or due dates
+  - Time entries now display for all tasks in the Bases calendar view (as long as the task passes the view's filters)
+  - Previously, time entries were hidden if their parent task had no scheduled or due date
+
