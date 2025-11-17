@@ -34,6 +34,12 @@ Example:
 
 ## Fixed
 
+- (#1122) Fixed inline task titles being truncated too aggressively
+  - Increased max-width from 250-300px to responsive `min(600px, 80vw)`
+  - Fixed white-space property to properly support ellipsis truncation
+  - Long task titles now display much more content before truncating
+  - Thanks to @jacorvillo for reporting
+
 - Fixed Obsidian crashes when invalid time values entered in Bases calendar view configuration
   - Added validation for slotMinTime, slotMaxTime, slotDuration, and scrollTime settings
   - Invalid values now fall back to safe defaults with console warnings instead of crashing

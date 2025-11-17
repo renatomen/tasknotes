@@ -305,12 +305,12 @@
 .tasknotes-plugin .task-inline-preview__title {
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: break-spaces;
+    white-space: nowrap;
     color: var(--text-normal);
     font-weight: 500;
     margin: 0;
     min-width: 0; /* Allow flex shrinking */
-    max-width: 250px; /* Give more room for task titles */
+    max-width: min(600px, 80vw); /* Responsive max-width for longer titles */
     flex-shrink: 1; /* Allow shrinking if needed */
     vertical-align: baseline;
     cursor: pointer;
