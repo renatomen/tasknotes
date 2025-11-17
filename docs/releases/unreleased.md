@@ -54,3 +54,8 @@ Example:
   - Popover now uses theme-appropriate colors for background, text, and borders
   - Thanks to @same774 for reporting
 
+- (#1076) Fixed inability to create timeblocks ending at midnight (00:00)
+  - End time of 00:00 is now automatically converted to 23:59
+  - Prevents ambiguous midnight values in frontmatter that could cause calculation issues
+  - Thanks to @skoove for reporting
+

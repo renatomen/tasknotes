@@ -99,7 +99,13 @@ export class TimeblockCreationModal extends Modal {
 				this.endTimeInput = text.inputEl;
 				text.setPlaceholder(this.translate("modals.timeblockCreation.endTimePlaceholder"))
 					.setValue(this.options.endTime || "")
-					.onChange(() => this.validateForm());
+					.onChange(() => {
+						// Convert 00:00 to 23:59 for end time
+						if (this.endTimeInput.value === "00:00") {
+							this.endTimeInput.value = "23:59";
+						}
+						this.validateForm();
+					});
 				this.endTimeInput.type = "time";
 			});
 
@@ -177,7 +183,12 @@ export class TimeblockCreationModal extends Modal {
 			const [startHour, startMin] = startTime.split(":").map(Number);
 			const [endHour, endMin] = endTime.split(":").map(Number);
 			const startMinutes = startHour * 60 + startMin;
-			const endMinutes = endHour * 60 + endMin;
+			let endMinutes = endHour * 60 + endMin;
+
+			// Treat 00:00 as 23:59 (end of day) for validation purposes
+			if (endMinutes === 0) {
+				endMinutes = 23 * 60 + 59; // 1439 minutes
+			}
 
 			if (endMinutes <= startMinutes) {
 				isValid = false;
@@ -193,12 +204,17 @@ export class TimeblockCreationModal extends Modal {
 			// Validate inputs
 			const title = this.titleInput.value.trim();
 			const startTime = this.startTimeInput.value;
-			const endTime = this.endTimeInput.value;
+			let endTime = this.endTimeInput.value;
 			const description = this.descriptionInput.value.trim();
 			const color = this.colorInput.value;
 			if (!title || !startTime || !endTime) {
 				new Notice(this.translate("notices.timeblockRequiredFieldsMissing"));
 				return;
+			}
+
+			// Convert 00:00 to 23:59 for end time before saving
+			if (endTime === "00:00") {
+				endTime = "23:59";
 			}
 
 			// Convert selected attachments to wikilinks
