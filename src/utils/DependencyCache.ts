@@ -295,6 +295,10 @@ export class DependencyCache extends Events {
 	 * Check if a file is used as a project
 	 */
 	isFileUsedAsProject(filePath: string): boolean {
+		if (!this.indexesBuilt) {
+			console.warn("DependencyCache: isFileUsedAsProject called before indexes built, building now...");
+			this.buildIndexesSync();
+		}
 		return this.projectReferences.has(filePath);
 	}
 
