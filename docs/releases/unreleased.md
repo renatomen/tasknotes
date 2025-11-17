@@ -94,3 +94,13 @@ Example:
   - Prevents ambiguous midnight values in frontmatter that could cause calculation issues
   - Thanks to @skoove for reporting
 
+- (#958) Fixed cursor jumping and layout shifts when typing near task card or relationships widgets in live preview
+  - Converted widgets from CodeMirror Decoration API to DOM manipulation to avoid cursor interaction issues
+  - Fixed page scrolling and visual jumps when creating new lines near widgets
+  - Thanks to @thesmithmode for detailed debugging information
+
+- (#513) Fixed task card and relationships widgets not appearing in reading mode (Preview Mode)
+  - Both widgets now display correctly in reading mode on task notes and project notes
+  - Fixed critical memory leak where event listeners were never cleaned up
+  - Thanks to @berzernberg for reporting
+
