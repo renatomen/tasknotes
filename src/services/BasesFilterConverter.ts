@@ -245,9 +245,9 @@ export class BasesFilterConverter {
 				return "file.tags"; // Use file.tags for Bases
 			case "path":
 				return "file.path";
-			case "file.ctime":
+			case "dateCreated":
 				return "file.ctime";
-			case "file.mtime":
+			case "dateModified":
 				return "file.mtime";
 			case "archived":
 				// Check if task has the archive tag

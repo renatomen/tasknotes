@@ -115,8 +115,8 @@ export type FilterProperty =
 	| "due"
 	| "scheduled"
 	| "completedDate"
-	| "file.ctime"
-	| "file.mtime"
+	| "dateCreated"
+	| "dateModified"
 	// Boolean properties
 	| "archived"
 	| "dependencies.isBlocked"
@@ -288,7 +288,7 @@ export const FILTER_PROPERTIES: PropertyDefinition[] = [
 		valueInputType: "date",
 	},
 	{
-		id: "file.ctime",
+		id: "dateCreated",
 		label: "Created Date",
 		category: "date",
 		supportedOperators: [
@@ -304,7 +304,7 @@ export const FILTER_PROPERTIES: PropertyDefinition[] = [
 		valueInputType: "date",
 	},
 	{
-		id: "file.mtime",
+		id: "dateModified",
 		label: "Modified Date",
 		category: "date",
 		supportedOperators: [

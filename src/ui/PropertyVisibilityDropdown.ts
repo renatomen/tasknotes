@@ -191,14 +191,14 @@ export class PropertyVisibilityDropdown {
 					category: "core" as const,
 				},
 				{
-					id: "file.ctime",
+					id: "dateCreated",
 					name: this.plugin.i18n.translate(
 						"components.propertyVisibilityDropdown.properties.createdDate"
 					),
 					category: "core" as const,
 				},
 				{
-					id: "file.mtime",
+					id: "dateModified",
 					name: this.plugin.i18n.translate(
 						"components.propertyVisibilityDropdown.properties.modifiedDate"
 					),

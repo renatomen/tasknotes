@@ -258,7 +258,7 @@ export class FilterUtils {
 				"is-empty",
 				"is-not-empty",
 			],
-			"file.ctime": [
+			dateCreated: [
 				"is",
 				"is-not",
 				"is-before",
@@ -268,7 +268,7 @@ export class FilterUtils {
 				"is-empty",
 				"is-not-empty",
 			],
-			"file.mtime": [
+			dateModified: [
 				"is",
 				"is-not",
 				"is-before",
@@ -356,9 +356,9 @@ export class FilterUtils {
 				return task.scheduled;
 			case "completedDate":
 				return task.completedDate;
-			case "file.ctime":
+			case "dateCreated":
 				return task.dateCreated;
-			case "file.mtime":
+			case "dateModified":
 				return task.dateModified;
 			case "archived":
 				return task.archived;
@@ -750,8 +750,8 @@ export class FilterUtils {
 			"due",
 			"scheduled",
 			"completedDate",
-			"file.ctime",
-			"file.mtime",
+			"dateCreated",
+			"dateModified",
 		];
 		return dateProperties.includes(property);
 	}

@@ -125,10 +125,10 @@ const PROPERTY_EXTRACTORS: Record<string, (task: TaskInfo) => any> = {
 	completedDate: (task) => task.completedDate,
 	reminders: (task) => task.reminders,
 	icsEventId: (task) => task.icsEventId,
-	complete_instances: (task) => task.complete_instances,
-	skipped_instances: (task) => task.skipped_instances,
-	"file.ctime": (task) => task.dateCreated,
-	"file.mtime": (task) => task.dateModified,
+	completeInstances: (task) => task.complete_instances,
+	skippedInstances: (task) => task.skipped_instances,
+	dateCreated: (task) => task.dateCreated,
+	dateModified: (task) => task.dateModified,
 };
 
 /**
@@ -390,7 +390,7 @@ const PROPERTY_RENDERERS: Record<string, PropertyRenderer> = {
 			element.textContent = `Recurring: ${getRecurrenceDisplayText(value)}`;
 		}
 	},
-	complete_instances: (element, value, task) => {
+	completeInstances: (element, value, task) => {
 		if (Array.isArray(value) && value.length > 0) {
 			const count = value.length;
 			const skippedCount = task.skipped_instances?.length || 0;
@@ -406,7 +406,7 @@ const PROPERTY_RENDERERS: Record<string, PropertyRenderer> = {
 			}
 		}
 	},
-	skipped_instances: (element, value, task) => {
+	skippedInstances: (element, value, task) => {
 		if (Array.isArray(value) && value.length > 0) {
 			const count = value.length;
 			element.textContent = `⊘ ${count} skipped`;
@@ -422,7 +422,7 @@ const PROPERTY_RENDERERS: Record<string, PropertyRenderer> = {
 			})}`;
 		}
 	},
-	"file.ctime": (element, value, task, plugin) => {
+	dateCreated: (element, value, task, plugin) => {
 		if (typeof value === "string") {
 			element.textContent = `Created: ${formatDateTimeForDisplay(value, {
 				dateFormat: "MMM d",
@@ -431,7 +431,7 @@ const PROPERTY_RENDERERS: Record<string, PropertyRenderer> = {
 			})}`;
 		}
 	},
-	"file.mtime": (element, value, task, plugin) => {
+	dateModified: (element, value, task, plugin) => {
 		if (typeof value === "string") {
 			element.textContent = `Modified: ${formatDateTimeForDisplay(value, {
 				dateFormat: "MMM d",
@@ -943,6 +943,27 @@ function addMetadataSeparators(metadataLine: HTMLElement, metadataElements: HTML
 
 /**
  * Create a minimalist, unified task card element
+ *
+ * @param task - The task to render
+ * @param plugin - TaskNotes plugin instance
+ * @param visibleProperties - IMPORTANT: Must be user-configured frontmatter property names
+ *                            (e.g., "task-status", "complete_instances"), NOT internal FieldMapping keys.
+ *                            If passing from settings.defaultVisibleProperties, convert using
+ *                            convertInternalToUserProperties() first.
+ * @param options - Optional rendering options (layout, targetDate, etc.)
+ *
+ * @example
+ * // Correct: Convert internal names before passing
+ * const props = plugin.settings.defaultVisibleProperties
+ *   ? convertInternalToUserProperties(plugin.settings.defaultVisibleProperties, plugin)
+ *   : undefined;
+ * createTaskCard(task, plugin, props);
+ *
+ * // Correct: Pass frontmatter names from Bases
+ * createTaskCard(task, plugin, ["complete_instances", "task-status"]);
+ *
+ * // WRONG: Don't pass internal keys directly
+ * createTaskCard(task, plugin, ["completeInstances", "status"]); // ❌
  */
 export function createTaskCard(
 	task: TaskInfo,
