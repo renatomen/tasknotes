@@ -34,6 +34,11 @@ Example:
 
 ## Fixed
 
+- (#1055) Fixed break sessions being logged as `type: work` when started via command/hotkey
+  - The "Start Pomodoro Timer" command now respects the next session type (short-break, long-break, or work)
+  - Break sessions started via command/hotkey are now correctly logged with their proper type in frontmatter
+  - Thanks to @0-BSCode for reporting and debugging
+
 - (#1024) Fixed date/time picker immediately closing when selecting time on iPhone
   - Refactored date/time picker to use Obsidian's native Modal components instead of custom modal implementation
   - Native HTML5 date/time inputs now work correctly with mobile device pickers

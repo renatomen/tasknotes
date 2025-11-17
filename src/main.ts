@@ -1477,7 +1477,20 @@ export default class TaskNotesPlugin extends Plugin {
 				id: "start-pomodoro",
 				nameKey: "commands.startPomodoro",
 				callback: async () => {
-					await this.pomodoroService.startPomodoro();
+					const state = this.pomodoroService.getState();
+					if (state.currentSession && !state.isRunning) {
+						await this.pomodoroService.resumePomodoro();
+					} else {
+						// No active session - start the type indicated by nextSessionType
+						if (state.nextSessionType === "short-break") {
+							await this.pomodoroService.startBreak(false);
+						} else if (state.nextSessionType === "long-break") {
+							await this.pomodoroService.startBreak(true);
+						} else {
+							// Default to work session
+							await this.pomodoroService.startPomodoro();
+						}
+					}
 				},
 			},
 			{
