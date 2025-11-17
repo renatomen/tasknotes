@@ -2,11 +2,11 @@
  * Relationships Widget
  *
  * Styles for the unified relationships widget that displays subtasks, projects,
- * blocked-by, and blocking relationships in notes via CodeMirror decorations
+ * blocked-by, and blocking relationships in notes via DOM manipulation
  * in live preview mode. Uses BEM methodology.
  */
 
-.relationships-widget {
+.tasknotes-relationships-widget {
     display: block !important;
     width: 100% !important;
     margin: 1.5em 0 2em 0;
@@ -34,14 +34,14 @@
 
 /* Responsive design */
 @media (max-width: 768px) {
-    .tasknotes-plugin .relationships-widget {
+    .tasknotes-plugin .tasknotes-relationships-widget {
         margin: 1em 0;
         padding: 0.8em;
     }
 }
 
 /* Dark mode adjustments */
-.theme-dark .tasknotes-plugin .relationships-widget {
+.theme-dark .tasknotes-plugin .tasknotes-relationships-widget {
     background-color: var(--background-secondary);
     border-color: var(--background-modifier-border);
 }
