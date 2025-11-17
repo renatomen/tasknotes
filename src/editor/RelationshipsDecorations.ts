@@ -6,10 +6,13 @@ import {
 } from "@codemirror/view";
 import {
 	Component,
+	EventRef,
+	MarkdownView,
 	TFile,
 	editorInfoField,
 	editorLivePreviewField,
 	MarkdownRenderer,
+	WorkspaceLeaf,
 } from "obsidian";
 import { Extension } from "@codemirror/state";
 
@@ -192,9 +195,26 @@ class RelationshipsDecorationsPlugin implements PluginValue {
 		this.widgetContainer = null;
 	}
 
+	private cleanupOrphanedWidgets(view: EditorView): void {
+		// Remove any orphaned widgets that might exist from previous instances
+		const container = view.dom.closest('.workspace-leaf-content');
+		if (container) {
+			container.querySelectorAll(`.${CSS_RELATIONSHIPS_WIDGET}`).forEach(el => {
+				if (el !== this.currentWidget) {
+					const holder = el as HTMLElementWithComponent;
+					holder.component?.unload();
+					el.remove();
+				}
+			});
+		}
+	}
+
 	private async injectWidget(view: EditorView): Promise<void> {
 		// Remove any existing widget first
 		this.removeWidget();
+
+		// Also clean up any orphaned widgets
+		this.cleanupOrphanedWidgets(view);
 
 		try {
 			// Don't show widget in table cell editors
@@ -295,7 +315,7 @@ class RelationshipsDecorationsPlugin implements PluginValue {
 }
 
 /**
- * Create the relationships decorations extension
+ * Create the relationships decorations extension for live preview mode
  */
 export function createRelationshipsDecorations(plugin: TaskNotesPlugin): Extension {
 	return ViewPlugin.fromClass(
@@ -309,4 +329,138 @@ export function createRelationshipsDecorations(plugin: TaskNotesPlugin): Extensi
 			}
 		}
 	);
+}
+
+/**
+ * Inject relationships widget into reading mode view
+ */
+async function injectReadingModeWidget(
+	leaf: WorkspaceLeaf,
+	plugin: TaskNotesPlugin
+): Promise<void> {
+	const view = leaf.view;
+	if (!(view instanceof MarkdownView) || view.getMode() !== 'preview') {
+		return;
+	}
+
+	const file = view.file;
+	if (!file) {
+		return;
+	}
+
+	// Check if relationships widget is enabled
+	if (!plugin.settings.showRelationships) {
+		return;
+	}
+
+	// Show widget in task notes OR project notes
+	const metadata = plugin.app.metadataCache.getFileCache(file);
+	if (!metadata?.frontmatter) {
+		return;
+	}
+
+	const isTaskNote = plugin.cacheManager.isTaskFile(metadata.frontmatter);
+	const isProjectNote = plugin.dependencyCache?.isFileUsedAsProject(file.path) || false;
+
+	if (!isTaskNote && !isProjectNote) {
+		return;
+	}
+
+	// Remove any existing widgets first
+	const previewView = view.previewMode;
+	const containerEl = previewView.containerEl;
+	containerEl.querySelectorAll(`.${CSS_RELATIONSHIPS_WIDGET}`).forEach(el => {
+		const holder = el as HTMLElementWithComponent;
+		holder.component?.unload();
+		el.remove();
+	});
+
+	const position = plugin.settings.relationshipsPosition || "bottom";
+	const notePath = file.path;
+
+	// Create the widget
+	const widget = await createRelationshipsWidget(plugin, notePath);
+
+	// Add styling
+	widget.style.display = "block";
+	widget.style.pointerEvents = "auto";
+	widget.style.userSelect = "none";
+	widget.style.border = "1px dashed var(--background-modifier-border)";
+	widget.style.borderRadius = "4px";
+	widget.style.padding = "8px";
+	widget.style.marginTop = "8px";
+	widget.style.marginBottom = "8px";
+
+	// Find the markdown-preview-sizer or markdown-preview-section
+	const sizer = containerEl.querySelector<HTMLElement>('.markdown-preview-sizer');
+	if (!sizer) {
+		return;
+	}
+
+	// Position the widget
+	if (position === "top") {
+		// Insert after properties if present, otherwise at the beginning
+		const metadataContainer = sizer.querySelector('.metadata-container');
+		if (metadataContainer?.nextSibling) {
+			sizer.insertBefore(widget, metadataContainer.nextSibling);
+		} else {
+			sizer.insertBefore(widget, sizer.firstChild);
+		}
+	} else {
+		// Insert before backlinks if present, otherwise at the end
+		const backlinks = containerEl.querySelector('.embedded-backlinks');
+		if (backlinks?.parentElement) {
+			backlinks.parentElement.insertBefore(widget, backlinks);
+		} else {
+			sizer.appendChild(widget);
+		}
+	}
+}
+
+/**
+ * Setup reading mode handlers for relationships widget
+ * Returns cleanup function to remove handlers
+ */
+export function setupReadingModeHandlers(plugin: TaskNotesPlugin): () => void {
+	const eventRefs: EventRef[] = [];
+
+	// Inject widget when layout changes (file opened, switched, etc.)
+	const layoutChangeRef = plugin.app.workspace.on('layout-change', () => {
+		const leaves = plugin.app.workspace.getLeavesOfType('markdown');
+		leaves.forEach(leaf => {
+			injectReadingModeWidget(leaf, plugin);
+		});
+	});
+	eventRefs.push(layoutChangeRef);
+
+	// Inject widget when active leaf changes
+	const activeLeafChangeRef = plugin.app.workspace.on('active-leaf-change', (leaf) => {
+		if (leaf) {
+			injectReadingModeWidget(leaf, plugin);
+		}
+	});
+	eventRefs.push(activeLeafChangeRef);
+
+	// Inject widget when file is modified (metadata changes)
+	const metadataChangeRef = plugin.app.metadataCache.on('changed', (file) => {
+		const leaves = plugin.app.workspace.getLeavesOfType('markdown');
+		leaves.forEach(leaf => {
+			const view = leaf.view;
+			if (view instanceof MarkdownView && view.file === file) {
+				injectReadingModeWidget(leaf, plugin);
+			}
+		});
+	});
+	eventRefs.push(metadataChangeRef);
+
+	// Initial injection for any already-open reading views
+	const leaves = plugin.app.workspace.getLeavesOfType('markdown');
+	leaves.forEach(leaf => {
+		injectReadingModeWidget(leaf, plugin);
+	});
+
+	// Return cleanup function
+	return () => {
+		eventRefs.forEach(ref => plugin.app.workspace.offref(ref));
+	};
 }

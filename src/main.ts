@@ -66,9 +66,11 @@ import { createTaskLinkOverlay, dispatchTaskUpdate } from "./editor/TaskLinkOver
 import { createReadingModeTaskLinkProcessor } from "./editor/ReadingModeTaskLinkProcessor";
 import {
 	createRelationshipsDecorations,
+	setupReadingModeHandlers as setupRelationshipsReadingMode,
 } from "./editor/RelationshipsDecorations";
 import {
 	createTaskCardNoteDecorations,
+	setupReadingModeHandlers as setupTaskCardReadingMode,
 } from "./editor/TaskCardNoteDecorations";
 import { DragDropManager } from "./utils/DragDropManager";
 import {
@@ -218,6 +220,8 @@ export default class TaskNotesPlugin extends Plugin {
 
 	// Event listener cleanup
 	private taskUpdateListenerForEditor: import("obsidian").EventRef | null = null;
+	private relationshipsReadingModeCleanup: (() => void) | null = null;
+	private taskCardReadingModeCleanup: (() => void) | null = null;
 
 	// Initialization guard to prevent duplicate initialization
 	private initializationComplete = false;
@@ -515,8 +519,14 @@ export default class TaskNotesPlugin extends Plugin {
 			// Register task card note decorations for live preview (before relationships to ensure proper ordering)
 			this.registerEditorExtension(createTaskCardNoteDecorations(this));
 
+			// Setup task card widget for reading mode
+			this.taskCardReadingModeCleanup = setupTaskCardReadingMode(this);
+
 			// Register relationships decorations for live preview
 			this.registerEditorExtension(createRelationshipsDecorations(this));
+
+			// Setup relationships widget for reading mode
+			this.relationshipsReadingModeCleanup = setupRelationshipsReadingMode(this);
 
 			// Register reading mode task link processor
 			this.registerMarkdownPostProcessor(createReadingModeTaskLinkProcessor(this));
@@ -1068,6 +1078,18 @@ export default class TaskNotesPlugin extends Plugin {
 		// Clean up ViewPerformanceService
 		if (this.viewPerformanceService) {
 			this.viewPerformanceService.destroy();
+		}
+
+		// Clean up task card reading mode handlers
+		if (this.taskCardReadingModeCleanup) {
+			this.taskCardReadingModeCleanup();
+			this.taskCardReadingModeCleanup = null;
+		}
+
+		// Clean up relationships reading mode handlers
+		if (this.relationshipsReadingModeCleanup) {
+			this.relationshipsReadingModeCleanup();
+			this.relationshipsReadingModeCleanup = null;
 		}
 
 		// Clean up AutoArchiveService
