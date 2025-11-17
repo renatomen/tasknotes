@@ -34,6 +34,11 @@ Example:
 
 ## Fixed
 
+- Fixed Obsidian crashes when invalid time values entered in Bases calendar view configuration
+  - Added validation for slotMinTime, slotMaxTime, slotDuration, and scrollTime settings
+  - Invalid values now fall back to safe defaults with console warnings instead of crashing
+  - Matches validation already present in the settings UI
+
 - (#1120) Fixed custom field mappings not being respected throughout the application
   - Property customizations (e.g., `status: "task-status"`) now work correctly in all views
   - Kanban drag-and-drop now works with any property type (built-in, user-defined, or custom)

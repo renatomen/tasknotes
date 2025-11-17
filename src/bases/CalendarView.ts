@@ -120,6 +120,56 @@ export class CalendarView extends BasesViewBase {
 	}
 
 	/**
+	 * Validate and format time string (HH:MM or HH:MM:SS format).
+	 * Returns the validated time in HH:MM:SS format, or the default value if invalid.
+	 */
+	private validateTimeValue(value: string | undefined, defaultValue: string, allowMax24 = false): string {
+		if (!value) return defaultValue;
+
+		// If already in HH:MM:SS format, validate it
+		if (/^\d{2}:\d{2}:\d{2}$/.test(value)) {
+			const [hours, minutes] = value.split(':').map(Number);
+			const maxHours = allowMax24 ? 24 : 23;
+
+			if (hours < 0 || hours > maxHours || minutes < 0 || minutes > 59) {
+				console.warn(`[TaskNotes][CalendarView] Invalid time value: ${value}, using default: ${defaultValue}`);
+				return defaultValue;
+			}
+
+			// Special case: 24:XX is only valid as 24:00
+			if (hours === 24 && minutes !== 0) {
+				console.warn(`[TaskNotes][CalendarView] Invalid time value: ${value}, using default: ${defaultValue}`);
+				return defaultValue;
+			}
+
+			return value;
+		}
+
+		// If in HH:MM format, validate and convert to HH:MM:SS
+		if (/^\d{2}:\d{2}$/.test(value)) {
+			const [hours, minutes] = value.split(':').map(Number);
+			const maxHours = allowMax24 ? 24 : 23;
+
+			if (hours < 0 || hours > maxHours || minutes < 0 || minutes > 59) {
+				console.warn(`[TaskNotes][CalendarView] Invalid time value: ${value}, using default: ${defaultValue}`);
+				return defaultValue;
+			}
+
+			// Special case: 24:XX is only valid as 24:00
+			if (hours === 24 && minutes !== 0) {
+				console.warn(`[TaskNotes][CalendarView] Invalid time value: ${value}, using default: ${defaultValue}`);
+				return defaultValue;
+			}
+
+			return `${value}:00`;
+		}
+
+		// Invalid format
+		console.warn(`[TaskNotes][CalendarView] Invalid time format: ${value}, using default: ${defaultValue}`);
+		return defaultValue;
+	}
+
+	/**
 	 * Read view configuration options from BasesViewConfig.
 	 */
 	private readViewOptions(): void {
@@ -146,9 +196,29 @@ export class CalendarView extends BasesViewBase {
 			this.viewOptions.calendarView = this.config.get('calendarView') ?? this.viewOptions.calendarView;
 			this.viewOptions.customDayCount = this.config.get('customDayCount') ?? this.viewOptions.customDayCount;
 			this.viewOptions.listDayCount = this.config.get('listDayCount') ?? this.viewOptions.listDayCount;
-			this.viewOptions.slotMinTime = this.config.get('slotMinTime') ?? this.viewOptions.slotMinTime;
-			this.viewOptions.slotMaxTime = this.config.get('slotMaxTime') ?? this.viewOptions.slotMaxTime;
-			this.viewOptions.slotDuration = this.config.get('slotDuration') ?? this.viewOptions.slotDuration;
+
+			// Validate time values to prevent crashes from invalid input
+			this.viewOptions.slotMinTime = this.validateTimeValue(
+				this.config.get('slotMinTime'),
+				this.viewOptions.slotMinTime,
+				false
+			);
+			this.viewOptions.slotMaxTime = this.validateTimeValue(
+				this.config.get('slotMaxTime'),
+				this.viewOptions.slotMaxTime,
+				true // Allow 24:00 for end time
+			);
+			this.viewOptions.slotDuration = this.validateTimeValue(
+				this.config.get('slotDuration'),
+				this.viewOptions.slotDuration,
+				false
+			);
+			this.viewOptions.scrollTime = this.validateTimeValue(
+				this.config.get('scrollTime'),
+				this.viewOptions.scrollTime,
+				false
+			);
+
 			this.viewOptions.firstDay = Number(this.config.get('firstDay') ?? this.viewOptions.firstDay);
 			this.viewOptions.weekNumbers = this.config.get('weekNumbers') ?? this.viewOptions.weekNumbers;
 			this.viewOptions.nowIndicator = this.config.get('nowIndicator') ?? this.viewOptions.nowIndicator;
@@ -157,7 +227,6 @@ export class CalendarView extends BasesViewBase {
 			this.viewOptions.showTodayHighlight = this.config.get('showTodayHighlight') ?? this.viewOptions.showTodayHighlight;
 			this.viewOptions.selectMirror = this.config.get('selectMirror') ?? this.viewOptions.selectMirror;
 			this.viewOptions.timeFormat = this.config.get('timeFormat') ?? this.viewOptions.timeFormat;
-			this.viewOptions.scrollTime = this.config.get('scrollTime') ?? this.viewOptions.scrollTime;
 			this.viewOptions.eventMinHeight = this.config.get('eventMinHeight') ?? this.viewOptions.eventMinHeight;
 
 			// Property-based events
