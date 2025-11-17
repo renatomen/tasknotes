@@ -140,10 +140,22 @@ class RelationshipsDecorationsPlugin implements PluginValue {
 				return true;
 			}
 
+			// Check for footnote editors - look for popover or markdown-embed with footnote type
+			const popover = editorElement.closest(".popover.hover-popover");
+			if (popover) {
+				return true;
+			}
+
+			// Check for markdown embed with data-type="footnote"
+			const footnoteEmbed = editorElement.closest(".markdown-embed[data-type='footnote']");
+			if (footnoteEmbed) {
+				return true;
+			}
+
 			// Additional check: inline editors without file association
 			const editorInfo = view.state.field(editorInfoField, false);
 			if (!editorInfo?.file) {
-				// This might be an inline editor - check if parent is table-related
+				// This might be an inline editor - check if parent is table-related or in a popover
 				let parent = editorElement.parentElement;
 				while (parent && parent !== document.body) {
 					if (
@@ -152,6 +164,15 @@ class RelationshipsDecorationsPlugin implements PluginValue {
 						parent.tagName === "TH" ||
 						parent.classList.contains("markdown-rendered")
 					) {
+						return true;
+					}
+					// Check for popover (footnotes, hovers, etc.)
+					if (parent.classList.contains("popover") || parent.classList.contains("hover-popover")) {
+						return true;
+					}
+					// Check for markdown-embed with footnote data-type
+					if (parent.classList.contains("markdown-embed") &&
+					    parent.getAttribute("data-type") === "footnote") {
 						return true;
 					}
 					parent = parent.parentElement;
@@ -198,17 +219,23 @@ class RelationshipsDecorationsPlugin implements PluginValue {
 				return builder.finish();
 			}
 
-			// Only show widget in task notes
-			// Get the file's frontmatter to check if it's a task
+			// Show widget in task notes OR project notes (notes referenced by tasks)
+			// Get the file's frontmatter to check if it's a task or project
 			const metadata = this.plugin.app.metadataCache.getFileCache(file);
 			if (!metadata?.frontmatter) {
-				// No frontmatter - not a task note
+				// No frontmatter - not a task or project note
 				return builder.finish();
 			}
 
-			// Use the TaskManager's isTaskFile method to check if this is a task
-			if (!this.plugin.cacheManager.isTaskFile(metadata.frontmatter)) {
-				// Not a task note - don't show relationships widget
+			// Check if this is a task note
+			const isTaskNote = this.plugin.cacheManager.isTaskFile(metadata.frontmatter);
+
+			// Check if this is a project note (referenced by tasks via the project property)
+			const isProjectNote = this.plugin.dependencyCache?.isFileUsedAsProject(file.path) || false;
+
+			// Only show widget if it's either a task note or a project note
+			if (!isTaskNote && !isProjectNote) {
+				// Not a task or project note - don't show relationships widget
 				return builder.finish();
 			}
 

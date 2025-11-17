@@ -44,3 +44,8 @@ Example:
   - Time entries now display for all tasks in the Bases calendar view (as long as the task passes the view's filters)
   - Previously, time entries were hidden if their parent task had no scheduled or due date
 
+- (#1091) Fixed task card and relationships widgets appearing inside footnote editors
+  - Widgets now properly detect and exclude footnote popovers and inline editors
+  - Similar to the previous fix for table cell editors
+  - Thanks to @3zra47 for reporting
+

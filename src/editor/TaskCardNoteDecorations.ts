@@ -20,6 +20,7 @@ import { Extension, RangeSetBuilder, StateEffect } from "@codemirror/state";
 
 import TaskNotesPlugin from "../main";
 import { createTaskCard } from "../ui/TaskCard";
+import { convertInternalToUserProperties } from "../utils/propertyMapping";
 
 // Define a state effect for task card updates
 const taskCardUpdateEffect = StateEffect.define<{ forceUpdate?: boolean }>();
@@ -77,8 +78,10 @@ export class TaskCardWidget extends WidgetType {
 		container.setAttribute("spellcheck", "false");
 		container.setAttribute("data-widget-type", "task-card");
 
-		// Get the visible properties from settings
-		const visibleProperties = this.plugin.settings.defaultVisibleProperties;
+		// Get the visible properties from settings and convert internal names to user-configured names
+		const visibleProperties = this.plugin.settings.defaultVisibleProperties
+			? convertInternalToUserProperties(this.plugin.settings.defaultVisibleProperties, this.plugin)
+			: undefined;
 
 		// Create the task card
 		const taskCard = createTaskCard(this.task, this.plugin, visibleProperties);
@@ -270,10 +273,22 @@ export class TaskCardNoteDecorationsPlugin implements PluginValue {
 				return true;
 			}
 
+			// Check for footnote editors - look for popover or markdown-embed with footnote type
+			const popover = editorElement.closest(".popover.hover-popover");
+			if (popover) {
+				return true;
+			}
+
+			// Check for markdown embed with data-type="footnote"
+			const footnoteEmbed = editorElement.closest(".markdown-embed[data-type='footnote']");
+			if (footnoteEmbed) {
+				return true;
+			}
+
 			// Additional check: inline editors without file association
 			const editorInfo = view.state.field(editorInfoField, false);
 			if (!editorInfo?.file) {
-				// This might be an inline editor - check if parent is table-related
+				// This might be an inline editor - check if parent is table-related or in a popover
 				let parent = editorElement.parentElement;
 				while (parent && parent !== document.body) {
 					if (
@@ -282,6 +297,15 @@ export class TaskCardNoteDecorationsPlugin implements PluginValue {
 						parent.tagName === "TH" ||
 						parent.classList.contains("markdown-rendered")
 					) {
+						return true;
+					}
+					// Check for popover (footnotes, hovers, etc.)
+					if (parent.classList.contains("popover") || parent.classList.contains("hover-popover")) {
+						return true;
+					}
+					// Check for markdown-embed with footnote data-type
+					if (parent.classList.contains("markdown-embed") &&
+					    parent.getAttribute("data-type") === "footnote") {
 						return true;
 					}
 					parent = parent.parentElement;
