@@ -953,19 +953,19 @@ export abstract class TaskModal extends Modal {
 			case "text":
 			case "list": {
 				setting.addText((text) => {
-					const currentValue = this.userFields[userField.id];
+					const currentValue = this.userFields[userField.key];
 					const displayValue = Array.isArray(currentValue)
 						? currentValue.join(", ")
 						: currentValue || "";
 
 					text.setValue(displayValue).onChange((value) => {
 						if (userField.type === "list") {
-							this.userFields[userField.id] = value
+							this.userFields[userField.key] = value
 								.split(",")
 								.map((v) => v.trim())
 								.filter((v) => v.length > 0);
 						} else {
-							this.userFields[userField.id] = value;
+							this.userFields[userField.key] = value;
 						}
 					});
 
@@ -976,10 +976,10 @@ export abstract class TaskModal extends Modal {
 			}
 			case "number": {
 				setting.addText((text) => {
-					const currentValue = this.userFields[userField.id];
+					const currentValue = this.userFields[userField.key];
 					text.setValue(currentValue?.toString() || "").onChange((value) => {
 						const numValue = parseFloat(value);
-						this.userFields[userField.id] = isNaN(numValue) ? null : numValue;
+						this.userFields[userField.key] = isNaN(numValue) ? null : numValue;
 					});
 					text.inputEl.type = "number";
 				});
@@ -987,9 +987,9 @@ export abstract class TaskModal extends Modal {
 			}
 			case "date": {
 				setting.addText((text) => {
-					const currentValue = this.userFields[userField.id];
+					const currentValue = this.userFields[userField.key];
 					text.setValue(currentValue || "").onChange((value) => {
-						this.userFields[userField.id] = value;
+						this.userFields[userField.key] = value;
 					});
 					text.inputEl.type = "date";
 				});
@@ -997,9 +997,9 @@ export abstract class TaskModal extends Modal {
 			}
 			case "boolean": {
 				setting.addToggle((toggle) => {
-					const currentValue = this.userFields[userField.id];
+					const currentValue = this.userFields[userField.key];
 					toggle.setValue(currentValue === true).onChange((value) => {
-						this.userFields[userField.id] = value;
+						this.userFields[userField.key] = value;
 					});
 				});
 				break;
