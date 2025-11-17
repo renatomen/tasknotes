@@ -24,6 +24,14 @@ Example:
 
 -->
 
+## Changed
+
+- Improved timeblock visual styling in calendar views for a lighter, more refined appearance
+  - Reduced border width from 2px to 1px
+  - Lowered opacity from 0.9 to 0.65 for better visual balance
+  - Added smooth transitions for hover effects
+  - Softened shadows and reduced hover animation intensity
+
 ## Fixed
 
 - (#1120) Fixed custom field mappings not being respected throughout the application
