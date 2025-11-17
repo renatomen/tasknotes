@@ -526,7 +526,9 @@ async function injectReadingModeWidget(
  * Returns cleanup function to remove handlers
  */
 export function setupReadingModeHandlers(plugin: TaskNotesPlugin): () => void {
-	const eventRefs: EventRef[] = [];
+	// Track event refs by source for proper cleanup
+	const workspaceRefs: EventRef[] = [];
+	const metadataCacheRefs: EventRef[] = [];
 
 	// Debounce to prevent excessive re-renders
 	let debounceTimer: number | null = null;
@@ -542,7 +544,7 @@ export function setupReadingModeHandlers(plugin: TaskNotesPlugin): () => void {
 
 	// Inject widget when layout changes (file opened, switched, etc.)
 	const layoutChangeRef = plugin.app.workspace.on('layout-change', debouncedRefresh);
-	eventRefs.push(layoutChangeRef);
+	workspaceRefs.push(layoutChangeRef);
 
 	// Inject widget when active leaf changes
 	const activeLeafChangeRef = plugin.app.workspace.on('active-leaf-change', (leaf) => {
@@ -550,7 +552,7 @@ export function setupReadingModeHandlers(plugin: TaskNotesPlugin): () => void {
 			injectReadingModeWidget(leaf, plugin);
 		}
 	});
-	eventRefs.push(activeLeafChangeRef);
+	workspaceRefs.push(activeLeafChangeRef);
 
 	// Inject widget when file is modified (metadata changes)
 	const metadataChangeRef = plugin.app.metadataCache.on('changed', (file) => {
@@ -562,7 +564,7 @@ export function setupReadingModeHandlers(plugin: TaskNotesPlugin): () => void {
 			}
 		});
 	});
-	eventRefs.push(metadataChangeRef);
+	metadataCacheRefs.push(metadataChangeRef);
 
 	// Initial injection for any already-open reading views
 	const leaves = plugin.app.workspace.getLeavesOfType('markdown');
@@ -573,6 +575,9 @@ export function setupReadingModeHandlers(plugin: TaskNotesPlugin): () => void {
 	// Return cleanup function
 	return () => {
 		if (debounceTimer) clearTimeout(debounceTimer);
-		eventRefs.forEach(ref => plugin.app.workspace.offref(ref));
+
+		// Clean up each type of event ref with the correct method
+		workspaceRefs.forEach(ref => plugin.app.workspace.offref(ref));
+		metadataCacheRefs.forEach(ref => plugin.app.metadataCache.offref(ref));
 	};
 }

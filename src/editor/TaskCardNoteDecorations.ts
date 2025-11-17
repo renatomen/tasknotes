@@ -493,7 +493,10 @@ async function injectReadingModeWidget(
  * Returns cleanup function to remove handlers
  */
 export function setupReadingModeHandlers(plugin: TaskNotesPlugin): () => void {
-	const eventRefs: EventRef[] = [];
+	// Track event refs by source for proper cleanup
+	const workspaceRefs: EventRef[] = [];
+	const metadataCacheRefs: EventRef[] = [];
+	const emitterRefs: EventRef[] = [];
 
 	// Debounce to prevent excessive re-renders
 	let debounceTimer: number | null = null;
@@ -509,7 +512,7 @@ export function setupReadingModeHandlers(plugin: TaskNotesPlugin): () => void {
 
 	// Inject widget when layout changes (file opened, switched, etc.)
 	const layoutChangeRef = plugin.app.workspace.on('layout-change', debouncedRefresh);
-	eventRefs.push(layoutChangeRef);
+	workspaceRefs.push(layoutChangeRef);
 
 	// Inject widget when active leaf changes
 	const activeLeafChangeRef = plugin.app.workspace.on('active-leaf-change', (leaf) => {
@@ -517,7 +520,7 @@ export function setupReadingModeHandlers(plugin: TaskNotesPlugin): () => void {
 			injectReadingModeWidget(leaf, plugin);
 		}
 	});
-	eventRefs.push(activeLeafChangeRef);
+	workspaceRefs.push(activeLeafChangeRef);
 
 	// Inject widget when file is modified (metadata changes)
 	const metadataChangeRef = plugin.app.metadataCache.on('changed', (file) => {
@@ -529,14 +532,14 @@ export function setupReadingModeHandlers(plugin: TaskNotesPlugin): () => void {
 			}
 		});
 	});
-	eventRefs.push(metadataChangeRef);
+	metadataCacheRefs.push(metadataChangeRef);
 
 	// Listen for task updates to refresh the widget
 	const taskUpdateListener = plugin.emitter.on(EVENT_TASK_UPDATED, debouncedRefresh);
-	eventRefs.push(taskUpdateListener);
+	emitterRefs.push(taskUpdateListener);
 
 	const dataChangeListener = plugin.emitter.on(EVENT_DATA_CHANGED, debouncedRefresh);
-	eventRefs.push(dataChangeListener);
+	emitterRefs.push(dataChangeListener);
 
 	// Initial injection for any already-open reading views
 	const leaves = plugin.app.workspace.getLeavesOfType('markdown');
@@ -547,14 +550,10 @@ export function setupReadingModeHandlers(plugin: TaskNotesPlugin): () => void {
 	// Return cleanup function
 	return () => {
 		if (debounceTimer) clearTimeout(debounceTimer);
-		eventRefs.forEach(ref => {
-			if ('name' in ref && typeof (ref as any).name === 'string') {
-				// It's a workspace event ref
-				plugin.app.workspace.offref(ref);
-			} else {
-				// It's a plugin emitter event ref
-				plugin.emitter.offref(ref);
-			}
-		});
+
+		// Clean up each type of event ref with the correct method
+		workspaceRefs.forEach(ref => plugin.app.workspace.offref(ref));
+		metadataCacheRefs.forEach(ref => plugin.app.metadataCache.offref(ref));
+		emitterRefs.forEach(ref => plugin.emitter.offref(ref));
 	};
 }
