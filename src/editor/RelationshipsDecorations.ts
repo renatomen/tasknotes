@@ -286,17 +286,24 @@ class RelationshipsDecorationsPlugin implements PluginValue {
 			this.currentWidget = widget;
 			this.widgetContainer = targetContainer;
 
-			// For "top" position, insert after properties/frontmatter
+			// For "top" position, insert after properties/frontmatter (and after task card if present)
 			// For "bottom" position, insert before backlinks or at end
 			if (position === "top") {
-				// Try to insert after metadata/properties container
-				const metadataContainer = targetContainer.querySelector('.metadata-container');
-				if (metadataContainer && metadataContainer.nextSibling) {
-					// Insert after properties
-					metadataContainer.parentElement?.insertBefore(widget, metadataContainer.nextSibling);
+				// Try to find task card widget first (should come before relationships)
+				const taskCardWidget = targetContainer.querySelector('.tasknotes-task-card-note-widget');
+				if (taskCardWidget && taskCardWidget.nextSibling) {
+					// Insert after task card widget to maintain order
+					taskCardWidget.parentElement?.insertBefore(widget, taskCardWidget.nextSibling);
 				} else {
-					// No properties, insert at beginning
-					targetContainer.insertBefore(widget, targetContainer.firstChild);
+					// No task card, insert after metadata/properties container
+					const metadataContainer = targetContainer.querySelector('.metadata-container');
+					if (metadataContainer && metadataContainer.nextSibling) {
+						// Insert after properties
+						metadataContainer.parentElement?.insertBefore(widget, metadataContainer.nextSibling);
+					} else {
+						// No properties, insert at beginning
+						targetContainer.insertBefore(widget, targetContainer.firstChild);
+					}
 				}
 			} else {
 				// Try to insert before backlinks if they exist
@@ -399,12 +406,19 @@ async function injectReadingModeWidget(
 
 	// Position the widget
 	if (position === "top") {
-		// Insert after properties if present, otherwise at the beginning
-		const metadataContainer = sizer.querySelector('.metadata-container');
-		if (metadataContainer?.nextSibling) {
-			sizer.insertBefore(widget, metadataContainer.nextSibling);
+		// Try to find task card widget first (should come before relationships)
+		const taskCardWidget = sizer.querySelector('.tasknotes-task-card-note-widget');
+		if (taskCardWidget?.nextSibling) {
+			// Insert after task card widget to maintain order
+			sizer.insertBefore(widget, taskCardWidget.nextSibling);
 		} else {
-			sizer.insertBefore(widget, sizer.firstChild);
+			// No task card, insert after properties if present, otherwise at the beginning
+			const metadataContainer = sizer.querySelector('.metadata-container');
+			if (metadataContainer?.nextSibling) {
+				sizer.insertBefore(widget, metadataContainer.nextSibling);
+			} else {
+				sizer.insertBefore(widget, sizer.firstChild);
+			}
 		}
 	} else {
 		// Insert before backlinks if present, otherwise at the end
