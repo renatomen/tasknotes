@@ -426,8 +426,13 @@ export class TaskManager extends Events {
 			const due = metadata.frontmatter[dueField];
 			const status = metadata.frontmatter[statusField];
 
-			// Only count as overdue if not completed/archived
-			if (due && status !== 'completed' && status !== 'archived' && isBeforeDateSafe(due, today)) {
+			// Only count as overdue if the status is not marked as completed
+			// Check against user-defined completed statuses from settings
+			const isCompletedStatus = this.settings.customStatuses?.some(
+				s => s.value === status && s.isCompleted
+			) || false;
+
+			if (due && !isCompletedStatus && isBeforeDateSafe(due, today)) {
 				overdue.add(file.path);
 			}
 		}

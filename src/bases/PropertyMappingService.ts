@@ -118,7 +118,13 @@ export class PropertyMappingService {
 	 * @returns User-configured property name (e.g., "task-status")
 	 */
 	internalToUserProperty(internalFieldName: string): string {
-		return this.fieldMapper.toUserField(internalFieldName as any);
+		// Check if this is a valid FieldMapping key
+		const mapping = this.fieldMapper.getMapping();
+		if (internalFieldName in mapping) {
+			return this.fieldMapper.toUserField(internalFieldName as keyof typeof mapping);
+		}
+		// Not a FieldMapping key, return as-is
+		return internalFieldName;
 	}
 
 	/**
@@ -162,6 +168,37 @@ export class PropertyMappingService {
 	 */
 	basesToInternal(basesPropertyId: string): string {
 		return this.basesToTaskCardProperty(basesPropertyId);
+	}
+
+	/**
+	 * Map Bases property ID to TaskInfo property name.
+	 * This is used when calling updateTaskProperty() which expects TaskInfo keys.
+	 *
+	 * @param basesPropertyId - Property ID from Bases (e.g., "note.status", "status")
+	 * @returns TaskInfo property name (e.g., "status", "priority", "due")
+	 *
+	 * @example
+	 * // User has { status: "task-status" }
+	 * basesToTaskInfoProperty("note.task-status") // Returns: "status"
+	 * basesToTaskInfoProperty("task-status")      // Returns: "status"
+	 */
+	basesToTaskInfoProperty(basesPropertyId: string): string {
+		// Strip Bases prefix
+		let cleanId = basesPropertyId.replace(/^(note\.|file\.|task\.)/, '');
+
+		// Try to map back from user-configured property name to internal field name
+		const internalField = this.fieldMapper?.fromUserField(cleanId);
+		if (internalField) {
+			return internalField;
+		}
+
+		// Handle special mappings
+		if (cleanId === "ctime" || basesPropertyId === "file.ctime") return "dateCreated";
+		if (cleanId === "mtime" || basesPropertyId === "file.mtime") return "dateModified";
+		if (cleanId === "name" || cleanId === "basename") return "title";
+
+		// Return as-is for unknown properties
+		return cleanId;
 	}
 
 	/**

@@ -4,6 +4,8 @@
  */
 
 import type { TaskNotesSettings } from "../types/settings";
+import type TaskNotesPlugin from "../main";
+import type { FieldMapping } from "../types";
 
 /**
  * Generate a task filter expression based on the task identification method
@@ -57,56 +59,45 @@ function getPropertyName(fullPath: string): string {
 }
 
 /**
- * Map internal TaskNotes property names to Bases property names
+ * Map internal TaskNotes property names to Bases property names.
+ * Uses FieldMapper for type-safe field mapping.
  */
-function mapPropertyToBasesProperty(property: string, settings: TaskNotesSettings): string {
-	const fieldMapping = settings.fieldMapping;
+function mapPropertyToBasesProperty(property: string, plugin: TaskNotesPlugin): string {
+	const fm = plugin.fieldMapper;
 
+	// Handle special Bases-specific properties first
 	switch (property) {
-		case "status":
-			return fieldMapping.status;
-		case "priority":
-			return fieldMapping.priority;
-		case "due":
-			return fieldMapping.due;
-		case "scheduled":
-			return fieldMapping.scheduled;
-		case "contexts":
-			return fieldMapping.contexts;
-		case "projects":
-			return fieldMapping.projects;
 		case "tags":
 			return "file.tags";
-		case "timeEstimate":
-			return fieldMapping.timeEstimate;
-		case "blocked":
-		case "blockedBy":
-			return fieldMapping.blockedBy;
-		case "blocking":
-			// Blocking is a computed property, use blockedBy as the source
-			return fieldMapping.blockedBy;
-		case "recurrence":
-			return fieldMapping.recurrence;
-		case "complete_instances":
-		case "completeInstances":
-			return fieldMapping.completeInstances;
-		case "completedDate":
-			return fieldMapping.completedDate;
 		case "dateCreated":
 			return "file.ctime";
 		case "dateModified":
 			return "file.mtime";
 		case "title":
 			return "file.name";
-		default:
-			return property;
+		case "blocked":
+		case "blocking":
+			// Blocking is a computed property, use blockedBy as the source
+			return fm.toUserField("blockedBy");
+		case "complete_instances":
+			return fm.toUserField("completeInstances");
 	}
+
+	// Try to map using FieldMapper
+	const mapping = fm.getMapping();
+	if (property in mapping) {
+		return fm.toUserField(property as keyof FieldMapping);
+	}
+
+	// Unknown property, return as-is
+	return property;
 }
 
 /**
  * Generate the order array from defaultVisibleProperties
  */
-function generateOrderArray(settings: TaskNotesSettings): string[] {
+function generateOrderArray(plugin: TaskNotesPlugin): string[] {
+	const settings = plugin.settings;
 	const visibleProperties = settings.defaultVisibleProperties || [
 		"status",
 		"priority",
@@ -119,14 +110,14 @@ function generateOrderArray(settings: TaskNotesSettings): string[] {
 
 	// Map to Bases property names
 	const basesProperties = visibleProperties.map(prop =>
-		mapPropertyToBasesProperty(prop, settings)
+		mapPropertyToBasesProperty(prop, plugin)
 	);
 
 	// Add essential properties that should always be in the order
 	const essentialProperties = [
 		"file.name", // title
-		mapPropertyToBasesProperty("recurrence", settings),
-		mapPropertyToBasesProperty("complete_instances", settings),
+		mapPropertyToBasesProperty("recurrence", plugin),
+		mapPropertyToBasesProperty("complete_instances", plugin),
 	];
 
 	// Combine, removing duplicates while preserving order
@@ -162,15 +153,16 @@ function formatOrderArray(orderArray: string[]): string {
 /**
  * Generate a Bases file template for a specific command with user settings
  */
-export function generateBasesFileTemplate(commandId: string, settings: TaskNotesSettings): string {
+export function generateBasesFileTemplate(commandId: string, plugin: TaskNotesPlugin): string {
+	const settings = plugin.settings;
 	const taskFilterCondition = generateTaskFilterCondition(settings);
-	const orderArray = generateOrderArray(settings);
+	const orderArray = generateOrderArray(plugin);
 	const orderYaml = formatOrderArray(orderArray);
 
 	switch (commandId) {
 		case 'open-calendar-view': {
-			const dueProperty = mapPropertyToBasesProperty('due', settings);
-			const scheduledProperty = mapPropertyToBasesProperty('scheduled', settings);
+			const dueProperty = mapPropertyToBasesProperty('due', plugin);
+			const scheduledProperty = mapPropertyToBasesProperty('scheduled', plugin);
 			return `# Mini Calendar
 # Generated with your TaskNotes settings
 
@@ -261,9 +253,9 @@ ${orderYaml}
 		case 'relationships': {
 			// Unified relationships widget that shows all relationship types
 			// Extract just the property names (without prefixes) since the template controls the context
-			const projectsProperty = getPropertyName(mapPropertyToBasesProperty('projects', settings));
-			const blockedByProperty = getPropertyName(mapPropertyToBasesProperty('blockedBy', settings));
-			const statusProperty = getPropertyName(mapPropertyToBasesProperty('status', settings));
+			const projectsProperty = getPropertyName(mapPropertyToBasesProperty('projects', plugin));
+			const blockedByProperty = getPropertyName(mapPropertyToBasesProperty('blockedBy', plugin));
+			const statusProperty = getPropertyName(mapPropertyToBasesProperty('status', plugin));
 
 			return `# Relationships
 # This view shows all relationships for the current file

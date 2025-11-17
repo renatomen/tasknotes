@@ -154,7 +154,7 @@ export class BasesFilterConverter {
 	 */
 	private convertCompletedStatusCondition(operator: FilterOperator, value: any): string {
 		const completedStatusValues = this.statusManager.getCompletedStatuses();
-		const fieldMapping = this.plugin.settings.fieldMapping;
+		const fm = this.plugin.fieldMapper;
 
 		// Build expression checking if status is in completed list
 		const statusConditions = completedStatusValues
@@ -168,7 +168,8 @@ export class BasesFilterConverter {
 
 		// For recurring tasks, also check if today's date is in complete_instances array
 		// Use list.map() to convert dates to formatted strings, then check with contains()
-		const completedInstancesCheck = `note.${fieldMapping.completeInstances} && note.${fieldMapping.completeInstances}.map(date(value).format("YYYY-MM-DD")).contains(today().format("YYYY-MM-DD"))`;
+		const completeInstancesProp = fm.toUserField("completeInstances");
+		const completedInstancesCheck = `note.${completeInstancesProp} && note.${completeInstancesProp}.map(date(value).format("YYYY-MM-DD")).contains(today().format("YYYY-MM-DD"))`;
 
 		// Combine both conditions: status is completed OR today is in complete_instances
 		const combinedExpression = `(${statusExpression}) || (${completedInstancesCheck})`;
@@ -212,33 +213,33 @@ export class BasesFilterConverter {
 	 * Get the Bases property path for a TaskNotes property
 	 */
 	private getBasesPropertyPath(property: FilterProperty): string {
-		// Get field mapping from settings
-		const fieldMapping = this.plugin.settings.fieldMapping;
+		// Get field mapper
+		const fm = this.plugin.fieldMapper;
 
 		// Map TaskNotes property to frontmatter key
 		let frontmatterKey: string;
 
 		switch (property) {
 			case "title":
-				frontmatterKey = fieldMapping.title;
+				frontmatterKey = fm.toUserField("title");
 				break;
 			case "status":
-				frontmatterKey = fieldMapping.status;
+				frontmatterKey = fm.toUserField("status");
 				break;
 			case "priority":
-				frontmatterKey = fieldMapping.priority;
+				frontmatterKey = fm.toUserField("priority");
 				break;
 			case "due":
-				frontmatterKey = fieldMapping.due;
+				frontmatterKey = fm.toUserField("due");
 				break;
 			case "scheduled":
-				frontmatterKey = fieldMapping.scheduled;
+				frontmatterKey = fm.toUserField("scheduled");
 				break;
 			case "contexts":
-				frontmatterKey = fieldMapping.contexts;
+				frontmatterKey = fm.toUserField("contexts");
 				break;
 			case "projects":
-				frontmatterKey = fieldMapping.projects;
+				frontmatterKey = fm.toUserField("projects");
 				break;
 			case "tags":
 				return "file.tags"; // Use file.tags for Bases
@@ -250,18 +251,18 @@ export class BasesFilterConverter {
 				return "file.mtime";
 			case "archived":
 				// Check if task has the archive tag
-				return `file.tags.contains("${this.escapeString(fieldMapping.archiveTag)}")`;
+				return `file.tags.contains("${this.escapeString(fm.toUserField("archiveTag"))}")`;
 			case "timeEstimate":
-				frontmatterKey = fieldMapping.timeEstimate;
+				frontmatterKey = fm.toUserField("timeEstimate");
 				break;
 			case "completedDate":
-				frontmatterKey = fieldMapping.completedDate;
+				frontmatterKey = fm.toUserField("completedDate");
 				break;
 			case "recurrence":
-				frontmatterKey = fieldMapping.recurrence;
+				frontmatterKey = fm.toUserField("recurrence");
 				break;
 			case "blockedBy":
-				frontmatterKey = fieldMapping.blockedBy;
+				frontmatterKey = fm.toUserField("blockedBy");
 				break;
 			case "blocking":
 				frontmatterKey = "blocking"; // Computed property, not in field mapping
@@ -271,7 +272,7 @@ export class BasesFilterConverter {
 				// These are computed properties based on blockedBy
 				// For now, return a placeholder - proper implementation would need more complex logic
 				return property == "dependencies.isBlocked"
-					? `note.${fieldMapping.blockedBy} && note.${fieldMapping.blockedBy}.length > 0`
+					? `note.${fm.toUserField("blockedBy")} && note.${fm.toUserField("blockedBy")}.length > 0`
 					: "false"; // isBlocking needs reverse lookup, complex to implement
 			default:
 				// Default to the property name (handles user fields and unknown properties)
@@ -540,22 +541,22 @@ export class BasesFilterConverter {
 	 * Map TaskNotes sort key to Bases column name
 	 */
 	private mapSortKeyToBasesColumn(sortKey: string): string {
-		const fieldMapping = this.plugin.settings.fieldMapping;
+		const fm = this.plugin.fieldMapper;
 
 		// Handle known TaskNotes sort keys
 		switch (sortKey) {
-			case "due": return fieldMapping.due;
-			case "scheduled": return fieldMapping.scheduled;
-			case "priority": return fieldMapping.priority;
-			case "status": return fieldMapping.status;
-			case "title": return fieldMapping.title;
+			case "due": return fm.toUserField("due");
+			case "scheduled": return fm.toUserField("scheduled");
+			case "priority": return fm.toUserField("priority");
+			case "status": return fm.toUserField("status");
+			case "title": return fm.toUserField("title");
 			case "dateCreated": return "file.ctime";
 			case "dateModified": return "file.mtime";
-			case "completedDate": return fieldMapping.completedDate;
+			case "completedDate": return fm.toUserField("completedDate");
 			case "tags": return "file.tags";
 			case "path": return "file.path";
-			case "timeEstimate": return fieldMapping.timeEstimate;
-			case "recurrence": return fieldMapping.recurrence;
+			case "timeEstimate": return fm.toUserField("timeEstimate");
+			case "recurrence": return fm.toUserField("recurrence");
 			default:
 				// Handle user fields
 				if (sortKey.startsWith("user:")) {

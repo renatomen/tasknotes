@@ -3,6 +3,8 @@ import TaskNotesPlugin from "../main";
 import { BasesDataAdapter } from "./BasesDataAdapter";
 import { PropertyMappingService } from "./PropertyMappingService";
 import { TaskInfo, EVENT_TASK_UPDATED } from "../types";
+import { convertInternalToUserProperties } from "../utils/propertyMapping";
+import { DEFAULT_INTERNAL_VISIBLE_PROPERTIES } from "../settings/defaults";
 
 /**
  * Abstract base class for all TaskNotes Bases views.
@@ -331,13 +333,12 @@ export abstract class BasesViewBase extends Component {
 
 		// Fallback to plugin defaults if no properties configured
 		if (!visibleProperties || visibleProperties.length === 0) {
-			visibleProperties = this.plugin.settings.defaultVisibleProperties || [
-				"due",
-				"scheduled",
-				"projects",
-				"contexts",
+			const internalDefaults = this.plugin.settings.defaultVisibleProperties || [
+				...DEFAULT_INTERNAL_VISIBLE_PROPERTIES,
 				"tags",
 			];
+			// Convert internal field names to user-configured property names
+			visibleProperties = convertInternalToUserProperties(internalDefaults, this.plugin);
 		}
 
 		return visibleProperties;

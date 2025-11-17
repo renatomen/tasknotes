@@ -4,6 +4,8 @@ import { TaskInfo } from "../types";
 import { setIcon } from "obsidian";
 import { calculateTotalTimeSpent } from "../utils/helpers";
 import { format } from "date-fns";
+import { convertInternalToUserProperties } from "../utils/propertyMapping";
+import { DEFAULT_INTERNAL_VISIBLE_PROPERTIES } from "../settings/defaults";
 
 export interface BasesDataItem {
 	key?: string;
@@ -358,17 +360,16 @@ export async function renderTaskNotesInBasesView(
 
 	// Use plugin default properties if no Bases properties available
 	if (!visibleProperties || visibleProperties.length === 0) {
-		visibleProperties = plugin.settings.defaultVisibleProperties || [
-			"due",
-			"scheduled",
-			"projects",
-			"contexts",
+		const internalDefaults = plugin.settings.defaultVisibleProperties || [
+			...DEFAULT_INTERNAL_VISIBLE_PROPERTIES,
 			"tags",
 		];
+		// Convert internal field names to user-configured property names
+		visibleProperties = convertInternalToUserProperties(internalDefaults, plugin);
 
 		// Filter out blocked/blocking from defaults since they're computed properties
 		// that should only show when explicitly requested via blockedBy
-		visibleProperties = visibleProperties.filter(p => p !== "blocked" && p !== "blocking");
+		visibleProperties = visibleProperties.filter((p) => p !== "blocked" && p !== "blocking");
 		console.log("[TaskNotes][Bases] Using default properties (filtered):", visibleProperties);
 	}
 
@@ -453,17 +454,16 @@ export async function renderGroupedTasksInBasesView(
 
 	// Use plugin default properties if no Bases properties available
 	if (!visibleProperties || visibleProperties.length === 0) {
-		visibleProperties = plugin.settings.defaultVisibleProperties || [
-			"due",
-			"scheduled",
-			"projects",
-			"contexts",
+		const internalDefaults = plugin.settings.defaultVisibleProperties || [
+			...DEFAULT_INTERNAL_VISIBLE_PROPERTIES,
 			"tags",
 		];
+		// Convert internal field names to user-configured property names
+		visibleProperties = convertInternalToUserProperties(internalDefaults, plugin);
 
 		// Filter out blocked/blocking from defaults since they're computed properties
 		// that should only show when explicitly requested via blockedBy
-		visibleProperties = visibleProperties.filter(p => p !== "blocked" && p !== "blocking");
+		visibleProperties = visibleProperties.filter((p) => p !== "blocked" && p !== "blocking");
 		console.log("[TaskNotes][Bases] Using default properties (filtered):", visibleProperties);
 	}
 

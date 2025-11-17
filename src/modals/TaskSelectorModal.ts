@@ -199,8 +199,9 @@ export class TaskSelectorModal extends FuzzySuggestModal<TaskInfo> {
 			});
 		}
 
-		// Status
-		if (task.status !== "open") {
+		// Status - show if it's not the default status
+		const defaultStatus = this.plugin.settings.defaultTaskStatus;
+		if (task.status && task.status !== defaultStatus) {
 			const statusConfig = this.plugin.statusManager.getStatusConfig(task.status);
 			metaDiv.createSpan({
 				cls: `task-selector-modal__status`,

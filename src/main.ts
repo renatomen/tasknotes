@@ -1797,7 +1797,7 @@ export default class TaskNotesPlugin extends Plugin {
 				}
 
 				// Generate template with user settings
-				const template = generateBasesFileTemplate(commandId, this.settings);
+				const template = generateBasesFileTemplate(commandId, this);
 				if (!template) {
 					skipped.push(rawPath);
 					continue;

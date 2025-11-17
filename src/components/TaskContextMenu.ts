@@ -1364,9 +1364,9 @@ export class TaskContextMenu {
 			// Sort by order property
 			const sortedStatuses = [...statusConfigs].sort((a, b) => a.order - b.order);
 
-			// Filter for recurring tasks if needed
+			// Filter for recurring tasks if needed - exclude completed statuses
 			const availableStatuses = task.recurrence
-				? sortedStatuses.filter((status) => status.value !== "completed")
+				? sortedStatuses.filter((status) => !status.isCompleted)
 				: sortedStatuses;
 
 			availableStatuses.forEach((status) => {

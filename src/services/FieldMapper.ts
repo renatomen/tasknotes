@@ -359,6 +359,41 @@ export class FieldMapper {
 	}
 
 	/**
+	 * Check if a property name matches a specific internal field.
+	 * This handles user-configured field names properly.
+	 *
+	 * @param propertyName - The property name to check (could be user-configured or internal)
+	 * @param internalField - The internal field key to check against
+	 * @returns true if the propertyName is the user's configured name for this field
+	 *
+	 * @example
+	 * // User has { status: "task-status" }
+	 * isPropertyForField("task-status", "status") // true
+	 * isPropertyForField("status", "status")      // false
+	 *
+	 * // User has { status: "status" } (default)
+	 * isPropertyForField("status", "status")      // true
+	 */
+	isPropertyForField(propertyName: string, internalField: keyof FieldMapping): boolean {
+		return this.mapping[internalField] === propertyName;
+	}
+
+	/**
+	 * Convert an array of internal field names to their user-configured property names.
+	 *
+	 * @param internalFields - Array of FieldMapping keys
+	 * @returns Array of user-configured property names
+	 *
+	 * @example
+	 * // User has { status: "task-status", due: "deadline" }
+	 * toUserFields(["status", "due", "priority"])
+	 * // Returns: ["task-status", "deadline", "priority"]
+	 */
+	toUserFields(internalFields: (keyof FieldMapping)[]): string[] {
+		return internalFields.map((field) => this.mapping[field]);
+	}
+
+	/**
 	 * @deprecated Use lookupMappingKey() instead for clarity about what is returned
 	 * Convert user's property name back to internal field name
 	 * This is the reverse of toUserField()

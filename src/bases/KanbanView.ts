@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { TFile } from "obsidian";
 import TaskNotesPlugin from "../main";
 import { BasesViewBase } from "./BasesViewBase";
 import { TaskInfo } from "../types";
@@ -199,9 +200,14 @@ export class KanbanView extends BasesViewBase {
 		groupByPropertyId: string
 	): void {
 		// Check if we're grouping by status
-		// The internal field name is "status", which maps to "task.status" in Bases
-		const internalFieldName = this.propertyMapper.basesToInternal(groupByPropertyId);
-		if (internalFieldName !== 'status') {
+		// Compare the groupBy property against the user's configured status field name
+		const statusPropertyName = this.plugin.fieldMapper.toUserField('status');
+
+		// The groupByPropertyId from Bases might have a prefix (e.g., "note.status")
+		// Strip the prefix to compare against the field name
+		const cleanGroupBy = groupByPropertyId.replace(/^(note\.|file\.|task\.)/, '');
+
+		if (cleanGroupBy !== statusPropertyName) {
 			return; // Not grouping by status, don't augment
 		}
 
@@ -794,24 +800,12 @@ export class KanbanView extends BasesViewBase {
 			const groupByPropertyId = this.getGroupByPropertyId();
 			if (!groupByPropertyId) return;
 
-			// Map Bases property ID to internal field name
-			const internalFieldName = this.propertyMapper.basesToInternal(groupByPropertyId);
-
 			// Update the groupBy property
-			await this.plugin.updateTaskProperty(
-				{ path: taskPath } as TaskInfo,
-				internalFieldName as any,
-				newGroupValue
-			);
+			await this.updateTaskFrontmatterProperty(taskPath, groupByPropertyId, newGroupValue);
 
 			// Update swimlane property if applicable
 			if (newSwimLaneValue !== null && this.swimLanePropertyId) {
-				const swimLaneInternalField = this.propertyMapper.basesToInternal(this.swimLanePropertyId);
-				await this.plugin.updateTaskProperty(
-					{ path: taskPath } as TaskInfo,
-					swimLaneInternalField as any,
-					newSwimLaneValue
-				);
+				await this.updateTaskFrontmatterProperty(taskPath, this.swimLanePropertyId, newSwimLaneValue);
 			}
 
 			// Refresh to show updated position
@@ -819,6 +813,28 @@ export class KanbanView extends BasesViewBase {
 		} catch (error) {
 			console.error("[TaskNotes][KanbanView] Error updating task:", error);
 		}
+	}
+
+	/**
+	 * Update a frontmatter property for any property (built-in or user-defined)
+	 */
+	private async updateTaskFrontmatterProperty(
+		taskPath: string,
+		basesPropertyId: string,
+		value: any
+	): Promise<void> {
+		const file = this.plugin.app.vault.getAbstractFileByPath(taskPath);
+		if (!file || !(file instanceof TFile)) {
+			throw new Error(`Cannot find task file: ${taskPath}`);
+		}
+
+		// Strip Bases prefix to get the frontmatter key
+		const frontmatterKey = basesPropertyId.replace(/^(note\.|file\.|task\.)/, '');
+
+		// Update the frontmatter directly
+		await this.plugin.app.fileManager.processFrontMatter(file, (frontmatter) => {
+			frontmatter[frontmatterKey] = value;
+		});
 	}
 
 	protected setupContainer(): void {

@@ -8,6 +8,19 @@ import {
 	NLPTriggersConfig,
 } from "../types/settings";
 
+/**
+ * Internal field names for default visible properties.
+ * These are FieldMapping keys that will be converted to user-configured property names.
+ */
+export const DEFAULT_INTERNAL_VISIBLE_PROPERTIES: (keyof FieldMapping)[] = [
+	"status",
+	"priority",
+	"due",
+	"scheduled",
+	"projects",
+	"contexts",
+];
+
 // Default field mapping maintains backward compatibility
 export const DEFAULT_FIELD_MAPPING: FieldMapping = {
 	title: "title",
