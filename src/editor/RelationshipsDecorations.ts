@@ -1,121 +1,116 @@
 import {
-	Decoration,
-	DecorationSet,
 	EditorView,
-	PluginSpec,
 	PluginValue,
 	ViewPlugin,
 	ViewUpdate,
-	WidgetType,
 } from "@codemirror/view";
 import {
+	Component,
 	TFile,
 	editorInfoField,
 	editorLivePreviewField,
 	MarkdownRenderer,
 } from "obsidian";
-import { Extension, RangeSetBuilder } from "@codemirror/state";
+import { Extension } from "@codemirror/state";
 
 import TaskNotesPlugin from "../main";
 
-export class RelationshipsWidget extends WidgetType {
-	constructor(
-		private plugin: TaskNotesPlugin,
-		private notePath: string
-	) {
-		super();
-	}
+// CSS class for identifying plugin-generated elements
+const CSS_RELATIONSHIPS_WIDGET = 'tasknotes-relationships-widget';
 
-	// Override eq to ensure widget updates when note path changes
-	eq(other: RelationshipsWidget): boolean {
-		return this.notePath === other.notePath;
-	}
+// Interface to track component lifecycle
+interface HTMLElementWithComponent extends HTMLElement {
+	component?: Component;
+}
 
-	toDOM(view: EditorView): HTMLElement {
-		const container = document.createElement("div");
-		container.className = "tasknotes-plugin relationships-widget cm-widget-cursor-fix";
+/**
+ * Helper function to create and render the relationships widget content
+ */
+async function createRelationshipsWidget(
+	plugin: TaskNotesPlugin,
+	notePath: string
+): Promise<HTMLElementWithComponent> {
+	const container = document.createElement("div") as HTMLElementWithComponent;
+	container.className = `tasknotes-plugin ${CSS_RELATIONSHIPS_WIDGET}`;
 
-		container.setAttribute("contenteditable", "false");
-		container.setAttribute("spellcheck", "false");
-		container.setAttribute("data-widget-type", "relationships");
+	container.setAttribute("contenteditable", "false");
+	container.setAttribute("spellcheck", "false");
+	container.setAttribute("data-widget-type", "relationships");
 
-		// Create container for embedded Bases view
-		const basesContainer = container.createEl("div", {
-			cls: "relationships__bases-container",
-		});
+	// Create container for embedded Bases view
+	const basesContainer = document.createElement("div");
+	basesContainer.className = "relationships__bases-container";
+	container.appendChild(basesContainer);
 
-		// Asynchronously load and render the Bases view
-		this.renderBasesView(basesContainer);
+	// Create component for lifecycle management
+	const component = new Component();
+	component.load();
+	container.component = component;
 
-		return container;
-	}
-
-	private async renderBasesView(container: HTMLElement): Promise<void> {
-		try {
-			// Get the Bases file path from settings
-			const basesFilePath = this.plugin.settings.commandFileMapping['relationships'];
-			if (!basesFilePath) {
-				container.createEl("div", {
-					text: "Relationships view not configured",
-					cls: "relationships__error",
-				});
-				return;
-			}
-
-			// Create an embed link to the Bases file
-			// This will use Obsidian's standard embed rendering, which should handle .base files
-			const embedMarkdown = `![[${basesFilePath}]]`;
-
-			await MarkdownRenderer.render(
-				this.plugin.app,
-				embedMarkdown,
-				container,
-				this.notePath, // Source path provides context for 'this' keyword
-				this.plugin as any
-			);
-
-		} catch (error) {
-			console.error("Error rendering Bases view in relationships widget:", error);
-			container.createEl("div", {
-				text: "Failed to load relationships view",
-				cls: "relationships__error",
-			});
+	try {
+		// Get the Bases file path from settings
+		const basesFilePath = plugin.settings.commandFileMapping['relationships'];
+		if (!basesFilePath) {
+			const errorDiv = document.createElement("div");
+			errorDiv.className = "relationships__error";
+			errorDiv.textContent = "Relationships view not configured";
+			basesContainer.appendChild(errorDiv);
+			return container;
 		}
+
+		// Create an embed link to the Bases file
+		const embedMarkdown = `![[${basesFilePath}]]`;
+
+		await MarkdownRenderer.render(
+			plugin.app,
+			embedMarkdown,
+			basesContainer,
+			notePath, // Source path provides context for 'this' keyword
+			component
+		);
+
+	} catch (error) {
+		console.error("Error rendering Bases view in relationships widget:", error);
+		const errorDiv = document.createElement("div");
+		errorDiv.className = "relationships__error";
+		errorDiv.textContent = "Failed to load relationships view";
+		basesContainer.appendChild(errorDiv);
 	}
+
+	return container;
 }
 
 class RelationshipsDecorationsPlugin implements PluginValue {
-	decorations: DecorationSet;
 	private currentFile: TFile | null = null;
 	private view: EditorView;
+	private currentWidget: HTMLElementWithComponent | null = null;
+	private widgetContainer: HTMLElement | null = null;
 
 	constructor(
 		view: EditorView,
 		private plugin: TaskNotesPlugin
 	) {
 		this.view = view;
-		this.decorations = this.buildDecorations(view);
+		this.currentFile = this.getFileFromView(view);
+		// Inject widget asynchronously to avoid blocking constructor
+		this.injectWidget(view);
 	}
 
 	update(update: ViewUpdate) {
 		// Store the updated view reference
 		this.view = update.view;
 
-		// Rebuild decorations on document changes or viewport changes
-		if (update.docChanged || update.viewportChanged) {
-			this.decorations = this.buildDecorations(update.view);
-		}
-
 		// Check if file changed for this specific view
 		const newFile = this.getFileFromView(update.view);
 		if (newFile !== this.currentFile) {
 			this.currentFile = newFile;
-			this.decorations = this.buildDecorations(update.view);
+			this.injectWidget(update.view);
 		}
 	}
 
 	destroy() {
-		// Nothing to clean up - Bases handles all data updates
+		// Clean up the widget and its component
+		this.removeWidget();
 	}
 
 	private getFileFromView(view: EditorView): TFile | null {
@@ -186,37 +181,41 @@ class RelationshipsDecorationsPlugin implements PluginValue {
 		}
 	}
 
-	private buildDecorations(view: EditorView): DecorationSet {
-		const builder = new RangeSetBuilder<Decoration>();
+	private removeWidget(): void {
+		if (this.currentWidget) {
+			// Unload the component
+			this.currentWidget.component?.unload();
+			// Remove from DOM
+			this.currentWidget.remove();
+			this.currentWidget = null;
+		}
+		this.widgetContainer = null;
+	}
+
+	private async injectWidget(view: EditorView): Promise<void> {
+		// Remove any existing widget first
+		this.removeWidget();
 
 		try {
 			// Don't show widget in table cell editors
 			if (this.isTableCellEditor(view)) {
-				return builder.finish();
+				return;
 			}
 
 			// Check if relationships widget is enabled
 			if (!this.plugin.settings.showRelationships) {
-				return builder.finish();
+				return;
 			}
 
 			// Only show in live preview mode, not source mode
 			if (!view.state.field(editorLivePreviewField)) {
-				return builder.finish();
-			}
-
-			const doc = view.state.doc;
-
-			// Ensure document has content
-			if (doc.length === 0) {
-				return builder.finish();
+				return;
 			}
 
 			// Get the current file
 			const file = this.currentFile || this.getFileFromView(view);
 			if (!file) {
-				console.warn("RelationshipsDecorations: Cannot create widget without file context");
-				return builder.finish();
+				return;
 			}
 
 			// Show widget in task notes OR project notes (notes referenced by tasks)
@@ -224,7 +223,7 @@ class RelationshipsDecorationsPlugin implements PluginValue {
 			const metadata = this.plugin.app.metadataCache.getFileCache(file);
 			if (!metadata?.frontmatter) {
 				// No frontmatter - not a task or project note
-				return builder.finish();
+				return;
 			}
 
 			// Check if this is a task note
@@ -236,63 +235,64 @@ class RelationshipsDecorationsPlugin implements PluginValue {
 			// Only show widget if it's either a task note or a project note
 			if (!isTaskNote && !isProjectNote) {
 				// Not a task or project note - don't show relationships widget
-				return builder.finish();
-			}
-
-			// Find insertion position after frontmatter/properties
-			let insertPos = this.findInsertionPosition(view, doc);
-
-			// Ensure position is valid
-			if (insertPos < 0 || insertPos > doc.length) {
-				insertPos = 0;
+				return;
 			}
 
 			const notePath = file.path;
+			const position = this.plugin.settings.relationshipsPosition || "bottom";
 
-			const widget = Decoration.widget({
-				widget: new RelationshipsWidget(
-					this.plugin,
-					notePath
-				),
-				side: 1,
-			});
+			// Find .cm-sizer which contains the scrollable content area
+			// This is safer than .cm-content which is managed by CodeMirror
+			const targetContainer = view.dom.closest('.markdown-source-view')?.querySelector<HTMLElement>('.cm-sizer');
 
-			builder.add(insertPos, insertPos, widget);
-		} catch (error) {
-			console.error("Error building relationships decorations:", error);
-		}
-
-		return builder.finish();
-	}
-
-	private findInsertionPosition(view: EditorView, doc: any): number {
-		if (doc.lines === 0) return 0;
-
-		const position = this.plugin.settings.relationshipsPosition || "bottom";
-
-		if (position === "top") {
-			// Find position after frontmatter if present
-			const docText = doc.toString();
-			const frontmatterRegex = /^---\n[\s\S]*?\n---\n/;
-			const match = frontmatterRegex.exec(docText);
-
-			if (match) {
-				// Place after frontmatter
-				return match[0].length;
-			} else {
-				// No frontmatter, place at beginning
-				return 0;
+			if (!targetContainer) {
+				return;
 			}
-		} else {
-			// Default: insert at the very end of the document
-			return doc.length;
+
+			// Create the widget
+			const widget = await createRelationshipsWidget(this.plugin, notePath);
+
+			// Add styling to prevent cursor interaction and match decoration appearance
+			widget.style.display = "block";
+			widget.style.pointerEvents = "auto";
+			widget.style.userSelect = "none";
+			widget.style.border = "1px dashed var(--background-modifier-border)";
+			widget.style.borderRadius = "4px";
+			widget.style.padding = "8px";
+			widget.style.marginTop = "8px";
+			widget.style.marginBottom = "8px";
+
+			// Store references
+			this.currentWidget = widget;
+			this.widgetContainer = targetContainer;
+
+			// For "top" position, insert after properties/frontmatter
+			// For "bottom" position, insert before backlinks or at end
+			if (position === "top") {
+				// Try to insert after metadata/properties container
+				const metadataContainer = targetContainer.querySelector('.metadata-container');
+				if (metadataContainer && metadataContainer.nextSibling) {
+					// Insert after properties
+					metadataContainer.parentElement?.insertBefore(widget, metadataContainer.nextSibling);
+				} else {
+					// No properties, insert at beginning
+					targetContainer.insertBefore(widget, targetContainer.firstChild);
+				}
+			} else {
+				// Try to insert before backlinks if they exist
+				const backlinks = targetContainer.parentElement?.querySelector('.embedded-backlinks');
+				if (backlinks) {
+					backlinks.parentElement?.insertBefore(widget, backlinks);
+				} else {
+					// No backlinks, just append to sizer
+					targetContainer.appendChild(widget);
+				}
+			}
+		} catch (error) {
+			console.error("Error injecting relationships widget:", error);
 		}
 	}
 }
-
-const relationshipsDecorationsSpec: PluginSpec<RelationshipsDecorationsPlugin> = {
-	decorations: (plugin: RelationshipsDecorationsPlugin) => plugin.decorations,
-};
 
 /**
  * Create the relationships decorations extension
@@ -307,7 +307,6 @@ export function createRelationshipsDecorations(plugin: TaskNotesPlugin): Extensi
 			destroy() {
 				super.destroy();
 			}
-		},
-		relationshipsDecorationsSpec
+		}
 	);
 }
