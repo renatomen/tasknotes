@@ -1258,3 +1258,33 @@
 .fc-list-event.fc-list-task-card[data-newly-added] {
     animation: slideInUp 0.3s ease-out;
 }
+
+/* Dark mode fixes for FullCalendar popover ("+more" popup) */
+.theme-dark .advanced-calendar-view .fc-popover {
+    background: var(--background-primary) !important;
+    border: 1px solid var(--background-modifier-border) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+}
+
+.theme-dark .advanced-calendar-view .fc-popover-header {
+    background: var(--background-secondary) !important;
+    border-bottom: 1px solid var(--background-modifier-border) !important;
+}
+
+.theme-dark .advanced-calendar-view .fc-popover-title {
+    color: var(--text-normal) !important;
+}
+
+.theme-dark .advanced-calendar-view .fc-popover-close {
+    color: var(--text-muted) !important;
+}
+
+.theme-dark .advanced-calendar-view .fc-popover-close:hover {
+    color: var(--text-normal) !important;
+    background: var(--background-modifier-hover) !important;
+}
+
+.theme-dark .advanced-calendar-view .fc-popover-body {
+    background: var(--background-primary) !important;
+    color: var(--text-normal) !important;
+}

@@ -49,3 +49,8 @@ Example:
   - Similar to the previous fix for table cell editors
   - Thanks to @3zra47 for reporting
 
+- (#1086) Fixed calendar "+more" popover showing white text on white background in dark mode
+  - Added proper dark mode styling for the FullCalendar popover
+  - Popover now uses theme-appropriate colors for background, text, and borders
+  - Thanks to @same774 for reporting
+
