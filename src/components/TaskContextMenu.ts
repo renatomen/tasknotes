@@ -1159,6 +1159,7 @@ export class TaskContextMenu {
 			},
 			onCustomDate: onCustomDate,
 			plugin: this.options.plugin,
+			app: this.options.plugin.app,
 		});
 
 		const dateOptions = dateContextMenu.getDateOptions();

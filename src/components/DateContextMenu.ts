@@ -1,5 +1,6 @@
-import { setIcon } from "obsidian";
+import { App, setIcon } from "obsidian";
 import { ContextMenu } from "./ContextMenu";
+import { DateTimePickerModal } from "../modals/DateTimePickerModal";
 
 export interface DateOption {
 	label: string;
@@ -20,6 +21,7 @@ export interface DateContextMenuOptions {
 	showRelativeDates?: boolean;
 	title?: string;
 	plugin?: any;
+	app?: App;
 }
 
 export class DateContextMenu {
@@ -237,241 +239,22 @@ export class DateContextMenu {
 	}
 
 	private showDateTimePicker(): void {
-		const modal = this.createModal();
-
-		// Create title with icon
-		const header = this.createHeader();
-
-		// Create date input section
-		const dateSection = this.createDateSection();
-
-		// Create time input section
-		const timeSection = this.createTimeSection();
-
-		// Create action buttons
-		const buttonSection = this.createButtonSection();
-
-		// Assemble modal
-		modal.appendChild(header);
-		modal.appendChild(dateSection.container);
-		modal.appendChild(timeSection.container);
-		modal.appendChild(buttonSection.container);
-
-		document.body.appendChild(modal);
-
-		// Set up event handlers
-		this.setupModalEventHandlers(
-			modal,
-			dateSection.input,
-			timeSection.input,
-			buttonSection.selectButton
-		);
-
-		// Focus the date input
-		setTimeout(() => {
-			dateSection.input.focus();
-		}, 100);
-	}
-
-	private createModal(): HTMLElement {
-		const modal = document.createElement("div");
-		modal.className = "date-picker-modal";
-		return modal;
-	}
-
-	private createHeader(): HTMLElement {
-		const header = document.createElement("div");
-		header.className = "date-picker-modal__header";
-
-		// Calendar icon
-		const icon = document.createElement("div");
-		icon.className = "date-picker-modal__header-icon";
-		setIcon(icon, "calendar");
-
-		const title = document.createElement("h3");
-		title.className = "date-picker-modal__header-title";
-		title.textContent = this.t("contextMenus.date.modal.title", "Set date & time");
-
-		header.appendChild(icon);
-		header.appendChild(title);
-		return header;
-	}
-
-	private createDateSection(): { container: HTMLElement; input: HTMLInputElement } {
-		const container = document.createElement("div");
-		container.className = "date-picker-modal__section";
-
-		const label = this.createInputLabel(
-			"calendar",
-			this.t("contextMenus.date.modal.dateLabel", "Date")
-		);
-		const inputContainer = this.createInputContainer();
-		const input = this.createDateInput();
-
-		if (this.options.currentValue?.trim()) {
-			input.value = this.options.currentValue;
+		// Use app from options or plugin
+		const app = this.options.app || this.options.plugin?.app;
+		if (!app) {
+			console.error("DateContextMenu: No app instance available for modal");
+			return;
 		}
 
-		inputContainer.appendChild(input);
-		container.appendChild(label);
-		container.appendChild(inputContainer);
-
-		return { container, input };
-	}
-
-	private createTimeSection(): { container: HTMLElement; input: HTMLInputElement } {
-		const container = document.createElement("div");
-		container.className = "date-picker-modal__section date-picker-modal__section--buttons";
-
-		const label = this.createInputLabel(
-			"clock",
-			this.t("contextMenus.date.modal.timeLabel", "Time (optional)")
-		);
-		const inputContainer = this.createInputContainer();
-		const input = this.createTimeInput();
-
-		if (this.options.currentTime?.trim()) {
-			input.value = this.options.currentTime;
-		}
-
-		inputContainer.appendChild(input);
-		container.appendChild(label);
-		container.appendChild(inputContainer);
-
-		return { container, input };
-	}
-
-	private createInputLabel(iconName: string, text: string): HTMLElement {
-		const label = document.createElement("label");
-		label.className = "date-picker-modal__label";
-
-		const icon = document.createElement("div");
-		icon.className = "date-picker-modal__label-icon";
-		setIcon(icon, iconName === "calendar" ? "calendar" : "clock");
-
-		const labelText = document.createElement("span");
-		labelText.textContent = text;
-
-		label.appendChild(icon);
-		label.appendChild(labelText);
-		return label;
-	}
-
-	private createInputContainer(): HTMLElement {
-		const container = document.createElement("div");
-		container.className = "date-picker-modal__input-container";
-		return container;
-	}
-
-	private createDateInput(): HTMLInputElement {
-		const input = document.createElement("input");
-		input.type = "date";
-		input.className = "date-picker-modal__input";
-		this.addPickerClickHandler(input);
-		return input;
-	}
-
-	private createTimeInput(): HTMLInputElement {
-		const input = document.createElement("input");
-		input.type = "time";
-		input.className = "date-picker-modal__input";
-		this.addPickerClickHandler(input);
-		return input;
-	}
-
-	private addPickerClickHandler(input: HTMLInputElement): void {
-		input.addEventListener("click", () => {
-			if ("showPicker" in input && typeof (input as any).showPicker === "function") {
-				try {
-					(input as any).showPicker();
-				} catch (error) {
-					input.focus();
-				}
-			} else {
-				input.focus();
-			}
-		});
-	}
-
-	private createButtonSection(): { container: HTMLElement; selectButton: HTMLButtonElement } {
-		const container = document.createElement("div");
-		container.className = "date-picker-modal__buttons";
-
-		const cancelButton = this.createButton(this.t("common.cancel", "Cancel"), false);
-		const selectButton = this.createButton(
-			this.t("contextMenus.date.modal.select", "Select"),
-			true
-		);
-
-		container.appendChild(cancelButton);
-		container.appendChild(selectButton);
-
-		return { container, selectButton };
-	}
-
-	private createButton(text: string, isPrimary: boolean): HTMLButtonElement {
-		const button = document.createElement("button");
-		button.textContent = text;
-		button.className = isPrimary
-			? "date-picker-modal__button date-picker-modal__button--primary"
-			: "date-picker-modal__button date-picker-modal__button--secondary";
-		return button;
-	}
-
-	private setupModalEventHandlers(
-		modal: HTMLElement,
-		dateInput: HTMLInputElement,
-		timeInput: HTMLInputElement,
-		selectButton: HTMLButtonElement
-	): void {
-		// Select button click
-		selectButton.addEventListener("click", () => {
-			if (dateInput.value) {
-				this.options.onSelect(dateInput.value, timeInput.value || null);
-			}
-			document.body.removeChild(modal);
+		const modal = new DateTimePickerModal(app, {
+			currentDate: this.options.currentValue || null,
+			currentTime: this.options.currentTime || null,
+			title: this.t("contextMenus.date.modal.title", "Set date & time"),
+			onSelect: (date, time) => {
+				this.options.onSelect(date, time);
+			},
 		});
 
-		// Cancel button click
-		const cancelButton = modal.querySelector(
-			".date-picker-modal__button--secondary"
-		) as HTMLButtonElement;
-		cancelButton.addEventListener("click", () => {
-			document.body.removeChild(modal);
-		});
-
-		// Escape key
-		const handleEscape = (e: KeyboardEvent) => {
-			if (e.key === "Escape") {
-				document.body.removeChild(modal);
-				document.removeEventListener("keydown", handleEscape);
-			}
-		};
-		document.addEventListener("keydown", handleEscape);
-
-		// Enter key in inputs
-		const handleEnter = (e: KeyboardEvent) => {
-			if (e.key === "Enter") {
-				e.preventDefault();
-				selectButton.click();
-			}
-		};
-
-		dateInput.addEventListener("keydown", handleEnter);
-		timeInput.addEventListener("keydown", handleEnter);
-
-		// Click outside to close
-		const handleClickOutside = (e: MouseEvent) => {
-			if (!modal.contains(e.target as Node)) {
-				document.body.removeChild(modal);
-				document.removeEventListener("click", handleClickOutside);
-				document.removeEventListener("keydown", handleEscape);
-			}
-		};
-
-		// Add slight delay to prevent immediate closure
-		setTimeout(() => {
-			document.addEventListener("click", handleClickOutside);
-		}, 100);
+		modal.open();
 	}
 }

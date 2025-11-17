@@ -81,6 +81,7 @@ function attachDateClickHandler(
 				}
 			},
 			plugin,
+			app: plugin.app,
 		});
 		menu.show(e as MouseEvent);
 	});

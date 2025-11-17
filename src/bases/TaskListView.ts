@@ -886,6 +886,7 @@ export class TaskListView extends BasesViewBase {
 				}
 			},
 			plugin: this.plugin,
+			app: this.app,
 		});
 		menu.show(event);
 	}

@@ -34,6 +34,12 @@ Example:
 
 ## Fixed
 
+- (#1024) Fixed date/time picker immediately closing when selecting time on iPhone
+  - Refactored date/time picker to use Obsidian's native Modal components instead of custom modal implementation
+  - Native HTML5 date/time inputs now work correctly with mobile device pickers
+  - Simplified code by 45% (removed ~220 lines of complex custom modal logic)
+  - Thanks to @3zra47 for reporting
+
 - (#1122) Fixed inline task titles being truncated too aggressively
   - Increased max-width from 250-300px to responsive `min(600px, 80vw)`
   - Fixed white-space property to properly support ellipsis truncation
