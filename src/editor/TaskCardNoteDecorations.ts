@@ -1,3 +1,42 @@
+/**
+ * Task Card Note Decorations
+ *
+ * ARCHITECTURAL NOTE:
+ * This implementation uses direct DOM manipulation to inject task card widgets into
+ * the CodeMirror editor, rather than using CodeMirror's official Panel or Decoration APIs.
+ *
+ * WHY THIS APPROACH:
+ * - CodeMirror Panel API: Designed for editor chrome (toolbars, status bars), always positions
+ *   content at the very top or bottom of the editor, cannot be positioned within document flow
+ * - CodeMirror Decoration API: Had cursor interaction issues where widgets interfered with
+ *   text editing and cursor positioning
+ * - DOM Manipulation: Allows precise positioning within document (after frontmatter, before content)
+ *   without interfering with CodeMirror's text editing
+ *
+ * RISKS & LIMITATIONS:
+ * - Relies on undocumented DOM structure (.cm-sizer, .metadata-container classes)
+ * - May break with CodeMirror or Obsidian updates
+ * - Bypasses CodeMirror's rendering pipeline
+ * - No automatic cleanup from CodeMirror
+ *
+ * MITIGATION:
+ * - Comprehensive null checks and error handling
+ * - Defensive DOM queries with fallbacks
+ * - Manual cleanup in destroy() lifecycle
+ * - Orphaned widget cleanup
+ * - CSS classes instead of inline styles for theme compatibility
+ *
+ * ALTERNATIVES CONSIDERED:
+ * - Panel API: Would position above all content including properties (not suitable)
+ * - Decoration API: Caused cursor interaction problems (original issue)
+ * - Markdown Post-Processor: Only works in reading mode, not live preview
+ *
+ * If this breaks in future, consider:
+ * 1. Engaging with Obsidian/CodeMirror community for proper API
+ * 2. Creating feature request for "content panels" in CodeMirror
+ * 3. Using Obsidian's registerMarkdownPostProcessor for reading mode only
+ */
+
 import {
 	EditorView,
 	PluginValue,
@@ -12,6 +51,7 @@ import {
 	TaskInfo,
 } from "../types";
 import {
+	Component,
 	EventRef,
 	TFile,
 	editorInfoField,
@@ -28,19 +68,33 @@ import { convertInternalToUserProperties } from "../utils/propertyMapping";
 // CSS class for identifying plugin-generated elements
 const CSS_TASK_CARD_WIDGET = 'tasknotes-task-card-note-widget';
 
+// Event emitted when task card widget is injected
+const EVENT_TASK_CARD_INJECTED = 'task-card-injected';
+
+// Interface to track component lifecycle
+interface HTMLElementWithComponent extends HTMLElement {
+	component?: Component;
+}
+
 /**
  * Helper function to create the task card widget
+ * Now includes Component lifecycle management for proper cleanup
  */
 function createTaskCardWidget(
 	plugin: TaskNotesPlugin,
 	task: TaskInfo
-): HTMLElement {
-	const container = document.createElement("div");
+): HTMLElementWithComponent {
+	const container = document.createElement("div") as HTMLElementWithComponent;
 	container.className = `tasknotes-plugin task-card-note-widget ${CSS_TASK_CARD_WIDGET}`;
 
 	container.setAttribute("contenteditable", "false");
 	container.setAttribute("spellcheck", "false");
 	container.setAttribute("data-widget-type", "task-card");
+
+	// Create component for lifecycle management
+	const component = new Component();
+	component.load();
+	container.component = component;
 
 	// Get the visible properties from settings and convert internal names to user-configured names
 	const visibleProperties = plugin.settings.defaultVisibleProperties
@@ -63,8 +117,9 @@ export class TaskCardNoteDecorationsPlugin implements PluginValue {
 	private currentFile: TFile | null = null;
 	private eventListeners: EventRef[] = [];
 	private view: EditorView;
-	private currentWidget: HTMLElement | null = null;
+	private currentWidget: HTMLElementWithComponent | null = null;
 	private widgetContainer: HTMLElement | null = null;
+	private debounceTimer: number | null = null;
 
 	constructor(
 		view: EditorView,
@@ -93,6 +148,12 @@ export class TaskCardNoteDecorationsPlugin implements PluginValue {
 	}
 
 	destroy() {
+		// Clean up debounce timer
+		if (this.debounceTimer) {
+			clearTimeout(this.debounceTimer);
+			this.debounceTimer = null;
+		}
+
 		// Clean up widget
 		this.removeWidget();
 
@@ -104,27 +165,20 @@ export class TaskCardNoteDecorationsPlugin implements PluginValue {
 	}
 
 	private setupEventListeners() {
+		// Debounced refresh to prevent excessive re-renders
+		const debouncedRefresh = () => {
+			if (this.debounceTimer) clearTimeout(this.debounceTimer);
+			this.debounceTimer = window.setTimeout(() => {
+				this.loadTaskForCurrentFile(this.view);
+			}, 100);
+		};
+
 		// Listen for data changes that might affect the task card
-		const dataChangeListener = this.plugin.emitter.on(EVENT_DATA_CHANGED, () => {
-			this.loadTaskForCurrentFile(this.view);
-		});
-
-		const taskUpdateListener = this.plugin.emitter.on(EVENT_TASK_UPDATED, () => {
-			this.loadTaskForCurrentFile(this.view);
-		});
-
-		const taskDeleteListener = this.plugin.emitter.on(EVENT_TASK_DELETED, () => {
-			this.loadTaskForCurrentFile(this.view);
-		});
-
-		const dateChangeListener = this.plugin.emitter.on(EVENT_DATE_CHANGED, () => {
-			this.loadTaskForCurrentFile(this.view);
-		});
-
-		// Listen for settings changes
-		const settingsChangeListener = this.plugin.emitter.on("settings-changed", () => {
-			this.loadTaskForCurrentFile(this.view);
-		});
+		const dataChangeListener = this.plugin.emitter.on(EVENT_DATA_CHANGED, debouncedRefresh);
+		const taskUpdateListener = this.plugin.emitter.on(EVENT_TASK_UPDATED, debouncedRefresh);
+		const taskDeleteListener = this.plugin.emitter.on(EVENT_TASK_DELETED, debouncedRefresh);
+		const dateChangeListener = this.plugin.emitter.on(EVENT_DATE_CHANGED, debouncedRefresh);
+		const settingsChangeListener = this.plugin.emitter.on("settings-changed", debouncedRefresh);
 
 		this.eventListeners.push(
 			dataChangeListener,
@@ -137,6 +191,8 @@ export class TaskCardNoteDecorationsPlugin implements PluginValue {
 
 	private removeWidget(): void {
 		if (this.currentWidget) {
+			// Unload the component for proper cleanup
+			this.currentWidget.component?.unload();
 			this.currentWidget.remove();
 			this.currentWidget = null;
 		}
@@ -144,14 +200,23 @@ export class TaskCardNoteDecorationsPlugin implements PluginValue {
 	}
 
 	private cleanupOrphanedWidgets(view: EditorView): void {
-		// Remove any orphaned widgets that might exist from previous instances
-		const container = view.dom.closest('.workspace-leaf-content');
-		if (container) {
+		try {
+			// Remove any orphaned widgets that might exist from previous instances
+			const container = view.dom.closest('.workspace-leaf-content');
+			if (!container) {
+				console.debug('[TaskNotes] Could not find workspace-leaf-content for orphan cleanup');
+				return;
+			}
+
 			container.querySelectorAll(`.${CSS_TASK_CARD_WIDGET}`).forEach(el => {
 				if (el !== this.currentWidget) {
+					const holder = el as HTMLElementWithComponent;
+					holder.component?.unload();
 					el.remove();
 				}
 			});
+		} catch (error) {
+			console.error('[TaskNotes] Error cleaning up orphaned task card widgets:', error);
 		}
 	}
 
@@ -197,7 +262,7 @@ export class TaskCardNoteDecorationsPlugin implements PluginValue {
 					this.injectWidget(view);
 				}
 			} catch (error) {
-				console.error("Error loading task for task note:", error);
+				console.error("[TaskNotes] Error loading task for task note:", error);
 			}
 		} else {
 			if (this.cachedTask !== null) {
@@ -208,45 +273,41 @@ export class TaskCardNoteDecorationsPlugin implements PluginValue {
 	}
 
 	private getFileFromView(view: EditorView): TFile | null {
-		// Get the file associated with this specific editor view
-		const editorInfo = view.state.field(editorInfoField, false);
-		return editorInfo?.file || null;
+		try {
+			// Get the file associated with this specific editor view
+			const editorInfo = view.state.field(editorInfoField, false);
+			return editorInfo?.file || null;
+		} catch (error) {
+			console.debug('[TaskNotes] Error getting file from editor view:', error);
+			return null;
+		}
 	}
 
 	private isTableCellEditor(view: EditorView): boolean {
 		try {
 			// Check if the editor is inside a table cell using DOM inspection
 			const editorElement = view.dom;
+			if (!editorElement) return false;
+
 			const tableCell = editorElement.closest("td, th");
+			if (tableCell) return true;
 
-			if (tableCell) {
-				return true;
-			}
-
-			// Also check for Obsidian-specific table widget classes
 			const obsidianTableWidget = editorElement.closest(".cm-table-widget");
-			if (obsidianTableWidget) {
-				return true;
-			}
+			if (obsidianTableWidget) return true;
 
-			// Check for footnote editors - look for popover or markdown-embed with footnote type
 			const popover = editorElement.closest(".popover.hover-popover");
-			if (popover) {
-				return true;
-			}
+			if (popover) return true;
 
-			// Check for markdown embed with data-type="footnote"
 			const footnoteEmbed = editorElement.closest(".markdown-embed[data-type='footnote']");
-			if (footnoteEmbed) {
-				return true;
-			}
+			if (footnoteEmbed) return true;
 
-			// Additional check: inline editors without file association
 			const editorInfo = view.state.field(editorInfoField, false);
 			if (!editorInfo?.file) {
-				// This might be an inline editor - check if parent is table-related or in a popover
 				let parent = editorElement.parentElement;
-				while (parent && parent !== document.body) {
+				let depth = 0;
+				const MAX_DEPTH = 20; // Prevent infinite loops
+
+				while (parent && parent !== document.body && depth < MAX_DEPTH) {
 					if (
 						parent.tagName === "TABLE" ||
 						parent.tagName === "TD" ||
@@ -255,22 +316,21 @@ export class TaskCardNoteDecorationsPlugin implements PluginValue {
 					) {
 						return true;
 					}
-					// Check for popover (footnotes, hovers, etc.)
 					if (parent.classList.contains("popover") || parent.classList.contains("hover-popover")) {
 						return true;
 					}
-					// Check for markdown-embed with footnote data-type
 					if (parent.classList.contains("markdown-embed") &&
 					    parent.getAttribute("data-type") === "footnote") {
 						return true;
 					}
 					parent = parent.parentElement;
+					depth++;
 				}
 			}
 
 			return false;
 		} catch (error) {
-			console.debug("Error detecting table cell editor:", error);
+			console.debug("[TaskNotes] Error detecting table cell editor:", error);
 			return false;
 		}
 	}
@@ -304,29 +364,22 @@ export class TaskCardNoteDecorationsPlugin implements PluginValue {
 			}
 
 			// Find .cm-sizer which contains the scrollable content area
+			// RISK: This relies on CodeMirror's internal DOM structure
 			const targetContainer = view.dom.closest('.markdown-source-view')?.querySelector<HTMLElement>('.cm-sizer');
 			if (!targetContainer) {
+				console.warn('[TaskNotes] Could not find .cm-sizer container for task card widget');
 				return;
 			}
 
 			// Create the widget
 			const widget = createTaskCardWidget(this.plugin, this.cachedTask);
 
-			// Add styling to match decoration appearance and prevent cursor interaction
-			widget.style.display = "block";
-			widget.style.pointerEvents = "auto";
-			widget.style.userSelect = "none";
-			widget.style.border = "1px dashed var(--background-modifier-border)";
-			widget.style.borderRadius = "4px";
-			widget.style.padding = "8px";
-			widget.style.marginTop = "8px";
-			widget.style.marginBottom = "8px";
-
 			// Store references
 			this.currentWidget = widget;
 			this.widgetContainer = targetContainer;
 
 			// Insert after properties/frontmatter if present, otherwise at the beginning
+			// RISK: Relies on .metadata-container class from Obsidian
 			const metadataContainer = targetContainer.querySelector('.metadata-container');
 			if (metadataContainer?.nextSibling) {
 				metadataContainer.parentElement?.insertBefore(widget, metadataContainer.nextSibling);
@@ -334,8 +387,13 @@ export class TaskCardNoteDecorationsPlugin implements PluginValue {
 				targetContainer.insertBefore(widget, targetContainer.firstChild);
 			}
 
+			// Emit event for coordination with other widgets (e.g., relationships)
+			this.plugin.emitter.trigger(EVENT_TASK_CARD_INJECTED, { container: targetContainer });
+
 		} catch (error) {
-			console.error("Error injecting task card widget:", error);
+			console.error("[TaskNotes] Error injecting task card widget:", error);
+			// Clean up on error
+			this.removeWidget();
 		}
 	}
 }
@@ -382,42 +440,51 @@ async function injectReadingModeWidget(
 	// Get task info for this file
 	const task = plugin.cacheManager.getCachedTaskInfoSync(file.path);
 	if (!task) {
-		// Not a task note
+		// Not a task note - remove any existing widgets
+		try {
+			const previewView = view.previewMode;
+			const containerEl = previewView.containerEl;
+			containerEl.querySelectorAll(`.${CSS_TASK_CARD_WIDGET}`).forEach(el => {
+				const holder = el as HTMLElementWithComponent;
+				holder.component?.unload();
+				el.remove();
+			});
+		} catch (error) {
+			console.debug('[TaskNotes] Error cleaning up task card in reading mode:', error);
+		}
 		return;
 	}
 
-	// Remove any existing widgets first
-	const previewView = view.previewMode;
-	const containerEl = previewView.containerEl;
-	containerEl.querySelectorAll(`.${CSS_TASK_CARD_WIDGET}`).forEach(el => {
-		el.remove();
-	});
+	try {
+		// Remove any existing widgets first
+		const previewView = view.previewMode;
+		const containerEl = previewView.containerEl;
+		containerEl.querySelectorAll(`.${CSS_TASK_CARD_WIDGET}`).forEach(el => {
+			const holder = el as HTMLElementWithComponent;
+			holder.component?.unload();
+			el.remove();
+		});
 
-	// Create the widget
-	const widget = createTaskCardWidget(plugin, task);
+		// Create the widget
+		const widget = createTaskCardWidget(plugin, task);
 
-	// Add styling
-	widget.style.display = "block";
-	widget.style.pointerEvents = "auto";
-	widget.style.userSelect = "none";
-	widget.style.border = "1px dashed var(--background-modifier-border)";
-	widget.style.borderRadius = "4px";
-	widget.style.padding = "8px";
-	widget.style.marginTop = "8px";
-	widget.style.marginBottom = "8px";
+		// Find the markdown-preview-sizer
+		// RISK: Relies on Obsidian's internal DOM structure
+		const sizer = containerEl.querySelector<HTMLElement>('.markdown-preview-sizer');
+		if (!sizer) {
+			console.warn('[TaskNotes] Could not find .markdown-preview-sizer for task card in reading mode');
+			return;
+		}
 
-	// Find the markdown-preview-sizer
-	const sizer = containerEl.querySelector<HTMLElement>('.markdown-preview-sizer');
-	if (!sizer) {
-		return;
-	}
-
-	// Insert after properties/frontmatter if present, otherwise at the beginning
-	const metadataContainer = sizer.querySelector('.metadata-container');
-	if (metadataContainer?.nextSibling) {
-		sizer.insertBefore(widget, metadataContainer.nextSibling);
-	} else {
-		sizer.insertBefore(widget, sizer.firstChild);
+		// Insert after properties/frontmatter if present, otherwise at the beginning
+		const metadataContainer = sizer.querySelector('.metadata-container');
+		if (metadataContainer?.nextSibling) {
+			sizer.insertBefore(widget, metadataContainer.nextSibling);
+		} else {
+			sizer.insertBefore(widget, sizer.firstChild);
+		}
+	} catch (error) {
+		console.error('[TaskNotes] Error injecting task card widget in reading mode:', error);
 	}
 }
 
@@ -428,13 +495,20 @@ async function injectReadingModeWidget(
 export function setupReadingModeHandlers(plugin: TaskNotesPlugin): () => void {
 	const eventRefs: EventRef[] = [];
 
+	// Debounce to prevent excessive re-renders
+	let debounceTimer: number | null = null;
+	const debouncedRefresh = () => {
+		if (debounceTimer) clearTimeout(debounceTimer);
+		debounceTimer = window.setTimeout(() => {
+			const leaves = plugin.app.workspace.getLeavesOfType('markdown');
+			leaves.forEach(leaf => {
+				injectReadingModeWidget(leaf, plugin);
+			});
+		}, 100);
+	};
+
 	// Inject widget when layout changes (file opened, switched, etc.)
-	const layoutChangeRef = plugin.app.workspace.on('layout-change', () => {
-		const leaves = plugin.app.workspace.getLeavesOfType('markdown');
-		leaves.forEach(leaf => {
-			injectReadingModeWidget(leaf, plugin);
-		});
-	});
+	const layoutChangeRef = plugin.app.workspace.on('layout-change', debouncedRefresh);
 	eventRefs.push(layoutChangeRef);
 
 	// Inject widget when active leaf changes
@@ -458,20 +532,10 @@ export function setupReadingModeHandlers(plugin: TaskNotesPlugin): () => void {
 	eventRefs.push(metadataChangeRef);
 
 	// Listen for task updates to refresh the widget
-	const taskUpdateListener = plugin.emitter.on(EVENT_TASK_UPDATED, () => {
-		const leaves = plugin.app.workspace.getLeavesOfType('markdown');
-		leaves.forEach(leaf => {
-			injectReadingModeWidget(leaf, plugin);
-		});
-	});
+	const taskUpdateListener = plugin.emitter.on(EVENT_TASK_UPDATED, debouncedRefresh);
 	eventRefs.push(taskUpdateListener);
 
-	const dataChangeListener = plugin.emitter.on(EVENT_DATA_CHANGED, () => {
-		const leaves = plugin.app.workspace.getLeavesOfType('markdown');
-		leaves.forEach(leaf => {
-			injectReadingModeWidget(leaf, plugin);
-		});
-	});
+	const dataChangeListener = plugin.emitter.on(EVENT_DATA_CHANGED, debouncedRefresh);
 	eventRefs.push(dataChangeListener);
 
 	// Initial injection for any already-open reading views
@@ -482,6 +546,7 @@ export function setupReadingModeHandlers(plugin: TaskNotesPlugin): () => void {
 
 	// Return cleanup function
 	return () => {
+		if (debounceTimer) clearTimeout(debounceTimer);
 		eventRefs.forEach(ref => {
 			if ('name' in ref && typeof (ref as any).name === 'string') {
 				// It's a workspace event ref
