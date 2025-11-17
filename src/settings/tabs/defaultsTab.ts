@@ -415,10 +415,10 @@ function renderRelativeReminderConfig(
 	updateItem: (updates: Partial<DefaultReminder>) => void,
 	translate: (key: TranslationKey, params?: Record<string, string | number>) => string
 ): CardRow[] {
-	const offsetInput = createCardNumberInput(1, undefined, 1, reminder.offset);
+	const offsetInput = createCardNumberInput(0, undefined, 1, reminder.offset);
 	offsetInput.addEventListener("input", () => {
 		const offset = parseInt(offsetInput.value);
-		if (!isNaN(offset) && offset > 0) {
+		if (!isNaN(offset) && offset >= 0) {
 			updateItem({ offset });
 		}
 	});

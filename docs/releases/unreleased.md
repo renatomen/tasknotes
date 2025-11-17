@@ -34,6 +34,11 @@ Example:
 
 ## Fixed
 
+- (#1043) Fixed inability to set "at time of event" (0 offset) as a default reminder in settings
+  - Changed minimum value validation from 1 to 0 for reminder offset inputs
+  - Users can now set "0 minutes/hours/days before" as a default reminder option
+  - Thanks to @dblinnikov for reporting
+
 - (#1055) Fixed break sessions being logged as `type: work` when started via command/hotkey
   - The "Start Pomodoro Timer" command now respects the next session type (short-break, long-break, or work)
   - Break sessions started via command/hotkey are now correctly logged with their proper type in frontmatter
