@@ -13,6 +13,7 @@ import { STATS_VIEW_TYPE, TaskInfo, EVENT_TASK_UPDATED } from "../types";
 import { calculateTotalTimeSpent, filterEmptyProjects } from "../utils/helpers";
 import { getTodayLocal, createUTCDateFromLocalCalendarDate } from "../utils/dateUtils";
 import { createTaskCard } from "../ui/TaskCard";
+import { convertInternalToUserProperties } from "../utils/propertyMapping";
 
 interface ProjectStats {
 	projectName: string;
@@ -1623,10 +1624,13 @@ export class StatsView extends ItemView {
 
 			for (const task of filteredTasks) {
 				// Create TaskCard with checkbox disabled as requested
+				const visibleProperties = this.plugin.settings.defaultVisibleProperties
+					? convertInternalToUserProperties(this.plugin.settings.defaultVisibleProperties, this.plugin)
+					: undefined;
 				const taskCard = createTaskCard(
 					task,
 					this.plugin,
-					this.plugin.settings.defaultVisibleProperties
+					visibleProperties
 				);
 
 				taskList.appendChild(taskCard);

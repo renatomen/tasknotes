@@ -14,6 +14,7 @@ import {
 } from "../types";
 import { TaskSelectorModal } from "../modals/TaskSelectorModal";
 import { createTaskCard } from "../ui/TaskCard";
+import { convertInternalToUserProperties } from "../utils/propertyMapping";
 
 export class PomodoroView extends ItemView {
 	plugin: TaskNotesPlugin;
@@ -780,10 +781,14 @@ export class PomodoroView extends ItemView {
 
 		if (task) {
 			// Create a task card with appropriate options for pomodoro view
+			// Convert internal property names to user-configured frontmatter property names
+			const visibleProperties = this.plugin.settings.defaultVisibleProperties
+				? convertInternalToUserProperties(this.plugin.settings.defaultVisibleProperties, this.plugin)
+				: undefined;
 			const taskCard = createTaskCard(
 				task,
 				this.plugin,
-				this.plugin.settings.defaultVisibleProperties
+				visibleProperties
 			);
 
 			// Add the task card to the container

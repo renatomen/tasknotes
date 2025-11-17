@@ -3,6 +3,7 @@ import { TaskInfo } from "../types";
 import TaskNotesPlugin from "../main";
 import { dispatchTaskUpdate } from "./TaskLinkOverlay";
 import { createTaskCard } from "../ui/TaskCard";
+import { convertInternalToUserProperties } from "../utils/propertyMapping";
 
 export class TaskLinkWidget extends WidgetType {
 	private taskInfo: TaskInfo;
@@ -29,14 +30,16 @@ export class TaskLinkWidget extends WidgetType {
 		const now = new Date();
 		const targetDate = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
 
-		// Get visible properties from settings, with fallback to defaults
-		const visibleProperties = this.plugin.settings.inlineVisibleProperties || [
+		// Get visible properties from settings (stores internal FieldMapping keys)
+		// Convert to user-configured frontmatter property names before passing to TaskCard
+		const internalProperties = this.plugin.settings.inlineVisibleProperties || [
 			"status",
 			"priority",
 			"due",
 			"scheduled",
 			"recurrence",
 		];
+		const visibleProperties = convertInternalToUserProperties(internalProperties, this.plugin);
 
 		// Create a wrapper span with the tasknotes-plugin class for CSS scoping
 		const wrapper = document.createElement("span");
