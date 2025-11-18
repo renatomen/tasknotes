@@ -105,7 +105,7 @@ export const pt: TranslationTree = {
 			title: "Mini Calendário"
 		},
 		advancedCalendar: {
-			title: "Calendário Avançado",
+			title: "Calendário",
 			filters: {
 				showFilters: "Mostrar filtros",
 				hideFilters: "Ocultar filtros"
@@ -1064,7 +1064,7 @@ export const pt: TranslationTree = {
 			},
 			defaultEventVisibility: {
 				header: "Visibilidade Padrão de Eventos",
-				description: "Configure quais tipos de eventos são visíveis por padrão ao abrir o Calendário Avançado. Os usuários ainda podem ativá-los/desativá-los na visualização de calendário.",
+				description: "Configure quais tipos de eventos são visíveis por padrão ao abrir o Calendário. Os usuários ainda podem ativá-los/desativá-los na visualização de calendário.",
 				showScheduledTasks: {
 					name: "Mostrar tarefas agendadas",
 					description: "Exibir tarefas com datas agendadas por padrão"
@@ -1668,7 +1668,7 @@ export const pt: TranslationTree = {
 	},
 	commands: {
 		openCalendarView: "Abrir visualização de mini calendário",
-		openAdvancedCalendarView: "Abrir visualização de calendário avançado",
+		openAdvancedCalendarView: "Abrir visualização de calendário",
 		openTasksView: "Abrir visualização de tarefas",
 		openNotesView: "Abrir visualização de notas",
 		openAgendaView: "Abrir visualização de agenda",

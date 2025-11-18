@@ -105,7 +105,7 @@ export const ja: TranslationTree = {
 			title: "ミニカレンダー",
 		},
 		advancedCalendar: {
-			title: "高度なカレンダー",
+			title: "カレンダー",
 			filters: {
 				showFilters: "フィルターを表示",
 				hideFilters: "フィルターを非表示",
@@ -1061,7 +1061,7 @@ export const ja: TranslationTree = {
 			},
 			defaultEventVisibility: {
 				header: "デフォルトイベント表示",
-				description: "アドバンスドカレンダーを開く際にデフォルトで表示されるイベントタイプを設定します。ユーザーはカレンダービューでこれらをオン/オフできます。",
+				description: "カレンダーを開く際にデフォルトで表示されるイベントタイプを設定します。ユーザーはカレンダービューでこれらをオン/オフできます。",
 				showScheduledTasks: {
 					name: "予定タスクを表示",
 					description: "予定日のあるタスクをデフォルトで表示",
@@ -1660,7 +1660,7 @@ export const ja: TranslationTree = {
 	},
 	commands: {
 		openCalendarView: "ミニカレンダービューを開く",
-		openAdvancedCalendarView: "アドバンスドカレンダービューを開く",
+		openAdvancedCalendarView: "カレンダービューを開く",
 		openTasksView: "タスクビューを開く",
 		openNotesView: "ノートビューを開く",
 		openAgendaView: "アジェンダビューを開く",

@@ -105,7 +105,7 @@ export const ru: TranslationTree = {
 			title: "Мини-календарь",
 		},
 		advancedCalendar: {
-			title: "Расширенный календарь",
+			title: "Календарь",
 			filters: {
 				showFilters: "Показать фильтры",
 				hideFilters: "Скрыть фильтры",
@@ -1061,7 +1061,7 @@ export const ru: TranslationTree = {
 			},
 			defaultEventVisibility: {
 				header: "Видимость событий по умолчанию",
-				description: "Настройте, какие типы событий видимы по умолчанию при открытии расширенного календаря. Пользователи все еще могут переключать их в представлении календаря.",
+				description: "Настройте, какие типы событий видимы по умолчанию при открытии календаря. Пользователи все еще могут переключать их в представлении календаря.",
 				showScheduledTasks: {
 					name: "Показать запланированные задачи",
 					description: "Отображать задачи с запланированными датами по умолчанию",
@@ -1660,7 +1660,7 @@ export const ru: TranslationTree = {
 	},
 	commands: {
 		openCalendarView: "Открыть представление мини-календаря",
-		openAdvancedCalendarView: "Открыть представление расширенного календаря",
+		openAdvancedCalendarView: "Открыть представление календаря",
 		openTasksView: "Открыть представление задач",
 		openNotesView: "Открыть представление заметок",
 		openAgendaView: "Открыть представление планов",

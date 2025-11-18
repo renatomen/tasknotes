@@ -26,6 +26,10 @@ Example:
 
 ## Changed
 
+- Renamed "Advanced Calendar" to "Calendar" throughout the UI
+  - Updated view title, command palette entry, and settings descriptions
+  - Simplified naming to reflect that this is now the primary calendar view
+
 - Improved timeblock visual styling in calendar views for a lighter, more refined appearance
   - Reduced border width from 2px to 1px
   - Lowered opacity from 0.9 to 0.65 for better visual balance

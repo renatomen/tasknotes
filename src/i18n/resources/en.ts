@@ -105,7 +105,7 @@ export const en: TranslationTree = {
 			title: "Mini Calendar",
 		},
 		advancedCalendar: {
-			title: "Advanced Calendar",
+			title: "Calendar",
 			filters: {
 				showFilters: "Show filters",
 				hideFilters: "Hide filters",
@@ -1102,7 +1102,7 @@ export const en: TranslationTree = {
 			defaultEventVisibility: {
 				header: "Default Event Visibility",
 				description:
-					"Configure which event types are visible by default when opening the Advanced Calendar. Users can still toggle these on/off in the calendar view.",
+					"Configure which event types are visible by default when opening the Calendar. Users can still toggle these on/off in the calendar view.",
 				showScheduledTasks: {
 					name: "Show scheduled tasks",
 					description: "Display tasks with scheduled dates by default",
@@ -1725,7 +1725,7 @@ export const en: TranslationTree = {
 	},
 	commands: {
 		openCalendarView: "Open mini calendar view",
-		openAdvancedCalendarView: "Open advanced calendar view",
+		openAdvancedCalendarView: "Open calendar view",
 		openTasksView: "Open tasks view",
 		openNotesView: "Open notes view",
 		openAgendaView: "Open agenda view",

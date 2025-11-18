@@ -289,8 +289,8 @@
       "translation": "23a11f789696118f25d513e0e39ce2f17b04e5db"
     },
     "views.advancedCalendar.title": {
-      "source": "c7c0400a48b0a60163285b5a39460bd17d8f40f9",
-      "translation": "b8eb78590eb52506601d9696b34b0bed27cbf750"
+      "source": "adab5090ac6a1b7b5420faac7be86c41721ba27c",
+      "translation": "33fe92f625e5e1d93b2f0ad659aeb0950c49bc06"
     },
     "views.advancedCalendar.filters.showFilters": {
       "source": "b1ad23eb8650c000bf826d5bfa41ddd8709e9096",
@@ -2661,8 +2661,8 @@
       "translation": "1bc8d0a92b0020b9841b021db66f30c987d6a46f"
     },
     "settings.appearance.defaultEventVisibility.description": {
-      "source": "bc047b64b4e6a7750dcfe3898e50a7d13c562e37",
-      "translation": "c5f2e69d7f83d583acef766160f625b5b7756aa5"
+      "source": "f951b58986bd3f42d5e4f4b670c718787a49eb2c",
+      "translation": "eb0b29c7606f9c3c2ef2f251663f28ccfa2f4f53"
     },
     "settings.appearance.defaultEventVisibility.showScheduledTasks.name": {
       "source": "0fd520d76ebff53e4708b9034c0a56b86c32d34c",
@@ -4033,8 +4033,8 @@
       "translation": "1fcab5b50d9d6ffb720cb3996503072939afb6fb"
     },
     "commands.openAdvancedCalendarView": {
-      "source": "b30e3fa144b53f11e5a0bd3d0d0c4b1532b8ce5b",
-      "translation": "d6e0bcaf5e9423fffc2ec7577ce7828485281ad1"
+      "source": "34dc6d24bf621aca04c0190a8906dd735fac5591",
+      "translation": "989566dd7d04cd9ff628774b6a23a3a52324ef1a"
     },
     "commands.openTasksView": {
       "source": "767b41fb3b53b193d0a250eed7ed025f2c7ead0a",
@@ -7323,8 +7323,8 @@
       "translation": "32b8c4adbbdde63cb3f2be9bf2cad06d6e70ff6a"
     },
     "views.advancedCalendar.title": {
-      "source": "c7c0400a48b0a60163285b5a39460bd17d8f40f9",
-      "translation": "eda863fa6d3616dbf53f79ee0f88d06e86ba6b6f"
+      "source": "adab5090ac6a1b7b5420faac7be86c41721ba27c",
+      "translation": "df824e6b9b926d40cc19b68662e959c8d43a8fff"
     },
     "views.advancedCalendar.filters.showFilters": {
       "source": "b1ad23eb8650c000bf826d5bfa41ddd8709e9096",
@@ -9695,8 +9695,8 @@
       "translation": "d8804db3c73fce302768a82db701aee903e3849f"
     },
     "settings.appearance.defaultEventVisibility.description": {
-      "source": "bc047b64b4e6a7750dcfe3898e50a7d13c562e37",
-      "translation": "e25ad997d65ff789ff91989603e320a87c9ddad6"
+      "source": "f951b58986bd3f42d5e4f4b670c718787a49eb2c",
+      "translation": "e7b6f4db6cb2ba01021b9ed991cdf7e339cfc525"
     },
     "settings.appearance.defaultEventVisibility.showScheduledTasks.name": {
       "source": "0fd520d76ebff53e4708b9034c0a56b86c32d34c",
@@ -11067,8 +11067,8 @@
       "translation": "11e514cf3b3274eef09162a3f5f038b414ef62ce"
     },
     "commands.openAdvancedCalendarView": {
-      "source": "b30e3fa144b53f11e5a0bd3d0d0c4b1532b8ce5b",
-      "translation": "5d58cd974810c1b566b7c5136a42fa5c64d5b1d4"
+      "source": "34dc6d24bf621aca04c0190a8906dd735fac5591",
+      "translation": "6b68f113d6ae68bb43f2d1f87f073c6df3061768"
     },
     "commands.openTasksView": {
       "source": "767b41fb3b53b193d0a250eed7ed025f2c7ead0a",
@@ -14357,8 +14357,8 @@
       "translation": "9b5cfe7ec39e66f54817ff5711d1eb92eea514d2"
     },
     "views.advancedCalendar.title": {
-      "source": "c7c0400a48b0a60163285b5a39460bd17d8f40f9",
-      "translation": "8241e64013516f3a26c53fccba0692b43df60338"
+      "source": "adab5090ac6a1b7b5420faac7be86c41721ba27c",
+      "translation": "4c83736b7403957857c3e9951ecc30262711c6c7"
     },
     "views.advancedCalendar.filters.showFilters": {
       "source": "b1ad23eb8650c000bf826d5bfa41ddd8709e9096",
@@ -16729,8 +16729,8 @@
       "translation": "bf7e0720b0a162865a212740106e88f8bdad7556"
     },
     "settings.appearance.defaultEventVisibility.description": {
-      "source": "bc047b64b4e6a7750dcfe3898e50a7d13c562e37",
-      "translation": "3992067f220f478912bf67d8a5d45369d741642b"
+      "source": "f951b58986bd3f42d5e4f4b670c718787a49eb2c",
+      "translation": "386d2ad4ebf43413af93210778f5e03ab97db505"
     },
     "settings.appearance.defaultEventVisibility.showScheduledTasks.name": {
       "source": "0fd520d76ebff53e4708b9034c0a56b86c32d34c",
@@ -18101,8 +18101,8 @@
       "translation": "93ef7fa71140819bcd7ff92af774e58e45d12867"
     },
     "commands.openAdvancedCalendarView": {
-      "source": "b30e3fa144b53f11e5a0bd3d0d0c4b1532b8ce5b",
-      "translation": "6763d0db8e089614161ebd08ede65e9a152ef21f"
+      "source": "34dc6d24bf621aca04c0190a8906dd735fac5591",
+      "translation": "d6d584768d6642c4d8b7f9ccd4384ded1ce0eefe"
     },
     "commands.openTasksView": {
       "source": "767b41fb3b53b193d0a250eed7ed025f2c7ead0a",
@@ -21391,8 +21391,8 @@
       "translation": "a856081710d80964b1a1256d3d0e43ecdc5cbd6f"
     },
     "views.advancedCalendar.title": {
-      "source": "c7c0400a48b0a60163285b5a39460bd17d8f40f9",
-      "translation": "769596d42919bbbf7e80b480bccc8dec736cb35c"
+      "source": "adab5090ac6a1b7b5420faac7be86c41721ba27c",
+      "translation": "340ba3962c527f49e49344dece05361c260a6ad1"
     },
     "views.advancedCalendar.filters.showFilters": {
       "source": "b1ad23eb8650c000bf826d5bfa41ddd8709e9096",
@@ -23763,8 +23763,8 @@
       "translation": "0dc7b5e8eca6458dee4b82cc8cefce44e4255d95"
     },
     "settings.appearance.defaultEventVisibility.description": {
-      "source": "bc047b64b4e6a7750dcfe3898e50a7d13c562e37",
-      "translation": "e88e301297777a9da1db7ad810ba955e30cfcd8d"
+      "source": "f951b58986bd3f42d5e4f4b670c718787a49eb2c",
+      "translation": "b5092ab200cc152c592db0b60cf9c1578054b1ea"
     },
     "settings.appearance.defaultEventVisibility.showScheduledTasks.name": {
       "source": "0fd520d76ebff53e4708b9034c0a56b86c32d34c",
@@ -25135,8 +25135,8 @@
       "translation": "238d8e03e2d389757ad2ceb689cd167abb51e3c1"
     },
     "commands.openAdvancedCalendarView": {
-      "source": "b30e3fa144b53f11e5a0bd3d0d0c4b1532b8ce5b",
-      "translation": "38c7f9649cc8383bdc526759a39837772c4e626a"
+      "source": "34dc6d24bf621aca04c0190a8906dd735fac5591",
+      "translation": "7fe003d05243fe6083003b08d4b2a4c3f02ed421"
     },
     "commands.openTasksView": {
       "source": "767b41fb3b53b193d0a250eed7ed025f2c7ead0a",
@@ -28425,8 +28425,8 @@
       "translation": "06bae5743e52e59f7bd2653187587e05679d5dbb"
     },
     "views.advancedCalendar.title": {
-      "source": "c7c0400a48b0a60163285b5a39460bd17d8f40f9",
-      "translation": "a8f89fefa77b1de04b566e347637fae827927e3f"
+      "source": "adab5090ac6a1b7b5420faac7be86c41721ba27c",
+      "translation": "439ade69fdcd320a3557e9e8e0daa7cb59aa3c5c"
     },
     "views.advancedCalendar.filters.showFilters": {
       "source": "b1ad23eb8650c000bf826d5bfa41ddd8709e9096",
@@ -30797,8 +30797,8 @@
       "translation": "b7ed733041871674859a135775471a3ff5ac9f4f"
     },
     "settings.appearance.defaultEventVisibility.description": {
-      "source": "bc047b64b4e6a7750dcfe3898e50a7d13c562e37",
-      "translation": "beca564f034818395bdee22006e65ecf38d09641"
+      "source": "f951b58986bd3f42d5e4f4b670c718787a49eb2c",
+      "translation": "897f4f19150d44c099cc212a85b7a2ed9c9f5e6e"
     },
     "settings.appearance.defaultEventVisibility.showScheduledTasks.name": {
       "source": "0fd520d76ebff53e4708b9034c0a56b86c32d34c",
@@ -32169,8 +32169,8 @@
       "translation": "c57f02a044a8482162ee24c12ac0f083f0e5fb8e"
     },
     "commands.openAdvancedCalendarView": {
-      "source": "b30e3fa144b53f11e5a0bd3d0d0c4b1532b8ce5b",
-      "translation": "0262402ebaaad84309ac00459b02f1f5fd239d64"
+      "source": "34dc6d24bf621aca04c0190a8906dd735fac5591",
+      "translation": "82dbe8807613e27824c116b585814efc0d29b989"
     },
     "commands.openTasksView": {
       "source": "767b41fb3b53b193d0a250eed7ed025f2c7ead0a",
@@ -35459,8 +35459,8 @@
       "translation": "ec807092f4721c0c4f84d6cfe075961fd7a99347"
     },
     "views.advancedCalendar.title": {
-      "source": "c7c0400a48b0a60163285b5a39460bd17d8f40f9",
-      "translation": "841de01ceebc15f8de562f8ba5798e295753568f"
+      "source": "adab5090ac6a1b7b5420faac7be86c41721ba27c",
+      "translation": "fa3a2f17993af6412508d17c3f63ece764af2c0b"
     },
     "views.advancedCalendar.filters.showFilters": {
       "source": "b1ad23eb8650c000bf826d5bfa41ddd8709e9096",
@@ -37831,8 +37831,8 @@
       "translation": "2d83f11044421fb242c7f01c7f5ca609fb5b02a3"
     },
     "settings.appearance.defaultEventVisibility.description": {
-      "source": "bc047b64b4e6a7750dcfe3898e50a7d13c562e37",
-      "translation": "cb6341ae0d649687d5a857445a721953217ddf24"
+      "source": "f951b58986bd3f42d5e4f4b670c718787a49eb2c",
+      "translation": "64f8d2e5411ec8fb9d9f0e3a969eeb85c1335ce4"
     },
     "settings.appearance.defaultEventVisibility.showScheduledTasks.name": {
       "source": "0fd520d76ebff53e4708b9034c0a56b86c32d34c",
@@ -39203,8 +39203,8 @@
       "translation": "d0a77d204fd475eecb26b93a0dd2069a177dd85b"
     },
     "commands.openAdvancedCalendarView": {
-      "source": "b30e3fa144b53f11e5a0bd3d0d0c4b1532b8ce5b",
-      "translation": "5e337968142bdda2266609e68a6ac48f93850c5d"
+      "source": "34dc6d24bf621aca04c0190a8906dd735fac5591",
+      "translation": "7f802b549e90b5ce50856f0e52163a5a5a142aff"
     },
     "commands.openTasksView": {
       "source": "767b41fb3b53b193d0a250eed7ed025f2c7ead0a",
@@ -42493,8 +42493,8 @@
       "translation": "1bfd29d2d968cd78622f97899d9a436a299c806f"
     },
     "views.advancedCalendar.title": {
-      "source": "c7c0400a48b0a60163285b5a39460bd17d8f40f9",
-      "translation": "d30e47d9102fbca9610686d941a97b7796ee2275"
+      "source": "adab5090ac6a1b7b5420faac7be86c41721ba27c",
+      "translation": "2ecbc11608d1df5c4df3bca6864abb9faac6a3fb"
     },
     "views.advancedCalendar.filters.showFilters": {
       "source": "b1ad23eb8650c000bf826d5bfa41ddd8709e9096",
@@ -44865,8 +44865,8 @@
       "translation": "add045d62ece96e023653ad4f7e3b4fa308f8048"
     },
     "settings.appearance.defaultEventVisibility.description": {
-      "source": "bc047b64b4e6a7750dcfe3898e50a7d13c562e37",
-      "translation": "d9a776d4563173092fc3a64d6399601921bdc5cd"
+      "source": "f951b58986bd3f42d5e4f4b670c718787a49eb2c",
+      "translation": "9047b482b2c0fe3a1fcb4eda93a099675085c263"
     },
     "settings.appearance.defaultEventVisibility.showScheduledTasks.name": {
       "source": "0fd520d76ebff53e4708b9034c0a56b86c32d34c",
@@ -46237,8 +46237,8 @@
       "translation": "2ff9c940fa568cb7744b11cb1964e2ba41282620"
     },
     "commands.openAdvancedCalendarView": {
-      "source": "b30e3fa144b53f11e5a0bd3d0d0c4b1532b8ce5b",
-      "translation": "0aa7e320797c3f07aa41d62f1fef836f20b0a863"
+      "source": "34dc6d24bf621aca04c0190a8906dd735fac5591",
+      "translation": "1e0ef3369e5adc3d56d75849ea219325f256e8c2"
     },
     "commands.openTasksView": {
       "source": "767b41fb3b53b193d0a250eed7ed025f2c7ead0a",

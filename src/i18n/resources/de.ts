@@ -105,7 +105,7 @@ export const de: TranslationTree = {
 			title: "Mini-Kalender",
 		},
 		advancedCalendar: {
-			title: "Erweiterter Kalender",
+			title: "Kalender",
 			filters: {
 				showFilters: "Filter anzeigen",
 				hideFilters: "Filter ausblenden",
@@ -1061,7 +1061,7 @@ export const de: TranslationTree = {
 			},
 			defaultEventVisibility: {
 				header: "Standard-Event-Sichtbarkeit",
-				description: "Konfiguriere, welche Event-Typen standardmäßig beim Öffnen des erweiterten Kalenders sichtbar sind. Benutzer können diese trotzdem in der Kalenderansicht ein-/ausschalten.",
+				description: "Konfiguriere, welche Event-Typen standardmäßig beim Öffnen des Kalenders sichtbar sind. Benutzer können diese trotzdem in der Kalenderansicht ein-/ausschalten.",
 				showScheduledTasks: {
 					name: "Geplante Aufgaben anzeigen",
 					description: "Aufgaben mit geplanten Daten standardmäßig anzeigen",
@@ -1660,7 +1660,7 @@ export const de: TranslationTree = {
 	},
 	commands: {
 		openCalendarView: "Mini-Kalenderansicht öffnen",
-		openAdvancedCalendarView: "Erweiterte Kalenderansicht öffnen",
+		openAdvancedCalendarView: "Kalenderansicht öffnen",
 		openTasksView: "Aufgabenansicht öffnen",
 		openNotesView: "Notizenansicht öffnen",
 		openAgendaView: "Agenda-Ansicht öffnen",

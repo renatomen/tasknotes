@@ -105,7 +105,7 @@ export const zh: TranslationTree = {
 			title: "迷你日历",
 		},
 		advancedCalendar: {
-			title: "高级日历",
+			title: "日历",
 			filters: {
 				showFilters: "显示筛选器",
 				hideFilters: "隐藏筛选器",
@@ -1061,7 +1061,7 @@ export const zh: TranslationTree = {
 			},
 			defaultEventVisibility: {
 				header: "默认事件可见性",
-				description: "配置打开高级日历时默认可见的事件类型。用户仍可在日历视图中切换这些开/关。",
+				description: "配置打开日历时默认可见的事件类型。用户仍可在日历视图中切换这些开/关。",
 				showScheduledTasks: {
 					name: "显示安排的任务",
 					description: "默认显示有安排日期的任务",
@@ -1660,7 +1660,7 @@ export const zh: TranslationTree = {
 	},
 	commands: {
 		openCalendarView: "打开迷你日历视图",
-		openAdvancedCalendarView: "打开高级日历视图",
+		openAdvancedCalendarView: "打开日历视图",
 		openTasksView: "打开任务视图",
 		openNotesView: "打开笔记视图",
 		openAgendaView: "打开议程视图",
