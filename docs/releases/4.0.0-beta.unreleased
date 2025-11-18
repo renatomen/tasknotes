@@ -1,0 +1,147 @@
+TaskNotes 4.0.0-beta.unreleased.md
+
+## Added
+
+- Added sub-grouping support to Bases Task List view
+  - New "Sub-group by" option allows nested grouping by any note or task property
+  - Creates hierarchical structure: Primary Group → Sub-Group → Tasks
+  - If only sub-grouping is configured (no primary grouping), treats sub-group property as primary
+  - Fully compatible with virtual scrolling for optimal performance with large lists
+  - Sub-groups can be independently collapsed/expanded
+  - Empty sub-groups are automatically hidden
+  - Collapse state persists across view reloads
+  - Visual hierarchy with subtle indentation (16px) and lighter styling for sub-headers
+
+- Added documentation for default Bases templates
+  - New documentation page showing all default .base file templates with examples
+  - Documents templates for Mini Calendar, Kanban, Tasks List (with 5 views), Calendar, Agenda, and Relationships views
+  - Includes assumptions about default settings and explains how templates adapt to user customizations
+  - Added warning comment in source code to keep documentation in sync with template changes
+  - Linked from "Introduction to Bases" and "Create a base" pages
+
+## Changed
+
+- Renamed "Advanced Calendar" to "Calendar" throughout the UI
+  - Updated view title, command palette entry, and settings descriptions
+  - Simplified naming to reflect that this is now the primary calendar view
+
+- Improved timeblock visual styling in calendar views for a lighter, more refined appearance
+  - Reduced border width from 2px to 1px
+  - Lowered opacity from 0.9 to 0.65 for better visual balance
+  - Added smooth transitions for hover effects
+  - Softened shadows and reduced hover animation intensity
+
+- Updated "Export All Views" button to clarify it exports V3 saved views
+  - Button renamed to "Export V3 Views" and description updated
+  - Clarifies this feature migrates TaskNotes v3 saved views to v4 Bases system
+
+- Improved internationalization (i18n) support in General settings tab
+  - All Bases integration settings now use translation keys
+  - "View Commands" section, button labels, and notices are now fully translatable
+
+- Changed default Tasks List template view order and added new view
+  - "All Tasks" view now appears first (was previously last)
+  - Added "Unscheduled" view showing incomplete tasks without due or scheduled dates
+  - New view order: All Tasks → Today → Overdue → This Week → Unscheduled
+  - Unscheduled view sorts by status
+
+## Fixed
+
+- (#1103) Fixed TaskNotes/Views folder being created unnecessarily on startup
+  - Folder is now only created when default Bases view files need to be generated
+  - Reduces unnecessary filesystem clutter when all view files already exist
+  - Thanks to @Wayment9504 for reporting
+
+- (#1133) Fixed empty priority columns not showing in Kanban view when "Hide empty columns" is disabled
+  - All defined priority values now appear as columns, matching the behavior of status grouping
+  - Allows easy triage of new tasks that start with no priority assigned
+  - Thanks to @luckb0x for reporting
+
+- Fixed OAuth calendar cards showing "Unknown account" in settings
+  - Removed non-functional 'Account:' field from Google and Microsoft calendar connection cards
+  - Cards now show only connection status and last sync time
+  - Thanks to @Oblique for reporting
+
+- Fixed incorrect Bases syntax in default template files
+  - Fixed TypeScript error: changed `settings` parameter to `plugin` in property mapping calls
+  - Default templates now generate valid Bases syntax that won't cause errors
+
+- Fixed incorrect Bases syntax in "Export V3 Views" feature
+  - Exported Bases files now use correct YAML structure per Bases specification
+
+- (#1127) Fixed custom priority colors not being respected in Task List and Subtasks sections
+  - Medium priority was incorrectly using the same CSS variable as normal priority
+  - Each priority now correctly uses its own CSS variable (e.g., `--priority-medium-color`)
+  - Custom priority colors configured in settings are now properly displayed
+  - Thanks to @HPmattsloper for reporting
+
+- (#1043) Fixed inability to set "at time of event" (0 offset) as a default reminder in settings
+  - Changed minimum value validation from 1 to 0 for reminder offset inputs
+  - Users can now set "0 minutes/hours/days before" as a default reminder option
+  - Thanks to @dblinnikov for reporting
+
+- (#1055) Fixed break sessions being logged as `type: work` when started via command/hotkey
+  - The "Start Pomodoro Timer" command now respects the next session type (short-break, long-break, or work)
+  - Break sessions started via command/hotkey are now correctly logged with their proper type in frontmatter
+  - Thanks to @0-BSCode for reporting and debugging
+
+- (#1024) Fixed date/time picker immediately closing when selecting time on iPhone
+  - Refactored date/time picker to use Obsidian's native Modal components instead of custom modal implementation
+  - Native HTML5 date/time inputs now work correctly with mobile device pickers
+  - Simplified code by 45% (removed ~220 lines of complex custom modal logic)
+  - Thanks to @3zra47 for reporting
+
+- (#1122) Fixed inline task titles being truncated too aggressively
+  - Increased max-width from 250-300px to responsive `min(600px, 80vw)`
+  - Fixed white-space property to properly support ellipsis truncation
+  - Long task titles now display much more content before truncating
+  - Thanks to @jacorvillo for reporting
+
+- Fixed Obsidian crashes when invalid time values entered in Bases calendar view configuration
+  - Added validation for slotMinTime, slotMaxTime, slotDuration, and scrollTime settings
+  - Invalid values now fall back to safe defaults with console warnings instead of crashing
+  - Matches validation already present in the settings UI
+
+- (#1120) Fixed custom field mappings not being respected throughout the application
+  - Property customizations (e.g., `status: "task-status"`) now work correctly in all views
+  - Kanban drag-and-drop now works with any property type (built-in, user-defined, or custom)
+  - Thanks to @kmaustral for reporting
+
+- (#1121) Fixed custom user fields being saved with auto-generated IDs instead of user-defined property keys
+  - Custom fields now save and load correctly with their configured property names
+  - Thanks to @guncav for reporting
+
+- (#1123) Fixed relationships widget only displaying on task notes, not project notes
+  - Widget now appears on both task notes and project notes (notes referenced via the project property)
+  - Project notes now show all tasks that reference them in the relationships view
+  - Thanks to @dblinnikov for reporting
+
+- Fixed time entries not showing in calendar view for tasks without scheduled or due dates
+  - Time entries now display for all tasks in the Bases calendar view (as long as the task passes the view's filters)
+  - Previously, time entries were hidden if their parent task had no scheduled or due date
+
+- (#1091) Fixed task card and relationships widgets appearing inside footnote editors
+  - Widgets now properly detect and exclude footnote popovers and inline editors
+  - Similar to the previous fix for table cell editors
+  - Thanks to @3zra47 for reporting
+
+- (#1086) Fixed calendar "+more" popover showing white text on white background in dark mode
+  - Added proper dark mode styling for the FullCalendar popover
+  - Popover now uses theme-appropriate colors for background, text, and borders
+  - Thanks to @same774 for reporting
+
+- (#1076) Fixed inability to create timeblocks ending at midnight (00:00)
+  - End time of 00:00 is now automatically converted to 23:59
+  - Prevents ambiguous midnight values in frontmatter that could cause calculation issues
+  - Thanks to @skoove for reporting
+
+- (#958) Fixed cursor jumping and layout shifts when typing near task card or relationships widgets in live preview
+  - Converted widgets from CodeMirror Decoration API to DOM manipulation to avoid cursor interaction issues
+  - Fixed page scrolling and visual jumps when creating new lines near widgets
+  - Thanks to @thesmithmode for detailed debugging information
+
+- (#513) Fixed task card and relationships widgets not appearing in reading mode (Preview Mode)
+  - Both widgets now display correctly in reading mode on task notes and project notes
+  - Fixed critical memory leak where event listeners were never cleaned up
+  - Thanks to @berzernberg for reporting
+
