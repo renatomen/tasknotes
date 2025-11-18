@@ -76,8 +76,8 @@ jest.mock('../../../src/utils/filenameGenerator', () => ({
   })
 }));
 
-jest.mock('../../../src/services/NaturalLanguageParser', () => ({
-  NaturalLanguageParser: jest.fn().mockImplementation(() => ({
+jest.mock('../../../src/services/NaturalLanguageParser', () => {
+  const mockParserInstance = {
     parseInput: jest.fn((input) => ({
       title: input.split(/[#@]/)[0].trim() || 'Parsed Task',
       details: '',
@@ -92,8 +92,19 @@ jest.mock('../../../src/services/NaturalLanguageParser', () => ({
       { icon: 'flag', text: 'Priority: High' },
       { icon: 'tag', text: 'Context: home' }
     ])
-  }))
-}));
+  };
+
+  const MockNaturalLanguageParser = Object.assign(
+    jest.fn().mockImplementation(() => mockParserInstance),
+    {
+      fromPlugin: jest.fn(() => mockParserInstance)
+    }
+  );
+
+  return {
+    NaturalLanguageParser: MockNaturalLanguageParser
+  };
+});
 
 describe('TaskCreationModal - Fixed Implementation', () => {
   let mockApp: App;

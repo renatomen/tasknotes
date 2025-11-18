@@ -11,10 +11,12 @@ jest.mock('../../../src/editor/TaskLinkWidget');
 const MockTaskLinkWidget = TaskLinkWidget as jest.MockedClass<typeof TaskLinkWidget>;
 
 // Mock the showTaskContextMenu function
-const mockShowTaskContextMenu = jest.fn();
 jest.mock('../../../src/ui/TaskCard', () => ({
-    showTaskContextMenu: mockShowTaskContextMenu
+    showTaskContextMenu: jest.fn()
 }));
+
+import { showTaskContextMenu } from '../../../src/ui/TaskCard';
+const mockShowTaskContextMenu = showTaskContextMenu as jest.MockedFunction<typeof showTaskContextMenu>;
 
 describe('TaskLinkOverlay Context Menu Integration', () => {
     let mockPlugin: TaskNotesPlugin;

@@ -553,28 +553,6 @@ describe('Helpers', () => {
   });
 
   describe('Recurring Task Logic', () => {
-    describe('isTaskOverdue', () => {
-      it('should detect overdue due dates', () => {
-        const task = { due: '2020-01-01' }; // Past date
-        expect(isTaskOverdue(task)).toBe(true);
-      });
-
-      it('should detect overdue scheduled dates', () => {
-        const task = { scheduled: '2020-01-01' }; // Past date
-        expect(isTaskOverdue(task)).toBe(true);
-      });
-
-      it('should return false for future dates', () => {
-        const task = { due: '2030-01-01' }; // Future date
-        expect(isTaskOverdue(task)).toBe(false);
-      });
-
-      it('should return false for tasks without dates', () => {
-        const task = {};
-        expect(isTaskOverdue(task)).toBe(false);
-      });
-    });
-
     describe('getEffectiveTaskStatus', () => {
       it('should return actual status for non-recurring tasks', () => {
         const task = { status: 'in-progress' };

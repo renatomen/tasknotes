@@ -28,6 +28,11 @@ describe('Settings UI - Tab Button CSS Classes', () => {
     (plugin as any).i18n = createI18nService();
     (plugin as any).registerEvent = jest.fn();
     (plugin as any).manifest = { version: '0.0.0' };
+    (plugin as any).fieldMapper = {
+      isPropertyForField: jest.fn(() => false),
+      toUserField: jest.fn((field) => field),
+      toInternalField: jest.fn((field) => field),
+    };
 
     tab = new TaskNotesSettingTab(app, plugin);
   });

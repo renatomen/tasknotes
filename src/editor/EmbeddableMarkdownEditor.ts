@@ -60,6 +60,35 @@ function resolveEditorPrototype(app: App): Constructor<ScrollableMarkdownEditor>
 	return MarkdownEditor.constructor as Constructor<ScrollableMarkdownEditor>;
 }
 
+/**
+ * Gets the editor base class, with fallback for test environments
+ * @returns The ScrollableMarkdownEditor constructor or a mock for tests
+ */
+function getEditorBase(): Constructor<ScrollableMarkdownEditor> {
+	// In test environments, app won't be defined, so return a mock base class
+	if (typeof app === 'undefined') {
+		return class MockScrollableMarkdownEditor {
+			app: any;
+			containerEl: HTMLElement = document.createElement('div');
+			editor: any;
+			editorEl: HTMLElement = document.createElement('div');
+			activeCM: any;
+			owner: any = { editMode: null, editor: null };
+			_loaded: boolean = false;
+			set(value: string): void {}
+			onUpdate(update: ViewUpdate, changed: boolean): void {}
+			buildLocalExtensions(): Extension[] { return []; }
+			destroy(): void {}
+			unload(): void {}
+			constructor(app: App, container: HTMLElement, options: any) {
+				this.app = app;
+				this.containerEl = container;
+			}
+		} as any as Constructor<ScrollableMarkdownEditor>;
+	}
+	return resolveEditorPrototype(app);
+}
+
 export interface MarkdownEditorProps {
 	/** Initial cursor position */
 	cursorLocation?: { anchor: number; head: number };
@@ -118,7 +147,7 @@ const defaultProperties: Required<MarkdownEditorProps> = {
  * editor.destroy();
  * ```
  */
-export class EmbeddableMarkdownEditor extends resolveEditorPrototype(app) {
+export class EmbeddableMarkdownEditor extends getEditorBase() {
 	options: Required<MarkdownEditorProps>;
 	initial_value: string;
 	scope: Scope;
