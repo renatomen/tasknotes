@@ -39,13 +39,10 @@ Customize the priority levels available for your tasks.
 - **Value**: The internal identifier stored in your task files (e.g., "high").
 - **Display Label**: The display name shown in the interface (e.g., "High Priority").
 - **Color**: Visual indicator color for the priority dot and badges.
-- **Weight**: Numeric value preserved for potential future use.
 
 > **Important for v4.0+ users:** Obsidian's Bases plugin sorts priorities alphabetically by their **Value**. To ensure priorities sort in your desired order, name your values to sort alphabetically in the order you want them to appear:
 > - Example: `1-urgent`, `2-high`, `3-medium`, `4-normal`, `5-low`
 > - Or: `a-urgent`, `b-high`, `c-medium`, `d-normal`, `e-low`
->
-> The weight field does not affect Bases sorting, but is retained in settings for potential future functionality.
 
 ## Field Mapping
 
