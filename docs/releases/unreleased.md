@@ -71,6 +71,11 @@ Example:
 
 ## Fixed
 
+- (#1133) Fixed empty priority columns not showing in Kanban view when "Hide empty columns" is disabled
+  - All defined priority values now appear as columns, matching the behavior of status grouping
+  - Allows easy triage of new tasks that start with no priority assigned
+  - Thanks to @luckb0x for reporting
+
 - Fixed OAuth calendar cards showing "Unknown account" in settings
   - Removed non-functional 'Account:' field from Google and Microsoft calendar connection cards
   - Cards now show only connection status and last sync time
