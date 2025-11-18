@@ -157,8 +157,10 @@ export class BasesFilterConverter {
 		const fm = this.plugin.fieldMapper;
 
 		// Build expression checking if status is in completed list
+		// Use field-mapped property name to support custom status property names
+		const statusProp = fm.toUserField("status");
 		const statusConditions = completedStatusValues
-			.map((statusValue) => `note.status == "${this.escapeString(statusValue)}"`)
+			.map((statusValue) => `note.${statusProp} == "${this.escapeString(statusValue)}"`)
 			.join(" || ");
 
 		// Build status check expression
