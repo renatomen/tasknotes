@@ -38,6 +38,12 @@ Example:
 
 ## Fixed
 
+- (#1127) Fixed custom priority colors not being respected in Task List and Subtasks sections
+  - Medium priority was incorrectly using the same CSS variable as normal priority
+  - Each priority now correctly uses its own CSS variable (e.g., `--priority-medium-color`)
+  - Custom priority colors configured in settings are now properly displayed
+  - Thanks to @HPmattsloper for reporting
+
 - (#1043) Fixed inability to set "at time of event" (0 offset) as a default reminder in settings
   - Changed minimum value validation from 1 to 0 for reminder offset inputs
   - Users can now set "0 minutes/hours/days before" as a default reminder option

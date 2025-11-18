@@ -828,7 +828,10 @@
     background-color: var(--priority-high-color, var(--tn-color-error));
 }
 
-.tasknotes-plugin .task-card--priority-medium > .task-card__main-row .task-card__priority-dot,
+.tasknotes-plugin .task-card--priority-medium > .task-card__main-row .task-card__priority-dot {
+    background-color: var(--priority-medium-color, var(--tn-interactive-accent));
+}
+
 .tasknotes-plugin .task-card--priority-normal > .task-card__main-row .task-card__priority-dot {
     background-color: var(--priority-normal-color, var(--tn-interactive-accent));
 }
