@@ -28,12 +28,12 @@ export class KanbanView extends BasesViewBase {
 	private configLoaded = false; // Track if we've successfully loaded config
 	/**
 	 * Threshold for enabling virtual scrolling in kanban columns/swimlane cells.
-	 * Virtual scrolling activates when a column or cell has >= 30 cards.
+	 * Virtual scrolling activates when a column or cell has >= 15 cards.
 	 * Lower than TaskListView (100) because kanban cards are typically larger with more
 	 * visible properties, and columns are narrower (more constrained viewport).
 	 * Benefits: ~85% memory reduction, smooth 60fps scrolling for columns with 200+ cards.
 	 */
-	private readonly VIRTUAL_SCROLL_THRESHOLD = 30;
+	private readonly VIRTUAL_SCROLL_THRESHOLD = 15;
 
 	constructor(controller: any, containerEl: HTMLElement, plugin: TaskNotesPlugin) {
 		super(controller, containerEl, plugin);
