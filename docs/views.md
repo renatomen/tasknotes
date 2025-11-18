@@ -13,7 +13,7 @@ All task-focused views in TaskNotes v4 use Obsidian's **Bases core plugin**. Thi
 2. Enable "Bases"
 3. TaskNotes view commands and ribbon icons will open `.base` files from `TaskNotes/Views/`
 
-Bases views use YAML configuration in `.base` files to define filtering, sorting, and grouping behavior. View configurations from TaskNotes v3 must be manually converted to `.base` file format.
+Bases views use YAML configuration in `.base` files to define filtering, sorting, and grouping behavior. View configurations from TaskNotes v3 must be manually converted to `.base` file format. See [Default Base Templates](views/default-base-templates.md) for complete template examples.
 
 ## Task-Focused Views
 

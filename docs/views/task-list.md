@@ -250,6 +250,7 @@ Virtual scrolling activates automatically and requires no configuration. When ac
 
 ## Further Reading
 
+- [Default Base Templates](default-base-templates.md) - Complete templates for all TaskNotes views
 - [Bases Plugin Documentation](https://help.obsidian.md/Plugins/Bases) - Official Obsidian documentation for Bases syntax and features
 - [Kanban View](kanban-view.md) - Alternative board-based task visualization
 - [Calendar Views](calendar-views.md) - Time-based task visualization

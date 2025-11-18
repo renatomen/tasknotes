@@ -550,6 +550,7 @@ Bases evaluates filters against the Obsidian metadata cache. Understanding evalu
 
 ## Additional Resources
 
+- **Default Templates**: See [Default Base Templates](../views/default-base-templates.md) for complete template examples
 - **View Types**: See [Views](../views.md) for details on each view type
 - **Properties**: See [Task Management](task-management.md) for complete property reference
 - **Settings**: See [General Settings](../settings/general.md) for field mapping configuration

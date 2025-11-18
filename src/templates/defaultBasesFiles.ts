@@ -3,12 +3,12 @@
  * These are created in TaskNotes/Views/ directory when the user first uses the commands
  *
  * ⚠️ IMPORTANT: Changes to these templates should be reflected in the documentation at:
- *    obsidian-help/en/Bases/Default base templates.md
+ *    docs/views/default-base-templates.md
  *
  * When updating templates:
  * 1. Update the template generation code below
  * 2. Update the documentation with example output using DEFAULT_SETTINGS from src/settings/defaults.ts
- * 3. Ensure all Bases syntax is valid according to obsidian-help/en/Bases/Bases syntax.md
+ * 3. Ensure all Bases syntax is valid according to https://help.obsidian.md/Bases/Bases+syntax
  */
 
 import type { TaskNotesSettings } from "../types/settings";
