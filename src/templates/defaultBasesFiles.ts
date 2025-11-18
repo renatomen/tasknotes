@@ -1,6 +1,14 @@
 /**
  * Default .base file templates for TaskNotes views
  * These are created in TaskNotes/Views/ directory when the user first uses the commands
+ *
+ * ⚠️ IMPORTANT: Changes to these templates should be reflected in the documentation at:
+ *    obsidian-help/en/Bases/Default base templates.md
+ *
+ * When updating templates:
+ * 1. Update the template generation code below
+ * 2. Update the documentation with example output using DEFAULT_SETTINGS from src/settings/defaults.ts
+ * 3. Ensure all Bases syntax is valid according to obsidian-help/en/Bases/Bases syntax.md
  */
 
 import type { TaskNotesSettings } from "../types/settings";
@@ -203,11 +211,11 @@ ${orderYaml}
 `;
 
 		case 'open-tasks-view': {
-			const statusProperty = mapPropertyToBasesProperty('status', settings);
-			const dueProperty = mapPropertyToBasesProperty('due', settings);
-			const scheduledProperty = mapPropertyToBasesProperty('scheduled', settings);
-			const recurrenceProperty = mapPropertyToBasesProperty('recurrence', settings);
-			const completeInstancesProperty = mapPropertyToBasesProperty('completeInstances', settings);
+			const statusProperty = mapPropertyToBasesProperty('status', plugin);
+			const dueProperty = mapPropertyToBasesProperty('due', plugin);
+			const scheduledProperty = mapPropertyToBasesProperty('scheduled', plugin);
+			const recurrenceProperty = mapPropertyToBasesProperty('recurrence', plugin);
+			const completeInstancesProperty = mapPropertyToBasesProperty('completeInstances', plugin);
 
 			// Get all completed status values
 			const completedStatuses = settings.customStatuses
@@ -226,6 +234,13 @@ ${formatFilterAsYAML([taskFilterCondition])}
 
 views:
   - type: tasknotesTaskList
+    name: "All Tasks"
+    order:
+${orderYaml}
+    sort:
+      - column: due
+        direction: ASC
+  - type: tasknotesTaskList
     name: "Today"
     filters:
       and:
@@ -233,16 +248,16 @@ views:
         - or:
           # Non-recurring task that's not in any completed status
           - and:
-            - "!${recurrenceProperty}"
+            - ${recurrenceProperty}.isEmpty()
             - ${nonRecurringIncompleteFilter}
           # Recurring task where today is not in complete_instances
           - and:
             - ${recurrenceProperty}
-            - "!contains(${completeInstancesProperty}, dateformat(date(today), \\"yyyy-MM-dd\\"))"
+            - "!${completeInstancesProperty}.contains(today().format(\\"yyyy-MM-dd\\"))"
         # Due or scheduled today
         - or:
-          - date(${dueProperty}) = date(today)
-          - date(${scheduledProperty}) = date(today)
+          - date(${dueProperty}) == today()
+          - date(${scheduledProperty}) == today()
     order:
 ${orderYaml}
     sort:
@@ -256,14 +271,14 @@ ${orderYaml}
         - or:
           # Non-recurring task that's not in any completed status
           - and:
-            - "!${recurrenceProperty}"
+            - ${recurrenceProperty}.isEmpty()
             - ${nonRecurringIncompleteFilter}
           # Recurring task where today is not in complete_instances
           - and:
             - ${recurrenceProperty}
-            - "!contains(${completeInstancesProperty}, dateformat(date(today), \\"yyyy-MM-dd\\"))"
+            - "!${completeInstancesProperty}.contains(today().format(\\"yyyy-MM-dd\\"))"
         # Due in the past
-        - date(${dueProperty}) < date(today)
+        - date(${dueProperty}) < today()
     order:
 ${orderYaml}
     sort:
@@ -277,31 +292,46 @@ ${orderYaml}
         - or:
           # Non-recurring task that's not in any completed status
           - and:
-            - "!${recurrenceProperty}"
+            - ${recurrenceProperty}.isEmpty()
             - ${nonRecurringIncompleteFilter}
           # Recurring task where today is not in complete_instances
           - and:
             - ${recurrenceProperty}
-            - "!contains(${completeInstancesProperty}, dateformat(date(today), \\"yyyy-MM-dd\\"))"
+            - "!${completeInstancesProperty}.contains(today().format(\\"yyyy-MM-dd\\"))"
         # Due or scheduled this week
         - or:
           - and:
-            - date(${dueProperty}) >= date(today)
-            - date(${dueProperty}) <= date(today) + dur(7 days)
+            - date(${dueProperty}) >= today()
+            - date(${dueProperty}) <= today() + "7 days"
           - and:
-            - date(${scheduledProperty}) >= date(today)
-            - date(${scheduledProperty}) <= date(today) + dur(7 days)
+            - date(${scheduledProperty}) >= today()
+            - date(${scheduledProperty}) <= today() + "7 days"
     order:
 ${orderYaml}
     sort:
       - column: due
         direction: ASC
   - type: tasknotesTaskList
-    name: "All Tasks"
+    name: "Unscheduled"
+    filters:
+      and:
+        # Incomplete tasks
+        - or:
+          # Non-recurring task that's not in any completed status
+          - and:
+            - ${recurrenceProperty}.isEmpty()
+            - ${nonRecurringIncompleteFilter}
+          # Recurring task where today is not in complete_instances
+          - and:
+            - ${recurrenceProperty}
+            - "!${completeInstancesProperty}.contains(today().format(\\"yyyy-MM-dd\\"))"
+        # No due date and no scheduled date
+        - date(${dueProperty}).isEmpty()
+        - date(${scheduledProperty}).isEmpty()
     order:
 ${orderYaml}
     sort:
-      - column: due
+      - column: ${statusProperty}
         direction: ASC
 `;
 		}

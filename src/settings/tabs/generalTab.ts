@@ -200,50 +200,53 @@ export function renderGeneralTab(
 	}
 
 	// View Commands Section
-	createSectionHeader(container, "View Commands");
+	createSectionHeader(container, translate("settings.integrations.basesIntegration.viewCommands.header"));
 	createHelpText(
 		container,
-		"Configure which .base files are opened by view commands. These commands let you continue using familiar shortcuts while working with Bases files."
+		translate("settings.integrations.basesIntegration.viewCommands.description")
 	);
 
 	// Command file mappings
 	const commandMappings = [
 		{
 			id: 'open-calendar-view',
-			name: 'Open Mini Calendar View',
+			nameKey: 'miniCalendar' as const,
 			defaultPath: 'TaskNotes/Views/mini-calendar-default.base',
 		},
 		{
 			id: 'open-kanban-view',
-			name: 'Open Kanban View',
+			nameKey: 'kanban' as const,
 			defaultPath: 'TaskNotes/Views/kanban-default.base',
 		},
 		{
 			id: 'open-tasks-view',
-			name: 'Open Tasks View',
+			nameKey: 'tasks' as const,
 			defaultPath: 'TaskNotes/Views/tasks-default.base',
 		},
 		{
 			id: 'open-advanced-calendar-view',
-			name: 'Open Advanced Calendar View',
+			nameKey: 'advancedCalendar' as const,
 			defaultPath: 'TaskNotes/Views/calendar-default.base',
 		},
 		{
 			id: 'open-agenda-view',
-			name: 'Open Agenda View',
+			nameKey: 'agenda' as const,
 			defaultPath: 'TaskNotes/Views/agenda-default.base',
 		},
 		{
 			id: 'relationships',
-			name: 'Relationships Widget',
+			nameKey: 'relationships' as const,
 			defaultPath: 'TaskNotes/Views/relationships.base',
 		},
 	];
 
-	commandMappings.forEach(({ id, name, defaultPath }) => {
+	commandMappings.forEach(({ id, nameKey, defaultPath }) => {
 		const setting = new Setting(container);
-		setting.setName(name);
-		setting.setDesc(`File: ${plugin.settings.commandFileMapping[id]}`);
+		const commandName = translate(`settings.integrations.basesIntegration.viewCommands.commands.${nameKey}` as any);
+		setting.setName(commandName);
+		setting.setDesc(translate("settings.integrations.basesIntegration.viewCommands.fileLabel", {
+			path: plugin.settings.commandFileMapping[id]
+		}));
 
 		// Text input for file path
 		setting.addText(text => {
@@ -253,7 +256,9 @@ export function renderGeneralTab(
 					plugin.settings.commandFileMapping[id] = value;
 					await save();
 					// Update description
-					setting.setDesc(`File: ${value}`);
+					setting.setDesc(translate("settings.integrations.basesIntegration.viewCommands.fileLabel", {
+						path: value
+					}));
 				});
 			text.inputEl.style.width = '100%';
 			return text;
@@ -261,8 +266,8 @@ export function renderGeneralTab(
 
 		// Reset button
 		setting.addButton(button => {
-			button.setButtonText('Reset')
-				.setTooltip('Reset to default path')
+			button.setButtonText(translate("settings.integrations.basesIntegration.viewCommands.resetButton"))
+				.setTooltip(translate("settings.integrations.basesIntegration.viewCommands.resetTooltip"))
 				.onClick(async () => {
 					plugin.settings.commandFileMapping[id] = defaultPath;
 					await save();
@@ -277,10 +282,10 @@ export function renderGeneralTab(
 
 	// Create Default Files button
 	new Setting(container)
-		.setName('Create Default Files')
-		.setDesc('Create the default .base files in TaskNotes/Views/ directory. Existing files will not be overwritten.')
+		.setName(translate("settings.integrations.basesIntegration.createDefaultFiles.name"))
+		.setDesc(translate("settings.integrations.basesIntegration.createDefaultFiles.description"))
 		.addButton(button => {
-			button.setButtonText('Create Files')
+			button.setButtonText(translate("settings.integrations.basesIntegration.createDefaultFiles.buttonText"))
 				.setCta()
 				.onClick(async () => {
 					await plugin.createDefaultBasesFiles();
@@ -290,16 +295,16 @@ export function renderGeneralTab(
 
 	// Export All Saved Views button
 	new Setting(container)
-		.setName('Export All Saved Views to Bases')
-		.setDesc('Convert all your saved views into a single .base file with multiple views. Agenda views will use calendar type.')
+		.setName(translate("settings.integrations.basesIntegration.exportV3Views.name"))
+		.setDesc(translate("settings.integrations.basesIntegration.exportV3Views.description"))
 		.addButton(button => {
-			button.setButtonText('Export All Views')
+			button.setButtonText(translate("settings.integrations.basesIntegration.exportV3Views.buttonText"))
 				.onClick(async () => {
 					try {
 						const savedViews = plugin.viewStateManager.getSavedViews();
 
 						if (savedViews.length === 0) {
-							new Notice('No saved views to export');
+							new Notice(translate("settings.integrations.basesIntegration.exportV3Views.noViews"));
 							return;
 						}
 
@@ -317,8 +322,8 @@ export function renderGeneralTab(
 						const existingFile = plugin.app.vault.getAbstractFileByPath(filePath);
 						if (existingFile) {
 							const confirmed = await showConfirmationModal(plugin.app, {
-								title: 'File Already Exists',
-								message: `A file named "${fileName}" already exists. Overwrite it?`,
+								title: translate("settings.integrations.basesIntegration.exportV3Views.fileExists"),
+								message: translate("settings.integrations.basesIntegration.exportV3Views.confirmOverwrite", { fileName }),
 								isDestructive: false,
 							});
 							if (!confirmed) return;
@@ -327,11 +332,16 @@ export function renderGeneralTab(
 							await plugin.app.vault.create(filePath, basesContent);
 						}
 
-						new Notice(`Exported ${savedViews.length} saved views to ${filePath}`);
+						new Notice(translate("settings.integrations.basesIntegration.exportV3Views.success", {
+							count: savedViews.length.toString(),
+							filePath
+						}));
 						await plugin.app.workspace.openLinkText(filePath, '', true);
 					} catch (error) {
 						console.error('Error exporting all views to Bases:', error);
-						new Notice(`Failed to export views: ${error.message}`);
+						new Notice(translate("settings.integrations.basesIntegration.exportV3Views.error", {
+							message: error.message
+						}));
 					}
 				});
 			return button;

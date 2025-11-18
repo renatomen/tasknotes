@@ -34,7 +34,14 @@ Example:
   - Sub-groups can be independently collapsed/expanded
   - Empty sub-groups are automatically hidden
   - Collapse state persists across view reloads
-  - Visual hierarchy with subtle indentation (24px) and lighter styling for sub-headers
+  - Visual hierarchy with subtle indentation (16px) and lighter styling for sub-headers
+
+- Added documentation for default Bases templates
+  - New documentation page showing all default .base file templates with examples
+  - Documents templates for Mini Calendar, Kanban, Tasks List (with 5 views), Calendar, Agenda, and Relationships views
+  - Includes assumptions about default settings and explains how templates adapt to user customizations
+  - Added warning comment in source code to keep documentation in sync with template changes
+  - Linked from "Introduction to Bases" and "Create a base" pages
 
 ## Changed
 
@@ -48,7 +55,28 @@ Example:
   - Added smooth transitions for hover effects
   - Softened shadows and reduced hover animation intensity
 
+- Updated "Export All Views" button to clarify it exports V3 saved views
+  - Button renamed to "Export V3 Views" and description updated
+  - Clarifies this feature migrates TaskNotes v3 saved views to v4 Bases system
+
+- Improved internationalization (i18n) support in General settings tab
+  - All Bases integration settings now use translation keys
+  - "View Commands" section, button labels, and notices are now fully translatable
+
+- Changed default Tasks List template view order and added new view
+  - "All Tasks" view now appears first (was previously last)
+  - Added "Unscheduled" view showing incomplete tasks without due or scheduled dates
+  - New view order: All Tasks → Today → Overdue → This Week → Unscheduled
+  - Unscheduled view sorts by status
+
 ## Fixed
+
+- Fixed incorrect Bases syntax in default template files
+  - Fixed TypeScript error: changed `settings` parameter to `plugin` in property mapping calls
+  - Default templates now generate valid Bases syntax that won't cause errors
+
+- Fixed incorrect Bases syntax in "Export V3 Views" feature
+  - Exported Bases files now use correct YAML structure per Bases specification
 
 - (#1127) Fixed custom priority colors not being respected in Task List and Subtasks sections
   - Medium priority was incorrectly using the same CSS variable as normal priority

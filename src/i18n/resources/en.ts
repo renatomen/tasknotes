@@ -1305,6 +1305,36 @@ export const en: TranslationTree = {
 					description:
 						"Enable TaskNotes views to be used within Obsidian Bases plugin. Bases plugin must be enabled for this to work.",
 				},
+				viewCommands: {
+					header: "View commands",
+					description: "Configure which .base files are opened by view commands. These commands let you continue using familiar shortcuts while working with Bases files.",
+					commands: {
+						miniCalendar: "Open mini calendar view",
+						kanban: "Open kanban view",
+						tasks: "Open tasks view",
+						advancedCalendar: "Open advanced calendar view",
+						agenda: "Open agenda view",
+						relationships: "Relationships widget",
+					},
+					fileLabel: "File: {path}",
+					resetButton: "Reset",
+					resetTooltip: "Reset to default path",
+				},
+				createDefaultFiles: {
+					name: "Create default files",
+					description: "Create the default .base files in TaskNotes/Views/ directory. Existing files will not be overwritten.",
+					buttonText: "Create files",
+				},
+				exportV3Views: {
+					name: "Export V3 saved views to Bases",
+					description: "Convert all your saved views from TaskNotes v3 into a single .base file with multiple views. This helps migrate your v3 filter configurations to the new Bases system.",
+					buttonText: "Export V3 views",
+					noViews: "No saved views to export",
+					fileExists: "File already exists",
+					confirmOverwrite: 'A file named "{fileName}" already exists. Overwrite it?',
+					success: "Exported {count} saved views to {filePath}",
+					error: "Failed to export views: {message}",
+				},
 				notices: {
 					enabled:
 						"Bases integration enabled. Please restart Obsidian to complete the setup.",

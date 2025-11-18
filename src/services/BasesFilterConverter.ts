@@ -320,10 +320,10 @@ export class BasesFilterConverter {
 				return `${basesProperty} >= "${this.escapeString(String(value))}"`;
 
 			case "is-empty":
-				return `(!${basesProperty} || ${basesProperty} == "" || ${basesProperty} == null)`;
+				return `${basesProperty}.isEmpty()`;
 
 			case "is-not-empty":
-				return `(${basesProperty} && ${basesProperty} != "" && ${basesProperty} != null)`;
+				return `!${basesProperty}.isEmpty()`;
 
 			case "is-checked":
 				return `${basesProperty} == true`;
@@ -515,8 +515,10 @@ export class BasesFilterConverter {
 		// Add grouping if present
 		if (savedView.query.groupKey && savedView.query.groupKey !== "none") {
 			const groupColumn = this.mapGroupKeyToBasesColumn(savedView.query.groupKey);
-			content += `    group:\n`;
-			content += `      column: ${groupColumn}\n`;
+			const groupDirection = (savedView.query.sortDirection || "asc").toUpperCase();
+			content += `    groupBy:\n`;
+			content += `      property: ${groupColumn}\n`;
+			content += `      direction: ${groupDirection}\n`;
 		}
 
 		// Add view options if present
@@ -624,8 +626,10 @@ export class BasesFilterConverter {
 			// Add grouping if present
 			if (savedView.query.groupKey && savedView.query.groupKey !== "none") {
 				const groupColumn = this.mapGroupKeyToBasesColumn(savedView.query.groupKey);
-				viewDef += `    group:\n`;
-				viewDef += `      column: ${groupColumn}\n`;
+				const groupDirection = (savedView.query.sortDirection || "asc").toUpperCase();
+				viewDef += `    groupBy:\n`;
+				viewDef += `      property: ${groupColumn}\n`;
+				viewDef += `      direction: ${groupDirection}\n`;
 			}
 
 			// Add view options if present
