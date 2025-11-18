@@ -216,6 +216,7 @@ ${orderYaml}
 			const scheduledProperty = mapPropertyToBasesProperty('scheduled', plugin);
 			const recurrenceProperty = mapPropertyToBasesProperty('recurrence', plugin);
 			const completeInstancesProperty = mapPropertyToBasesProperty('completeInstances', plugin);
+			const blockedByProperty = mapPropertyToBasesProperty('blockedBy', plugin);
 
 			// Get all completed status values
 			const completedStatuses = settings.customStatuses
@@ -228,6 +229,12 @@ ${orderYaml}
 				.map(status => `${statusProperty} != "${status}"`)
 				.join('\n            - ');
 
+			// Generate filter condition for checking if a blocking task is incomplete
+			// This is used in the "Not Blocked" view to filter out completed blocking tasks
+			const blockingTaskIncompleteCondition = completedStatuses
+				.map(status => `file(value.uid).properties.${getPropertyName(statusProperty)} != "${status}"`)
+				.join(' && ');
+
 			return `# All Tasks
 
 ${formatFilterAsYAML([taskFilterCondition])}
@@ -235,6 +242,31 @@ ${formatFilterAsYAML([taskFilterCondition])}
 views:
   - type: tasknotesTaskList
     name: "All Tasks"
+    order:
+${orderYaml}
+    sort:
+      - column: due
+        direction: ASC
+  - type: tasknotesTaskList
+    name: "Not Blocked"
+    filters:
+      and:
+        # Incomplete tasks
+        - or:
+          # Non-recurring task that's not in any completed status
+          - and:
+            - ${recurrenceProperty}.isEmpty()
+            - ${nonRecurringIncompleteFilter}
+          # Recurring task where today is not in complete_instances
+          - and:
+            - ${recurrenceProperty}
+            - "!${completeInstancesProperty}.contains(today().format(\\"yyyy-MM-dd\\"))"
+        # Not blocked by any incomplete tasks
+        - or:
+          # No blocking dependencies at all
+          - ${blockedByProperty}.isEmpty()
+          # All blocking tasks are completed (filter returns only incomplete, then check if empty)
+          - "list(${blockedByProperty}).filter(${blockingTaskIncompleteCondition}).isEmpty()"
     order:
 ${orderYaml}
     sort:
