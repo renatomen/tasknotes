@@ -1,165 +1,256 @@
 # Task List View
 
-The Task List View provides a list-based interface for viewing and managing your tasks. It displays your tasks in a scrollable list, with filtering, sorting, and grouping capabilities.
+[← Back to Views](../views.md)
 
-## FilterBar
+The Task List View displays tasks in a scrollable list format with filtering, sorting, and grouping capabilities. In TaskNotes v4, this view operates as a Bases view configured through YAML.
 
-The Task List View includes a FilterBar that provides comprehensive filtering capabilities through a hierarchical query builder interface.
+## Bases Architecture
 
-### Quick Search
+Task List is implemented as a `.base` file located in `TaskNotes/Views/tasks-default.base` by default. It requires the Bases core plugin to be enabled.
 
-The search input at the top of the FilterBar allows for quick text searches:
-- Searches task titles for matching text
-- Updates in real-time with 800ms debouncing
-- Search terms are added as filter conditions in the query builder
+### What is Bases?
 
-### Query Builder
+Bases is an official Obsidian core plugin built directly into Obsidian (not a community plugin). It provides a framework for creating database views of notes and tasks.
 
-The FilterBar includes a hierarchical query builder that allows you to create complex filter conditions:
+To enable Bases:
+1. Open Settings → Core Plugins
+2. Enable "Bases"
+3. TaskNotes view commands will now open `.base` files from `TaskNotes/Views/`
 
-**Filter Groups**: Logical containers that can use AND or OR conjunctions
+### View File Location
 
-- Groups can contain individual conditions or nested groups
-- Visual nesting shows the hierarchy
-- Each group can have its own conjunction (AND/OR)
+When you use the "Open Tasks View" command or ribbon icon, TaskNotes opens the `.base` file configured under **Settings → TaskNotes → General → View Commands** (initially `TaskNotes/Views/tasks-default.base`). The default file is created automatically the first time you use the command, and you can point the command to any other `.base` file if you maintain multiple task-list layouts.
 
-**Filter Conditions**: Individual filter rules with three parts:
+## Configuration
 
-- **Property**: What task attribute to filter on
-- **Operator**: How to compare the property
-- **Value**: What to compare against
+Task List views are configured through YAML frontmatter in the `.base` file. The YAML defines which tasks to show, how to sort them, and how to group them.
 
-### Available Properties
+### Basic Structure
 
-You can filter on these task properties:
+```yaml
+# All Tasks
 
-**Text Properties**:
+views:
+  - type: tasknotesTaskList
+    name: "All Tasks"
+    order:
+      - note.status
+      - note.priority
+      - note.due
+      - note.scheduled
+      - note.projects
+      - note.contexts
+      - file.tags
+    sort:
+      - column: due
+        direction: ASC
+```
 
-- `title` - Task title/name
+### Configuration Options
 
-**Select Properties**:
-- `status` - Task status
-- `priority` - Priority level
-- `tags` - Task tags
-- `contexts` - Task contexts
-- `projects` - Task projects (supports wiki-link format)
+**`type`**: Must be `tasknotesTaskList` for Task List views
 
-**Date Properties**:
-- `due` - Due date
-- `scheduled` - Scheduled date
-- `completedDate` - Completion date
-- `file.ctime` - File creation date
-- `file.mtime` - File modification date
+**`name`**: Display name shown in the view header
 
-**Boolean Properties**:
-- `archived` - Whether task is archived
-- `status.isCompleted` - Whether task status indicates completion
+**`order`**: Array of property names that control which task properties are visible in the task cards. Properties are referenced using their Bases property paths (e.g., `note.status`, `note.priority`, `note.due`).
 
-**Numeric Properties**:
-- `timeEstimate` - Time estimate in minutes
+**`sort`**: Array of sort criteria. Tasks are sorted by the first criterion, with ties broken by subsequent criteria.
+- `column`: Property to sort by (e.g., `due`, `scheduled`, `priority`, `title`)
+- `direction`: `ASC` (ascending) or `DESC` (descending)
 
-**Special Properties**:
-- `recurrence` - Recurrence pattern
+**`groupBy`**: Optional grouping configuration
+- `property`: Property to group by (e.g., `note.status`, `note.priority`)
+- `direction`: Sort direction for group headers
 
-### Available Operators
+**`filters`**: Optional filter conditions using Bases query syntax
+```yaml
+filters:
+  and:
+    - note.status == "Open"
+    - note.priority == "High"
+```
 
-**Text Operators**:
-- `contains` / `does-not-contain` - Substring matching (case-insensitive)
+### Property Mapping
 
-**Comparison Operators**:
-- `is` / `is-not` - Exact equality/inequality
-- `is-greater-than` / `is-less-than` - Numeric comparison
+TaskNotes properties are accessed in Bases YAML using these paths:
 
-**Date Operators**:
-- `is-before` / `is-after` - Date comparison
-- `is-on-or-before` / `is-on-or-after` - Inclusive date comparison
+| TaskNotes Property | Bases Property Path | Description |
+|-------------------|-------------------|-------------|
+| Status | `note.status` | Task status value |
+| Priority | `note.priority` | Priority level |
+| Due date | `note.due` | Due date/time |
+| Scheduled date | `note.scheduled` | Scheduled date/time |
+| Projects | `note.projects` | Associated projects |
+| Contexts | `note.contexts` | Task contexts |
+| Tags | `file.tags` | File tags |
+| Time estimate | `note.timeEstimate` | Estimated duration |
+| Recurrence | `note.recurrence` | Recurrence pattern |
+| Blocked by | `note.blockedBy` | Blocking dependencies |
+| Title | `file.name` | Task title (file name) |
+| Created | `file.ctime` | File creation date |
+| Modified | `file.mtime` | File modification date |
 
-**Existence Operators**:
-- `is-empty` / `is-not-empty` - Checks for empty/null values
-- `is-checked` / `is-not-checked` - Boolean true/false
+The exact property names depend on your TaskNotes field mapping settings (Settings → Advanced → Field Mapping). The table above shows the default mappings.
 
-### Saved Views
+## Filtering and Sorting
 
-The FilterBar supports saving and loading filter configurations:
-- **Save**: Name and save current filter, sort, and group settings
-- **Load**: Apply a previously saved view configuration
-- **Delete**: Remove saved views
-- Saved views include the complete filter hierarchy, sorting, and grouping preferences
+### Adding Filters
 
+Edit the `.base` file to add filter conditions using Bases query syntax:
 
-### Heading display and completion count
+```yaml
+views:
+  - type: tasknotesTaskList
+    name: "High Priority Tasks"
+    filters:
+      and:
+        - note.priority == "High"
+        - note.status != "Completed"
+    order:
+      - note.status
+      - note.priority
+      - note.due
+```
 
-The Task List heading shows the active saved view name and the current task count (completed / total).
+### Filter Operators
 
-- No filter selected (shows “All”):
+Bases supports standard comparison operators:
+- `==` (equals), `!=` (not equals)
+- `>`, `<`, `>=`, `<=` (comparison)
+- `contains()` (substring/array membership)
+- Boolean logic: `and`, `or`
 
-![Saved view heading with count (no filter)](../assets/tasklist_filter_name+count_no_filter.png)
+For detailed filter syntax, see the [Bases documentation](https://help.obsidian.md/Plugins/Bases).
 
-- Saved view selected:
+### Sorting Examples
 
-![Saved view heading with count (with filter)](../assets/tasklist_filter_name+count_with_filter.png)
+Single sort criterion:
+```yaml
+sort:
+  - column: due
+    direction: ASC
+```
 
-### Sorting Options
+Multiple sort criteria:
+```yaml
+sort:
+  - column: priority
+    direction: DESC
+  - column: due
+    direction: ASC
+  - column: title
+    direction: ASC
+```
 
-Available sort criteria:
-- `due` - Due date
-- `scheduled` - Scheduled date
-- `priority` - Priority level (by weight)
-- `title` - Alphabetical
-- User fields (from Settings → Advanced → User Fields), shown by their Display Name
+## Grouping
 
-When primary sort criteria are equal, tasks are sorted by: scheduled → due → priority → title
+Groups organize tasks under collapsible headers based on a property value.
 
-### Grouping Options
+### Enable Grouping
 
-Available grouping options:
-- `none` - No grouping
-- `status` - By task status
-- `priority` - By priority level
-- `context` - By first context
-- `project` - By project (tasks can appear in multiple groups)
-- `due` - By due date ranges (Today, Tomorrow, This week, etc.)
-- `scheduled` - By scheduled date ranges
+Add `groupBy` configuration to your view:
 
-Note: When Group by equals the Sort user field, group headers follow the selected sort direction.
+```yaml
+views:
+  - type: tasknotesTaskList
+    name: "Tasks by Status"
+    groupBy:
+      property: note.status
+      direction: ASC
+    order:
+      - note.status
+      - note.priority
+      - note.due
+```
 
-#### Hierarchical Subgrouping
+### Available Grouping Properties
 
-The Task List View supports two-level hierarchical grouping for enhanced organization:
+Common grouping properties:
+- `note.status` - Group by task status
+- `note.priority` - Group by priority level
+- `note.contexts` - Group by first context
+- `note.projects` - Group by project (tasks can appear in multiple groups)
 
-1. **Enable Primary Grouping**: Choose any grouping option (e.g., "Status")
-2. **Add Subgrouping**: Use the sort/group menu (⋯ button) to select a subgroup option
-3. **View Structure**: Tasks appear under primary groups, then organized into subgroups
+### Interactive Group Headers
 
-**Example**: Group by "Status" with "Priority" subgroups creates:
-- **Open** (primary group)
-  - High priority (subgroup)
-  - Medium priority (subgroup)
-  - Low priority (subgroup)
-- **In Progress** (primary group)
-  - High priority (subgroup)
-  - etc.
+Group headers support interaction:
+- Click to expand/collapse the group
+- Click on project links in headers to navigate to project notes
+- Hover over project links with Ctrl to preview project notes
 
-Subgroup state (expanded/collapsed) is preserved between sessions, and subgroups are sorted according to the current sort direction.
+### Collapsed State Persistence
 
-### Project Group Headers
+Collapsed/expanded state for each group is preserved across sessions.
 
-When grouping tasks by project, the project group headers are interactive:
-- **Clickable Navigation**: Project headers that are wikilinks (e.g., `[[Project Name]]`) can be clicked to open the corresponding project note
-- **Hover Previews**: Use Ctrl+hover on project headers to preview project notes without opening them
-- **Error Handling**: Clicking on project headers for missing files shows appropriate error messages
+## Creating Multiple Views
 
+You can create multiple `.base` files for different task perspectives:
 
-### Group Controls: Expand/Collapse All
+1. Duplicate an existing `.base` file in `TaskNotes/Views/`
+2. Rename it (e.g., `High Priority.base`)
+3. Edit the YAML configuration for that view
+4. Open the file to see the customized view
 
-When grouping is enabled, the FilterBar shows top‑bar controls to collapse or expand all groups at once. This helps quickly condense or expand long lists.
+### Example: Context-Specific View
 
-- Collapse All: hides the contents of every group
-- Expand All: reveals the contents of every group
-- The collapsed state is remembered per grouping key for the current view
+```yaml
+# Work Tasks
 
-![Expand/Collapse All demo](../assets/collapse-expand-all-buttons.gif)
+views:
+  - type: tasknotesTaskList
+    name: "Work Context"
+    filters:
+      and:
+        - note.contexts.contains("work")
+    groupBy:
+      property: note.priority
+      direction: DESC
+    order:
+      - note.status
+      - note.priority
+      - note.due
+```
+
+## Migrating from v3 Saved Views
+
+TaskNotes v3 stored filter configurations in plugin settings. These saved views are **not automatically migrated** to v4.
+
+To recreate a v3 saved view:
+1. Create a new `.base` file in `TaskNotes/Views/`
+2. Translate your v3 filter conditions to Bases YAML syntax
+3. Configure sorting and grouping through YAML
+4. Save the file
+
+The v3 FilterBar UI component no longer exists - all configuration is done through YAML editing.
 
 ## Task Actions
 
-The Task List View provides a variety of ways to interact with your tasks. You can click on a task to open it for editing, or you can use the context menu to perform a variety of actions, such as marking the task as complete, changing its priority, or deleting it.
+The Task List View provides interaction with tasks through clicking and context menus:
+
+- **Click on a task**: Opens the task for editing or navigates to the task note (behavior configured in Settings → General → Click Actions)
+- **Right-click on a task**: Opens a context menu with actions:
+  - Mark as complete
+  - Change priority
+  - Change status
+  - Edit dates
+  - Delete task
+  - And more
+
+Context menu availability depends on your TaskNotes settings and task properties.
+
+## Virtual Scrolling
+
+The Task List View automatically enables virtual scrolling when displaying 100 or more items (tasks + group headers). Virtual scrolling provides:
+
+- Approximately 90% memory reduction for large lists
+- Elimination of UI lag when scrolling through hundreds of tasks
+- Smooth performance with unlimited task counts
+
+Virtual scrolling activates automatically and requires no configuration. When active, only visible tasks are rendered to the DOM, with off-screen tasks rendered on-demand as you scroll.
+
+## Further Reading
+
+- [Bases Plugin Documentation](https://help.obsidian.md/Plugins/Bases) - Official Obsidian documentation for Bases syntax and features
+- [Kanban View](kanban-view.md) - Alternative board-based task visualization
+- [Calendar Views](calendar-views.md) - Time-based task visualization
+- [Views Overview](../views.md) - All available TaskNotes views

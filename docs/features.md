@@ -12,64 +12,64 @@ See [Task Management](features/task-management.md) for details.
 
 ## Filtering and Views
 
-The FilterBar appears across multiple views, offering instant text search plus a hierarchical query builder for complex conditions using AND/OR logic. Saved views let you store frequently-used filter combinations, while sorting and grouping options organize tasks by tags, custom fields, or other properties.
+TaskNotes v4 uses the Bases core plugin for filtering, sorting, and grouping tasks. Bases is an official Obsidian plugin built directly into the application. Views are defined through YAML-based `.base` files in your vault, which specify query conditions using AND/OR logic, sort orders, and grouping criteria by task properties such as tags, status, or custom fields.
 
-Advanced hierarchical subgrouping allows two-level organization, where tasks are first grouped by one criterion (e.g., status) and then subdivided by another (e.g., priority), providing enhanced visual organization for complex task lists.
+Saved views are stored as `.base` files rather than in plugin settings. This allows multiple task perspectives that can be switched between. Hierarchical subgrouping supports two-level organization, where tasks are first grouped by one criterion (e.g., status) and then subdivided by another (e.g., priority).
+
+The Bases core plugin must be enabled for TaskNotes main views to function.
 
 See [Filtering and Views](features/filtering-and-views.md) for details.
 
 ## Inline Task Integration
 
-Task management happens directly within your notes through interactive widgets that overlay task links, showing information and allowing quick edits without leaving the editor. Convert existing checkbox tasks instantly, or create new tasks with the `create inline task` command.
+Task management happens directly within notes through interactive widgets that overlay task links, showing information and allowing quick edits without leaving the editor. Convert existing checkbox tasks or create new tasks with the `create inline task` command.
 
-Project notes can display collapsible widgets showing all linked subtasks. Natural language processing turns conversational text into structured tasks, automatically parsing dates, priorities, and other details across 12 languages.
+Project notes display a Relationships widget showing all linked subtasks and dependencies in a collapsible interface. Natural language processing converts text into structured tasks, parsing dates, priorities, and other details across 12 languages. The NLP system includes customizable trigger phrases and a rich markdown editor for task creation.
 
 See [Inline Task Integration](features/inline-tasks.md) for details.
 
 ## Time Management
 
-Built-in time tracking records work sessions for individual tasks, while the integrated Pomodoro timer helps maintain focus during work periods. Analytics and statistics show patterns in your productivity over time. A dedicated Time Statistics view allows for aggregating task time estimates over various periods.
+Time tracking records work sessions for individual tasks. The Pomodoro timer provides timed work intervals. Analytics and statistics display productivity patterns over time. A Time Statistics view aggregates task time estimates over various periods.
 
 See [Time Management](features/time-management.md) for details.
 
 ## Calendar Integration
 
-External ICS feeds from Google Calendar, Outlook, and similar services sync into TaskNotes, while ICS export lets other systems access your task data with automatic updates.
+TaskNotes supports OAuth-based calendar integration and ICS subscriptions. OAuth integration with Google Calendar and Microsoft Outlook provides bidirectional synchronization. Drag events to reschedule them, with changes syncing back to the calendar provider. OAuth calendars sync every 15 minutes and on local changes. ICS subscriptions from external calendar services provide read-only access to calendar events.
 
-The advanced calendar view supports multiple formats (month, week, day, year, plus configurable custom day ranges) with drag-and-drop task scheduling. Time-blocking creates focused work periods that link directly to specific tasks.
+ICS export allows other systems to access task data with automatic updates. The calendar view supports multiple formats (month, week, day, year, plus configurable custom day ranges) with drag-and-drop task scheduling. Time-blocking creates work periods that link to specific tasks.
 
 See [Calendar Integration](features/calendar-integration.md) for details.
 
 ## User Fields
 
-Custom fields extend task structure with any data you need. These fields work in filtering, sorting, and templates, letting you adapt TaskNotes to specialized workflows without losing functionality.
+Custom fields extend task structure with additional data. These fields work in filtering, sorting, and templates.
 
 See [User Fields](features/user-fields.md) for details.
 
 ## Integrations
 
-Deep integration with the Bases plugin lets TaskNotes tasks function as data sources within Bases databases, combining structured task management with Bases' analysis capabilities.
+TaskNotes v4 requires the Bases core plugin to be enabled for main task views to function. Bases is an official Obsidian plugin built directly into the application, not a community plugin. This integration allows TaskNotes tasks to function as data sources within Bases databases.
 
-See [Integrations](features/integrations.md) for details.
+See [Integrations](settings/integrations.md) for details.
 
 ## REST API
 
-External applications can interact with TaskNotes through its REST API, enabling automation, reporting, and integration with other tools in your workflow.
+External applications can interact with TaskNotes through its REST API for automation, reporting, and integration with other tools.
 
-See [HTTP API](HTTP_API.md) for details.
+See [HTTP API](../HTTP_API.md) for details.
 
 ## View Types
 
-Different views suit different work styles:
+[Task List View](../views/task-list.md) handles filtering, sorting, and grouping. [Kanban View](../views/kanban-view.md) organizes tasks as cards across status columns.
 
-[Task List View](views/task-list.md) handles filtering, sorting, and grouping. [Agenda View](views/agenda-view.md) focuses on daily and weekly planning. [Kanban View](views/kanban-view.md) organizes tasks as cards across status columns.
-
-[Calendar Views](views/calendar-views.md) provide visual scheduling with time-blocking. [Notes View](views/notes-view.md) browses content by date. [Pomodoro View](views/pomodoro-view.md) integrates focus timing with task tracking.
+[Calendar Views](../views/calendar-views.md) provide visual scheduling with time-blocking. The [Agenda View](../views/agenda-view.md) command opens the calendar's list mode for daily and weekly planning.
 
 ## Settings
 
-Configuration adapts TaskNotes to your workflow:
+[General](../settings/general.md) controls task identification, file storage, and click behavior. [Features](../settings/features.md) manages inline tasks, natural language processing, and the Pomodoro timer. [Defaults & Templates](../settings/defaults.md) sets default properties and templates.
 
-[Task Defaults](settings/task-defaults.md) sets default properties and templates. [Inline Task Settings](settings/inline-task-settings.md) controls editor integration. [Calendar Settings](settings/calendar-settings.md) handles appearance and behavior.
+[Appearance & UI](../settings/appearance.md) controls visual elements. [Task Properties](../settings/task-properties.md) defines custom statuses, priorities, and user fields. [Modal Fields](../settings/modal-fields.md) configures field visibility in task modals.
 
-[Advanced Settings](settings/advanced-settings.md) covers field mapping and customization. [Misc Settings](settings/misc-settings.md) contains additional plugin features.
+[Calendar Settings](../settings/calendar-settings.md) handles calendar appearance and behavior. [Integrations](../settings/integrations.md) manages OAuth calendars, ICS subscriptions, and the HTTP API. [Advanced Settings](../settings/advanced-settings.md) covers field mapping. [Misc Settings](../settings/misc-settings.md) contains additional options.

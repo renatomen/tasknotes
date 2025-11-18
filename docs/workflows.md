@@ -98,7 +98,7 @@ Habit that recurs every 3 days, suitable for activities that don't require daily
 
 #### Calendar Views
 
-- **Advanced Calendar View**: Shows all habit instances as events across monthly/weekly/daily views
+- **Calendar View**: Shows all habit instances as events across monthly/weekly/daily views
 - **Agenda View**: Lists upcoming habit instances chronologically
 - **Filter options**: Use the "Show Recurrent" filter to display only recurring tasks
 
@@ -216,12 +216,12 @@ Tasks can be assigned to multiple projects:
 
 #### Filtering by Projects
 
-Use the FilterBar to show only tasks from specific projects:
+Use the Bases filter editor (available in every Task List/Kanban `.base` view) to target a project:
 
-1. Open the advanced filters panel
-2. Select one or more projects from the checkbox list
-3. Tasks are filtered in real-time to show only selected projects
-4. Combine project filters with status, priority, and date filters
+1. Open the Task List view and click the filter icon in the header
+2. Add a condition such as `note.projects contains [[Project Name]]`
+3. Combine the condition with status, priority, or date filters as needed
+4. Save the configuration as a Bases saved view if you need to reuse it later
 
 #### Grouping Tasks by Project
 
@@ -266,9 +266,9 @@ Projects are included in search functionality:
 
 1. **Filter by Current Project**:
 
-   - Use FilterBar to show only current project tasks
+   - Open the Bases filter editor and add a `note.projects contains` condition for the project you are working on
    - Focus on specific project work without distractions
-   - Switch between projects using saved filter presets
+   - Switch between projects by toggling between Bases saved views or adjusting the filter
 
 2. **Project Progress Tracking**:
 
@@ -319,4 +319,3 @@ Use tags for cross-cutting themes that span multiple projects.
 - Project filtering uses exact name matching (case-sensitive)
 - Tasks with multiple projects appear in all relevant filtered views
 - Project links in task displays open the referenced notes when clicked
-

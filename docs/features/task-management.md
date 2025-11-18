@@ -1,6 +1,8 @@
 # Task Management
 
-TaskNotes provides a system for managing tasks, which is built on the principle of "one note per task." This approach allows you to create, edit, and organize your tasks with a set of properties, while maintaining the portability and extensibility of plain text files.
+[← Back to Features](../features.md)
+
+TaskNotes provides a system for managing tasks based on the principle of "one note per task." This approach allows you to create, edit, and organize tasks with a set of properties while maintaining the portability and extensibility of plain text files.
 
 ## Creating and Editing Tasks
 
@@ -117,7 +119,7 @@ Projects are stored as wikilinks in the task's frontmatter (e.g., `projects: ["[
 
 ### Organization and Filtering
 
-Tasks can be filtered and grouped by their associated projects in all task views. The FilterBar includes project-specific filters, and tasks can be grouped by project in the Task List and Kanban views. Tasks assigned to multiple projects will appear in each relevant project group, providing flexibility in project-based organization.
+Tasks can be filtered and grouped by their associated projects in all Bases-driven task views. Use the Bases filter editor to add `note.projects` conditions, and configure the grouping menu to organize Task List or Kanban boards by project. Tasks assigned to multiple projects will appear in each relevant project group, providing flexibility in project-based organization.
 
 ### Project Indicators
 
@@ -171,7 +173,7 @@ TaskNotes also supports **Templates** for both the YAML frontmatter and the body
 
 ## Recurring Tasks
 
-TaskNotes provides sophisticated recurring task management using the RFC 5545 RRule standard with enhanced DTSTART support and dynamic scheduled dates. The system separates recurring pattern behavior from individual occurrence scheduling, giving you complete control over both aspects.
+TaskNotes provides recurring task management using the RFC 5545 RRule standard with DTSTART support and dynamic scheduled dates. The system separates recurring pattern behavior from individual occurrence scheduling.
 
 ### Core Concepts
 
@@ -189,8 +191,8 @@ This separation allows for flexible scheduling where you can reschedule individu
 You can create recurring tasks through:
 
 1. **Recurrence Context Menu**: Right-click the recurrence field in any task modal to access preset patterns or custom recurrence options
-2. **Preset Options**: Quick selections like "Daily," "Weekly on [current day]," "Monthly on the [current date]"
-3. **Custom Recurrence Modal**: Advanced editor with date picker, time picker, and full RRule configuration
+2. **Preset Options**: Selections like "Daily," "Weekly on [current day]," "Monthly on the [current date]"
+3. **Custom Recurrence Modal**: Editor with date picker, time picker, and RRule configuration
 
 #### Required Components
 
@@ -222,7 +224,7 @@ To enable this feature, go to the TaskNotes settings and select the "Features" t
 
 ### Recurrence Pattern Examples
 
-TaskNotes supports the full RFC 5545 RRule standard with DTSTART:
+TaskNotes supports the RFC 5545 RRule standard with DTSTART:
 
 ```
 DTSTART:20250804T090000Z;FREQ=DAILY
@@ -240,7 +242,7 @@ DTSTART:20250801T100000Z;FREQ=MONTHLY;BYDAY=-1FR
 
 ### Visual Hierarchy in Calendar Views
 
-The Advanced Calendar View displays recurring tasks with distinct visual styling:
+The Calendar View displays recurring tasks with distinct visual styling:
 
 #### Next Scheduled Occurrence
 - **Solid border** with full opacity
@@ -379,20 +381,20 @@ TaskNotes maintains full backward compatibility:
 
 #### Custom Recurrence Modal
 
-Access advanced options through the custom recurrence modal:
+The custom recurrence modal provides:
 - **Start date picker**: Set the DTSTART date
 - **Start time picker**: Set the DTSTART time (optional)
 - **Frequency options**: Daily, weekly, monthly, yearly
-- **Advanced patterns**: Complex RRule configurations
+- **RRule patterns**: RRule configurations
 - **End conditions**: Until date, count limits, or never-ending
 
 #### Time Independence
 
-Pattern time (DTSTART) and next occurrence time (scheduled) are completely independent:
+Pattern time (DTSTART) and next occurrence time (scheduled) are independent:
 - Pattern instances can appear at 9 AM while next occurrence is at 2 PM
 - Dragging pattern instances changes the pattern time for all future instances
 - Dragging next occurrence only affects that specific instance
-- Users have complete control over both timing aspects
+- Both timing aspects can be controlled separately
 
 ## Task Reminders
 

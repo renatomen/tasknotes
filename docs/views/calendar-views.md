@@ -1,14 +1,48 @@
 # Calendar Views
 
-TaskNotes provides two calendar-based views for visualizing and managing your tasks: the **Mini Calendar** and the **Advanced Calendar**.
+[← Back to Views](../views.md)
+
+TaskNotes provides two calendar-based views: the **Mini Calendar** and the **Calendar View**. Both operate as Bases views (`.base` files) and require the Bases core plugin to be enabled in Obsidian.
+
+## Bases View Architecture
+
+Calendar views in TaskNotes v4 are implemented as Bases views, which means:
+
+- Calendar views are created as `.base` files in your vault
+- Configuration is controlled through YAML frontmatter in the base file
+- The Bases plugin is an official Obsidian core plugin and must be enabled
+- Views can be opened in tabs, pinned, and managed like other Obsidian views
 
 ## Mini Calendar View
 
-The Mini Calendar is a month-based view that shows which days have tasks. It is designed for navigation and for providing an overview of your task distribution.
+The Mini Calendar displays a month-based view that shows which days contain tasks or other dated notes. It provides navigation and an overview of your task distribution across time.
 
-## Advanced Calendar View
+### Features
 
-The Advanced Calendar is a calendar with multiple view modes (month, week, day, year, and custom days), drag-and-drop scheduling, and time-blocking capabilities. You can create new tasks by clicking on dates or time slots, and you can reschedule tasks by dragging them to a new date or time.
+- **Date Navigation**: Click any date to open a fuzzy selector modal showing all notes associated with that date
+- **Keyboard Navigation**: Navigate the calendar using arrow keys and select dates with Enter
+- **Heatmap Styling**: Visual indicators show the density of tasks or notes on each day
+- **Configurable Date Property**: Set which date property to track (not limited to tasks - can display any dated notes based on configured property)
+- **Month Navigation**: Browse forward and backward through months to view historical and future task distribution
+
+## Calendar View
+
+The Calendar View provides multiple view modes (month, week, day, year, list, and custom days) with drag-and-drop scheduling and time-blocking capabilities. Tasks can be created by clicking on dates or time slots, and rescheduled by dragging them to new dates or times.
+
+### View Modes
+
+The Calendar View supports the following view modes:
+
+- **Month**: Month grid showing all-day and timed events
+- **Week**: Week view with hourly time slots for detailed scheduling
+- **Day**: Single day view with hourly breakdown
+- **Year**: Annual overview showing event distribution across months
+- **List**: Chronological list of events. TaskNotes also includes a dedicated Agenda command that opens this mode via its own `.base` file for quick reviews.
+- **Custom Days**: Configurable multi-day view (2-10 days)
+
+### Performance Improvements
+
+The Calendar View uses virtual scrolling to maintain performance when displaying large numbers of events. This allows the calendar to handle extensive task lists and long time ranges without degradation in responsiveness.
 
 ### Custom Days View
 
@@ -37,7 +71,7 @@ The Custom Days view is particularly useful for:
 
 ### Recurring Task Support
 
-The Advanced Calendar provides sophisticated recurring task management with visual hierarchy and intelligent drag-and-drop behavior.
+The Calendar View provides recurring task management with visual hierarchy and drag-and-drop behavior.
 
 #### Visual Hierarchy
 
@@ -76,7 +110,7 @@ This flexibility allows for complete control over both the recurring pattern and
 
 ### View Options
 
-The Advanced Calendar provides several display options that control what types of events appear on the calendar:
+The Calendar View provides several display options that control what types of events appear on the calendar:
 
 - **Show scheduled**: Display tasks with scheduled dates
 - **Show due**: Display tasks with due dates
@@ -90,6 +124,39 @@ The **All-day slot** option is particularly useful when you have many all-day ta
 
 These display options are preserved when you save a view, allowing you to create specialized calendar views that show only specific types of events and maintain those preferences across sessions.
 
-### FilterBar Integration
+### OAuth Calendar Integration
 
-The Advanced Calendar View includes the same FilterBar functionality as the Task List View, allowing you to filter which tasks appear on the calendar and save views. See the [Task List View](task-list.md) documentation for complete FilterBar functionality details.
+The Calendar View supports bidirectional synchronization with external calendar services through OAuth authentication:
+
+- **Google Calendar**: Connect to Google Calendar accounts to display and sync events
+- **Microsoft Outlook**: Connect to Microsoft Outlook accounts for calendar integration
+
+#### Synchronization Behavior
+
+- External calendar events appear alongside TaskNotes tasks in all calendar views
+- Drag and drop events to reschedule them - changes sync back to the external calendar service
+- Events from external calendars respect the same view options and display settings as native TaskNotes tasks
+
+#### Configuration
+
+OAuth calendar connections are configured through the TaskNotes settings panel. Authentication uses standard OAuth flows to securely connect to external services.
+
+### Time Entry Editor Modal
+
+The Calendar View includes a Time Entry Editor Modal for creating time tracking entries directly from the calendar interface.
+
+#### Creating Time Entries
+
+- Drag on the calendar to select a time range
+- When the selection menu appears, choose **Create time entry**
+- The modal opens with the start and end times pre-populated based on the selection, and the entry can be linked to a task or left standalone
+
+#### Editing Time Entries
+
+Time entries displayed on the calendar can be selected to open the Time Entry Editor Modal for modification. The modal provides fields for adjusting start time, end time, associated task, and other time entry metadata.
+
+### Filtering and View Configuration
+
+Calendar filtering is configured through the Bases YAML frontmatter in the `.base` file. This allows you to define which tasks and events appear in each calendar view. Filtering options include task properties, date ranges, tags, and other criteria supported by the Bases plugin.
+
+Saved calendar views retain their filter configuration, display options, and view mode, allowing you to create specialized calendar views for different purposes.

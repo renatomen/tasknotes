@@ -1,35 +1,51 @@
 # Agenda View
 
-The Agenda View displays a chronological list of tasks and notes, sorted by their due and scheduled dates.
+[← Back to Views](../views.md)
 
-## FilterBar Integration
+The Agenda view is a dedicated `.base` file that opens the calendar in list mode. It provides a scrollable agenda of upcoming tasks, notes, and external calendar events without needing to switch the primary calendar into list view manually.
 
-The Agenda View includes the same FilterBar functionality as the Task List View, allowing you to filter, sort, and save views of your tasks. This includes support for hierarchical subgrouping, where tasks can be organized into primary groups and then further subdivided into subgroups.
+## File Location
 
-See the [Task List View](task-list.md) documentation for complete FilterBar functionality details, including subgrouping configuration.
+- Default file: `TaskNotes/Views/agenda-default.base`
+- Command: **Open Agenda View** (ribbon icon and command palette)
+- Configure the file path in **Settings → TaskNotes → General → View Commands**
 
+The file is created automatically the first time you run the command, and you can replace it with your own `.base` file if you maintain multiple agendas.
 
-### Saved view heading, counts, and collapsible groups
+## Default Configuration
 
-- The Agenda heading shows the saved view name with a completion count (completed / total), consistent with the Task List.
-- Date groups are collapsible, with “Expand All” and “Collapse All” buttons always visible in the FilterBar top controls.
-- Collapsed state is remembered between sessions.
+The stock agenda file renders the calendar in `listWeek` mode:
 
-![Agenda saved view and collapsible groups](../assets/agenda-collapsible-group-and-item-count.gif)
+```yaml
+views:
+  - type: tasknotesCalendar
+    name: "Agenda"
+    calendarView: "listWeek"
+    listDayCount: 7
+    startDateProperty: file.ctime
+    titleProperty: file.basename
+    order:
+      - note.status
+      - note.priority
+      - note.due
+      - note.scheduled
+```
 
-## Content Organization
+This configuration displays seven days at a time, derives entries from `file.ctime`/`file.basename`, and inherits the same display options (show scheduled/due/recurring/timeblocks/time entries/ICS events) as the primary calendar view.
 
-The Agenda View groups tasks and notes by time. The default groups are "Overdue," "Today," "Tomorrow," "This Week," "Next Week," and "Later." Within each group, items are sorted by priority.
+## Customization
 
-## View Options
+Edit the `.base` file to tailor the agenda:
 
-The Agenda View provides several display options that can be configured:
+- Change `calendarView` to `listDay` or `listMonth` for different spans
+- Adjust `listDayCount` for shorter or longer agendas
+- Add `filters` to focus on specific projects, tags, or statuses
+- Modify `order` to control which task properties appear in the row layout
 
-- **Show overdue on today**: When enabled, overdue tasks appear in the "Today" section alongside today's tasks
-- **Show notes**: Controls whether daily notes are displayed alongside tasks in the agenda
+Because the view runs inside Bases, any YAML changes are applied immediately after saving the file.
 
-These options are preserved when you save a view, allowing you to create saved views with specific display preferences that persist across sessions.
+## Usage Tips
 
-## Focus Features
-
-The view provides controls for the date range and for the display of completed tasks. It also uses visual styling to distinguish overdue and high-priority items.
+- Use the calendar toolbar arrows (Previous/Next) to move the agenda window forward or backward, or simply scroll the list to review upcoming entries
+- Saved views within Bases let you maintain multiple agenda variants (e.g., "Work Week" vs. "Personal")
+- Calendar display options (show due, show scheduled, etc.) persist when you save the `.base` file, so you can maintain one agenda that includes external events and another that focuses strictly on TaskNotes tasks

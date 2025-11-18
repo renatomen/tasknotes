@@ -107,10 +107,10 @@ Autosuggestion filters:
 
 Once you have created a user field, it will be available in the following places:
 
-- **Task Modals**: The user field will be displayed as a field in the task creation and edit modals.
-- **Filtering**: You can filter your tasks by the user field in the FilterBar.
-- **Sorting**: You can sort your tasks by the user field.
-- **Grouping**: You can group your tasks by the user field.
+- **Task Modals**: The user field will be displayed in the task creation and edit modals.
+- **Bases Filters**: Add the field to Bases filter expressions (for example `note.effort == "high"`) to narrow task lists and Kanban boards.
+- **Sorting**: Use the Bases sort menu to order tasks by the user field.
+- **Grouping**: Use the Bases group menu to create swimlanes or list groupings based on the user field.
 
 ## Frontmatter
 

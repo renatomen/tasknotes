@@ -4,7 +4,7 @@ These settings control the appearance and behavior of the calendar views, as wel
 
 ## Default Calendar View
 
-You can set the **Default View** for the Advanced Calendar, choosing from month, week, day, year, or custom days. You can also configure the **Time Slot Duration** and the **Time Range** that is displayed in the week, day, and custom days views.
+You can set the **Default View** for the Calendar View, choosing from month, week, day, year, or custom days. You can also configure the **Time Slot Duration** and the **Time Range** that is displayed in the week, day, and custom days views.
 
 **Custom view day count** - When using the Custom Days view, this slider controls how many days (2-10) are displayed simultaneously. The default is 3 days, which provides optimal screen space utilization while maintaining detailed scheduling capabilities.
 
@@ -20,7 +20,7 @@ You can control which types of events are shown by default in the calendar views
 
 ## Timeblocking Features
 
-You can enable or disable the **Timeblocking** feature in the Features tab, which allows you to create and manage timeblocks in the calendar views. Usage: hold Shift + drag in the advanced calendar view to create timeblocks.
+You can enable or disable the **Timeblocking** feature in the Features tab, which allows you to create and manage timeblocks in the calendar views. When enabled, dragging on a time slot in the calendar view will display a context menu that includes the "Create timeblock" option.
 
 ## External Calendar Integration
 
