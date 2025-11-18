@@ -24,6 +24,18 @@ Example:
 
 -->
 
+## Added
+
+- Added sub-grouping support to Bases Task List view
+  - New "Sub-group by" option allows nested grouping by any note or task property
+  - Creates hierarchical structure: Primary Group → Sub-Group → Tasks
+  - If only sub-grouping is configured (no primary grouping), treats sub-group property as primary
+  - Fully compatible with virtual scrolling for optimal performance with large lists
+  - Sub-groups can be independently collapsed/expanded
+  - Empty sub-groups are automatically hidden
+  - Collapse state persists across view reloads
+  - Visual hierarchy with subtle indentation (24px) and lighter styling for sub-headers
+
 ## Changed
 
 - Renamed "Advanced Calendar" to "Calendar" throughout the UI

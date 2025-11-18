@@ -23,6 +23,18 @@ export async function registerBasesTaskList(plugin: TaskNotesPlugin): Promise<vo
 				name: "TaskNotes Task List",
 				icon: "tasknotes-simple",
 				factory: buildTaskListViewFactory(plugin),
+				options: () => [
+					{
+						type: "property",
+						key: "subGroup",
+						displayName: "Sub-group by",
+						placeholder: "Select property for sub-grouping (optional)",
+						filter: (prop: string) => {
+							// Show all note and task properties that could be used for sub-grouping
+							return prop.startsWith("note.") || prop.startsWith("task.");
+						},
+					},
+				],
 			});
 
 			// Register Kanban view using public API
