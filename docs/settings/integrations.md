@@ -7,9 +7,76 @@ These settings control the integration with other plugins and services, such as 
 
 ## Bases integration
 
-- **Enable Bases integration**: Enable TaskNotes views to be used within Obsidian Bases plugin. Bases plugin must be enabled for this to work.
+TaskNotes v4 requires the Bases core plugin for main task views (Calendar, Kanban, Tasks, Agenda) to function. Bases is an official Obsidian core plugin built directly into Obsidian, not a community plugin.
 
-## Calendar subscriptions
+**To enable Bases:**
+1. Open Settings → Core Plugins
+2. Enable "Bases"
+3. Restart Obsidian
+
+Once enabled, TaskNotes view commands and ribbon icons will open `.base` files from your vault. Default `.base` files are automatically created in the `TaskNotes/Views/` directory on first launch.
+
+### View Commands Configuration
+
+Configure which `.base` files are opened by TaskNotes view commands and ribbon icons. These settings allow you to customize which files open when you use familiar TaskNotes shortcuts.
+
+Access these settings in **Settings → TaskNotes → General → View Commands**.
+
+Available command mappings:
+- **Open Mini Calendar View**: Default opens `TaskNotes/Views/mini-calendar-default.base`
+- **Open Kanban View**: Default opens `TaskNotes/Views/kanban-default.base`
+- **Open Tasks View**: Default opens `TaskNotes/Views/tasks-default.base`
+- **Open Calendar View**: Default opens `TaskNotes/Views/calendar-default.base`
+- **Open Agenda View**: Default opens `TaskNotes/Views/agenda-default.base`
+- **Relationships Widget**: Default opens `TaskNotes/Views/relationships.base`
+
+Each command allows you to specify a custom `.base` file path and includes a reset button to restore the default path.
+
+**Create Default Files**: Button to generate all default `.base` files in the `TaskNotes/Views/` directory. Existing files are not overwritten.
+
+## OAuth Calendar Integration
+
+Connect Google Calendar or Microsoft Outlook to sync events bidirectionally with TaskNotes. Events automatically refresh every 15 minutes and sync when local changes are made (such as dragging events to reschedule).
+
+### Setup Requirements
+
+OAuth integration requires creating your own OAuth application with Google and/or Microsoft. Initial setup takes approximately 15 minutes per provider.
+
+**Setup Guide**: See [Calendar Integration Setup](../calendar-setup.md) for detailed instructions on creating OAuth credentials with Google Cloud Console and Azure Portal.
+
+### Google Calendar
+
+- **Client ID**: OAuth 2.0 Client ID from Google Cloud Console
+- **Client Secret**: OAuth 2.0 Client Secret from Google Cloud Console
+- **Connect Google Calendar**: Button to authenticate via OAuth 2.0 loopback flow
+- **Disconnect**: Revokes access and removes stored credentials
+
+When connected, displays:
+- Connected account email
+- Connection time
+- Last sync time
+- Manual refresh button
+
+### Microsoft Outlook Calendar
+
+- **Client ID**: Application (client) ID from Azure Portal
+- **Client Secret**: Client secret from Azure Portal
+- **Connect Microsoft Calendar**: Button to authenticate via OAuth 2.0
+- **Disconnect**: Revokes access and removes stored credentials
+
+When connected, displays:
+- Connected account email
+- Connection time
+- Last sync time
+
+### Security
+
+- OAuth credentials are stored locally in Obsidian's data folder
+- Access tokens refresh automatically
+- Calendar data syncs directly between Obsidian and the calendar provider (no intermediary servers)
+- Disconnect at any time to revoke access
+
+## Calendar subscriptions (ICS)
 
 - **Default note template**: Path to template file for notes created from ICS events.
 - **Default note folder**: Folder for notes created from ICS events. Supports template variables (e.g., `Daily/{{year}}/{{month}}/{{day}}`, `Events/{{icsEventTitle}}`). See ICS Integration documentation for full list of supported variables.

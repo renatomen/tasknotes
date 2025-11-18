@@ -1,5 +1,7 @@
 # Inline Task Integration
 
+[← Back to Features](../features.md)
+
 TaskNotes integrates with the Obsidian editor to allow task management directly within notes. This is achieved through interactive widgets, a conversion feature for checkboxes, and natural language processing.
 
 ## Task Link Overlays
@@ -127,43 +129,60 @@ Failed conversions typically occur due to:
 - Insufficient disk permissions
 - Very long task titles (over 200 characters)
 
-## Project Subtasks Widget
+## Relationships Widget
 
-The **Project Subtasks Widget** displays tasks that reference the current note as a project. When viewing a project note, the widget automatically appears and shows all tasks that link to that project, providing a consolidated view of project-related work.
+**New in v4**: The Relationships Widget consolidates what were previously three separate widgets (project subtasks, task dependencies, and blocking tasks) into a single dynamic interface.
 
-The widget includes:
+The widget appears in task notes and automatically displays up to four tabs based on available relationship data:
 
-- **Collapsible Interface**: Click the widget title to expand or collapse the task list. The state is remembered between sessions.
-- **FilterBar Integration**: Full filtering, sorting, and grouping capabilities with real-time filtering and count display.
-- **Collapsible Groups**: When tasks are grouped, each group can be individually collapsed/expanded with persistent state. Includes expand/collapse all controls.
-- **Saved Views System**: Access to saved filter configurations for consistent task organization.
-- **Task Details**: Each task shows its status, priority, due date, and other properties.
-- **Real-time Updates**: The widget updates automatically when tasks are added, modified, or deleted.
-- **Smart Positioning**: The widget appears after frontmatter and properties but before the main note content.
+- **Subtasks Tab (Kanban)**: Shows tasks that reference the current note as a project. Uses Kanban layout for visual task management.
+- **Projects Tab (List)**: Shows projects that the current task belongs to. Uses list layout.
+- **Blocked By Tab (List)**: Shows tasks that are blocking the current task. Uses list layout.
+- **Blocking Tab (Kanban)**: Shows tasks that the current task is blocking. Uses Kanban layout.
 
-The widget can be enabled or disabled in the plugin settings in the Misc tab under "Show project subtasks widget".
+### Automatic Tab Management
+
+Tabs automatically show or hide based on the presence of relationship data. If a task has no subtasks, the Subtasks tab does not appear. If there are no blocking relationships, those tabs remain hidden. This keeps the interface focused on relevant information.
+
+### Features
+
+The widget embeds the `TaskNotes/Views/relationships.base` view directly in the editor. Every filter, grouping rule, or property shown in that `.base` file is exactly what appears inside the widget, so you can customize the experience by editing the file just like any other Bases view.
+
+Additional behavior:
+
+- **Collapsible Interface**: Click the widget title to expand or collapse. The state is remembered between sessions.
+- **Persistent Grouping**: Any grouping defined in the `.base` file is honoured, and collapsed groups retain their state per note.
+- **Task Details**: Each task shows its status, priority, due date, and other configured properties.
+- **Real-time Updates**: The widget updates automatically when tasks are added, modified, or deleted via Bases views.
+
+### Configuration
+
+Enable or disable the widget in **Settings → TaskNotes → Misc Settings → Show Relationships Widget**.
+
+Position the widget at the top (after frontmatter) or bottom of the note using the **Relationships Position** setting.
 
 ### Expandable Subtasks Chevron
 
-Project tasks can display an expand/collapse chevron that toggles the visibility of subtasks.
+Tasks with subtasks can display an expand/collapse chevron that toggles subtask visibility.
 
 - The chevron can be positioned on the Right (default, hover to show) or on the Left (always visible, matches group chevrons).
-- Configure this in Settings → Misc → Subtask chevron position.
+- Configure this in Settings → TaskNotes → Misc Settings → Subtask chevron position.
 
 ![Left subtask chevron](../assets/left-task-subtask-chevron.gif)
 
-### Collapsible Groups
+### Migration from v3
 
-When tasks are grouped by status, priority, or other criteria, each group displays with a collapsible header. Click the chevron or group header to expand/collapse individual groups, with state persisted per note.
+In v3, TaskNotes provided three separate widgets controlled by individual settings:
 
-![Subtask widget collapsible groups](../assets/subtask-widget-collapsible-groups.gif)
+- `showProjectSubtasks` and `projectSubtasksPosition`
+- `showTaskDependencies` and `taskDependenciesPosition`
+- `showBlockingTasks` and `blockingTasksPosition`
 
+These settings are replaced in v4 by:
 
-### Saved view heading and counts in Subtasks Widget
+- `showRelationships` and `relationshipsPosition`
 
-The Project Subtasks widget shows the saved view name and completion counts just like the Task List heading.
-
-![Subtask widget saved view and counts](../assets/subtask_view_nam+count+task_count.png)
+If you had project subtasks enabled in v3, the relationships widget will be enabled automatically after upgrading to v4. The underlying Bases file changed from `TaskNotes/Views/project-subtasks.base` to `TaskNotes/Views/relationships.base`. Run the **Create Default Files** command in Settings → General to create the new relationships.base file.
 
 ## Natural Language Processing
 
@@ -171,14 +190,56 @@ TaskNotes includes a **Natural Language Processor (NLP)** that parses task descr
 
 The NLP engine supports multiple languages, including English, Spanish, French, German, Italian, Japanese, Dutch, Portuguese, Russian, Swedish, Chinese, and Ukrainian.
 
-The NLP engine supports syntax for:
+### Supported Syntax
 
--   **Tags and Contexts**: `#tag` and `@context` syntax.
+The NLP engine recognizes:
+
+-   **Tags and Contexts**: `#tag` and `@context` syntax (triggers are customizable).
 -   **Projects**: `+project` for simple projects or `+[[Project Name]]` for projects with spaces.
--   **Priority Levels**: Keywords like "high," "normal," and "low".
--   **Status Assignment**: Keywords like "open," "in-progress," and "done".
+-   **Priority Levels**: Keywords like "high," "normal," and "low". Also supports a trigger character (default: `!`).
+-   **Status Assignment**: Keywords like "open," "in-progress," and "done". Also supports a trigger character (default: `*`).
 -   **Dates and Times**: Phrases like "tomorrow," "next Friday," and "January 15th at 3pm".
 -   **Time Estimates**: Formats like "2h," "30min," and "1h30m".
 -   **Recurrence Patterns**: Phrases like "daily," "weekly," and "every Monday".
+-   **User-Defined Fields**: Custom fields can be assigned using configured triggers (e.g., `effort: high`). Supports quoted values for multi-word entries.
 
-The NLP engine is integrated with the task creation modal. Typing a natural language description there will populate the corresponding fields.
+### Rich Markdown Editor
+
+**New in v4**: The task creation modal uses a rich CodeMirror markdown editor instead of a plain textarea.
+
+Features include:
+
+-   **Live Preview**: Rendered markdown preview as you type.
+-   **Syntax Highlighting**: Code blocks, links, and formatting are highlighted.
+-   **Wikilink Support**: Create links to other notes using `[[Note Name]]` syntax.
+-   **Keyboard Shortcuts**:
+    - `Ctrl/Cmd+Enter` saves the task
+    - `Esc` or `Tab` to navigate out of the editor
+-   **Placeholder Text**: Shows an example task (e.g., "Buy groceries tomorrow at 3pm @home #errands") when the editor is empty.
+
+### Customizable Triggers
+
+**New in v4**: Triggers for NLP properties can be customized in **Settings → Features → NLP Triggers**.
+
+You can configure trigger characters or strings for:
+
+-   **Tags** (default: `#`) - When set to `#`, Obsidian's native tag suggester is used
+-   **Contexts** (default: `@`)
+-   **Projects** (default: `+`)
+-   **Status** (default: `*`)
+-   **Priority** (default: `!`, disabled by default)
+-   **User-Defined Fields** (default: `fieldname:`) - Each custom field can have its own trigger
+
+Triggers support up to 10 characters and can include trailing spaces (e.g., `"def: "` for a custom field).
+
+### Autocomplete
+
+**New in v4**: When typing a trigger in the NLP editor, an autocomplete menu appears with available values.
+
+-   Navigate suggestions with arrow keys
+-   Select with `Enter` or `Tab`
+-   Autocomplete works for tags, contexts, projects, status, priority, and user-defined fields
+-   Tag autocomplete uses Obsidian's native tag suggester when using the `#` trigger
+-   For user fields with multi-word values, wrap the value in quotes (e.g., `effort: "very high"`)
+
+The NLP engine is integrated with the task creation modal and bulk conversion features. Typing a natural language description populates the corresponding task fields automatically.

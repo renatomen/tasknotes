@@ -1,406 +1,555 @@
 # Filtering and Views
 
-TaskNotes provides filtering capabilities through the FilterBar, available in the Task List, Agenda, Kanban, and Advanced Calendar views. The FilterBar uses a hierarchical query builder to create complex filter conditions and supports saved views for quick access to common filter configurations.
+[← Back to Features](../features.md)
 
-## FilterBar Overview
+TaskNotes v4 uses the Bases core plugin for filtering, sorting, and grouping tasks. Filtering is configured through YAML frontmatter in `.base` files using Bases expression syntax. This approach replaces the v3 FilterBar UI component, which has been removed.
 
-The FilterBar is located at the top of supported views and provides three main sections:
+## Bases Core Plugin
 
-1. **Quick Search**: Immediate text-based filtering
-2. **Query Builder**: Hierarchical filter construction
-3. **Display Options**: Sorting, grouping, and view-specific settings
-4. **Saved Views**: Named filter configurations
+Bases is an official Obsidian core plugin built directly into the application, not a community plugin. It provides data querying and visualization capabilities that TaskNotes uses for its main views.
 
-## Quick Search
+**To enable Bases:**
+1. Open Settings → Core Plugins
+2. Enable "Bases"
+3. Restart Obsidian
 
-The search input provides instant filtering by task title:
-- Type to search task titles in real-time
-- Uses case-insensitive substring matching
-- Updates with 800ms debouncing for performance
-- Search terms appear as filter conditions in the query builder
+All TaskNotes views (Task List, Kanban, Calendar) are implemented as Bases views and stored as `.base` files in the `TaskNotes/Views/` directory.
 
-### Search and Existing Filters
+## Filter Configuration
 
-The search functionality intelligently preserves your existing filters:
+Filters are defined in the YAML frontmatter of `.base` files using Bases expression syntax. Each view file can specify its own filtering criteria.
 
-**When you apply search to existing filters:**
-1. All existing filters are automatically grouped together
-2. The search condition is added as a separate filter
-3. Search and existing filters are connected with "AND" logic
+### Basic Filter Structure
 
-**When you clear search:**
-- The search condition is removed
-- Original filter structure is restored exactly as it was
+Filters use object notation with `and` and `or` operators to combine conditions:
 
-**Example:**
-If you have filters: `Priority = High OR Status = In Progress`
-
-With search "urgent":
-```
-Search: title contains "urgent"
-AND
-Group: (Priority = High OR Status = In Progress)
+```yaml
+filters:
+  and:
+    - note.status == "todo"
+    - note.priority == "high"
 ```
 
-This ensures search never interferes with your carefully crafted filter logic while providing powerful search capabilities on top of existing filters.
+### Multiple Conditions with OR Logic
 
-## Query Builder
+```yaml
+filters:
+  or:
+    - note.status == "in-progress"
+    - note.status == "todo"
+```
 
-The query builder allows construction of complex filter hierarchies using groups and conditions.
+### Nested Logic
 
-### Filter Groups
+Combine `and` and `or` operators for complex queries:
 
-Filter groups are logical containers that can hold conditions or other groups:
-- **Conjunction**: Choose AND or OR logic for combining contents
-- **Nesting**: Groups can contain other groups for complex logic
-- **Visual Hierarchy**: Indentation shows the structure
-
-### Filter Conditions
-
-Each condition consists of three parts:
-
-1. **Property**: The task attribute to filter on
-2. **Operator**: How to evaluate the property
-3. **Value**: What to compare against (when applicable)
-
-### Adding Filters
-
-- **Add Filter**: Creates a new condition with default property and operator
-- **Add Filter Group**: Creates a nested group with AND conjunction
-- **Delete**: Remove individual conditions or entire groups
-
-### Incomplete Conditions
-
-The filter builder allows incomplete conditions during construction:
-- Conditions missing values are ignored during evaluation
-- This allows building complex filters step by step
-- Only complete conditions affect the displayed tasks
+```yaml
+filters:
+  and:
+    - note.priority == "high"
+    - or:
+        - note.status == "todo"
+        - note.status == "in-progress"
+```
 
 ## Available Properties
 
-### Text Properties
+TaskNotes tasks expose properties that can be used in Bases filter expressions. Property names depend on your field mapping configuration in TaskNotes settings.
 
-- `title` - Task title/name
+### Default Property Names
 
-### Selection Properties
+These are the default property names used in Bases expressions (assuming standard field mapping):
 
-- `path` - Task file path/folder location
+**Task Properties:**
+- `note.status` - Task status
+- `note.priority` - Priority level
+- `note.due` - Due date
+- `note.scheduled` - Scheduled date
+- `note.contexts` - Task contexts (array)
+- `note.projects` - Task projects (array)
+- `note.time-estimate` - Time estimate in minutes
+- `note.recurrence` - Recurrence pattern
+- `note.completed-date` - Date when task was completed
+- `note.complete-instances` - Array of completed dates for recurring tasks
+- `note.blocked-by` - Tasks blocking this task (array)
 
-- `status` - Task status (uses your configured statuses)
-- `priority` - Priority level (uses your configured priorities)
-- `tags` - Task tags
-- `contexts` - Task contexts
-- `projects` - Task projects (supports `[[wiki-link]]` format)
-
-### Date Properties
-
-- `due` - Due date
-- `scheduled` - Scheduled date
-- `completedDate` - Date when task was completed
+**File Properties:**
+- `file.name` - Task title (filename without extension)
+- `file.basename` - Task title (filename without extension)
+- `file.path` - Full file path
+- `file.parent` - Parent folder path
+- `file.tags` - File tags (array)
 - `file.ctime` - File creation date
 - `file.mtime` - File modification date
 
-**Natural Language Date Support**: Date properties support both ISO date formats (`2024-12-25`, `2024-12-25T14:30:00`) and natural language patterns for dynamic filtering:
+**Custom User Fields:**
+Any custom fields configured in Settings → TaskNotes → Task Properties → Custom User Fields can be accessed as `note.<field-key>`.
 
-- **Basic dates**: `today`, `tomorrow`, `yesterday`
-- **Week patterns**: `next week`, `last week`
-- **Relative patterns**: `in 3 days`, `2 days ago`, `in 1 week`, `2 weeks ago`
+### Property Mapping
 
-Natural language dates are resolved dynamically when filters are evaluated, making saved views with dates like "today" stay current over time.
+If you have customized field mapping in TaskNotes settings, use the configured property names instead of the defaults. For example, if you mapped the status field to `task-status`, use `note.task-status` in filters.
+
+## Filter Operators and Expressions
+
+Bases uses expression syntax for filtering. Common patterns include:
+
+### Equality
+
+```yaml
+# Exact match
+- note.status == "todo"
+
+# Not equal
+- note.status != "done"
+```
+
+### Comparison
+
+```yaml
+# Greater than
+- note.time-estimate > 60
+
+# Less than
+- note.time-estimate < 30
+
+# Greater than or equal
+- note.priority >= "medium"
+
+# Less than or equal
+- note.due <= "2024-12-31"
+```
+
+### Date Comparisons
+
+```yaml
+# Before a date
+- note.due < "2024-12-31"
+
+# After a date
+- note.scheduled > "2024-01-01"
+
+# Date range
+- and:
+    - note.due >= "2024-01-01"
+    - note.due <= "2024-01-31"
+```
+
+### Contains (for arrays and strings)
+
+```yaml
+# Array contains value
+- note.contexts.contains("work")
+- file.tags.contains("important")
+
+# String contains substring (case-insensitive)
+- file.name.lower().contains("meeting")
+
+# Projects (handles wiki links)
+- note.projects.contains("[[Project Name]]")
+```
+
+### Existence Checks
+
+```yaml
+# Property exists and is not empty
+- note.due && note.due != "" && note.due != null
+
+# Property is empty or null
+- !note.due || note.due == "" || note.due == null
+
+# Array has items
+- note.contexts && note.contexts.length > 0
+```
 
 ### Boolean Properties
 
-- `archived` - Whether task is archived
-- `status.isCompleted` - Whether the task's status indicates completion
-
-### Numeric Properties
-
-- `timeEstimate` - Time estimate in minutes
-
-### User-Defined Properties
-
-TaskNotes supports custom user fields that you define in **Settings → TaskNotes → Task Properties → Custom User Fields**. These fields appear as filter options based on their configured type:
-
-- **Text fields**: Filter by string content with text operators
-- **Number fields**: Filter by numeric values with comparison operators
-- **Date fields**: Filter by dates with date operators and natural language support
-- **Boolean fields**: Filter by true/false values with checkbox operators
-- **List fields**: Filter comma-separated values with intelligent splitting that preserves wikilinks and quoted text
-
-
-### Special Properties
-
-- `recurrence` - Recurrence pattern (checks if pattern exists)
-
-## Filter Operators
-
-### Text Operators
-
-- `contains` - Text contains substring (case-insensitive)
-- `does-not-contain` - Text does not contain substring
-
-### Comparison Operators
-
-- `is` - Exact equality
-- `is-not` - Exact inequality
-- `is-greater-than` - Numeric greater than
-- `is-less-than` - Numeric less than
-- `is-greater-than-or-equal` - Numeric greater than or equal (≥)
-- `is-less-than-or-equal` - Numeric less than or equal (≤)
-
-### Date Operators
-
-- `is-before` - Date is before specified date
-- `is-after` - Date is after specified date
-- `is-on-or-before` - Date is on or before specified date
-- `is-on-or-after` - Date is on or after specified date
-
-### Existence Operators
-
-- `is-empty` - Property is null, undefined, or empty
-- `is-not-empty` - Property has a value
-- `is-checked` - Boolean property is true
-- `is-not-checked` - Boolean property is false
-
-## Value Inputs
-
-The value input changes based on the selected property and operator:
-
-**Text Input**: For text properties and custom values
-**Dropdown Selection**: For status, priority, tags, contexts, projects, and path (folder locations)
-**Date Input**: For date properties - supports both ISO dates and natural language
-**Number Input**: For numeric properties
-**No Input**: For existence operators that don't require values
-
-### Date Input
-
-Date inputs provide real-time validation with visual feedback:
-- **Valid input**: Green border indicates recognized date format
-- **Invalid input**: Red border indicates unrecognized format
-- **Help tooltip**: Click the `?` button to see available natural language patterns
-- **Smart filtering**: Only applies filters when input is valid or empty
-
-Examples of valid date inputs:
-- ISO formats: `2024-12-25`, `2024-12-25T14:30:00Z`
-- Natural language: `today`, `next week`, `in 3 days`, `2 weeks ago`
-
-## Saved Views
-
-Saved views store complete filter configurations and view-specific options for quick access. This includes not only filters, sorting, and grouping, but also view-specific display preferences.
-
-### What Gets Saved
-
-When you save a view, the following state is preserved:
-
-- **Filter Configuration**: All filter conditions, groups, and logic
-- **Sorting**: Selected sort criteria and direction
-- **Grouping**: Chosen grouping method
-- **View Options**: View-specific display preferences such as:
-  - **Agenda View**: "Show overdue on today" and "Show notes" toggles
-  - **Advanced Calendar**: Display options for scheduled tasks, due dates, timeblocks, recurring tasks, ICS events, and time entries
-
-### Saving Views
-
-1. Configure your desired filters, sorting, and grouping
-2. Set any view-specific options (toggles, display preferences)
-3. Click the "Save View" button
-4. Enter a name for the view
-5. The complete view state is saved and appears in the dropdown
-
-### Loading Views
-
-1. Click the saved views dropdown
-2. Select a view name
-3. The complete configuration is applied, including:
-   - Filter conditions and structure
-   - Sorting and grouping settings
-   - View-specific display options
-
-### Managing Views
-
-- **Load**: Apply a saved view configuration
-- **Delete**: Remove a saved view (requires confirmation)
-- **Reorder**: Drag and drop saved views to reorder them
-- Saved views are stored in the plugin's data file, so they persist across vault restarts and device restarts
-
-
-### Views Button Alignment
-
-You can choose where the `Views` button (which opens saved views) appears in the FilterBar:
-
-- Right (default): Filter → Search → Views
-- Left: Views → Filter → Search
-
-This is configured via **Settings → TaskNotes → Misc → Views button alignment**.
-
-Right position (default):
-
-![Saved Views button on the right](assets/saved_views_button_collapse_all.gif)
-
-Left position:
-
-![Saved Views button on the left](assets/saved_views_button_no_expand_collapse_all.gif)
-
-## Sorting
-
-Available sort options:
-- `due` - Due date (earliest first)
-- `scheduled` - Scheduled date (earliest first)
-- `priority` - Priority level (by configured weight)
-- `title` - Alphabetical (A-Z)
-- `createdDate` - Date created (newest first)
-- User-defined fields (from **Settings → TaskNotes → Task Properties → Custom User Fields**). Sorting is type‑aware (number/date/boolean/list). For list fields, empty or missing values sort last.
-
-When Group by matches the selected Sort user field, group header order follows the sort direction (asc/desc).
-
-![Sort by custom user fields](../assets/sort-by-custom-user-fields.gif)
-
-**Fallback Sorting**: When the primary sort criteria are equal, tasks are sorted by: scheduled → due → priority → title
-
-## Grouping
-
-Available grouping options:
-
-- `none` - No grouping (flat list)
-- `status` - Group by task status
-- `priority` - Group by priority level
-- `context` - Group by first context (tasks without contexts appear in "No Context")
-- `project` - Group by project (tasks can appear in multiple groups)
-- `due` - Group by due date ranges (Today, Tomorrow, This Week, etc.)
-- `scheduled` - Group by scheduled date ranges
-
-**Project Grouping**: Tasks with multiple projects appear in each project group.
-
-### Hierarchical Subgrouping
-
-TaskNotes supports two-level hierarchical grouping, where tasks are first grouped by a primary criterion, then further organized into subgroups within each primary group.
-
-![Subgrouping demonstration](../assets/subgroups.gif)
-
-**How to Enable Subgrouping:**
-1. Set a primary grouping option (e.g., "Status")
-2. Access the sort/group context menu (three-dot button in FilterBar)
-3. Select a subgroup option from the "SUBGROUP" section
-4. Tasks will be organized with primary groups containing subgroups
-
-**Available Subgroup Options:**
-- Any grouping option except the current primary group
-- User-defined custom fields (when configured)
-- "None" to disable subgrouping
-
-**Subgroup Behavior:**
-- Subgroups are sorted consistently with the current sort direction
-- "No [field]" subgroups (e.g., "No Priority") are positioned based on sort order
-- Subgroup state (expanded/collapsed) is preserved per view
-- Both TaskListView and AgendaView support hierarchical subgrouping
-
-## Performance Considerations
-
-The FilterBar includes several performance optimizations:
-
-- **Debounced Input**: Search (800ms) and filter changes (300ms) are debounced
-- **Batch Loading**: Tasks are loaded in batches of 50
-- **Smart Updates**: Only affected UI components re-render when filters change
-- **Efficient Evaluation**: Empty groups and incomplete conditions are handled efficiently
-
-## Filter Evaluation Logic
-
-Understanding how filters are evaluated:
-
-1. **Empty Groups**: Groups with no conditions return true (no filtering)
-2. **Incomplete Conditions**: Conditions missing required values are ignored
-3. **Array Properties**: For properties with multiple values (tags, contexts), any matching value satisfies the condition
-4. **Wiki Links**: Project values in `[[link]]` format are automatically resolved
-5. **Case Sensitivity**: Text matching is case-insensitive
-6. **Date Precision**: Date comparisons account for time components
+```yaml
+# Check completed status (based on configured status values)
+# This checks both status field and recurring task instances
+- (note.status == "done") || (note.complete-instances && note.complete-instances.map(date(value).format("YYYY-MM-DD")).contains(today().format("YYYY-MM-DD")))
+
+# Negation
+- note.status != "done"
+```
+
+### Natural Language Dates
+
+Bases supports dynamic date expressions:
+
+```yaml
+# Relative to today
+- note.due == today()
+- note.scheduled < tomorrow()
+
+# Dynamic date filters
+- note.due >= today()
+- note.due <= today() + 7d
+```
 
 ## Example Filter Scenarios
 
-### Simple Text Search
-
-- Property: `title`
-- Operator: `contains`
-- Value: `meeting`
-
-### Dynamic Date Filters
-
-Using natural language dates for filters that stay current:
-- Property: `due`
-- Operator: `is-on-or-after`
-- Value: `today`
-
-### Complex Date Range
-
-Group with AND conjunction:
-- Condition 1: `due` `is-on-or-after` `2024-01-01`
-- Condition 2: `due` `is-on-or-before` `2024-01-31`
-
-### This Week's Tasks
-
-Using natural language for relative time periods:
-- Property: `due`
-- Operator: `is-on-or-after`
-- Value: `next week`
-
 ### High Priority Incomplete Tasks
 
-Group with AND conjunction:
-- Condition 1: `priority` `is` `high`
-- Condition 2: `status.isCompleted` `is-not-checked`
+```yaml
+filters:
+  and:
+    - note.priority == "high"
+    - note.status != "done"
+```
 
-### Multiple Projects or Contexts
+### Tasks Due This Week
 
-Group with OR conjunction:
+```yaml
+filters:
+  and:
+    - note.due >= today()
+    - note.due <= today() + 7d
+```
 
-- Condition 1: `projects` `contains` `[[Work Project]]`
-- Condition 2: `contexts` `is` `work`
+### Tasks in Specific Project
 
-### Folder-Based Filtering
+```yaml
+filters:
+  and:
+    - note.projects.contains("[[Work Project]]")
+```
 
-Filter tasks by their location in your vault:
+### Tasks with Multiple Criteria
 
-**Tasks in a specific folder:**
-- Property: `path`
-- Operator: `contains`
-- Value: `Work/Projects` (shows tasks in the Work/Projects folder)
+```yaml
+filters:
+  and:
+    - or:
+        - note.status == "todo"
+        - note.status == "in-progress"
+    - note.priority == "high"
+    - note.contexts.contains("work")
+    - note.due >= today()
+```
 
-**Tasks in vault root:**
-- Property: `path`
-- Operator: `contains`
-- Value: `(Root)` (shows tasks in the vault root directory)
+### Tasks in Specific Folder
 
-**Exclude tasks from specific folders:**
-- Property: `path`
-- Operator: `does-not-contain`
-- Value: `Archive` (hides tasks in Archive folders)
+```yaml
+filters:
+  and:
+    - file.path.contains("Work/Projects")
+```
 
-**Tasks without folder structure:**
-- Property: `path`
-- Operator: `is-empty` (shows tasks with no folder path)
+### Tasks Without Due Date
 
-The path dropdown automatically populates with all unique folder paths found in your vault, making it easy to select existing locations.
+```yaml
+filters:
+  and:
+    - !note.due || note.due == "" || note.due == null
+```
+
+### Recurring Tasks
+
+```yaml
+filters:
+  and:
+    - note.recurrence && note.recurrence != "" && note.recurrence != null
+```
 
 ### Custom User Field Examples
 
-**Filtering by Effort Level (Number field):**
-- Property: `Effort Level` (user field)
-- Operator: `is greater than or equal`
-- Value: `3`
+Assuming you have a custom number field "effort-level":
 
-This filters tasks where effort is 3 or higher, useful for finding substantial work items.
+```yaml
+filters:
+  and:
+    - note.effort-level >= 3
+```
 
-**Filtering by Team Members (List field):**
-- Property: `Assigned To` (user field)
-- Operator: `contains`
-- Value: `John Smith`
+Assuming you have a custom list field "assigned-to":
 
-This finds tasks assigned to John Smith, even when multiple people are assigned.
+```yaml
+filters:
+  and:
+    - note.assigned-to.contains("John Smith")
+```
 
-**Mixed Priority Filtering (Number field with text):**
-- Property: `Priority Level` (user field)
-- Operator: `is greater than`
-- Value: `1`
+## Sorting
 
-With values like "1-Low", "2-Medium", "3-High", if the custom property is defined as "Number" in the plugin settings, this shows Medium and High priority tasks by evaluating the numeric prefix.
+Sorting is configured in the `sort` section of the view definition:
 
-This filtering system provides the flexibility to create simple quick filters or complex multi-criteria queries while maintaining good performance and user experience.
+```yaml
+views:
+  - type: tasknotesTaskList
+    name: "My Tasks"
+    sort:
+      - column: due
+        direction: ASC
+```
+
+### Available Sort Columns
+
+- `due` - Due date
+- `scheduled` - Scheduled date
+- `priority` - Priority level
+- `status` - Task status
+- `file.name` - Task title
+- `file.ctime` - Creation date
+- `file.mtime` - Modification date
+- `completed-date` - Completion date
+- `time-estimate` - Time estimate
+- Custom user field keys
+
+### Sort Direction
+
+- `ASC` - Ascending (earliest first for dates, A-Z for text)
+- `DESC` - Descending (latest first for dates, Z-A for text)
+
+### Multiple Sort Criteria
+
+```yaml
+sort:
+  - column: priority
+    direction: DESC
+  - column: due
+    direction: ASC
+```
+
+## Grouping
+
+Grouping is configured in the `groupBy` section of the view definition:
+
+```yaml
+views:
+  - type: tasknotesTaskList
+    name: "My Tasks"
+    groupBy:
+      property: status
+      direction: ASC
+```
+
+### Available Grouping Properties
+
+- `status` - Group by task status
+- `priority` - Group by priority level
+- `contexts` - Group by first context
+- `projects` - Group by project (tasks can appear in multiple groups)
+- `due` - Group by due date ranges
+- `scheduled` - Group by scheduled date ranges
+- Custom user field keys
+
+### Hierarchical Subgrouping
+
+Bases supports two-level grouping where tasks are first grouped by a primary criterion, then subdivided within each group:
+
+```yaml
+views:
+  - type: tasknotesTaskList
+    name: "My Tasks"
+    groupBy:
+      property: status
+      direction: ASC
+    subgroupBy:
+      property: priority
+      direction: DESC
+```
+
+This creates groups by status, with subgroups by priority within each status group.
+
+## Saved Views
+
+In TaskNotes v4, saved views are `.base` files stored in your vault rather than in plugin settings. Each `.base` file represents a complete view configuration including filters, sorting, grouping, and view-specific options.
+
+### Creating a Saved View
+
+1. Create a new `.base` file in your vault (recommended location: `TaskNotes/Views/`)
+2. Add YAML frontmatter with your filter configuration
+3. Define the view type and options
+
+Example `.base` file:
+
+```yaml
+# High Priority Tasks
+
+filters:
+  and:
+    - note.priority == "high"
+    - note.status != "done"
+
+views:
+  - type: tasknotesTaskList
+    name: "High Priority"
+    sort:
+      - column: due
+        direction: ASC
+    groupBy:
+      property: status
+      direction: ASC
+```
+
+### View Types
+
+- `tasknotesTaskList` - List view
+- `tasknotesKanban` - Kanban board view
+- `tasknotesCalendar` - Calendar view
+- `tasknotesMiniCalendar` - Mini calendar view
+
+### View-Specific Options
+
+Different view types support different options:
+
+**Kanban View:**
+```yaml
+views:
+  - type: tasknotesKanban
+    name: "Kanban Board"
+    groupBy:
+      property: status
+    options:
+      columnWidth: 280
+      hideEmptyColumns: false
+```
+
+**Calendar View:**
+```yaml
+views:
+  - type: tasknotesCalendar
+    name: "Calendar"
+    options:
+      showScheduled: true
+      showDue: true
+      showRecurring: true
+      showTimeEntries: true
+      showTimeblocks: true
+      showPropertyBasedEvents: true
+      calendarView: "timeGridWeek"
+      firstDay: 0
+      slotMinTime: "06:00:00"
+      slotMaxTime: "22:00:00"
+      slotDuration: "00:30:00"
+```
+
+### Managing Saved Views
+
+- **Create**: Add a new `.base` file in your vault
+- **Edit**: Modify the YAML frontmatter in the `.base` file
+- **Delete**: Delete the `.base` file
+- **Share**: Share the `.base` file with others or commit to version control
+
+## Migration from v3
+
+TaskNotes v3 used a FilterBar UI component with saved views stored in plugin settings. Version 4 replaces this with Bases-based filtering configured through YAML in `.base` files.
+
+### What Changed
+
+- **UI Removal**: The FilterBar component with its visual query builder has been removed
+- **Configuration Method**: Filters are now defined in YAML rather than through UI interactions
+- **Storage Location**: Saved views are now `.base` files in your vault rather than in plugin data
+- **Syntax**: Filter expressions use Bases syntax instead of FilterBar condition objects
+
+### Converting v3 Saved Views
+
+TaskNotes v4 includes a conversion tool to help migrate v3 saved views to `.base` files:
+
+1. Open Settings → TaskNotes → General
+2. In the **View Commands** section, click **Export All Saved Views to Bases**
+3. Confirm the file path to generate a `.base` file containing your saved views
+
+The exporter creates a single `.base` file (default: `TaskNotes/Views/all-saved-views.base`) with each saved view represented as a separate TaskNotes view inside the file.
+
+### Manual Conversion
+
+To manually convert a v3 saved view to a `.base` file:
+
+1. Review your v3 filter conditions
+2. Create a new `.base` file
+3. Translate each condition to Bases expression syntax
+4. Use the examples in this document as reference
+
+**v3 Filter Example:**
+- Property: `priority`, Operator: `is`, Value: `high`
+- Property: `status.isCompleted`, Operator: `is-not-checked`
+
+**v4 Equivalent:**
+```yaml
+filters:
+  and:
+    - note.priority == "high"
+    - note.status != "done"
+```
+
+## Property Order and Visibility
+
+The `order` array in the view configuration controls which properties are displayed on task cards:
+
+```yaml
+views:
+  - type: tasknotesTaskList
+    name: "My Tasks"
+    order:
+      - file.name
+      - note.status
+      - note.priority
+      - note.due
+      - note.scheduled
+      - note.projects
+      - note.contexts
+      - file.tags
+```
+
+Properties not listed in the `order` array are hidden from task cards but still available for filtering and sorting.
+
+## Bases Expression Reference
+
+Bases is a core plugin maintained by Obsidian. Refer to Obsidian's documentation for complete details on expression syntax, functions, and capabilities.
+
+### Common Functions
+
+- `today()` - Current date
+- `tomorrow()` - Tomorrow's date
+- `date(value)` - Parse date value
+- `list(value)` - Convert to list/array
+- `.contains(value)` - Check if array contains value
+- `.map(expression)` - Transform array values
+- `.filter(expression)` - Filter array values
+- `.length` - Array length
+- `.lower()` - Lowercase string
+- `.upper()` - Uppercase string
+- `.format(pattern)` - Format date/value
+
+### Logical Operators
+
+- `&&` - Logical AND
+- `||` - Logical OR
+- `!` - Logical NOT
+- `==` - Equality
+- `!=` - Inequality
+- `<` - Less than
+- `>` - Greater than
+- `<=` - Less than or equal
+- `>=` - Greater than or equal
+
+## Performance Considerations
+
+Bases handles query execution and optimization. Filter performance depends on:
+
+- **Filter Complexity**: Simpler filters execute faster
+- **Vault Size**: Larger vaults take longer to query
+- **Property Access**: File properties are generally faster than computed properties
+- **Array Operations**: Operations on large arrays may be slower
+
+For best performance:
+- Use specific filters rather than broad ones
+- Avoid nested array operations when possible
+- Limit the number of view-specific options that require computation
+
+## Filter Evaluation
+
+Bases evaluates filters against the Obsidian metadata cache. Understanding evaluation behavior:
+
+- **Empty Values**: Properties that are null, undefined, or empty strings require explicit checks
+- **Array Properties**: For multi-value properties (tags, contexts, projects), use `.contains()` to check membership
+- **Type Coercion**: Bases performs automatic type conversion in comparisons
+- **Date Precision**: Date comparisons include time components
+- **Case Sensitivity**: String comparisons are case-sensitive unless using `.lower()` or `.upper()`
+
+## Additional Resources
+
+- **View Types**: See [Views](../views.md) for details on each view type
+- **Properties**: See [Task Management](task-management.md) for complete property reference
+- **Settings**: See [General Settings](../settings/general.md) for field mapping configuration

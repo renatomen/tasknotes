@@ -4,47 +4,52 @@ TaskNotes is a task and note management plugin for Obsidian that follows the "on
 
 ## How It Works
 
-The plugin treats each task as a separate note with structured metadata in the frontmatter. This approach aligns with Obsidian's "files over applications" philosophy - your tasks have structured data for organization while the note content remains completely flexible.
+The plugin treats each task as a separate note with structured metadata in the frontmatter. Tasks have structured data for organization while the note content remains flexible.
 
-TaskNotes builds on Obsidian's native metadata cache, which means it works well with other plugins and benefits from Obsidian's existing performance optimizations. Since task data lives in YAML frontmatter, you can add custom fields and modify property names to match your vault's existing structure.
+TaskNotes uses Obsidian's metadata cache for compatibility with other plugins. Since task data lives in YAML frontmatter, you can add custom fields and modify property names to match your vault's existing structure.
 
-The plugin doesn't lock you into any specific task management methodology. Whether you prefer Getting Things Done, timeboxing, or project-based organization, TaskNotes provides the tools without forcing a particular workflow.
+The main views (Task List, Kanban, and Calendar) are built using the Bases core plugin and stored as `.base` files in the `TaskNotes/Views/` directory. Bases is an official Obsidian core plugin that must be enabled from Settings → Core Plugins. View configuration is managed through YAML, and filtering is handled directly within each view's configuration rather than through a separate FilterBar component.
+
+The plugin does not enforce a specific task management methodology.
+
+## Requirements
+
+- **Obsidian**: Version 1.10.1 or later (TaskNotes v4 relies on the Bases public API introduced in 1.10.1)
+- **Bases Core Plugin**: Must be enabled from Settings → Core Plugins (required for Task List, Kanban, Calendar, Agenda, and MiniCalendar views)
 
 ## Features
 
-Each task supports standard properties like title, status, priority, due dates, contexts, and tags, plus time estimates, recurrence patterns, and reminders. Custom fields let you extend this structure however you need.
+Each task supports properties including title, status, priority, due dates, contexts, tags, time estimates, recurrence patterns, and reminders. Custom fields extend this structure.
 
-The built-in time tracking records work sessions directly in each task's frontmatter. For focused work, there's an integrated Pomodoro timer that automatically logs sessions to your tasks.
+Time tracking records work sessions in each task's frontmatter. The Pomodoro timer logs timed work sessions to tasks.
 
-You can view your tasks through eight different interfaces: traditional task lists, calendar views (both mini and advanced), Kanban boards, agenda views, notes browsers, and Pomodoro tracking. Each view offers different ways to organize and interact with your data.
+The plugin provides multiple views. The Task List view handles filtering and organizing tasks. The Kanban board includes optional swimlane layouts for grouping. The Calendar view offers month, week, day, year, and list modes. The Agenda command opens the calendar in list mode for daily or weekly reviews. The MiniCalendar provides fuzzy search and keyboard navigation. The Task List, Kanban, Calendar, Agenda, and MiniCalendar views are implemented as Bases views. The Pomodoro timer is a standalone component.
 
-The plugin integrates directly into Obsidian's editor with inline task widgets that show task information right in your notes. Convert existing checkbox tasks instantly, or use natural language processing to create structured tasks from plain text.
+Inline task widgets display task information in the editor. Convert existing checkbox tasks or create tasks using natural language processing that parses plain text into structured tasks. Task modal fields are configurable.
 
-Calendar integration works with external ICS feeds from Google Calendar, Outlook, and similar services. The advanced calendar view supports time-blocking and lets you drag tasks to reschedule them visually.
+Calendar integration supports ICS feeds and OAuth authentication for Google Calendar and Microsoft Outlook. The Calendar view supports time-blocking and drag-to-reschedule.
 
 ## Why One Note Per Task?
 
-Individual task notes give you more than just basic task management. Each task can contain meeting notes, research, brainstorming, or any other content that makes sense alongside the task itself.
+Each task can contain meeting notes, research, brainstorming, or other content alongside the task itself.
 
-Since every task is a proper note, you get full access to Obsidian's linking system. Tasks can reference other notes, appear in your graph view, and show up in backlinks just like any other content in your vault.
+Tasks can reference other notes, appear in graph view, and show up in backlinks.
 
-This approach gives you structured metadata when you need it (for filtering and organizing) while keeping the actual note content completely flexible. You're not limited to predefined fields or rigid templates.
+This approach provides structured metadata for filtering and organizing while keeping note content flexible.
 
 ## Plain Text Advantages
 
-Your task data lives in standard Markdown files with YAML frontmatter. This means you can edit tasks with any text editor, process them with scripts, or migrate them to other systems without vendor lock-in.
+Task data lives in standard Markdown files with YAML frontmatter. You can edit tasks with any text editor, process them with scripts, or migrate them to other systems.
 
-YAML frontmatter is widely supported and human-readable, so other Obsidian plugins can work with your task data. You can extend the structure by adding new fields whenever you need them.
+YAML frontmatter is human-readable. Other Obsidian plugins can work with your task data. You can extend the structure by adding fields.
 
-Since everything is plain text, your tasks work naturally with version control systems like Git. The plugin leverages Obsidian's native metadata cache, so performance stays good even with thousands of tasks.
+Tasks work with version control systems like Git. The plugin uses Obsidian's metadata cache.
 
 ## Getting Started
 
-To begin using TaskNotes effectively:
-
 1. **Install and Enable**: Install the plugin from the Obsidian Community Plugins directory
 2. **Create Your First Task**: Use the "Create Task" command or convert an existing checkbox
-3. **Explore Views**: Try the different view types to find what works for your workflow
-4. **Configure Settings**: Customize task properties, views, and integrations as needed
+3. **Explore Views**: Try the different view types
+4. **Configure Settings**: Customize task properties, views, and integrations
 
-The plugin includes default settings that can be customized to support various task management approaches. Use the navigation menu to explore features, configuration options, and advanced capabilities.
+The plugin includes default settings that can be customized. Use the navigation menu to explore features, configuration options, and capabilities.

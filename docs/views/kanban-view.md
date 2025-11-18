@@ -1,18 +1,110 @@
 # Kanban View
 
-The Kanban View displays tasks as cards in columns, where each column represents a different status. This provides a visual way to manage your workflow.
+[← Back to Views](../views.md)
 
-## FilterBar Integration
+The Kanban View displays tasks as cards organized in columns, where each column represents a distinct value of a grouped property. This view operates within Obsidian's Bases core plugin.
 
-The Kanban View includes the same FilterBar functionality as the Task List View, allowing you to filter, sort, and save views of your tasks. See the [Task List View](task-list.md) documentation for complete FilterBar functionality details.
+## Bases Architecture
 
+The Kanban view functions as a Bases view type. It reads data from `.base` files located in your vault's `TaskNotes/Views/` directory. These files contain YAML frontmatter that defines the view configuration, including data source, filtering, sorting, and Kanban-specific options.
 
-Note: The Task List view includes “Collapse/Expand All” buttons for grouped lists. In Kanban, columns act as groups and are not collapsible yet, so these buttons are hidden in Kanban until they provide a function.
+### Requirements
+
+- Obsidian 1.10.1 or later
+- Bases core plugin enabled
+- A `groupBy` property configured in the view settings
+
+The `groupBy` property determines the column structure. Each unique value of this property becomes a column in the Kanban board.
+
+## Configuration
+
+Kanban views are configured through the Bases interface. Open a `.base` file and access the view settings panel to configure options.
+
+### Core Settings (Bases)
+
+- **Data source**: Select which files or folders to include in the view
+- **Filter**: Define criteria to include or exclude specific tasks
+- **Sort**: Specify the order of tasks within each column
+- **Group by**: Required. Defines the property that creates columns (e.g., status, priority)
+
+### Kanban-Specific Options
+
+Access these options through the Bases view settings panel:
+
+- **Swim Lane**: Optional property for horizontal grouping. Creates a two-dimensional layout where tasks are organized by both column (groupBy) and row (swimLane)
+- **Column Width**: Controls the width of columns in pixels. Range: 200-500px. Default: 280px
+- **Hide Empty Columns**: When enabled, columns containing no tasks are hidden from the view
+- **Column Order**: Managed automatically when dragging column headers. Stores custom column ordering
 
 ## Interface Layout
 
-The Kanban View consists of a set of columns, each corresponding to a status in your configured workflow. Tasks are displayed as cards within the appropriate column. You can move tasks between columns by dragging and dropping them, which will automatically update the task's status.
+### Standard Layout
+
+In standard mode, the Kanban board displays a horizontal row of columns. Each column corresponds to a unique value of the `groupBy` property.
+
+Each column includes:
+- A header showing the property value and task count
+- A scrollable area containing task cards
+- Drag-and-drop functionality for reordering columns or moving tasks between columns
+
+### Swimlane Layout
+
+When a `swimLane` property is configured, the board displays a grid layout. The horizontal axis represents columns (groupBy values), and the vertical axis represents swimlanes.
+
+Each swimlane row includes:
+- A label cell showing the swimlane property value and total task count
+- Multiple cells, each representing a column within that swimlane
+- Scrollable cells containing task cards
 
 ## Task Cards
 
-Each task card displays key information about the task, such as its title, priority, and due date. You can click on a card to open the task for editing, or you can use the context menu to perform a variety of actions.
+Each task card displays information based on the visible properties configured in the Bases view. Standard task information includes title, priority, due date, and scheduled date.
+
+Click a card to open the task file for editing. Right-click to access the context menu for task actions. Drag cards between columns or swimlane cells to update the task's properties.
+
+## Column Operations
+
+### Reordering Columns
+
+Drag column headers to reorder columns. The new order persists across sessions and is stored in the `columnOrder` configuration.
+
+### Drag-and-Drop Tasks
+
+Drag task cards between columns to update the `groupBy` property value. In swimlane mode, dragging a task to a different cell updates both the `groupBy` and `swimLane` properties.
+
+## Performance Optimization
+
+The Kanban view implements virtual scrolling for columns or swimlane cells containing 30 or more tasks. This optimization reduces memory usage by approximately 85% and maintains 60fps scrolling performance for columns with 200+ tasks.
+
+Virtual scrolling activates automatically based on task count. No configuration is required.
+
+## Example Configuration
+
+A typical Kanban view `.base` file includes:
+
+```yaml
+---
+type: query
+source: TaskNotes
+view: TaskNotes Kanban
+views:
+  - name: TaskNotes Kanban
+    type: tasknotesKanban
+    groupBy:
+      property: task.status
+    config:
+      swimLane: task.priority
+      columnWidth: 300
+      hideEmptyColumns: true
+---
+```
+
+This configuration creates a Kanban board with:
+- Columns based on task status
+- Swimlanes based on task priority
+- 300px column width
+- Empty columns hidden
+
+## Filtering and Sorting
+
+Filtering and sorting are configured through the Bases view settings, not through a separate FilterBar component. Use the Bases filter editor to define conditions based on task properties. Use the Bases sort editor to specify the order of tasks within each column.

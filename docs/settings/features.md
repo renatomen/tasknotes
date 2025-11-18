@@ -57,4 +57,4 @@ These settings allow you to enable, disable, and configure the various features 
 
 ### Usage
 
-In the advanced calendar view, hold Shift + drag to create timeblocks. Drag to move existing timeblocks. Resize edges to adjust duration.
+In the calendar view, click and drag on a time slot to select a time range. A context menu will appear—select "Create timeblock" to create a timeblock (this option only appears if timeblocking is enabled in settings). Drag existing timeblocks to move them. Resize edges to adjust duration.

@@ -6,15 +6,15 @@ TaskNotes provides a variety of settings to customize its behavior and appearanc
 
 ## General
 
-These settings control the foundational aspects of the plugin, such as task identification, file storage, and click behavior.
+These settings control task identification, file storage, and click behavior.
 
-For more detailed information, see the [General Settings](settings/general.md) documentation.
+For more information, see the [General Settings](settings/general.md) documentation.
 
 ## Features
 
-These settings allow you to enable, disable, and configure the various features of the plugin, such as inline tasks, natural language processing, the Pomodoro timer, and notifications.
+These settings control inline tasks, natural language processing, the Pomodoro timer, and notifications.
 
-For more detailed information, see the [Features Settings](settings/features.md) documentation.
+For more information, see the [Features Settings](settings/features.md) documentation.
 
 ## Defaults & Templates
 
@@ -34,8 +34,14 @@ These settings allow you to define custom statuses, priorities, and user fields 
 
 For more detailed information, see the [Task Properties Settings](settings/task-properties.md) documentation.
 
+## Modal Fields
+
+These settings control which fields appear in task creation and edit modals. Configure field visibility, ordering, and grouping. Fields can be enabled or disabled individually, and reordered within their groups using drag-and-drop.
+
+For more information, see the [Modal Fields Settings](settings/modal-fields.md) documentation.
+
 ## Integrations
 
-These settings control the integration with other plugins and services, such as Bases and external calendars.
+These settings control integration with external services and plugins. This includes OAuth calendar connections (Google Calendar and Microsoft Outlook), Bases plugin integration, calendar subscriptions from ICS/iCal sources, automatic ICS export, HTTP API configuration, and webhook management.
 
 For more detailed information, see the [Integrations Settings](settings/integrations.md) documentation.

@@ -4,21 +4,21 @@ These settings control various plugin features and display options that don't fi
 
 ## Saved Views button position
 
-Choose where the Saved Views button appears in the FilterBar of supported views (Task List, Agenda, Kanban, Advanced Calendar):
+Choose where the Saved Views button appears in the view header for Task List, Agenda, Kanban, and Calendar Bases views:
 
-- Right (default): Filter → Search → Saved Views
-- Left: Saved Views → Filter → Search
+- **Right (default)**: Saved Views sits after the other header controls
+- **Left**: Saved Views is placed before the other controls
 
-This setting affects layout only; functionality is the same. See examples in Filtering and Views.
+This setting only changes alignment—the button still opens the same Saved Views picker.
 
 
 ## Status Bar
 
 **Show tracked tasks in status bar** - Display currently tracked tasks (with active time tracking) in the status bar at the bottom of the app. This provides a quick visual indicator of which tasks are currently being tracked without needing to open the TaskNotes views.
 
-## Project Subtasks Widget
+## Relationships Widget
 
-**Show project subtasks widget** - Display a collapsible widget showing all tasks that reference the current note as a project. This widget appears in the editor when viewing notes that have tasks referencing them as projects, providing quick access to related tasks.
+**Show relationships widget** - Display the unified widget that surfaces subtasks, parent projects, and blocking relationships in the editor. Disable this if you prefer to open the `relationships.base` file in a separate pane instead of embedding it in notes.
 
 ## Task Display
 
@@ -27,7 +27,7 @@ This setting affects layout only; functionality is the same. See examples in Fil
 
 ## Subtask Chevron Position
 
-Configure where the expand/collapse chevron appears on project task cards and in the Project Subtasks Widget.
+Configure where the expand/collapse chevron appears on project task cards and inside the Relationships widget.
 
 - Right (default): The chevron appears on the right-hand side and shows on hover.
 - Left (match group chevrons): The chevron appears on the left-hand side, always visible, matching group chevrons.
