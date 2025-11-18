@@ -398,11 +398,6 @@ export function renderIntegrationsTab(
 			const timeAgo = connectedDate ? getRelativeTime(connectedDate, translate) : "";
 
 			// Create info displays
-			const accountInfo = document.createElement("div");
-			accountInfo.style.fontSize = "0.9em";
-			accountInfo.style.color = "var(--text-muted)";
-			accountInfo.textContent = connection.userEmail || "Unknown account";
-
 			const connectedInfo = document.createElement("div");
 			connectedInfo.style.fontSize = "0.9em";
 			connectedInfo.style.color = "var(--text-muted)";
@@ -432,7 +427,6 @@ export function renderIntegrationsTab(
 				content: {
 					sections: [{
 						rows: [
-							{ label: "Account:", input: accountInfo },
 							{ label: "Status:", input: connectedInfo },
 							{ label: "Sync:", input: lastRefreshInfo }
 						]
@@ -615,11 +609,6 @@ export function renderIntegrationsTab(
 			const timeAgo = connectedDate ? getRelativeTime(connectedDate, translate) : "";
 
 			// Create info displays
-			const accountInfo = document.createElement("div");
-			accountInfo.style.fontSize = "0.9em";
-			accountInfo.style.color = "var(--text-muted)";
-			accountInfo.textContent = connection.userEmail || "Unknown account";
-
 			const connectedInfo = document.createElement("div");
 			connectedInfo.style.fontSize = "0.9em";
 			connectedInfo.style.color = "var(--text-muted)";
@@ -649,7 +638,6 @@ export function renderIntegrationsTab(
 				content: {
 					sections: [{
 						rows: [
-							{ label: "Account:", input: accountInfo },
 							{ label: "Status:", input: connectedInfo },
 							{ label: "Sync:", input: lastRefreshInfo }
 						]

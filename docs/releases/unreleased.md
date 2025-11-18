@@ -71,6 +71,11 @@ Example:
 
 ## Fixed
 
+- Fixed OAuth calendar cards showing "Unknown account" in settings
+  - Removed non-functional 'Account:' field from Google and Microsoft calendar connection cards
+  - Cards now show only connection status and last sync time
+  - Thanks to @Oblique for reporting
+
 - Fixed incorrect Bases syntax in default template files
   - Fixed TypeScript error: changed `settings` parameter to `plugin` in property mapping calls
   - Default templates now generate valid Bases syntax that won't cause errors
