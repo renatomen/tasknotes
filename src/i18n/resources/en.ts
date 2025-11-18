@@ -862,15 +862,13 @@ export const en: TranslationTree = {
 			taskPriorities: {
 				header: "Task Priorities",
 				description:
-					"Customize the priority levels available for your tasks. Priority weights determine sorting order and visual hierarchy in your task views.",
+					"Customize the priority levels available for your tasks. In v4.0+, priorities are sorted alphabetically by their value in Bases views.",
 				howTheyWork: {
 					title: "How priorities work:",
-					value: 'Value: The internal identifier stored in your task files (e.g., "high")',
+					value:
+						'Value: The internal identifier stored in your task files. Use prefixes like "1-urgent", "2-high" to control sort order in Bases views.',
 					label: 'Display Label: The display name shown in the interface (e.g., "High Priority")',
 					color: "Color: Visual indicator color for the priority dot and badges",
-					weight: "Weight: Numeric value for sorting (higher weights appear first in lists)",
-					weightNote:
-						"Tasks are automatically sorted by priority weight in descending order (highest weight first). Weights can be any positive number.",
 				},
 				addNew: {
 					name: "Add new priority",
@@ -878,20 +876,18 @@ export const en: TranslationTree = {
 					buttonText: "Add priority",
 				},
 				validationNote:
-					"Note: You must have at least 1 priority. Higher weights take precedence in sorting and visual hierarchy.",
+					"Note: You must have at least 1 priority. Priorities are sorted alphabetically by value in Bases views.",
 				emptyState: "No custom priorities configured. Add a priority to get started.",
 				emptyStateButton: "Add Priority",
 				fields: {
 					value: "Value:",
 					label: "Label:",
 					color: "Color:",
-					weight: "Weight:",
 				},
 				placeholders: {
 					value: "high",
 					label: "High Priority",
 				},
-				weightLabel: "Weight: {weight}",
 				deleteConfirm: "You must have at least one priority",
 				deleteTooltip: "Delete priority",
 			},

@@ -125,13 +125,6 @@ export function renderTaskPropertiesTab(
 	priorityHelpList.createEl("li", {
 		text: translate("settings.taskProperties.taskPriorities.howTheyWork.color"),
 	});
-	priorityHelpList.createEl("li", {
-		text: translate("settings.taskProperties.taskPriorities.howTheyWork.weight"),
-	});
-	priorityHelpContainer.createEl("p", {
-		text: translate("settings.taskProperties.taskPriorities.howTheyWork.weightNote"),
-		cls: "settings-help-note",
-	});
 
 	// Priority list container - using card layout
 	const priorityList = container.createDiv("tasknotes-priorities-container");
@@ -511,8 +504,8 @@ function renderPriorityList(
 		return;
 	}
 
-	const sortedPriorities = [...plugin.settings.customPriorities].sort(
-		(a, b) => b.weight - a.weight
+	const sortedPriorities = [...plugin.settings.customPriorities].sort((a, b) =>
+		a.value.localeCompare(b.value)
 	);
 
 	sortedPriorities.forEach((priority, index) => {
@@ -527,7 +520,6 @@ function renderPriorityList(
 			priority.label
 		);
 		const colorInput = createCardInput("color", "", priority.color);
-		const weightInput = createCardNumberInput(0, undefined, 1, priority.weight);
 
 		const card = createCard(container, {
 			id: priority.id,
@@ -536,9 +528,6 @@ function renderPriorityList(
 			colorIndicator: { color: priority.color },
 			header: {
 				primaryText: priority.label || priority.value || "untitled",
-				secondaryText: translate("settings.taskProperties.taskPriorities.weightLabel", {
-					weight: priority.weight,
-				}),
 				actions: [
 					createDeleteHeaderButton(() => {
 						if (plugin.settings.customPriorities.length <= 1) {
@@ -575,12 +564,6 @@ function renderPriorityList(
 								),
 								input: colorInput,
 							},
-							{
-								label: translate(
-									"settings.taskProperties.taskPriorities.fields.weight"
-								),
-								input: weightInput,
-							},
 						],
 					},
 				],
@@ -608,18 +591,6 @@ function renderPriorityList(
 				colorIndicator.style.backgroundColor = priority.color;
 			}
 			save();
-		});
-
-		weightInput.addEventListener("input", () => {
-			const weight = parseInt(weightInput.value);
-			if (!isNaN(weight) && weight >= 0) {
-				priority.weight = weight;
-				card.querySelector(".tasknotes-settings__card-secondary-text")!.textContent =
-					translate("settings.taskProperties.taskPriorities.weightLabel", {
-						weight: priority.weight,
-					});
-				save();
-			}
 		});
 	});
 }
