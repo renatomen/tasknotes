@@ -24,3 +24,28 @@ Example:
 
 -->
 
+## Added
+
+- Added "Not Blocked" view to default task list template
+  - Shows incomplete tasks that are ready to work on (not blocked by incomplete dependencies)
+  - Filter dynamically uses configured completion statuses
+  - Uses Bases `list.filter()` to check completion status of each blocking task
+
+## Fixed
+
+- Fixed dependency blocking status to be status-aware
+  - "Blocked (x)" pill now only appears when tasks have **incomplete** blocking dependencies
+  - Tasks with all completed blocking dependencies no longer show as blocked
+  - DependencyCache now checks actual status of blocking tasks, not just existence
+  - Unified blocking status computation in DependencyCache for consistency
+- Fixed cache invalidation bug causing blocking/blocked pills to disappear when editing tasks
+  - When a task is modified, only forward dependencies are cleared (stored in its frontmatter)
+  - Reverse dependencies are preserved (stored in other tasks' frontmatter)
+  - Prevents loss of blocking/blocked relationships when editing a blocking task
+
+## Changed
+
+- Moved default base templates documentation from `obsidian-help/` to `docs/views/`
+  - Location: `docs/views/default-base-templates.md`
+  - Added cross-references from views.md, task-list.md, and filtering-and-views.md
+  - Updated code comments to reference new documentation path
