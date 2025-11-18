@@ -1817,14 +1817,6 @@ export default class TaskNotesPlugin extends Plugin {
 				}
 
 				const normalizedPath = normalizePath(rawPath);
-				const lastSlashIndex = normalizedPath.lastIndexOf("/");
-				const directory = lastSlashIndex >= 0 ? normalizedPath.substring(0, lastSlashIndex) : "";
-
-				if (directory) {
-					// eslint-disable-next-line no-await-in-loop
-					await this.ensureFolderHierarchy(directory);
-				}
-
 				// eslint-disable-next-line no-await-in-loop
 				if (await adapter.exists(normalizedPath)) {
 					skipped.push(rawPath);
@@ -1837,6 +1829,16 @@ export default class TaskNotesPlugin extends Plugin {
 					skipped.push(rawPath);
 					continue;
 				}
+
+				// Only create folder hierarchy if we're actually creating the file
+				const lastSlashIndex = normalizedPath.lastIndexOf("/");
+				const directory = lastSlashIndex >= 0 ? normalizedPath.substring(0, lastSlashIndex) : "";
+
+				if (directory) {
+					// eslint-disable-next-line no-await-in-loop
+					await this.ensureFolderHierarchy(directory);
+				}
+
 				// eslint-disable-next-line no-await-in-loop
 				await this.app.vault.create(normalizedPath, template);
 				created.push(rawPath);
