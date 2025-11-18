@@ -75,23 +75,23 @@
 }
 
 /* Sub-group header styling */
-.tn-bases-tasknotes-list .task-group[data-level="sub"] {
+.tn-tasknoteTaskList .task-group[data-level="sub"] {
     padding-left: 24px; /* Slightly more noticeable indentation */
     margin-bottom: var(--tn-spacing-sm);
 }
 
-.tn-bases-tasknotes-list .task-group[data-level="sub"] .task-group-header {
+.tn-tasknoteTaskList .task-group[data-level="sub"] .task-group-header {
     font-size: 0.95em;
     font-weight: 500; /* Less bold than primary */
     color: var(--tn-text-muted);
     padding: var(--tn-spacing-xs) var(--tn-spacing-sm);
 }
 
-.tn-bases-tasknotes-list .task-group[data-level="sub"] .task-group-toggle {
+.tn-tasknoteTaskList .task-group[data-level="sub"] .task-group-toggle {
     opacity: 0.8; /* Slightly more subtle chevron */
 }
 
-.tn-bases-tasknotes-list .task-group[data-level="sub"] .task-group-toggle svg {
+.tn-tasknoteTaskList .task-group[data-level="sub"] .task-group-toggle svg {
     width: 14px;
     height: 14px;
 }
