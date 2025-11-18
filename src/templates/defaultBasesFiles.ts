@@ -10,7 +10,6 @@ import type { FieldMapping } from "../types";
 /**
  * Generate a task filter expression based on the task identification method
  * Returns the filter condition string (not the full YAML structure)
- * Only used for project-subtasks view now
  */
 function generateTaskFilterCondition(settings: TaskNotesSettings): string {
 	if (settings.taskIdentificationMethod === "tag") {
@@ -40,7 +39,6 @@ function generateTaskFilterCondition(settings: TaskNotesSettings): string {
 
 /**
  * Format filter condition(s) as YAML object notation
- * Only used for project-subtasks view now
  */
 function formatFilterAsYAML(conditions: string | string[]): string {
 	const conditionArray = Array.isArray(conditions) ? conditions : [conditions];
@@ -166,6 +164,8 @@ export function generateBasesFileTemplate(commandId: string, plugin: TaskNotesPl
 			return `# Mini Calendar
 # Generated with your TaskNotes settings
 
+${formatFilterAsYAML([taskFilterCondition])}
+
 views:
   - type: tasknotesMiniCalendar
     name: "Due"
@@ -190,6 +190,8 @@ ${orderYaml}
 		case 'open-kanban-view':
 			return `# Kanban Board
 
+${formatFilterAsYAML([taskFilterCondition])}
+
 views:
   - type: tasknotesKanban
     name: "Kanban Board"
@@ -200,10 +202,100 @@ ${orderYaml}
       hideEmptyColumns: false
 `;
 
-		case 'open-tasks-view':
+		case 'open-tasks-view': {
+			const statusProperty = mapPropertyToBasesProperty('status', settings);
+			const dueProperty = mapPropertyToBasesProperty('due', settings);
+			const scheduledProperty = mapPropertyToBasesProperty('scheduled', settings);
+			const recurrenceProperty = mapPropertyToBasesProperty('recurrence', settings);
+			const completeInstancesProperty = mapPropertyToBasesProperty('completeInstances', settings);
+
+			// Get all completed status values
+			const completedStatuses = settings.customStatuses
+				.filter(s => s.isCompleted)
+				.map(s => s.value);
+
+			// Generate filter for non-recurring incomplete tasks
+			// Status must not be in any of the completed statuses
+			const nonRecurringIncompleteFilter = completedStatuses
+				.map(status => `${statusProperty} != "${status}"`)
+				.join('\n            - ');
+
 			return `# All Tasks
 
+${formatFilterAsYAML([taskFilterCondition])}
+
 views:
+  - type: tasknotesTaskList
+    name: "Today"
+    filters:
+      and:
+        # Incomplete tasks (handles both recurring and non-recurring)
+        - or:
+          # Non-recurring task that's not in any completed status
+          - and:
+            - "!${recurrenceProperty}"
+            - ${nonRecurringIncompleteFilter}
+          # Recurring task where today is not in complete_instances
+          - and:
+            - ${recurrenceProperty}
+            - "!contains(${completeInstancesProperty}, dateformat(date(today), \\"yyyy-MM-dd\\"))"
+        # Due or scheduled today
+        - or:
+          - date(${dueProperty}) = date(today)
+          - date(${scheduledProperty}) = date(today)
+    order:
+${orderYaml}
+    sort:
+      - column: due
+        direction: ASC
+  - type: tasknotesTaskList
+    name: "Overdue"
+    filters:
+      and:
+        # Incomplete tasks
+        - or:
+          # Non-recurring task that's not in any completed status
+          - and:
+            - "!${recurrenceProperty}"
+            - ${nonRecurringIncompleteFilter}
+          # Recurring task where today is not in complete_instances
+          - and:
+            - ${recurrenceProperty}
+            - "!contains(${completeInstancesProperty}, dateformat(date(today), \\"yyyy-MM-dd\\"))"
+        # Due in the past
+        - date(${dueProperty}) < date(today)
+    order:
+${orderYaml}
+    sort:
+      - column: due
+        direction: ASC
+  - type: tasknotesTaskList
+    name: "This Week"
+    filters:
+      and:
+        # Incomplete tasks
+        - or:
+          # Non-recurring task that's not in any completed status
+          - and:
+            - "!${recurrenceProperty}"
+            - ${nonRecurringIncompleteFilter}
+          # Recurring task where today is not in complete_instances
+          - and:
+            - ${recurrenceProperty}
+            - "!contains(${completeInstancesProperty}, dateformat(date(today), \\"yyyy-MM-dd\\"))"
+        # Due or scheduled this week
+        - or:
+          - and:
+            - date(${dueProperty}) >= date(today)
+            - date(${dueProperty}) <= date(today) + dur(7 days)
+          - and:
+            - date(${scheduledProperty}) >= date(today)
+            - date(${scheduledProperty}) <= date(today) + dur(7 days)
+    order:
+${orderYaml}
+    sort:
+      - column: due
+        direction: ASC
   - type: tasknotesTaskList
     name: "All Tasks"
     order:
@@ -212,9 +304,12 @@ ${orderYaml}
       - column: due
         direction: ASC
 `;
+		}
 
 		case 'open-advanced-calendar-view':
 			return `# Calendar
+
+${formatFilterAsYAML([taskFilterCondition])}
 
 views:
   - type: tasknotesCalendar
@@ -238,6 +333,8 @@ ${orderYaml}
 
 		case 'open-agenda-view':
 			return `# Agenda
+
+${formatFilterAsYAML([taskFilterCondition])}
 
 views:
   - type: tasknotesCalendar
