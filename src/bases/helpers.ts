@@ -108,15 +108,18 @@ function createTaskInfoFromProperties(
 		? calculateTotalTimeSpent(props.timeEntries)
 		: 0;
 
-	// Calculate isBlocked from blockedBy array (tasks that block this task)
-	const isBlocked = Array.isArray(props.blockedBy) && props.blockedBy.length > 0;
-
-	// Get blocking tasks from DependencyCache if plugin is available
+	// Get dependency information from DependencyCache if plugin is available
+	let isBlocked = false;
 	let blockingTasks: string[] = [];
 	let isBlocking = false;
 	if (plugin?.dependencyCache && basesItem.path) {
+		// Use DependencyCache for status-aware blocking check
+		isBlocked = plugin.dependencyCache.isTaskBlocked(basesItem.path);
 		blockingTasks = plugin.dependencyCache.getBlockedTaskPaths(basesItem.path);
 		isBlocking = blockingTasks.length > 0;
+	} else {
+		// Fallback when plugin not available: use simple existence check
+		isBlocked = Array.isArray(props.blockedBy) && props.blockedBy.length > 0;
 	}
 
 	return {

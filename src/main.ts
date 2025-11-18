@@ -330,6 +330,7 @@ export default class TaskNotesPlugin extends Plugin {
 			this.app,
 			this.settings,
 			this.fieldMapper,
+			this.statusManager,
 			(frontmatter: any) => this.cacheManager.isTaskFile(frontmatter)
 		);
 

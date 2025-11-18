@@ -3,6 +3,7 @@ import { TFile, App, Events, EventRef } from "obsidian";
 import { FieldMapper } from "../services/FieldMapper";
 import { normalizeDependencyList, resolveDependencyEntry } from "./dependencyUtils";
 import { TaskNotesSettings } from "../types/settings";
+import { StatusManager } from "../services/StatusManager";
 
 /**
  * Minimal cache for task dependencies and project references.
@@ -17,6 +18,7 @@ export class DependencyCache extends Events {
 	private app: App;
 	private settings: TaskNotesSettings;
 	private fieldMapper?: FieldMapper;
+	private statusManager: StatusManager;
 
 	// Dependency indexes
 	private dependencySources: Map<string, Set<string>> = new Map(); // task path -> blocking task paths
@@ -39,12 +41,14 @@ export class DependencyCache extends Events {
 		app: App,
 		settings: TaskNotesSettings,
 		fieldMapper: FieldMapper | undefined,
+		statusManager: StatusManager,
 		isTaskFileCallback: (frontmatter: any) => boolean
 	) {
 		super();
 		this.app = app;
 		this.settings = settings;
 		this.fieldMapper = fieldMapper;
+		this.statusManager = statusManager;
 		this.isTaskFileCallback = isTaskFileCallback;
 	}
 
@@ -125,7 +129,9 @@ export class DependencyCache extends Events {
 		}
 
 		// Re-index this task
-		this.clearFileFromIndexes(file.path);
+		// Only clear the forward dependencies (tasks this task depends on)
+		// Keep reverse dependencies intact - they'll be updated when other tasks change
+		this.clearForwardDependencies(file.path);
 		this.indexTaskFile(file.path, metadata.frontmatter);
 	}
 
@@ -202,7 +208,39 @@ export class DependencyCache extends Events {
 	}
 
 	/**
-	 * Clear a file from all indexes
+	 * Clear only forward dependencies (tasks this task depends on)
+	 * Used when a task is modified - we rebuild forward deps from frontmatter
+	 * but keep reverse deps intact (they're stored in other tasks' frontmatter)
+	 */
+	private clearForwardDependencies(path: string): void {
+		// Clear from dependency sources (tasks this task depends on)
+		const blockingTasks = this.dependencySources.get(path);
+		if (blockingTasks) {
+			// Remove from targets (reverse mapping)
+			for (const blockingTask of blockingTasks) {
+				const targets = this.dependencyTargets.get(blockingTask);
+				if (targets) {
+					targets.delete(path);
+					if (targets.size === 0) {
+						this.dependencyTargets.delete(blockingTask);
+					}
+				}
+			}
+			this.dependencySources.delete(path);
+		}
+
+		// Also clear project references since those are stored in this task's frontmatter
+		for (const [project, taskSet] of this.projectReferences.entries()) {
+			taskSet.delete(path);
+			if (taskSet.size === 0) {
+				this.projectReferences.delete(project);
+			}
+		}
+	}
+
+	/**
+	 * Clear a file from all indexes (both forward and reverse dependencies)
+	 * Used when a file is deleted or becomes a non-task
 	 */
 	private clearFileFromIndexes(path: string): void {
 		// Clear from dependency sources
@@ -272,11 +310,41 @@ export class DependencyCache extends Events {
 	}
 
 	/**
-	 * Check if a task is blocked by dependencies
+	 * Check if a task is blocked by dependencies (status-aware)
+	 * Only returns true if the task has blocking dependencies that are NOT completed
 	 */
 	isTaskBlocked(taskPath: string): boolean {
-		const blocking = this.getBlockingTaskPaths(taskPath);
-		return blocking.length > 0;
+		const blockingPaths = this.getBlockingTaskPaths(taskPath);
+		if (blockingPaths.length === 0) {
+			return false;
+		}
+
+		const statusField = this.fieldMapper?.toUserField("status") || "status";
+
+		// Check if any blocking task is incomplete
+		for (const blockingPath of blockingPaths) {
+			const file = this.app.vault.getAbstractFileByPath(blockingPath);
+			if (!(file instanceof TFile)) {
+				// If we can't find the blocking task file, consider it as blocking
+				// (conservative approach - better to show blocked than hide it)
+				continue;
+			}
+
+			const metadata = this.app.metadataCache.getFileCache(file);
+			if (!metadata?.frontmatter) {
+				// No metadata means we can't determine status, assume blocking
+				continue;
+			}
+
+			const status = metadata.frontmatter[statusField];
+			if (!status || !this.statusManager.isCompletedStatus(status)) {
+				// Found at least one incomplete blocking task
+				return true;
+			}
+		}
+
+		// All blocking tasks are completed
+		return false;
 	}
 
 	/**

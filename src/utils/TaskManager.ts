@@ -259,12 +259,16 @@ export class TaskManager extends Events {
 				? calculateTotalTimeSpent(mappedTask.timeEntries)
 				: 0;
 
-			const isBlocked = Array.isArray(mappedTask.blockedBy) && mappedTask.blockedBy.length > 0;
-
-			// Get blocking tasks from DependencyCache (tasks that this task blocks)
+			// Get dependency information from DependencyCache
+			let isBlocked = false;
 			let blockingTasks: string[] = [];
 			if (this._dependencyCache) {
+				// Use DependencyCache for status-aware blocking check
+				isBlocked = this._dependencyCache.isTaskBlocked(path);
 				blockingTasks = this._dependencyCache.getBlockedTaskPaths(path);
+			} else {
+				// Fallback when dependency cache not available: use simple existence check
+				isBlocked = Array.isArray(mappedTask.blockedBy) && mappedTask.blockedBy.length > 0;
 			}
 			const isBlocking = blockingTasks.length > 0;
 
