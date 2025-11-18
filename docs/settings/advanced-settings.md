@@ -72,7 +72,9 @@ TaskNotes allows you to define your own **Custom Status Workflows**. You can cre
 
 ## Custom Priority System
 
-You can also create a **Custom Priority System**. You can define as many priority levels as you need, and you can customize their names, colors, and weights. The weight of a priority determines its importance, and is used for sorting and filtering.
+You can also create a **Custom Priority System**. You can define as many priority levels as you need, and you can customize their names, colors, and weights.
+
+> **Note:** In TaskNotes v4.0+, Obsidian's Bases plugin handles priority sorting alphabetically by the priority value. To ensure priorities sort in your desired order, name them to sort alphabetically (e.g., `1-urgent`, `2-high`, `3-medium`, `4-normal`, `5-low`). The weight field is preserved for potential future use but does not affect Bases sorting.
 
 ## Pomodoro Timer Settings
 
