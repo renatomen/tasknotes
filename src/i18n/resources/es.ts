@@ -834,10 +834,12 @@ export const es: TranslationTree = {
 			},
 			taskPriorities: {
 				header: "Prioridades de tareas",
-				description: "Personalizar los niveles de prioridad disponibles para tus tareas. Los pesos de prioridad determinan el orden de clasificación y la jerarquía visual en tus vistas de tareas.",
+				description:
+					"Personaliza los niveles de prioridad disponibles para tus tareas. En v4.0+, las prioridades se ordenan alfabéticamente por su valor en las vistas de Bases.",
 				howTheyWork: {
 					title: "Cómo funcionan las prioridades:",
-					value: "Valor: El identificador interno almacenado en tus archivos de tarea (ej. \"alta\")",
+					value:
+						'Valor: El identificador interno almacenado en tus archivos de tarea. Usa prefijos como "1-urgente", "2-alta" para controlar el orden de clasificación en las vistas de Bases.',
 					label: "Etiqueta de visualización: El nombre mostrado en la interfaz (ej. \"Alta prioridad\")",
 					color: "Color: Color indicador visual para el punto de prioridad y distintivos",
 					weight: "Peso: Valor numérico para clasificación (pesos más altos aparecen primero en listas)",
@@ -848,7 +850,8 @@ export const es: TranslationTree = {
 					description: "Crear un nuevo nivel de prioridad para tus tareas",
 					buttonText: "Agregar prioridad",
 				},
-				validationNote: "Nota: Debes tener al menos 1 prioridad. Los pesos más altos tienen precedencia en clasificación y jerarquía visual.",
+				validationNote:
+					"Nota: Debes tener al menos 1 prioridad. Las prioridades se ordenan alfabéticamente por valor en las vistas de Bases.",
 				emptyState: "No hay prioridades personalizadas configuradas. Agrega una prioridad para comenzar.",
 				emptyStateButton: "Agregar prioridad",
 				fields: {
@@ -1263,6 +1266,36 @@ export const es: TranslationTree = {
 				enable: {
 					name: "Habilitar integración con Bases",
 					description: "Habilitar vistas de TaskNotes para usar dentro del plugin Obsidian Bases. El plugin Bases debe estar habilitado para que esto funcione.",
+				},
+				viewCommands: {
+					header: "Comandos de vista",
+					description: "Configura qué archivos .base se abren con los comandos de vista. Estos comandos te permiten seguir usando atajos familiares mientras trabajas con archivos de Bases.",
+					commands: {
+						miniCalendar: "Abrir vista de mini calendario",
+						kanban: "Abrir vista kanban",
+						tasks: "Abrir vista de tareas",
+						advancedCalendar: "Abrir vista de calendario avanzado",
+						agenda: "Abrir vista de agenda",
+						relationships: "Widget de relaciones",
+					},
+					fileLabel: "Archivo: {path}",
+					resetButton: "Restablecer",
+					resetTooltip: "Restablecer a ruta predeterminada",
+				},
+				createDefaultFiles: {
+					name: "Crear archivos predeterminados",
+					description: "Crea los archivos .base predeterminados en el directorio TaskNotes/Views/. Los archivos existentes no se sobrescribirán.",
+					buttonText: "Crear archivos",
+				},
+				exportV3Views: {
+					name: "Exportar vistas guardadas V3 a Bases",
+					description: "Convierte todas tus vistas guardadas de TaskNotes v3 en un solo archivo .base con múltiples vistas. Esto ayuda a migrar tus configuraciones de filtros v3 al nuevo sistema de Bases.",
+					buttonText: "Exportar vistas V3",
+					noViews: "No hay vistas guardadas para exportar",
+					fileExists: "El archivo ya existe",
+					confirmOverwrite: 'Ya existe un archivo llamado "{fileName}". ¿Sobrescribirlo?',
+					success: "Exportadas {count} vistas guardadas a {filePath}",
+					error: "Error al exportar vistas: {message}",
 				},
 				notices: {
 					enabled: "Integración con Bases habilitada. Por favor reinicia Obsidian para completar la configuración.",

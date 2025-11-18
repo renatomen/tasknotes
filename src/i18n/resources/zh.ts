@@ -834,10 +834,12 @@ export const zh: TranslationTree = {
 			},
 			taskPriorities: {
 				header: "任务优先级",
-				description: "自定义任务可用的优先级级别。优先级权重确定任务视图中的排序顺序和视觉层次。",
+				description:
+					"自定义任务可用的优先级级别。在 v4.0+ 中，优先级在 Bases 视图中按其值的字母顺序排序。",
 				howTheyWork: {
 					title: "优先级如何工作：",
-					value: "值：存储在任务文件中的内部标识符（例如，\"高\"）",
+					value:
+						'值：存储在任务文件中的内部标识符。使用前缀如 "1-urgent"、"2-high" 来控制 Bases 视图中的排序顺序。',
 					label: "显示标签：在界面中显示的显示名称（例如，\"高优先级\"）",
 					color: "颜色：优先级点和徽章的视觉指示器颜色",
 					weight: "权重：用于排序的数值（权重高的优先出现在列表中）",
@@ -848,7 +850,8 @@ export const zh: TranslationTree = {
 					description: "为您的任务创建新的优先级级别",
 					buttonText: "添加优先级",
 				},
-				validationNote: "注意：您必须至少有1个优先级。较高的权重在排序和视觉层次中优先。",
+				validationNote:
+					"注意：您必须至少有1个优先级。优先级在 Bases 视图中按值的字母顺序排序。",
 				emptyState: "未配置自定义优先级。添加优先级以开始。",
 				emptyStateButton: "添加优先级",
 				fields: {
@@ -1263,6 +1266,36 @@ export const zh: TranslationTree = {
 				enable: {
 					name: "启用Bases集成",
 					description: "启用TaskNotes视图在Obsidian Bases插件中使用。必须启用Bases插件才能工作。",
+				},
+				viewCommands: {
+					header: "视图命令",
+					description: "配置视图命令打开哪些 .base 文件。这些命令让您在使用 Bases 文件时继续使用熟悉的快捷方式。",
+					commands: {
+						miniCalendar: "打开迷你日历视图",
+						kanban: "打开看板视图",
+						tasks: "打开任务视图",
+						advancedCalendar: "打开高级日历视图",
+						agenda: "打开议程视图",
+						relationships: "关系小部件",
+					},
+					fileLabel: "文件：{path}",
+					resetButton: "重置",
+					resetTooltip: "重置为默认路径",
+				},
+				createDefaultFiles: {
+					name: "创建默认文件",
+					description: "在 TaskNotes/Views/ 目录中创建默认的 .base 文件。现有文件不会被覆盖。",
+					buttonText: "创建文件",
+				},
+				exportV3Views: {
+					name: "将V3保存的视图导出到Bases",
+					description: "将您所有来自 TaskNotes v3 的保存视图转换为包含多个视图的单个 .base 文件。这有助于将您的 v3 过滤器配置迁移到新的 Bases 系统。",
+					buttonText: "导出V3视图",
+					noViews: "没有保存的视图可导出",
+					fileExists: "文件已存在",
+					confirmOverwrite: '名为"{fileName}"的文件已存在。是否覆盖？',
+					success: "已将 {count} 个保存的视图导出到 {filePath}",
+					error: "导出视图失败：{message}",
 				},
 				notices: {
 					enabled: "Bases集成已启用。请重启Obsidian以完成设置。",

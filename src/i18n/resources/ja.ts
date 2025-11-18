@@ -834,10 +834,12 @@ export const ja: TranslationTree = {
 			},
 			taskPriorities: {
 				header: "タスク優先度",
-				description: "タスクで利用可能な優先度レベルをカスタマイズします。優先度の重みは、タスクビューでの並び順と視覚的階層を決定します。",
+				description:
+					"タスクで利用可能な優先度レベルをカスタマイズします。v4.0+では、優先度はBasesビューで値のアルファベット順にソートされます。",
 				howTheyWork: {
 					title: "優先度の動作：",
-					value: "値：タスクファイルに保存される内部識別子（例：\"high\"）",
+					value:
+						'値：タスクファイルに保存される内部識別子。Basesビューでのソート順を制御するには、"1-urgent"、"2-high"のようなプレフィックスを使用します。',
 					label: "表示ラベル：インターフェースに表示される表示名（例：\"高優先度\"）",
 					color: "色：優先度ドットとバッジの視覚的インジケーター色",
 					weight: "重み：並び替え用の数値（重みが高いほどリストで先に表示）",
@@ -848,7 +850,8 @@ export const ja: TranslationTree = {
 					description: "タスクの新しい優先度レベルを作成",
 					buttonText: "優先度を追加",
 				},
-				validationNote: "注意：少なくとも1つの優先度が必要です。重みが高いほど並び替えと視覚的階層で優先されます。",
+				validationNote:
+					"注意：少なくとも1つの優先度が必要です。優先度はBasesビューで値のアルファベット順にソートされます。",
 				emptyState: "カスタム優先度が設定されていません。優先度を追加して開始してください。",
 				emptyStateButton: "優先度を追加",
 				fields: {
@@ -1263,6 +1266,36 @@ export const ja: TranslationTree = {
 				enable: {
 					name: "Bases統合を有効にする",
 					description: "TaskNotesビューをObsidian Basesプラグイン内で使用できるようにします。これが機能するにはBasesプラグインが有効である必要があります。",
+				},
+				viewCommands: {
+					header: "ビューコマンド",
+					description: "ビューコマンドで開く.baseファイルを設定します。これらのコマンドを使用すると、Basesファイルで作業しながら使い慣れたショートカットを引き続き使用できます。",
+					commands: {
+						miniCalendar: "ミニカレンダービューを開く",
+						kanban: "カンバンビューを開く",
+						tasks: "タスクビューを開く",
+						advancedCalendar: "高度なカレンダービューを開く",
+						agenda: "アジェンダビューを開く",
+						relationships: "関係ウィジェット",
+					},
+					fileLabel: "ファイル：{path}",
+					resetButton: "リセット",
+					resetTooltip: "デフォルトパスにリセット",
+				},
+				createDefaultFiles: {
+					name: "デフォルトファイルを作成",
+					description: "TaskNotes/Views/ディレクトリにデフォルトの.baseファイルを作成します。既存のファイルは上書きされません。",
+					buttonText: "ファイルを作成",
+				},
+				exportV3Views: {
+					name: "V3保存ビューをBasesにエクスポート",
+					description: "TaskNotes v3のすべての保存ビューを、複数のビューを持つ単一の.baseファイルに変換します。これは、v3フィルター設定を新しいBasesシステムに移行するのに役立ちます。",
+					buttonText: "V3ビューをエクスポート",
+					noViews: "エクスポートする保存ビューがありません",
+					fileExists: "ファイルが既に存在します",
+					confirmOverwrite: '"{fileName}"という名前のファイルが既に存在します。上書きしますか？',
+					success: "{count}個の保存ビューを{filePath}にエクスポートしました",
+					error: "ビューのエクスポートに失敗しました：{message}",
 				},
 				notices: {
 					enabled: "Bases統合が有効になりました。設定を完了するためにObsidianを再起動してください。",
