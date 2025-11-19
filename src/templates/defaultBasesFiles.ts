@@ -285,7 +285,7 @@ ${orderYaml}
           # No blocking dependencies at all
           - ${blockedByProperty}.isEmpty()
           # All blocking tasks are completed (filter returns only incomplete, then check if empty)
-          - "list(${blockedByProperty}).filter(${blockingTaskIncompleteCondition}).isEmpty()"
+          - 'list(${blockedByProperty}).filter(${blockingTaskIncompleteCondition}).isEmpty()'
     order:
 ${orderYaml}
     sort:
