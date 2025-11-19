@@ -34,6 +34,7 @@ export class MiniCalendarView extends BasesViewBase {
 	private selectedDate: Date; // UTC-anchored
 	private configLoaded = false; // Track if we've successfully loaded config
 	private isInitialRender = true; // Track if this is the first render
+	private shouldRestoreFocus = false; // Track if focus should be restored after render
 
 	// Multi-select mode
 	private multiSelectMode = false;
@@ -100,6 +101,9 @@ export class MiniCalendarView extends BasesViewBase {
 		}
 
 		try {
+			// Check if the grid currently has focus before clearing
+			const gridHadFocus = this.calendarEl.querySelector('.mini-calendar-view__grid') === document.activeElement;
+
 			// Clear calendar
 			this.calendarEl.empty();
 
@@ -113,9 +117,18 @@ export class MiniCalendarView extends BasesViewBase {
 			this.renderCalendarControls();
 			this.renderCalendarGrid();
 
-			// Only auto-focus on initial render to avoid stealing focus on data updates
-			if (this.isInitialRender) {
-				this.isInitialRender = false;
+			// Focus strategy:
+			// 1. Initial render: auto-focus to enable keyboard navigation
+			// 2. User-initiated re-renders (navigation, interactions): restore focus
+			// 3. Data update re-renders: only restore if it had focus before
+			const shouldFocus = this.isInitialRender || this.shouldRestoreFocus || gridHadFocus;
+
+			if (shouldFocus) {
+				if (this.isInitialRender) {
+					this.isInitialRender = false;
+				}
+				this.shouldRestoreFocus = false;
+
 				// Focus the grid after rendering (with slight delay to ensure DOM is ready)
 				setTimeout(() => {
 					const grid = this.calendarEl?.querySelector('.mini-calendar-view__grid') as HTMLElement;
@@ -673,6 +686,7 @@ export class MiniCalendarView extends BasesViewBase {
 		this.displayedMonth = newDate.getUTCMonth();
 		this.displayedYear = newDate.getUTCFullYear();
 		this.monthCalculationCache.clear();
+		this.shouldRestoreFocus = true;
 		this.refresh();
 	}
 
@@ -683,6 +697,7 @@ export class MiniCalendarView extends BasesViewBase {
 		this.displayedMonth = newDate.getUTCMonth();
 		this.displayedYear = newDate.getUTCFullYear();
 		this.monthCalculationCache.clear();
+		this.shouldRestoreFocus = true;
 		this.refresh();
 	}
 
@@ -693,6 +708,7 @@ export class MiniCalendarView extends BasesViewBase {
 		this.displayedMonth = todayUTC.getUTCMonth();
 		this.displayedYear = todayUTC.getUTCFullYear();
 		this.monthCalculationCache.clear();
+		this.shouldRestoreFocus = true;
 		this.refresh();
 	}
 
@@ -827,6 +843,7 @@ export class MiniCalendarView extends BasesViewBase {
 			this.monthCalculationCache.clear();
 		}
 
+		this.shouldRestoreFocus = true;
 		this.refresh();
 	}
 
@@ -851,6 +868,7 @@ export class MiniCalendarView extends BasesViewBase {
 			this.monthCalculationCache.clear();
 		}
 
+		this.shouldRestoreFocus = true;
 		this.refresh();
 	}
 
@@ -876,6 +894,7 @@ export class MiniCalendarView extends BasesViewBase {
 			this.monthCalculationCache.clear();
 		}
 
+		this.shouldRestoreFocus = true;
 		this.refresh();
 	}
 
@@ -890,6 +909,7 @@ export class MiniCalendarView extends BasesViewBase {
 		));
 
 		this.selectedDate = newDate;
+		this.shouldRestoreFocus = true;
 		this.refresh();
 	}
 
@@ -904,6 +924,7 @@ export class MiniCalendarView extends BasesViewBase {
 		));
 
 		this.selectedDate = newDate;
+		this.shouldRestoreFocus = true;
 		this.refresh();
 	}
 
@@ -918,6 +939,7 @@ export class MiniCalendarView extends BasesViewBase {
 		this.displayedMonth = newDate.getUTCMonth();
 		this.displayedYear = newDate.getUTCFullYear();
 		this.monthCalculationCache.clear();
+		this.shouldRestoreFocus = true;
 		this.refresh();
 	}
 
@@ -938,6 +960,7 @@ export class MiniCalendarView extends BasesViewBase {
 			this.selectedDates.add(formatDateForStorage(day));
 		});
 
+		this.shouldRestoreFocus = true;
 		this.refresh();
 		this.showCombinedNotes();
 	}
