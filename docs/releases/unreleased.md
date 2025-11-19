@@ -26,6 +26,10 @@ Example:
 
 ## Fixed
 
+- (#1168) Fixed mini calendar stealing focus every few seconds when pinned to sidebar
+  - Calendar now only auto-focuses on initial render, not on every data update
+  - Keyboard navigation still works correctly through click interactions and tab focus
+  - Thanks to @DearHaruHaru for reporting
 - (#1161, #1162) Fixed "unexpected scalar" YAML parsing error in generated tasks-default.base template
   - Changed nested quotes in "Not Blocked" filter from double to single quotes
   - Thanks to @benschifman and @InterstellarRaccoon for reporting, @GarrettKaupp for identifying the fix
@@ -33,10 +37,5 @@ Example:
 ## Changed
 
 - Updated task modal UI to use native Obsidian patterns for better theme compatibility
-  - Task creation and edit modals now use Obsidian's native `modal-button-container` class
-  - Replaced custom button styling with standard Obsidian button classes (`mod-cta`, `mod-warning`)
-  - Added `mod-tasknotes` modifier class to modals for scoped styling
-  - Buttons now automatically follow user's theme styling including all theme plugins
-  - Improved button layout using CSS flexbox instead of manual spacer elements
-  - Based on feedback from Kepano (Obsidian CEO) to use existing modal constructors for native appearance
+  - Thanks to feedback from @kepano
 

@@ -33,6 +33,7 @@ export class MiniCalendarView extends BasesViewBase {
 	private displayedYear: number;
 	private selectedDate: Date; // UTC-anchored
 	private configLoaded = false; // Track if we've successfully loaded config
+	private isInitialRender = true; // Track if this is the first render
 
 	// Multi-select mode
 	private multiSelectMode = false;
@@ -112,13 +113,17 @@ export class MiniCalendarView extends BasesViewBase {
 			this.renderCalendarControls();
 			this.renderCalendarGrid();
 
-			// Focus the grid after rendering (with slight delay to ensure DOM is ready)
-			setTimeout(() => {
-				const grid = this.calendarEl?.querySelector('.mini-calendar-view__grid') as HTMLElement;
-				if (grid) {
-					grid.focus();
-				}
-			}, 10);
+			// Only auto-focus on initial render to avoid stealing focus on data updates
+			if (this.isInitialRender) {
+				this.isInitialRender = false;
+				// Focus the grid after rendering (with slight delay to ensure DOM is ready)
+				setTimeout(() => {
+					const grid = this.calendarEl?.querySelector('.mini-calendar-view__grid') as HTMLElement;
+					if (grid) {
+						grid.focus();
+					}
+				}, 10);
+			}
 		} catch (error: any) {
 			console.error("[TaskNotes][MiniCalendarView] Error rendering:", error);
 			this.renderError(error);
