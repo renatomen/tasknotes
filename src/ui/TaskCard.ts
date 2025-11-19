@@ -985,8 +985,12 @@ export function createTaskCard(
 		? getEffectiveTaskStatus(task, targetDate)
 		: task.status;
 
+	// Determine layout mode first
+	const layout = opts.layout || "default";
+
 	// Main container with BEM class structure
-	const card = document.createElement("div");
+	// Use span for inline layout to ensure proper inline flow in CodeMirror
+	const card = document.createElement(layout === "inline" ? "span" : "div");
 
 	// Store task path for circular reference detection
 	(card as any)._taskPath = task.path;
@@ -1004,7 +1008,6 @@ export function createTaskCard(
 	const cardClasses = ["task-card"];
 
 	// Add layout modifier
-	const layout = opts.layout || "default";
 	if (layout !== "default") {
 		cardClasses.push(`task-card--layout-${layout}`);
 	}
@@ -1043,7 +1046,8 @@ export function createTaskCard(
 	card.dataset.status = effectiveStatus;
 
 	// Create main row container for horizontal layout
-	const mainRow = card.createEl("div", { cls: "task-card__main-row" });
+	// Use span for inline layout to maintain inline flow
+	const mainRow = card.createEl(layout === "inline" ? "span" : "div", { cls: "task-card__main-row" });
 
 	// Apply priority and status colors as CSS custom properties
 	const priorityConfig = plugin.priorityManager.getPriorityConfig(task.priority);
@@ -1387,7 +1391,7 @@ export function createTaskCard(
 		}
 	}
 
-	const contentContainer = mainRow.createEl("div", { cls: "task-card__content" });
+	const contentContainer = mainRow.createEl(layout === "inline" ? "span" : "div", { cls: "task-card__content" });
 
 	// Context menu icon (appears on hover)
 	const contextIcon = mainRow.createEl("div", {
@@ -1408,7 +1412,7 @@ export function createTaskCard(
 	});
 
 	// First line: Task title
-	const titleEl = contentContainer.createEl("div", { cls: "task-card__title" });
+	const titleEl = contentContainer.createEl(layout === "inline" ? "span" : "div", { cls: "task-card__title" });
 	const titleTextEl = titleEl.createSpan({ cls: "task-card__title-text", text: task.title });
 
 	if (isCompleted) {
@@ -1417,7 +1421,7 @@ export function createTaskCard(
 	}
 
 	// Second line: Metadata (dynamic based on visible properties)
-	const metadataLine = contentContainer.createEl("div", { cls: "task-card__metadata" });
+	const metadataLine = contentContainer.createEl(layout === "inline" ? "span" : "div", { cls: "task-card__metadata" });
 	const metadataElements: HTMLElement[] = [];
 
 	// Get properties to display

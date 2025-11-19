@@ -5,6 +5,18 @@
 /* All inline task widget styles are scoped under .tasknotes-plugin for proper isolation */
 
 /* =================================================================
+   INLINE TASK LINK WIDGET WRAPPER
+   ================================================================= */
+
+/* Wrapper for inline task link widgets - ensures proper inline display with bullets */
+.tasknotes-plugin.tasknotes-inline-widget {
+    display: inline !important;
+    vertical-align: baseline;
+    /* Prevent wrapper from causing line breaks */
+    white-space: normal;
+}
+
+/* =================================================================
    INLINE TASK PREVIEW STYLES (Editor Widgets)
    ================================================================= */
 

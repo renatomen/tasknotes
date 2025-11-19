@@ -43,7 +43,10 @@ export class TaskLinkWidget extends WidgetType {
 
 		// Create a wrapper span with the tasknotes-plugin class for CSS scoping
 		const wrapper = document.createElement("span");
-		wrapper.className = "tasknotes-plugin";
+		wrapper.className = "tasknotes-plugin tasknotes-inline-widget";
+		// Ensure wrapper displays inline to prevent line breaks
+		wrapper.style.display = "inline";
+		wrapper.style.verticalAlign = "baseline";
 
 		// Use createTaskCard with inline layout
 		const card = createTaskCard(

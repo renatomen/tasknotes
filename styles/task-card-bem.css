@@ -1118,7 +1118,7 @@
 /* Inline layout - single line, compact display for editor task links */
 .tasknotes-plugin .task-card--layout-inline {
     /* Override default flex-direction to create horizontal layout */
-    display: inline-flex;
+    display: inline-flex !important;
     flex-direction: row;
     align-items: center;
     gap: var(--tn-spacing-xs);
@@ -1133,12 +1133,15 @@
     border: none;
     border-radius: 0;
 
-    /* Size constraints */
-    max-width: 100%;
+    /* Size constraints - small offset to prevent wrapping to new line */
+    max-width: calc(100% - 40px);
     min-height: auto;
 
     /* Prevent text from breaking into multiple lines */
     white-space: nowrap;
+
+    /* Force inline behavior */
+    vertical-align: baseline;
 }
 
 .tasknotes-plugin .task-card--layout-inline:hover {
@@ -1154,24 +1157,29 @@
 
 /* Main row in inline mode - horizontal layout */
 .tasknotes-plugin .task-card--layout-inline .task-card__main-row {
+    display: inline-flex !important;
     flex-direction: row;
     align-items: center;
     gap: var(--tn-spacing-xs);
     flex: 1;
     min-width: 0;
+    vertical-align: baseline;
 }
 
 /* Content in inline mode - horizontal, truncated */
 .tasknotes-plugin .task-card--layout-inline .task-card__content {
+    display: inline-flex !important;
     flex-direction: row;
     align-items: baseline; /* Align items by baseline instead of center */
     gap: var(--tn-spacing-sm);
     min-width: 0;
     overflow: visible; /* Allow scrollbar to overflow without affecting layout */
+    vertical-align: baseline;
 }
 
 /* Title in inline mode - truncate with ellipsis */
 .tasknotes-plugin .task-card--layout-inline .task-card__title {
+    display: inline-flex !important;
     font-size: inherit; /* Use editor's font size */
     font-weight: 400;
     max-width: min(600px, 80vw); /* Responsive max-width for longer titles */
@@ -1182,6 +1190,7 @@
     gap: var(--tn-spacing-xs);
     align-items: baseline; /* Align title children by baseline */
     flex-shrink: 0; /* Prevent title from shrinking */
+    vertical-align: baseline;
 }
 
 /* Metadata in inline mode - horizontal scrollable when too long */

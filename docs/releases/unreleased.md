@@ -26,16 +26,5 @@ Example:
 
 ## Fixed
 
-- (#1168) Fixed mini calendar stealing focus every few seconds when pinned to sidebar
-  - Calendar now only auto-focuses on initial render, not on every data update
-  - Keyboard navigation still works correctly through click interactions and tab focus
-  - Thanks to @DearHaruHaru for reporting
-- (#1161, #1162) Fixed "unexpected scalar" YAML parsing error in generated tasks-default.base template
-  - Changed nested quotes in "Not Blocked" filter from double to single quotes
-  - Thanks to @benschifman and @InterstellarRaccoon for reporting, @GarrettKaupp for identifying the fix
-
 ## Changed
-
-- Updated task modal UI to use native Obsidian patterns for better theme compatibility
-  - Thanks to feedback from @kepano
 
