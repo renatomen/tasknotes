@@ -33,6 +33,11 @@ Example:
 
 ## Fixed
 
+- (#1139, #1141) Fixed relationships widget not appearing in project notes
+  - Project references are now resolved to full file paths when indexing
+  - Uses Obsidian's link resolution API to handle wikilinks, markdown links, and relative paths
+  - Restores v3.x behavior where subtasks appear in parent project notes
+  - Thanks to @jhedlund, @n1njaznutz, and @luckb0x for reporting and testing
 - Fixed dependency blocking status to be status-aware
   - "Blocked (x)" pill now only appears when tasks have **incomplete** blocking dependencies
   - Tasks with all completed blocking dependencies no longer show as blocked
@@ -45,7 +50,7 @@ Example:
 
 ## Changed
 
-- Moved default base templates documentation from `obsidian-help/` to `docs/views/`
+- Moved default base templates documentation to `docs/views/`
   - Location: `docs/views/default-base-templates.md`
   - Added cross-references from views.md, task-list.md, and filtering-and-views.md
   - Updated code comments to reference new documentation path

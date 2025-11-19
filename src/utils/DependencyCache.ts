@@ -159,6 +159,24 @@ export class DependencyCache extends Events {
 	}
 
 	/**
+	 * Resolve a project reference string to a file path
+	 */
+	private resolveProjectReference(sourcePath: string, projectRef: string): string | null {
+		if (!projectRef || typeof projectRef !== 'string') {
+			return null;
+		}
+
+		const trimmed = projectRef.trim();
+		if (!trimmed) {
+			return null;
+		}
+
+		// Use resolveDependencyEntry to handle wikilinks, markdown links, and plain text
+		const resolved = resolveDependencyEntry(this.app, sourcePath, trimmed);
+		return resolved?.path || null;
+	}
+
+	/**
 	 * Index a task file's dependencies and project references
 	 */
 	private indexTaskFile(path: string, frontmatter: any): void {
@@ -198,10 +216,14 @@ export class DependencyCache extends Events {
 
 			for (const proj of projects) {
 				if (typeof proj === 'string') {
-					if (!this.projectReferences.has(proj)) {
-						this.projectReferences.set(proj, new Set());
+					// Resolve the project reference to a full file path
+					const resolvedPath = this.resolveProjectReference(path, proj);
+					if (resolvedPath) {
+						if (!this.projectReferences.has(resolvedPath)) {
+							this.projectReferences.set(resolvedPath, new Set());
+						}
+						this.projectReferences.get(resolvedPath)!.add(path);
 					}
-					this.projectReferences.get(proj)!.add(path);
 				}
 			}
 		}
