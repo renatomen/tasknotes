@@ -485,11 +485,6 @@ export abstract class TaskModal extends Modal {
 		// Set the modal title using the standard Obsidian approach (preserves close button)
 		this.titleEl.setText(this.getModalTitle());
 
-		// Add TaskNotes icon at the beginning of the title
-		const iconContainer = this.titleEl.createSpan("modal-header-icon");
-		setIcon(iconContainer, "tasknotes-simple");
-		this.titleEl.insertBefore(iconContainer, this.titleEl.firstChild);
-
 		this.initializeFormData().then(() => {
 			this.createModalContent();
 			this.focusTitleInput();
