@@ -45,7 +45,6 @@ nav:
     - Time Management: features/time-management.md
     - Calendar Integration: features/calendar-integration.md
     - ICS Integration: features/ics-integration.md
-    - Filtering & Views: features/filtering-and-views.md
     - Third-party Integrations: features/integrations.md
     - User Fields: features/user-fields.md
   - Views:

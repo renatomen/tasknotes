@@ -18,7 +18,7 @@ Saved views are stored as `.base` files rather than in plugin settings. This all
 
 The Bases core plugin must be enabled for TaskNotes main views to function.
 
-See [Filtering and Views](features/filtering-and-views.md) for details.
+For details on Bases syntax, filtering, and views, see the [official Obsidian Bases documentation](https://help.obsidian.md/Bases/Introduction+to+Bases).
 
 ## Inline Task Integration
 

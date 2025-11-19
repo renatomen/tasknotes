@@ -1,6 +1,7 @@
 ---
 title: Default Base Templates
 description: Default base file templates for TaskNotes views
+dateModified: 2025-11-19T21:20:55+1100
 ---
 
 # Default Base Templates
@@ -12,6 +13,7 @@ This page shows the default templates as they would appear with TaskNotes' defau
 ## Default settings assumptions
 
 The examples below assume:
+
 - **Task identification**: Tag-based using `#task`
 - **Field mapping**: Default property names (e.g., `status`, `due`, `scheduled`, `projects`, `contexts`)
 - **Statuses**: `none`, `open`, `in-progress`, `done` (only `done` is completed)
@@ -84,6 +86,9 @@ views:
       - file.name
       - recurrence
       - complete_instances
+    groupBy:
+      property: status
+      direction: ASC
     options:
       columnWidth: 280
       hideEmptyColumns: false
@@ -93,7 +98,7 @@ views:
 
 Used by the **Tasks** command to display filtered task views.
 
-This template includes multiple views: All Tasks, Not Blocked, Today, Overdue, This Week, and Unscheduled. Each view (except All Tasks) filters for incomplete tasks, correctly handling both recurring and non-recurring tasks. The "Not Blocked" view additionally filters for tasks that are ready to work on (no incomplete blocking dependencies).
+This template includes multiple views: All Tasks, Not Blocked, Today, Overdue, This Week, and Unscheduled. Each view (except All Tasks) filters for incomplete tasks, handling both recurring and non-recurring tasks. The "Not Blocked" view additionally filters for tasks that are ready to work on (no incomplete blocking dependencies).
 
 ```yaml
 # All Tasks
@@ -132,13 +137,13 @@ views:
           # Recurring task where today is not in complete_instances
           - and:
             - recurrence
-            - "!complete_instances.contains(today().format(\"yyyy-MM-dd\"))"
+            - '!complete_instances.contains(today().format("yyyy-MM-dd"))'
         # Not blocked by any incomplete tasks
         - or:
           # No blocking dependencies at all
           - blockedBy.isEmpty()
           # All blocking tasks are completed (filter returns only incomplete, then check if empty)
-          - "list(blockedBy).filter(file(value.uid).properties.status != \"done\").isEmpty()"
+          - 'list(blockedBy).filter(file(value.uid).properties.status != "done").isEmpty()'
     order:
       - status
       - priority
@@ -166,7 +171,7 @@ views:
           # Recurring task where today is not in complete_instances
           - and:
             - recurrence
-            - "!complete_instances.contains(today().format(\"yyyy-MM-dd\"))"
+            - '!complete_instances.contains(today().format("yyyy-MM-dd"))'
         # Due or scheduled today
         - or:
           - date(due) == today()
@@ -198,7 +203,7 @@ views:
           # Recurring task where today is not in complete_instances
           - and:
             - recurrence
-            - "!complete_instances.contains(today().format(\"yyyy-MM-dd\"))"
+            - '!complete_instances.contains(today().format("yyyy-MM-dd"))'
         # Due in the past
         - date(due) < today()
     order:
@@ -228,7 +233,7 @@ views:
           # Recurring task where today is not in complete_instances
           - and:
             - recurrence
-            - "!complete_instances.contains(today().format(\"yyyy-MM-dd\"))"
+            - '!complete_instances.contains(today().format("yyyy-MM-dd"))'
         # Due or scheduled this week
         - or:
           - and:
@@ -264,7 +269,7 @@ views:
           # Recurring task where today is not in complete_instances
           - and:
             - recurrence
-            - "!complete_instances.contains(today().format(\"yyyy-MM-dd\"))"
+            - '!complete_instances.contains(today().format("yyyy-MM-dd"))'
         # No due date and no scheduled date
         - date(due).isEmpty()
         - date(scheduled).isEmpty()
@@ -457,4 +462,3 @@ If you've customized your TaskNotes settings (e.g., renamed properties, added cu
 - [Bases syntax](https://help.obsidian.md/Bases/Bases+syntax) - Complete syntax reference
 - [Functions](https://help.obsidian.md/Bases/Functions) - Available functions for filters and formulas
 - [Views](https://help.obsidian.md/Bases/Views) - Information about view types and configuration
-- [Filtering and Views](../features/filtering-and-views.md) - TaskNotes filtering guide

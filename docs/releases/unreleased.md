@@ -28,15 +28,22 @@ Example:
 
 - Added "Not Blocked" view to default task list template
   - Shows incomplete tasks that are ready to work on (not blocked by incomplete dependencies)
-  - Filter dynamically uses configured completion statuses
   - Uses Bases `list.filter()` to check completion status of each blocking task
+  - This new view can be accessed by regenerating the Task List view, or by copying the filters from the [default base templates documentation](https://tasknotes.dev/views/default-base-templates)
 
 ## Fixed
 
+- (#1145, #1156) Fixed default Kanban view requiring manual 'Group by' configuration
+  - Default Kanban template now automatically includes `groupBy` property set to status
+  - Resolves "Kanban requires a 'Group by' property to be configured" error on first use
+  - Users no longer need to manually configure grouping through the Sort menu
+  - Thanks to @randomness42 and @seepage87 for reporting
+- Fixed user-defined custom fields appearing as `user:field_xxx` in generated base templates
+  - Custom fields now use their actual property names (e.g., `effort` instead of `user:field_1761435303709`)
+  - Ensures Bases can properly query user-defined properties
+  - Also fixed `totalTrackedTime` to correctly map to the configured `timeEntries` property name
 - (#1145) Improved Kanban error message when no 'Group by' property is configured
   - Now includes instructions: "Click the 'Sort' button and select a property under 'Group by'"
-  - Makes it clearer how to resolve the issue
-  - Fully localized in all 7 supported languages
   - Thanks to @randomness42 for the suggestion
 - (#1139, #1141) Fixed relationships widget not appearing in project notes
   - Project references are now resolved to full file paths when indexing
@@ -46,16 +53,15 @@ Example:
 - Fixed dependency blocking status to be status-aware
   - "Blocked (x)" pill now only appears when tasks have **incomplete** blocking dependencies
   - Tasks with all completed blocking dependencies no longer show as blocked
-  - DependencyCache now checks actual status of blocking tasks, not just existence
-  - Unified blocking status computation in DependencyCache for consistency
 - Fixed cache invalidation bug causing blocking/blocked pills to disappear when editing tasks
   - When a task is modified, only forward dependencies are cleared (stored in its frontmatter)
   - Reverse dependencies are preserved (stored in other tasks' frontmatter)
-  - Prevents loss of blocking/blocked relationships when editing a blocking task
 
 ## Changed
 
 - Moved default base templates documentation to `docs/views/`
   - Location: `docs/views/default-base-templates.md`
-  - Added cross-references from views.md, task-list.md, and filtering-and-views.md
+  - Added cross-references to official Obsidian Bases documentation
   - Updated code comments to reference new documentation path
+- Fixed incorrect quote escaping in default base templates documentation
+  - YAML examples now use proper single quotes for strings containing double quotes

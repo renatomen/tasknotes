@@ -71,6 +71,17 @@ function getPropertyName(fullPath: string): string {
 function mapPropertyToBasesProperty(property: string, plugin: TaskNotesPlugin): string {
 	const fm = plugin.fieldMapper;
 
+	// Handle user-defined fields (format: "user:field_xxx")
+	if (property.startsWith("user:")) {
+		const fieldId = property.substring(5); // Remove "user:" prefix
+		const userField = plugin.settings.userFields?.find(f => f.id === fieldId);
+		if (userField) {
+			return userField.key;
+		}
+		// If field not found, return the ID as-is (shouldn't happen in normal use)
+		return property;
+	}
+
 	// Handle special Bases-specific properties first
 	switch (property) {
 		case "tags":
@@ -87,6 +98,9 @@ function mapPropertyToBasesProperty(property: string, plugin: TaskNotesPlugin): 
 			return fm.toUserField("blockedBy");
 		case "complete_instances":
 			return fm.toUserField("completeInstances");
+		case "totalTrackedTime":
+			// totalTrackedTime is computed from timeEntries, use the timeEntries property
+			return fm.toUserField("timeEntries");
 	}
 
 	// Try to map using FieldMapper
@@ -195,7 +209,8 @@ ${orderYaml}
     dateProperty: file.mtime
 `;
 		}
-		case 'open-kanban-view':
+		case 'open-kanban-view': {
+			const statusProperty = getPropertyName(mapPropertyToBasesProperty('status', plugin));
 			return `# Kanban Board
 
 ${formatFilterAsYAML([taskFilterCondition])}
@@ -205,10 +220,14 @@ views:
     name: "Kanban Board"
     order:
 ${orderYaml}
+    groupBy:
+      property: ${statusProperty}
+      direction: ASC
     options:
       columnWidth: 280
       hideEmptyColumns: false
 `;
+		}
 
 		case 'open-tasks-view': {
 			const statusProperty = mapPropertyToBasesProperty('status', plugin);
