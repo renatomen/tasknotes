@@ -222,6 +222,7 @@ export class TaskEditModal extends TaskModal {
 		await this.refreshTaskData();
 
 		this.containerEl.addClass("tasknotes-plugin", "minimalist-task-modal");
+		this.modalEl.addClass("mod-tasknotes");
 
 		// Set the modal title using the standard Obsidian approach (preserves close button)
 		this.titleEl.setText(this.getModalTitle());
@@ -986,7 +987,7 @@ export class TaskEditModal extends TaskModal {
 	}
 
 	protected createActionButtons(container: HTMLElement): void {
-		const buttonContainer = container.createDiv("button-container");
+		const buttonContainer = container.createDiv("modal-button-container");
 
 		// Add "Open note" button
 		const openNoteButton = buttonContainer.createEl("button", {
@@ -1000,7 +1001,7 @@ export class TaskEditModal extends TaskModal {
 
 		// Add "Archive" button
 		const archiveButton = buttonContainer.createEl("button", {
-			cls: "archive-button",
+			cls: "mod-warning archive-button",
 			text: this.task.archived
 				? this.t("modals.taskEdit.buttons.unarchive")
 				: this.t("modals.taskEdit.buttons.archive"),
@@ -1010,12 +1011,9 @@ export class TaskEditModal extends TaskModal {
 			await this.archiveTask();
 		});
 
-		// Spacer to push Save/Cancel to the right
-		buttonContainer.createDiv("button-spacer");
-
-		// Save button
+		// Save button (primary action)
 		const saveButton = buttonContainer.createEl("button", {
-			cls: "save-button",
+			cls: "mod-cta",
 			text: this.t("modals.task.buttons.save"),
 		});
 
@@ -1031,7 +1029,6 @@ export class TaskEditModal extends TaskModal {
 
 		// Cancel button
 		const cancelButton = buttonContainer.createEl("button", {
-			cls: "cancel-button",
 			text: this.t("common.cancel"),
 		});
 

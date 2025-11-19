@@ -481,6 +481,7 @@ export abstract class TaskModal extends Modal {
 
 	onOpen() {
 		this.containerEl.addClass("tasknotes-plugin", "minimalist-task-modal");
+		this.modalEl.addClass("mod-tasknotes");
 
 		// Set the modal title using the standard Obsidian approach (preserves close button)
 		this.titleEl.setText(this.getModalTitle());
@@ -1131,7 +1132,7 @@ export abstract class TaskModal extends Modal {
 	}
 
 	protected createActionButtons(container: HTMLElement): void {
-		const buttonContainer = container.createDiv("button-container");
+		const buttonContainer = container.createDiv("modal-button-container");
 
 		// Add "Open note" button for edit modals only
 		if (this.isEditMode()) {
@@ -1143,14 +1144,11 @@ export abstract class TaskModal extends Modal {
 			openNoteButton.addEventListener("click", async () => {
 				await (this as any).openTaskNote();
 			});
-
-			// Spacer to push Save/Cancel to the right
-			buttonContainer.createDiv("button-spacer");
 		}
 
-		// Save button
+		// Save button (primary action)
 		const saveButton = buttonContainer.createEl("button", {
-			cls: "save-button",
+			cls: "mod-cta",
 			text: this.t("modals.task.buttons.save"),
 		});
 
@@ -1166,7 +1164,6 @@ export abstract class TaskModal extends Modal {
 
 		// Cancel button
 		const cancelButton = buttonContainer.createEl("button", {
-			cls: "cancel-button",
 			text: this.t("common.cancel"),
 		});
 

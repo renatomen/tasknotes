@@ -518,56 +518,19 @@
 	box-shadow: 0 0 0 3px var(--background-modifier-border-focus);
 }
 
-.tasknotes-plugin .button-spacer {
-    flex: 1;
-}
-
 /* =====================================================================
-   ACTION BUTTONS
+   MODAL BUTTON CONTAINER - Native Obsidian style
    ===================================================================== */
 
-.tasknotes-plugin .button-container {
+/* Use native modal-button-container class */
+.modal.mod-tasknotes .modal-button-container {
     display: flex;
-    justify-content: flex-end;
     gap: var(--size-4-2);
-    margin-top: var(--size-4-4);
-    padding-top: var(--size-4-3);
-    border-top: 1px solid var(--background-modifier-border);
 }
 
-/* Use consistent button system with primary accent background preserved */
-.tasknotes-plugin .save-button {
-    background: var(--tn-interactive-accent);
-    color: var(--text-on-accent);
-    border: none;
-    box-shadow: none;
-    min-width: 80px;
-}
-
-.tasknotes-plugin .save-button:hover {
-    background: var(--tn-interactive-accent-hover);
-    box-shadow: none;
-}
-
-.tasknotes-plugin .save-button:focus-visible {
-	box-shadow: 0 0 0 3px var(--background-modifier-border-focus);
-}
-
-.tasknotes-plugin .cancel-button {
-    background: transparent;
-    color: var(--tn-text-normal);
-    border: none;
-    box-shadow: none;
-    min-width: 80px;
-}
-
-.tasknotes-plugin .cancel-button:hover {
-    background: var(--tn-interactive-hover);
-    box-shadow: none;
-}
-
-.tasknotes-plugin .cancel-button:focus-visible {
-	box-shadow: 0 0 0 3px var(--background-modifier-border-focus);
+/* Push Save/Cancel buttons to the right by adding auto margin after Archive button */
+.modal.mod-tasknotes .modal-button-container .archive-button {
+    margin-right: auto;
 }
 
 /* =====================================================================
@@ -600,13 +563,12 @@
         flex-wrap: wrap;
         gap: var(--size-4-2);
     }
-    
-    .tasknotes-plugin .button-container {
+
+    .modal.mod-tasknotes .modal-button-container {
         flex-direction: column;
     }
-    
-    .tasknotes-plugin .save-button,
-    .tasknotes-plugin .cancel-button {
+
+    .modal.mod-tasknotes .modal-button-container button {
         width: 100%;
     }
 }
