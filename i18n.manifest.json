@@ -183,6 +183,7 @@
   "views.kanban.notices.loadFailed": "9d744b2d44937cda77d20fc3bf2c1fc0242cc3c4",
   "views.kanban.notices.movedTask": "5d1d44647568b19ebc6ddfd9612b4fcbcfabaff8",
   "views.kanban.errors.loadingBoard": "5df51b612bbe4d9afeb184269bb95d764fac5687",
+  "views.kanban.errors.noGroupBy": "992584b6f54d292885de8a89782fa15e32d7aa60",
   "views.kanban.columnTitle": "621521f9a8788695ec292cbec54d2792cfdf0a7d",
   "views.pomodoro.title": "212e4618d030e7c987ed2d64d96f3e1dcebbf414",
   "views.pomodoro.status.focus": "fe7f55b8bf68fd47d248a271d541e7e183621010",

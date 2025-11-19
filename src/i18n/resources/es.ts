@@ -256,6 +256,7 @@ export const es: TranslationTree = {
 			},
 			errors: {
 				loadingBoard: "Error al cargar el tablero.",
+				noGroupBy: "La vista Kanban requiere que se configure una propiedad 'Agrupar por'. Haga clic en el botón 'Ordenar' y seleccione una propiedad en 'Agrupar por'.",
 			},
 			columnTitle: "Sin título",
 		},

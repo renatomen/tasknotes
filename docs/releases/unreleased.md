@@ -33,6 +33,11 @@ Example:
 
 ## Fixed
 
+- (#1145) Improved Kanban error message when no 'Group by' property is configured
+  - Now includes instructions: "Click the 'Sort' button and select a property under 'Group by'"
+  - Makes it clearer how to resolve the issue
+  - Fully localized in all 7 supported languages
+  - Thanks to @randomness42 for the suggestion
 - (#1139, #1141) Fixed relationships widget not appearing in project notes
   - Project references are now resolved to full file paths when indexing
   - Uses Obsidian's link resolution API to handle wikilinks, markdown links, and relative paths

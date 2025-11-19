@@ -905,7 +905,7 @@ export class KanbanView extends BasesViewBase {
 		const error = document.createElement("div");
 		error.className = "tn-bases-error";
 		error.style.cssText = "padding: 20px; text-align: center; color: var(--text-error);";
-		error.textContent = "Kanban view requires a 'Group by' property to be configured.";
+		error.textContent = this.plugin.i18n.translate("views.kanban.errors.noGroupBy");
 		this.boardEl.appendChild(error);
 	}
 

@@ -256,6 +256,7 @@ export const de: TranslationTree = {
 			},
 			errors: {
 				loadingBoard: "Fehler beim Laden des Boards.",
+				noGroupBy: "Die Kanban-Ansicht erfordert eine konfigurierte 'Gruppieren nach'-Eigenschaft. Klicken Sie auf die Schaltfläche 'Sortieren' und wählen Sie eine Eigenschaft unter 'Gruppieren nach' aus.",
 			},
 			columnTitle: "Ohne Titel",
 		},

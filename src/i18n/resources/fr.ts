@@ -256,6 +256,7 @@ export const fr: TranslationTree = {
 			},
 			errors: {
 				loadingBoard: "Erreur lors du chargement du tableau.",
+				noGroupBy: "La vue Kanban nécessite qu'une propriété 'Grouper par' soit configurée. Cliquez sur le bouton 'Trier' et sélectionnez une propriété sous 'Grouper par'.",
 			},
 			columnTitle: "Sans titre",
 		},

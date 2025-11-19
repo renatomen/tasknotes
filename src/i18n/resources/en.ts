@@ -258,6 +258,7 @@ export const en: TranslationTree = {
 			},
 			errors: {
 				loadingBoard: "Error loading board.",
+				noGroupBy: "Kanban view requires a 'Group by' property to be configured. Click the 'Sort' button and select a property under 'Group by'.",
 			},
 			columnTitle: "Untitled",
 		},

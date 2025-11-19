@@ -256,6 +256,7 @@ export const ja: TranslationTree = {
 			},
 			errors: {
 				loadingBoard: "ボードの読み込みエラー。",
+				noGroupBy: "かんばんビューには「グループ化」プロパティの設定が必要です。「並び替え」ボタンをクリックし、「グループ化」でプロパティを選択してください。",
 			},
 			columnTitle: "無題",
 		},

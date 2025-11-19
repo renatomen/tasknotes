@@ -255,7 +255,8 @@ export const pt: TranslationTree = {
 				movedTask: 'Tarefa movida para "{0}"'
 			},
 			errors: {
-				loadingBoard: "Erro ao carregar o quadro."
+				loadingBoard: "Erro ao carregar o quadro.",
+				noGroupBy: "A vista Kanban requer que uma propriedade 'Agrupar por' seja configurada. Clique no botão 'Ordenar' e selecione uma propriedade em 'Agrupar por'."
 			},
 			columnTitle: "Sem título"
 		},

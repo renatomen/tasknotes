@@ -736,6 +736,10 @@
       "source": "5df51b612bbe4d9afeb184269bb95d764fac5687",
       "translation": "e8f2f673e5f67e5c5d08c3c315c87577f78495d6"
     },
+    "views.kanban.errors.noGroupBy": {
+      "source": "992584b6f54d292885de8a89782fa15e32d7aa60",
+      "translation": "5f4e45da53fa2ed727bb1ee70b2bab7de7a0688a"
+    },
     "views.kanban.columnTitle": {
       "source": "621521f9a8788695ec292cbec54d2792cfdf0a7d",
       "translation": "e49f833404c0a635105d8f1db1076be79cea9495"
@@ -7841,6 +7845,10 @@
     "views.kanban.errors.loadingBoard": {
       "source": "5df51b612bbe4d9afeb184269bb95d764fac5687",
       "translation": "9e0179474e87d1303cbc94ccf3cb15e4ae619b82"
+    },
+    "views.kanban.errors.noGroupBy": {
+      "source": "992584b6f54d292885de8a89782fa15e32d7aa60",
+      "translation": "52786e800a7773da520152308850c8dc36f7d3b2"
     },
     "views.kanban.columnTitle": {
       "source": "621521f9a8788695ec292cbec54d2792cfdf0a7d",
@@ -14948,6 +14956,10 @@
       "source": "5df51b612bbe4d9afeb184269bb95d764fac5687",
       "translation": "cfacc3cf7737cfe4fb5d7c00b4f8f6a2d84e0685"
     },
+    "views.kanban.errors.noGroupBy": {
+      "source": "992584b6f54d292885de8a89782fa15e32d7aa60",
+      "translation": "8e732918ea7ad10d46dfa9b54b5dc039696883fc"
+    },
     "views.kanban.columnTitle": {
       "source": "621521f9a8788695ec292cbec54d2792cfdf0a7d",
       "translation": "679c67488602e3bcf12df41bbc2437a88afe04a4"
@@ -22053,6 +22065,10 @@
     "views.kanban.errors.loadingBoard": {
       "source": "5df51b612bbe4d9afeb184269bb95d764fac5687",
       "translation": "0d16fd8b6e3342b391d0190d5c63f9b1f4b47eb0"
+    },
+    "views.kanban.errors.noGroupBy": {
+      "source": "992584b6f54d292885de8a89782fa15e32d7aa60",
+      "translation": "e61f10689866172075f375b51dddfe575bb9b4d9"
     },
     "views.kanban.columnTitle": {
       "source": "621521f9a8788695ec292cbec54d2792cfdf0a7d",
@@ -29160,6 +29176,10 @@
       "source": "5df51b612bbe4d9afeb184269bb95d764fac5687",
       "translation": "d7ce6a63ee1ca5b5997f3b8e46994ea22bcdb8ca"
     },
+    "views.kanban.errors.noGroupBy": {
+      "source": "992584b6f54d292885de8a89782fa15e32d7aa60",
+      "translation": "d3d73925ff7382a508b1555601fe99a926d47d6f"
+    },
     "views.kanban.columnTitle": {
       "source": "621521f9a8788695ec292cbec54d2792cfdf0a7d",
       "translation": "224273282d3aeb7ab749c0644128113ef79c61fb"
@@ -36266,6 +36286,10 @@
       "source": "5df51b612bbe4d9afeb184269bb95d764fac5687",
       "translation": "d89534b85c805f66b8d3d13aeb5ad7c39867f1c5"
     },
+    "views.kanban.errors.noGroupBy": {
+      "source": "992584b6f54d292885de8a89782fa15e32d7aa60",
+      "translation": "d3fcf13006dce2ab5809fac292eb25b6ac7df753"
+    },
     "views.kanban.columnTitle": {
       "source": "621521f9a8788695ec292cbec54d2792cfdf0a7d",
       "translation": "32b74a3c47908c1e0370d651916f653dcffcaadf"
@@ -43371,6 +43395,10 @@
     "views.kanban.errors.loadingBoard": {
       "source": "5df51b612bbe4d9afeb184269bb95d764fac5687",
       "translation": "8f93982d8b56a4600cd2bc3eb9dcc4f59b3c1bf6"
+    },
+    "views.kanban.errors.noGroupBy": {
+      "source": "992584b6f54d292885de8a89782fa15e32d7aa60",
+      "translation": "488c40d834ff06e37b0ed7e8e21b8f0d62a862eb"
     },
     "views.kanban.columnTitle": {
       "source": "621521f9a8788695ec292cbec54d2792cfdf0a7d",

@@ -256,6 +256,7 @@ export const zh: TranslationTree = {
 			},
 			errors: {
 				loadingBoard: "加载看板时出错。",
+				noGroupBy: "看板视图需要配置「分组依据」属性。点击「排序」按钮，然后在「分组依据」下选择一个属性。",
 			},
 			columnTitle: "无标题",
 		},
