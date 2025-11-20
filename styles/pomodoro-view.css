@@ -364,22 +364,16 @@
     box-shadow: none;
 }
 
-/* Use consistent button system */
 .tasknotes-plugin .pomodoro-view__pause-button {
-    /* Remove individual styles - use tn-btn tn-btn--secondary tn-btn--lg classes */
     min-width: 200px;
 }
 
-/* Use consistent button system */
 .tasknotes-plugin .pomodoro-view__stop-button {
-    /* Remove individual styles - use tn-btn tn-btn--danger classes */
     min-width: 120px;
 }
 
 /* Skip Break Button */
-/* Use consistent button system */
 .tasknotes-plugin .pomodoro-view__skip-break-button {
-    /* Remove individual styles - use tn-btn tn-btn--ghost classes */
     min-width: 120px;
 }
 
