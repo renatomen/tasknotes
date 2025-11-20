@@ -37,6 +37,55 @@ import { createPropertyEventCard } from "../ui/PropertyEventCard";
 import { createTimeBlockCard } from "../ui/TimeBlockCard";
 import { TaskContextMenu } from "../components/TaskContextMenu";
 import { ICSEventContextMenu } from "../components/ICSEventContextMenu";
+import { formatDateForStorage, hasTimeComponent, parseDateToLocal, parseDateToUTC } from "../utils/dateUtils";
+
+/**
+ * Normalize date-like inputs to UTC-anchored strings for all-day values, or
+ * to localized datetime strings for time-aware values.
+ * Exported for testing.
+ */
+export function normalizeDateValueForCalendar(
+	value: unknown
+): { value: string | Date; isAllDay: boolean } | null {
+	if (typeof value === "string") {
+		const trimmed = value.trim();
+		if (!trimmed) return null;
+
+		if (hasTimeComponent(trimmed)) {
+			const parsed = parseDateToLocal(trimmed);
+			if (isNaN(parsed.getTime())) return null;
+			return { value: format(parsed, "yyyy-MM-dd'T'HH:mm"), isAllDay: false };
+		}
+
+		try {
+			const anchored = parseDateToUTC(trimmed);
+			return { value: formatDateForStorage(anchored), isAllDay: true };
+		} catch {
+			return null;
+		}
+	}
+
+	if (typeof value === "number") {
+		const date = new Date(value);
+		if (isNaN(date.getTime())) return null;
+		return { value: formatDateForStorage(date), isAllDay: true };
+	}
+
+	if (value instanceof Date) {
+		if (isNaN(value.getTime())) return null;
+		const hasTime =
+			value.getHours() !== 0 ||
+			value.getMinutes() !== 0 ||
+			value.getSeconds() !== 0 ||
+			value.getMilliseconds() !== 0;
+		if (hasTime) {
+			return { value: format(value, "yyyy-MM-dd'T'HH:mm"), isAllDay: false };
+		}
+		return { value: formatDateForStorage(value), isAllDay: true };
+	}
+
+	return null;
+}
 
 export class CalendarView extends BasesViewBase {
 	type = "tasknoteCalendar";
@@ -473,7 +522,8 @@ export class CalendarView extends BasesViewBase {
 	private determineInitialDate(taskNotes: TaskInfo[]): Date | string | undefined {
 		// Check for explicit initial date option
 		if (this.viewOptions.initialDate) {
-			return this.viewOptions.initialDate;
+			const normalized = normalizeDateValueForCalendar(this.viewOptions.initialDate);
+			return normalized?.value ?? this.viewOptions.initialDate;
 		}
 
 		// Check for property-based navigation
@@ -482,26 +532,35 @@ export class CalendarView extends BasesViewBase {
 			const internalFieldName = this.propertyMapper.basesToInternal(propertyId);
 
 			// Collect dates from tasks
-			const dates: Date[] = [];
+			const dates: { compare: Date; value: string | Date }[] = [];
 			for (const task of taskNotes) {
 				const value = (task as any)[internalFieldName];
-				if (value) {
-					const date = new Date(value);
-					if (!isNaN(date.getTime())) {
-						dates.push(date);
-					}
-				}
+				const normalized = normalizeDateValueForCalendar(value);
+				if (!normalized) continue;
+
+				const compareDate = normalized.isAllDay
+					? parseDateToUTC(normalized.value)
+					: new Date(normalized.value);
+				if (isNaN(compareDate.getTime())) continue;
+
+				dates.push({ compare: compareDate, value: normalized.value });
 			}
 
 			if (dates.length > 0) {
 				// Apply strategy
 				if (this.viewOptions.initialDateStrategy === "earliest") {
-					return new Date(Math.min(...dates.map(d => d.getTime())));
+					const earliest = dates.reduce((prev, curr) =>
+						curr.compare.getTime() < prev.compare.getTime() ? curr : prev
+					);
+					return earliest.value;
 				} else if (this.viewOptions.initialDateStrategy === "latest") {
-					return new Date(Math.max(...dates.map(d => d.getTime())));
+					const latest = dates.reduce((prev, curr) =>
+						curr.compare.getTime() > prev.compare.getTime() ? curr : prev
+					);
+					return latest.value;
 				} else {
 					// "first" - return first date
-					return dates[0];
+					return dates[0].value;
 				}
 			}
 		}
@@ -586,52 +645,18 @@ export class CalendarView extends BasesViewBase {
 
 				// Use BasesDataAdapter to get the property value (handles all Bases Value types)
 				const startValue = this.dataAdapter.getPropertyValue(entry, this.viewOptions.startDateProperty);
-				if (!startValue) continue;
-
-				// Convert to date string
-				let startDateStr: string;
-				if (typeof startValue === 'string') {
-					// ISO string from BasesDataAdapter
-					const testDate = new Date(startValue);
-					if (isNaN(testDate.getTime())) continue;
-
-					// Check if it includes time component
-					const hasTime = startValue.includes('T');
-					startDateStr = hasTime ? startValue : startValue.split('T')[0];
-				} else if (typeof startValue === 'number') {
-					// Unix timestamp
-					const date = new Date(startValue);
-					if (isNaN(date.getTime())) continue;
-					startDateStr = format(date, "yyyy-MM-dd");
-				} else if (startValue instanceof Date) {
-					// Direct Date object
-					if (isNaN(startValue.getTime())) continue;
-					startDateStr = format(startValue, "yyyy-MM-dd'T'HH:mm");
-				} else {
-					continue;
-				}
+				const startNormalized = normalizeDateValueForCalendar(startValue);
+				if (!startNormalized) continue;
 
 				// Try to get end date if property is configured
 				let endDateStr: string | undefined;
+				let isEndAllDay = startNormalized.isAllDay;
 				if (this.viewOptions.endDateProperty) {
 					const endValue = this.dataAdapter.getPropertyValue(entry, this.viewOptions.endDateProperty);
-					if (endValue) {
-						if (typeof endValue === 'string') {
-							const testDate = new Date(endValue);
-							if (!isNaN(testDate.getTime())) {
-								const hasTime = endValue.includes('T');
-								endDateStr = hasTime ? endValue : endValue.split('T')[0];
-							}
-						} else if (typeof endValue === 'number') {
-							const date = new Date(endValue);
-							if (!isNaN(date.getTime())) {
-								endDateStr = format(date, "yyyy-MM-dd");
-							}
-						} else if (endValue instanceof Date) {
-							if (!isNaN(endValue.getTime())) {
-								endDateStr = format(endValue, "yyyy-MM-dd'T'HH:mm");
-							}
-						}
+					const endNormalized = normalizeDateValueForCalendar(endValue);
+					if (endNormalized) {
+						endDateStr = typeof endNormalized.value === "string" ? endNormalized.value : format(endNormalized.value, "yyyy-MM-dd'T'HH:mm");
+						isEndAllDay = endNormalized.isAllDay;
 					}
 				}
 
@@ -645,13 +670,14 @@ export class CalendarView extends BasesViewBase {
 				}
 
 				// Create event
-				const hasTime = startDateStr.includes('T');
+				const startDateStr = typeof startNormalized.value === "string" ? startNormalized.value : format(startNormalized.value, "yyyy-MM-dd'T'HH:mm");
+				const isAllDay = startNormalized.isAllDay && (endDateStr ? isEndAllDay : true);
 				events.push({
 					id: `property-${file.path}`,
 					title: eventTitle || file.basename || file.name,
 					start: startDateStr,
 					end: endDateStr,
-					allDay: !hasTime,
+					allDay: isAllDay,
 					backgroundColor: "var(--color-accent)",
 					borderColor: "var(--color-accent)",
 					textColor: "var(--text-on-accent)",
