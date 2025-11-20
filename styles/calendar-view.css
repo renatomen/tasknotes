@@ -235,7 +235,7 @@
 /* Calendar Day - Today State */
 .tasknotes-plugin .calendar-view__day--today,
 .tasknotes-plugin .mini-calendar-view__day--today {
-    background: color-mix(in srgb, var(--tn-interactive-accent) 8%, transparent) !important;
+    background: var(--tn-interactive-hover) !important;
     color: var(--tn-interactive-accent);
     font-weight: 600;
     box-shadow: none;

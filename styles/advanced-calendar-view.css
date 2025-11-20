@@ -75,7 +75,7 @@
 .fc-timeblock-event:hover,
 .fc-event[data-event-type="timeblock"]:hover {
     opacity: 0.90;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
     transform: translateY(-0.5px);
 }
 
@@ -131,7 +131,7 @@
 }
 
 .fc-task-event:hover {
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 /* ICS Events - only in non-list views */
@@ -144,7 +144,7 @@
 
 .fc-daygrid-event.fc-ics-event:hover,
 .fc-timegrid-event.fc-ics-event:hover {
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 /* Recurring Events */

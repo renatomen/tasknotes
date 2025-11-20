@@ -213,7 +213,7 @@
 
 .tasknotes-plugin .stats-view__progress-circle-svg {
     transform: rotate(-90deg);
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
 }
 
 .tasknotes-plugin .stats-view__progress-circle-bg {
@@ -416,7 +416,7 @@
 
 .tasknotes-plugin .stats-view__overview-card:hover {
     border-color: var(--tn-accent-color);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* Enhanced overview values with animation */
@@ -501,7 +501,7 @@
 
 .tasknotes-plugin .stats-view__project-item:hover {
     border-color: var(--tn-accent-color);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* Time visualization bars */

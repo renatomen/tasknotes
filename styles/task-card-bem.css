@@ -44,7 +44,7 @@
     background-color: var(--tn-interactive-hover);
     outline: 2px solid color-mix(in srgb, var(--tn-interactive-accent) 30%, transparent);
     outline-offset: 0px;
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--tn-interactive-accent) 8%, transparent);
+    box-shadow: 0 0 0 3px var(--tn-interactive-hover);
 }
 
 .tasknotes-plugin .task-card:focus:not(:focus-visible) {
