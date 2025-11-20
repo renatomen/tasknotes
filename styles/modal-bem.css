@@ -1103,30 +1103,6 @@
     gap: var(--size-4-2);
 }
 
-/* Use consistent button system */
-.tasknotes-plugin .action-button {
-    /* Remove individual styles - use tn-btn classes */
-}
-
-.tasknotes-plugin .action-button .button-icon {
-    opacity: 0.7;
-}
-
-.tasknotes-plugin .content-type-buttons button {
-    /* Remove individual styles - use tn-btn classes */
-}
-
-.tasknotes-plugin .action-button.primary-button {
-    /* Remove individual styles - use tn-btn tn-btn--primary classes */
-}
-
-.tasknotes-plugin .action-button.secondary-button {
-    /* Remove individual styles - use tn-btn tn-btn--secondary classes */
-}
-
-.tasknotes-plugin .action-button.secondary-button:hover {
-    background: var(--background-modifier-hover);
-}
 
 .tasknotes-plugin .close-button-container {
     display: flex;

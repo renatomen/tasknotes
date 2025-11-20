@@ -82,14 +82,6 @@
     opacity: 0.8;
 }
 
-.tasknotes-plugin .agenda-view__nav-button--prev {
-    /* Specific styling for previous button if needed */
-}
-
-.tasknotes-plugin .agenda-view__nav-button--next {
-    /* Specific styling for next button if needed */
-}
-
 /* Filter Bar Container */
 .tasknotes-plugin .agenda-view__filter-container {
     margin-bottom: var(--tn-spacing-md);

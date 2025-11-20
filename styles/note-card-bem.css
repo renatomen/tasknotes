@@ -24,7 +24,6 @@
     /* Interactions & Accessibility - Simplified */
     cursor: var(--cursor);
     transition: background-color var(--tn-transition-fast);
-    will-change: background-color;
     outline: none;
     role: listitem;
     tabindex: 0;
@@ -285,7 +284,6 @@
     border-radius: 0;
     cursor: var(--cursor);
     transition: background-color var(--tn-transition-fast);
-    will-change: background-color;
 }
 
 .tasknotes-plugin .tn-card:hover {

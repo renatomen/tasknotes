@@ -99,15 +99,6 @@
     background: transparent;
 }
 
-.tasknotes-plugin .calendar-view__nav-button--prev,
-.tasknotes-plugin .mini-calendar-view__nav-button--prev {
-    /* Specific styling for previous button if needed */
-}
-
-.tasknotes-plugin .calendar-view__nav-button--next,
-.tasknotes-plugin .mini-calendar-view__nav-button--next {
-    /* Specific styling for next button if needed */
-}
 
 /* Use consistent button system */
 .tasknotes-plugin .calendar-view__today-button,
