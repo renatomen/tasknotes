@@ -139,7 +139,7 @@
     font-weight: 400;
     min-width: 120px;
     min-height: var(--tn-input-height-md);
-    cursor: pointer;
+    cursor: var(--cursor);
     transition: all var(--tn-transition-fast);
 }
 
@@ -171,7 +171,7 @@
     font-weight: var(--tn-font-weight-medium);
     line-height: 1.25;
     height: var(--tn-button-height-md);
-    cursor: pointer;
+    cursor: var(--cursor);
     user-select: none;
     text-decoration: none;
     white-space: nowrap;
@@ -200,7 +200,7 @@
     display: flex;
     align-items: center;
     gap: var(--tn-spacing-sm);
-    cursor: pointer;
+    cursor: var(--cursor);
     user-select: none;
     font-size: var(--tn-font-size-md);
     color: var(--tn-text-normal);
@@ -266,7 +266,7 @@
     margin-bottom: var(--tn-spacing-sm);
     border-bottom: 1px solid var(--tn-border-color);
     position: relative;
-    cursor: pointer;
+    cursor: var(--cursor);
 }
 
 /* Day section container (like task groups) */

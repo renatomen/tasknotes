@@ -50,7 +50,7 @@
     background: transparent;
     color: var(--tn-text-normal);
     font-size: var(--tn-font-size-sm);
-    cursor: pointer;
+    cursor: var(--cursor);
     transition: all var(--tn-transition-fast);
 }
 
@@ -94,6 +94,9 @@
     height: 32px;
     font-size: 16px;
     font-weight: 500;
+    border: none;
+    box-shadow: none;
+    background: transparent;
 }
 
 .tasknotes-plugin .calendar-view__nav-button--prev,
@@ -112,10 +115,12 @@
     /* Remove individual styles - use tn-btn tn-btn--ghost tn-btn--sm classes */
     margin-left: auto;
     border: none;
+    box-shadow: none;
+    background: transparent;
     font-weight: normal;
     opacity: 0.7;
     transition: opacity var(--tn-transition-fast);
-    cursor: pointer;
+    cursor: var(--cursor);
     border-radius: var(--tn-radius-sm);
     font-size: var(--tn-font-size-lg);
 }
@@ -221,7 +226,7 @@
     min-height: 2rem;
     padding: var(--tn-spacing-xs);
     text-align: center;
-    cursor: pointer;
+    cursor: var(--cursor);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -556,7 +561,7 @@
 }
 
 .tasknotes-plugin .mini-calendar-view__legend-summary {
-    cursor: pointer;
+    cursor: var(--cursor);
     list-style: none;
     padding: calc(var(--tn-spacing-xs) * 0.25) 0;
 }
@@ -975,7 +980,7 @@
     font-weight: 600;
     color: var(--tn-text-muted);
     background: var(--tn-bg-secondary);
-    cursor: pointer;
+    cursor: var(--cursor);
     transition: all var(--tn-transition-fast);
     border-right: 1px solid var(--tn-border-color);
 }

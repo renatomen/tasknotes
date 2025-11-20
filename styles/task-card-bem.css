@@ -22,7 +22,7 @@
     box-shadow: 0 0 0 0 transparent;
 
     /* Interactions & Accessibility - Smooth transitions */
-    cursor: pointer;
+    cursor: var(--cursor);
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     will-change: background-color, box-shadow, transform;
     outline: none;
@@ -264,7 +264,7 @@
     background-color: transparent;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     align-self: center;
-    cursor: pointer;
+    cursor: var(--cursor);
     position: relative;
     box-shadow: 0 0 0 0 transparent;
 }
@@ -319,7 +319,7 @@
     display: none; /* Hidden by default, shown via modifier */
     align-items: center;
     justify-content: center;
-    cursor: pointer;
+    cursor: var(--cursor);
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     border-radius: 4px;
     padding: 2px;
@@ -357,7 +357,7 @@
     height: 16px;
     color: var(--tn-text-muted);
     opacity: 0.7;
-    cursor: pointer;
+    cursor: var(--cursor);
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     padding: 2px;
@@ -393,7 +393,7 @@
     justify-content: center;
     border-radius: 4px;
     padding: 2px;
-    cursor: pointer;
+    cursor: var(--cursor);
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -424,7 +424,7 @@
     justify-content: center;
     border-radius: var(--radius-s);
     padding: 2px;
-    cursor: pointer;
+    cursor: var(--cursor);
     transition: all var(--tn-transition-fast);
 }
 
@@ -469,7 +469,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
+    cursor: var(--cursor);
     transition: color var(--tn-transition-fast), background var(--tn-transition-fast), opacity var(--tn-transition-fast);
     border-radius: var(--radius-s);
     padding: 2px;
@@ -616,7 +616,7 @@
     width: 16px;
     height: 16px;
     color: var(--tn-text-faint);
-    cursor: pointer;
+    cursor: var(--cursor);
     opacity: 0;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
@@ -665,7 +665,7 @@
 
 /* Hoverable date text elements */
 .tasknotes-plugin .task-card__metadata-date {
-    cursor: pointer;
+    cursor: var(--cursor);
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     border-radius: 4px;
     padding: 3px 6px;
@@ -697,7 +697,7 @@
     border-radius: 4px;
     padding: 2px 4px;
     margin: -2px -4px;
-    cursor: pointer;
+    cursor: var(--cursor);
     display: inline-block;
     position: relative;
     z-index: 1;
@@ -813,7 +813,7 @@
     flex-shrink: 0;
     align-self: center;
     background-color: var(--priority-color, transparent);
-    cursor: pointer;
+    cursor: var(--cursor);
 }
 
 /* Dynamic priority colors using CSS variables set by PriorityManager */

@@ -254,7 +254,7 @@
     border: none;
     color: var(--text-muted);
     font-size: 1.2em;
-    cursor: pointer;
+    cursor: var(--cursor);
     padding: 0.2rem 0.5rem;
     border-radius: 3px;
     margin-left: 0.5rem;
@@ -305,7 +305,7 @@
 .timeblock-attachment-item .internal-link {
     color: var(--link-color);
     text-decoration: none;
-    cursor: pointer;
+    cursor: var(--cursor);
 }
 
 .timeblock-attachment-item .internal-link:hover {
@@ -468,7 +468,7 @@
     height: 30px;
     border: 1px solid var(--background-modifier-border);
     border-radius: 3px;
-    cursor: pointer;
+    cursor: var(--cursor);
 }
 
 .ics-form-number,
@@ -486,7 +486,7 @@
     display: flex;
     align-items: center;
     gap: 0.25rem;
-    cursor: pointer;
+    cursor: var(--cursor);
 }
 
 .ics-form-checkbox,
@@ -571,7 +571,7 @@
     color: var(--text-on-accent);
     border: none;
     border-radius: 6px;
-    cursor: pointer;
+    cursor: var(--cursor);
     font-size: 0.85rem;
     font-weight: 500;
     transition: background-color 0.2s ease;
@@ -836,7 +836,7 @@
     padding: 0.2rem 0.5rem;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     transition: all 0.2s ease;
-    cursor: pointer;
+    cursor: var(--cursor);
 }
 
 .advanced-calendar-view .fc-event:hover {
@@ -900,7 +900,7 @@
     border-radius: 6px;
     padding: 0.4rem 0.8rem;
     font-size: 0.85rem;
-    cursor: pointer;
+    cursor: var(--cursor);
     transition: all 0.2s ease;
 }
 
@@ -1149,7 +1149,7 @@
 }
 
 .fc-list-task-priority-dot {
-    cursor: pointer;
+    cursor: var(--cursor);
 }
 
 .fc-list-task-priority-dot {
@@ -1162,7 +1162,7 @@
     height: 12px;
     flex-shrink: 0;
     opacity: 0.7;
-    cursor: pointer;
+    cursor: var(--cursor);
 }
 
 .fc-list-task-recurring-indicator:hover {

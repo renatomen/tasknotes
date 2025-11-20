@@ -163,7 +163,7 @@
 /* Individual completion option */
 .tasknotes-plugin .cm-tooltip-autocomplete li {
     padding: var(--size-4-2) var(--size-4-3);
-    cursor: pointer;
+    cursor: var(--cursor);
     border-radius: var(--radius-s);
     display: flex;
     align-items: center;
@@ -341,7 +341,7 @@
     width: 32px;
     height: 32px;
     border-radius: var(--radius-s);
-    cursor: pointer;
+    cursor: var(--cursor);
     transition: all 0.2s ease;
     position: relative;
 }
@@ -493,7 +493,7 @@
     border-radius: var(--radius-s);
     background: transparent;
     color: var(--interactive-accent);
-    cursor: pointer;
+    cursor: var(--cursor);
     transition: all 0.2s ease;
     min-width: 80px;
 }
@@ -643,7 +643,7 @@
 
 .tasknotes-plugin .autocomplete-suggestion {
     padding: 8px 12px;
-    cursor: pointer;
+    cursor: var(--cursor);
     border-bottom: 1px solid var(--background-modifier-border-hover);
     font-size: var(--font-ui-small);
     color: var(--text-normal);
@@ -730,7 +730,7 @@
     border: none;
     background: transparent;
     color: var(--text-muted);
-    cursor: pointer;
+    cursor: var(--cursor);
     font-size: 14px;
     padding: 2px 4px;
     transition: color 0.1s ease;
@@ -769,7 +769,7 @@
 }
 
 .tasknotes-plugin .recurring-calendar__day--clickable {
-    cursor: pointer;
+    cursor: var(--cursor);
     transition: all 0.1s ease;
 }
 
@@ -933,7 +933,7 @@
 .tasknotes-plugin .clickable-project .internal-link {
     color: var(--link-color);
     text-decoration: none;
-    cursor: pointer;
+    cursor: var(--cursor);
     font-weight: var(--font-weight-medium);
     font-size: var(--font-ui-small);
     border-radius: var(--radius-xs);
@@ -958,7 +958,7 @@
 .tasknotes-plugin .clickable-dependency .task-dependency-link {
     color: var(--link-color);
     text-decoration: none;
-    cursor: pointer;
+    cursor: var(--cursor);
     font-weight: var(--font-weight-medium);
     font-size: var(--font-ui-small);
     border-radius: var(--radius-xs);
