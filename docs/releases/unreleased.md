@@ -26,10 +26,11 @@ Example:
 
 ## Fixed
 
-- (#1177) Bases calendar navigation now respects UTC-anchored dates to avoid landing on the previous day
-  - Normalized property-based initial dates and property events to UTC anchors
-  - Corrected all-day end date calculation to prevent off-by-one spans
-  - Added regression test for the UTC anchor behavior
+- Bases views now anchor recurring completion and calendar navigation to the right date
+  - Recurring completion from Bases Task List/Kanban uses the task's scheduled/due date instead of "today" (fixes complete_instances)
+  - Bases calendar navigation and property-based events use UTC anchors to avoid previous-day jumps
+  - All-day end date math is UTC-anchored to prevent off-by-one spans
+  - Added regression tests for Bases completion and calendar UTC anchoring
   - Thanks to the reporter for flagging the issue
 
 ## Changed

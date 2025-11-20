@@ -13,6 +13,7 @@ import { RecurrenceContextMenu } from "../components/RecurrenceContextMenu";
 import { ReminderModal } from "../modals/ReminderModal";
 import { getDatePart, getTimePart } from "../utils/dateUtils";
 import { VirtualScroller } from "../utils/VirtualScroller";
+import { parseDateToUTC } from "../utils/dateUtils";
 
 export class TaskListView extends BasesViewBase {
 	type = "tasknoteTaskList";
@@ -954,7 +955,7 @@ export class TaskListView extends BasesViewBase {
 				this.showReminderModal(task);
 				return;
 			case "task-context-menu":
-				await showTaskContextMenu(event, task.path, this.plugin, this.currentTargetDate);
+				await showTaskContextMenu(event, task.path, this.plugin, this.getTaskActionDate(task));
 				return;
 			case "edit-date":
 				await this.openDateContextMenu(task, target.dataset.tnDateType as "due" | "scheduled" | undefined, event);
@@ -976,7 +977,8 @@ export class TaskListView extends BasesViewBase {
 	private async handleToggleStatus(task: TaskInfo, event: MouseEvent): Promise<void> {
 		try {
 			if (task.recurrence) {
-				await this.plugin.toggleRecurringTaskComplete(task, this.currentTargetDate);
+				const actionDate = this.getTaskActionDate(task);
+				await this.plugin.toggleRecurringTaskComplete(task, actionDate);
 			} else {
 				await this.plugin.toggleTaskStatus(task);
 			}
@@ -988,6 +990,19 @@ export class TaskListView extends BasesViewBase {
 			});
 			new Notice(`Failed to toggle task status: ${message}`);
 		}
+	}
+
+	/**
+	 * Determine the date to use when completing a recurring task from Bases.
+	 * Prefers the task's scheduled (or due) date to avoid marking the wrong instance.
+	 */
+	private getTaskActionDate(task: TaskInfo): Date {
+		const dateStr = getDatePart(task.scheduled || task.due || "");
+		if (dateStr) {
+			return parseDateToUTC(dateStr);
+		}
+
+		return this.currentTargetDate;
 	}
 
 	private showPriorityMenu(task: TaskInfo, event: MouseEvent): void {
