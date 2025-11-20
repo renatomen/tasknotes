@@ -48,6 +48,7 @@ export class TimeblockInfoModal extends Modal {
 	// Attachment management
 	private selectedAttachments: TAbstractFile[] = [];
 	private attachmentsList: HTMLElement;
+	private keyboardHandler: ((e: KeyboardEvent) => void) | null = null;
 
 	constructor(
 		app: App,
@@ -69,6 +70,15 @@ export class TimeblockInfoModal extends Modal {
 		const { contentEl } = this;
 		contentEl.empty();
 		contentEl.addClass("timeblock-info-modal");
+
+		// Add global keyboard shortcut handler for CMD/Ctrl+Enter
+		this.keyboardHandler = (e: KeyboardEvent) => {
+			if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+				e.preventDefault();
+				this.handleSave();
+			}
+		};
+		this.containerEl.addEventListener("keydown", this.keyboardHandler);
 
 		new Setting(contentEl).setName(this.translate("modals.timeblockInfo.editHeading")).setHeading();
 
@@ -505,6 +515,12 @@ export class TimeblockInfoModal extends Modal {
 	}
 
 	onClose() {
+		// Clean up keyboard handler
+		if (this.keyboardHandler) {
+			this.containerEl.removeEventListener("keydown", this.keyboardHandler);
+			this.keyboardHandler = null;
+		}
+
 		const { contentEl } = this;
 		contentEl.empty();
 	}

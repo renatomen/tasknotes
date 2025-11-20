@@ -11,6 +11,7 @@ export class PropertySelectorModal extends Modal {
 	private tempSelection: string[];
 	private modalTitle: string;
 	private modalDescription: string;
+	private keyboardHandler: ((e: KeyboardEvent) => void) | null = null;
 
 	constructor(
 		app: App,
@@ -32,6 +33,16 @@ export class PropertySelectorModal extends Modal {
 	onOpen() {
 		const { contentEl } = this;
 		contentEl.empty();
+
+		// Add global keyboard shortcut handler for CMD/Ctrl+Enter
+		this.keyboardHandler = (e: KeyboardEvent) => {
+			if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+				e.preventDefault();
+				this.onSubmit(this.tempSelection);
+				this.close();
+			}
+		};
+		this.containerEl.addEventListener("keydown", this.keyboardHandler);
 
 		contentEl.createEl("h2", { text: this.modalTitle });
 
@@ -91,6 +102,12 @@ export class PropertySelectorModal extends Modal {
 	}
 
 	onClose() {
+		// Clean up keyboard handler
+		if (this.keyboardHandler) {
+			this.containerEl.removeEventListener("keydown", this.keyboardHandler);
+			this.keyboardHandler = null;
+		}
+
 		const { contentEl } = this;
 		contentEl.empty();
 	}

@@ -376,6 +376,24 @@
    KANBAN TASK CARDS
    ================================================ */
 
+/* Cards container (used for non-virtualized columns) */
+.tasknotes-plugin .kanban-view__cards {
+    display: flex;
+    flex-direction: column;
+    gap: var(--tn-spacing-xs);
+    overflow-y: auto; /* Allow vertical scrolling */
+    flex: 1; /* Fill available space in column */
+    min-height: 0; /* Allow container to shrink and enable scrolling */
+}
+
+/* Dragging state for card wrappers */
+.tasknotes-plugin .kanban-view__card-wrapper[draggable="true"]:hover {
+    cursor: grab;
+}
+
+.tasknotes-plugin .kanban-view__card-wrapper[draggable="true"]:active {
+    cursor: grabbing;
+}
 
 /* ================================================
    RESPONSIVE DESIGN

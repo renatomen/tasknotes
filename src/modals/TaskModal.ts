@@ -42,6 +42,7 @@ interface DependencyItem {
 
 export abstract class TaskModal extends Modal {
 	plugin: TaskNotesPlugin;
+	private keyboardHandler: ((e: KeyboardEvent) => void) | null = null;
 
 	// Dependency item definition
 	protected createDependencyItemFromFile(
@@ -485,6 +486,20 @@ export abstract class TaskModal extends Modal {
 
 		// Set the modal title using the standard Obsidian approach (preserves close button)
 		this.titleEl.setText(this.getModalTitle());
+
+		// Add global keyboard shortcut handler for CMD/Ctrl+Enter
+		this.keyboardHandler = (e: KeyboardEvent) => {
+			if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+				// Skip if event comes from a markdown editor (which has its own handler)
+				const target = e.target as HTMLElement;
+				if (target.closest('.cm-editor')) {
+					return;
+				}
+				e.preventDefault();
+				this.handleSave();
+			}
+		};
+		this.containerEl.addEventListener("keydown", this.keyboardHandler);
 
 		this.initializeFormData().then(() => {
 			this.createModalContent();
@@ -1889,6 +1904,12 @@ export abstract class TaskModal extends Modal {
 	}
 
 	onClose(): void {
+		// Clean up keyboard handler
+		if (this.keyboardHandler) {
+			this.containerEl.removeEventListener("keydown", this.keyboardHandler);
+			this.keyboardHandler = null;
+		}
+
 		// Clean up markdown editor if it exists
 		if (this.detailsMarkdownEditor) {
 			this.detailsMarkdownEditor.destroy();

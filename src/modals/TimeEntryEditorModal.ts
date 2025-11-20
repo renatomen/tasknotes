@@ -11,6 +11,7 @@ export class TimeEntryEditorModal extends Modal {
 	private onSave: (timeEntries: TimeEntry[]) => void;
 	private translate: (key: TranslationKey, variables?: Record<string, any>) => string;
 	private entriesContainerEl: HTMLElement;
+	private keyboardHandler: ((e: KeyboardEvent) => void) | null = null;
 
 	constructor(
 		app: App,
@@ -36,6 +37,15 @@ export class TimeEntryEditorModal extends Modal {
 		this.titleEl.setText(
 			this.translate("modals.timeEntryEditor.title", { taskTitle: this.task.title })
 		);
+
+		// Add global keyboard shortcut handler for CMD/Ctrl+Enter
+		this.keyboardHandler = (e: KeyboardEvent) => {
+			if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+				e.preventDefault();
+				this.save();
+			}
+		};
+		this.containerEl.addEventListener("keydown", this.keyboardHandler);
 
 		// Create container for entries
 		this.entriesContainerEl = contentEl.createDiv({ cls: "time-entry-editor-modal__entries" });
@@ -261,6 +271,12 @@ export class TimeEntryEditorModal extends Modal {
 	}
 
 	onClose() {
+		// Clean up keyboard handler
+		if (this.keyboardHandler) {
+			this.containerEl.removeEventListener("keydown", this.keyboardHandler);
+			this.keyboardHandler = null;
+		}
+
 		const { contentEl } = this;
 		contentEl.empty();
 	}

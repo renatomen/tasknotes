@@ -27,6 +27,7 @@ export class ICSNoteCreationModal extends Modal {
 	private templateContainer: HTMLElement;
 	private templateInput: HTMLInputElement;
 	private previewContainer: HTMLElement;
+	private keyboardHandler: ((e: KeyboardEvent) => void) | null = null;
 
 	constructor(app: App, plugin: TaskNotesPlugin, options: ICSNoteCreationOptions) {
 		super(app);
@@ -42,10 +43,26 @@ export class ICSNoteCreationModal extends Modal {
 
 	onOpen() {
 		this.containerEl.addClass("tasknotes-plugin", "ics-note-creation-modal");
+
+		// Add global keyboard shortcut handler for CMD/Ctrl+Enter
+		this.keyboardHandler = (e: KeyboardEvent) => {
+			if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+				e.preventDefault();
+				this.handleCreate();
+			}
+		};
+		this.containerEl.addEventListener("keydown", this.keyboardHandler);
+
 		this.createModalContent();
 	}
 
 	onClose() {
+		// Clean up keyboard handler
+		if (this.keyboardHandler) {
+			this.containerEl.removeEventListener("keydown", this.keyboardHandler);
+			this.keyboardHandler = null;
+		}
+
 		this.contentEl.empty();
 	}
 

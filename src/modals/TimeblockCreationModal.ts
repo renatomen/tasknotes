@@ -43,6 +43,7 @@ export class TimeblockCreationModal extends Modal {
 	// Attachment management
 	private selectedAttachments: TAbstractFile[] = [];
 	private attachmentsList: HTMLElement;
+	private keyboardHandler: ((e: KeyboardEvent) => void) | null = null;
 
 	constructor(app: App, plugin: TaskNotesPlugin, options: TimeblockCreationOptions) {
 		super(app);
@@ -55,6 +56,15 @@ export class TimeblockCreationModal extends Modal {
 		const { contentEl } = this;
 		contentEl.empty();
 		contentEl.addClass("timeblock-creation-modal");
+
+		// Add global keyboard shortcut handler for CMD/Ctrl+Enter
+		this.keyboardHandler = (e: KeyboardEvent) => {
+			if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+				e.preventDefault();
+				this.handleSubmit();
+			}
+		};
+		this.containerEl.addEventListener("keydown", this.keyboardHandler);
 
 		new Setting(contentEl).setName(this.translate("modals.timeblockCreation.heading")).setHeading();
 
@@ -386,6 +396,12 @@ export class TimeblockCreationModal extends Modal {
 	}
 
 	onClose() {
+		// Clean up keyboard handler
+		if (this.keyboardHandler) {
+			this.containerEl.removeEventListener("keydown", this.keyboardHandler);
+			this.keyboardHandler = null;
+		}
+
 		const { contentEl } = this;
 		contentEl.empty();
 	}

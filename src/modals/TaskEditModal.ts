@@ -37,6 +37,7 @@ export class TaskEditModal extends TaskModal {
 	private task: TaskInfo;
 	private options: TaskEditOptions;
 	private metadataContainer: HTMLElement;
+	private editModalKeyboardHandler: ((e: KeyboardEvent) => void) | null = null;
 	// Changed from Set to array for consistency with other state management
 	private completedInstancesChanges: string[] = [];
 	private calendarWrapper: HTMLElement | null = null;
@@ -227,6 +228,16 @@ export class TaskEditModal extends TaskModal {
 		// Set the modal title using the standard Obsidian approach (preserves close button)
 		this.titleEl.setText(this.getModalTitle());
 
+		// Add global keyboard shortcut handler for CMD/Ctrl+Enter
+		this.editModalKeyboardHandler = async (e: KeyboardEvent) => {
+			if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+				e.preventDefault();
+				await this.handleSave();
+				this.close();
+			}
+		};
+		this.containerEl.addEventListener("keydown", this.editModalKeyboardHandler);
+
 		this.initializeFormData().then(() => {
 			this.createModalContent();
 			// Render projects list after modal content is created
@@ -371,6 +382,12 @@ export class TaskEditModal extends TaskModal {
 	}
 
 	onClose(): void {
+		// Clean up keyboard handler
+		if (this.editModalKeyboardHandler) {
+			this.containerEl.removeEventListener("keydown", this.editModalKeyboardHandler);
+			this.editModalKeyboardHandler = null;
+		}
+
 		// Clean up markdown editor
 		if (this.markdownEditor) {
 			this.markdownEditor.destroy();
