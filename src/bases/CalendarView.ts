@@ -538,9 +538,9 @@ export class CalendarView extends BasesViewBase {
 				const normalized = normalizeDateValueForCalendar(value);
 				if (!normalized) continue;
 
-				const compareDate = normalized.isAllDay
-					? parseDateToUTC(normalized.value)
-					: new Date(normalized.value);
+					const compareDate = normalized.isAllDay
+						? parseDateToUTC(normalized.value as string)
+						: new Date(normalized.value as Date);
 				if (isNaN(compareDate.getTime())) continue;
 
 				dates.push({ compare: compareDate, value: normalized.value });
