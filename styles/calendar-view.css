@@ -86,10 +86,8 @@
     color: var(--tn-text-normal);
 }
 
-/* Use consistent button system */
 .tasknotes-plugin .calendar-view__nav-button,
 .tasknotes-plugin .mini-calendar-view__nav-button {
-    /* Remove individual styles - use tn-btn tn-btn--icon tn-btn--ghost classes */
     width: 32px;
     height: 32px;
     font-size: 16px;
@@ -99,11 +97,8 @@
     background: transparent;
 }
 
-
-/* Use consistent button system */
 .tasknotes-plugin .calendar-view__today-button,
 .tasknotes-plugin .mini-calendar-view__today-button {
-    /* Remove individual styles - use tn-btn tn-btn--ghost tn-btn--sm classes */
     margin-left: auto;
     border: none;
     box-shadow: none;

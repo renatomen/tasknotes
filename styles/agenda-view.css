@@ -70,9 +70,7 @@
     line-height: 1.3;
 }
 
-/* Use consistent button system */
 .tasknotes-plugin .agenda-view__nav-button {
-    /* Remove individual styles - use tn-btn tn-btn--icon tn-btn--lg tn-btn--ghost classes */
     border-radius: 50%;
     font-size: 1.25rem;
     font-weight: var(--tn-font-weight-medium);
