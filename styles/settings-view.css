@@ -17,7 +17,6 @@
     white-space: nowrap;
 }
 
-/* Use consistent button system */
 .tasknotes-plugin .settings-view__tab-button {
     white-space: nowrap;
     flex-shrink: 0;

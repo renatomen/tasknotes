@@ -631,7 +631,6 @@
     padding-right: var(--tn-spacing-sm);
 }
 
-/* Use consistent button system */
 .tasknotes-plugin .filter-bar__save-button {
     /* Remove individual styles - use tn-btn tn-btn--icon tn-btn--ghost classes */
     padding: 4px;

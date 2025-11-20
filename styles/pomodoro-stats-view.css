@@ -33,7 +33,6 @@
     margin: 0;
 }
 
-/* Use consistent button system */
 .tasknotes-plugin .pomodoro-stats-view__refresh-button {
     background: transparent;
     color: var(--tn-text-normal);

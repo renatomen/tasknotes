@@ -378,7 +378,6 @@
     flex-shrink: 0;
 }
 
-/* Use consistent button system */
 .ics-subscription-actions button {
     background: transparent;
     color: var(--text-normal);
@@ -494,7 +493,6 @@
     margin: 0;
 }
 
-/* Use consistent button system */
 .ics-form-button,
 .ics-edit-button {
     background: transparent;
