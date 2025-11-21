@@ -1,6 +1,6 @@
 # <img src="tasknotes-gradient.svg" width="32" height="32" style="vertical-align: middle;"> TaskNotes for Obsidian
 
-Task management plugin where each task lives as a separate note with YAML frontmatter. Features calendar integration, Kanban boards, time tracking, and Pomodoro timer.
+Bases-based task management plugin where each task lives as a separate note with YAML frontmatter. Features calendar integration, Kanban boards, time tracking, and Pomodoro timer.
 
 **UI Languages:** English · Deutsch · Español · Français · 日本語 · Русский · 中文
 
@@ -10,11 +10,19 @@ Task management plugin where each task lives as a separate note with YAML frontm
 
 **[📖 Documentation](https://callumalpass.github.io/tasknotes/)**
 
+**Requirements:** Obsidian 1.10.1+ with the Bases core plugin enabled for main views (Task List, Kanban, Calendar, Agenda, MiniCalendar).
+
 ## Overview
 
 Each task is a full Markdown note with structured metadata in YAML frontmatter. This means your tasks have all the benefits of regular notes - linking, tagging, graph view, and unlimited content - while still working as structured data for filtering and organization.
 
-The plugin supports time tracking, recurring tasks, calendar integration with external ICS feeds, and integration with the Obsidian Bases plugin.
+The plugin supports time tracking, recurring tasks, and calendar integration (ICS plus OAuth for Google and Microsoft). TaskNotes v4 moves its main views onto the Bases core plugin, so every view and filter is powered by Bases queries against your task files.
+
+## Bases Integration (v4)
+
+- All primary views (Task List, Kanban, Calendar, Agenda, MiniCalendar) are Bases files stored in `TaskNotes/Views/`
+- Enable Bases from **Settings → Core Plugins**; view commands and ribbon icons open the corresponding `.base` files
+- Customize sorting, grouping, and filters directly inside the `.base` YAML; Tasks act as a Bases data source using any frontmatter field or custom property
 
 ## Why YAML Frontmatter?
 
@@ -56,7 +64,7 @@ Each task being a full note means you can write descriptions, jot down thoughts 
 ### Editor Integration
 
 - Interactive task previews for wikilinks
-- Universal line-to-task conversion
+- Inline task conversion for `- [ ] Checkbox tasks`
 - Template support with parent note context
 
 ### Views
@@ -65,8 +73,7 @@ Each task being a full note means you can write descriptions, jot down thoughts 
 - **Task List**: Filtering and grouping options
 - **Kanban**: Drag-and-drop task management
 - **Agenda**: Daily task and note overview
-- **Notes**: Date-based note browser
-- **Pomodoro**: Timer with statistics
+- **Pomodoro**: Timer with statistics (standalone, not a Bases view)
 
 ![Task creation dialog](media/2025-07-15_21-11-10.png)
 
