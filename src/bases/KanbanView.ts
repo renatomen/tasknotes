@@ -874,14 +874,14 @@ export class KanbanView extends BasesViewBase {
 		const task = await this.plugin.cacheManager.getTaskInfo(taskPath);
 		const taskProperty = this.plugin.fieldMapper.lookupMappingKey(frontmatterKey);
 
-		if (!task || !taskProperty || !(taskProperty in task)) {
+		if (task && taskProperty && taskProperty in task) {
+			// Update the task property
+			await this.plugin.taskService.updateProperty(task, taskProperty as keyof TaskInfo, value);
+		} else {
 			// Update the frontmatter directly
 			await this.plugin.app.fileManager.processFrontMatter(file, (frontmatter) => {
 				frontmatter[frontmatterKey] = value;
 			});
-		} else {
-			// Update the task property
-			await this.plugin.taskService.updateProperty(task, taskProperty as keyof TaskInfo, value);
 		}
 	}
 
