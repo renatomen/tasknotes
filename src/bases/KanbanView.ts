@@ -4,7 +4,7 @@ import TaskNotesPlugin from "../main";
 import { BasesViewBase } from "./BasesViewBase";
 import { TaskInfo } from "../types";
 import { identifyTaskNotesFromBasesData } from "./helpers";
-import { createTaskCard } from "../ui/TaskCard";
+import { createTaskCard, updateTaskCard } from "../ui/TaskCard";
 import { renderGroupTitle } from "./groupTitleRenderer";
 import { type LinkServices } from "../ui/renderers/linkRenderer";
 import { VirtualScroller } from "../utils/VirtualScroller";
@@ -871,10 +871,18 @@ export class KanbanView extends BasesViewBase {
 		// Strip Bases prefix to get the frontmatter key
 		const frontmatterKey = basesPropertyId.replace(/^(note\.|file\.|task\.)/, '');
 
-		// Update the frontmatter directly
-		await this.plugin.app.fileManager.processFrontMatter(file, (frontmatter) => {
-			frontmatter[frontmatterKey] = value;
-		});
+		const task = await this.plugin.cacheManager.getTaskInfo(taskPath);
+		const taskProperty = this.plugin.fieldMapper.lookupMappingKey(basesPropertyId);
+
+		if (!task || !taskProperty || !(taskProperty in task)) {
+			// Update the frontmatter directly
+			await this.plugin.app.fileManager.processFrontMatter(file, (frontmatter) => {
+				frontmatter[frontmatterKey] = value;
+			});
+		} else {
+			// Update the task property
+			await this.plugin.taskService.updateProperty(task, taskProperty as keyof TaskInfo, value);
+		}
 	}
 
 	protected setupContainer(): void {
