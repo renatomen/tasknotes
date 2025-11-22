@@ -17,6 +17,8 @@ import { parseDateToUTC } from "../utils/dateUtils";
 
 export class TaskListView extends BasesViewBase {
 	type = "tasknoteTaskList";
+	protected enableSearch = true; // Enable search functionality for task list view
+
 	private itemsContainer: HTMLElement | null = null;
 	private currentTaskElements = new Map<string, HTMLElement>();
 	private lastRenderWasGrouped = false;
@@ -32,6 +34,7 @@ export class TaskListView extends BasesViewBase {
 	private collapsedSubGroups = new Set<string>(); // Track collapsed sub-group keys
 	private subGroupPropertyId: string | null = null; // Property ID for sub-grouping
 	private configLoaded = false; // Track if we've successfully loaded config
+
 	/**
 	 * Threshold for enabling virtual scrolling in task list view.
 	 * Virtual scrolling activates when total items (tasks + group headers) >= 100.
@@ -83,6 +86,11 @@ export class TaskListView extends BasesViewBase {
 		// Make rootElement fill its container and establish flex context
 		if (this.rootElement) {
 			this.rootElement.style.cssText = "display: flex; flex-direction: column; height: 100%;";
+		}
+
+		// Setup search functionality (inherited from BasesViewBase)
+		if (this.rootElement) {
+			this.setupSearch(this.rootElement);
 		}
 
 		// Create items container
@@ -211,6 +219,9 @@ export class TaskListView extends BasesViewBase {
 	private async renderFlat(taskNotes: TaskInfo[]): Promise<void> {
 		const visibleProperties = this.getVisibleProperties();
 
+		// Apply search filter
+		const filteredTasks = this.applySearchFilter(taskNotes);
+
 		// Note: taskNotes are already sorted by Bases according to sort configuration
 		// No manual sorting needed - Bases provides pre-sorted data
 
@@ -219,8 +230,8 @@ export class TaskListView extends BasesViewBase {
 
 		const cardOptions = this.getCardOptions(targetDate);
 
-		// Decide whether to use virtual scrolling
-		const shouldUseVirtualScrolling = taskNotes.length >= this.VIRTUAL_SCROLL_THRESHOLD;
+		// Decide whether to use virtual scrolling based on filtered task count
+		const shouldUseVirtualScrolling = filteredTasks.length >= this.VIRTUAL_SCROLL_THRESHOLD;
 
 		if (shouldUseVirtualScrolling && !this.useVirtualScrolling) {
 			// Switch to virtual scrolling
@@ -233,9 +244,9 @@ export class TaskListView extends BasesViewBase {
 		}
 
 		if (this.useVirtualScrolling) {
-			await this.renderFlatVirtual(taskNotes, visibleProperties, cardOptions);
+			await this.renderFlatVirtual(filteredTasks, visibleProperties, cardOptions);
 		} else {
-			await this.renderFlatNormal(taskNotes, visibleProperties, cardOptions);
+			await this.renderFlatNormal(filteredTasks, visibleProperties, cardOptions);
 		}
 	}
 
@@ -423,13 +434,17 @@ export class TaskListView extends BasesViewBase {
 	 */
 	private async renderGroupedBySubProperty(taskNotes: TaskInfo[]): Promise<void> {
 		const visibleProperties = this.getVisibleProperties();
+
+		// Apply search filter
+		const filteredTasks = this.applySearchFilter(taskNotes);
+
 		const targetDate = new Date();
 		this.currentTargetDate = targetDate;
 		const cardOptions = this.getCardOptions(targetDate);
 
 		// Group tasks by sub-property
 		const pathToProps = this.buildPathToPropsMap();
-		const groupedTasks = this.groupTasksBySubProperty(taskNotes, this.subGroupPropertyId!, pathToProps);
+		const groupedTasks = this.groupTasksBySubProperty(filteredTasks, this.subGroupPropertyId!, pathToProps);
 
 		// Build flat items array (treat sub-groups as primary groups)
 		type RenderItem =
@@ -497,12 +512,15 @@ export class TaskListView extends BasesViewBase {
 		const visibleProperties = this.getVisibleProperties();
 		const groups = this.dataAdapter.getGroupedData();
 
+		// Apply search filter
+		const filteredTasks = this.applySearchFilter(taskNotes);
+
 		const targetDate = new Date();
 		this.currentTargetDate = targetDate;
 		const cardOptions = this.getCardOptions(targetDate);
 
 		// Build flattened list of items using shared method
-		const items = this.buildGroupedRenderItems(groups, taskNotes);
+		const items = this.buildGroupedRenderItems(groups, filteredTasks);
 
 		// Use virtual scrolling if we have many items
 		const shouldUseVirtualScrolling = items.length >= this.VIRTUAL_SCROLL_THRESHOLD;
@@ -718,10 +736,11 @@ export class TaskListView extends BasesViewBase {
 	 * Override from Component base class.
 	 */
 	onunload(): void {
-		// Component.register() calls will be automatically cleaned up
+		// Component.register() calls will be automatically cleaned up (including search cleanup)
 		// We just need to clean up view-specific state
 		this.unregisterContainerListeners();
 		this.destroyVirtualScroller();
+
 		this.currentTaskElements.clear();
 		this.itemsContainer = null;
 		this.lastRenderWasGrouped = false;
