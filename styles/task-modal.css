@@ -75,7 +75,7 @@
     margin-bottom: var(--size-4-2);
     border: 1px solid var(--background-modifier-border);
     border-radius: var(--radius-s);
-    overflow: hidden;
+    overflow: visible;
     min-height: 80px;
     max-height: 200px;
     background: var(--background-secondary);
@@ -93,6 +93,7 @@
     min-height: 80px;
     max-height: 200px;
     background: var(--background-secondary);
+	overflow: visible;
 }
 
 /* Focus state for NLP editor - match old nl-input styling */
@@ -149,6 +150,7 @@
     padding: var(--size-4-1);
     font-family: var(--font-ui);
     font-size: var(--font-ui-small);
+	z-index: 9999;
     max-height: 300px;
     overflow-y: auto;
 }

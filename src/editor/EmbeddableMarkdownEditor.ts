@@ -6,7 +6,7 @@ import {
 	WorkspaceLeaf,
 } from "obsidian";
 import { EditorSelection, Extension, Prec } from "@codemirror/state";
-import { EditorView, keymap, lineNumbers, placeholder, ViewUpdate } from "@codemirror/view";
+import { EditorView, keymap, lineNumbers, placeholder, ViewUpdate, tooltips } from "@codemirror/view";
 import { around } from "monkey-around";
 
 /* eslint-disable no-undef, no-restricted-globals */
@@ -250,6 +250,12 @@ export class EmbeddableMarkdownEditor extends getEditorBase() {
 			EditorView.theme({
 				".cm-lineNumbers": { display: "none !important" },
 				".cm-gutters": { display: "none !important" },
+			})
+		);
+
+		extensions.push(
+			tooltips({
+				parent: document.body,
 			})
 		);
 

@@ -24,3 +24,9 @@ Example:
 
 -->
 
+## Fixed
+
+- (#1203) Fixed autocomplete dropdown being clipped inside NLP field boundaries
+	- Configure CodeMirror tooltips to render in document.body instead of constrained editor container
+	- Prevents suggestion dropdown from being hidden when it extends beyond the NLP field height
+	- Thanks to @Andrei-Ioda for reporting
