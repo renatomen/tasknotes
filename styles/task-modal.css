@@ -56,10 +56,10 @@
 }
 
 /* Ensure the editor line doesn't add extra padding */
-.details-markdown-editor .cm-line {
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-}
+/* .details-markdown-editor .cm-line { */
+/*     padding-left: 0 !important; */
+/*     padding-right: 0 !important; */
+/* } */
 
 /* Placeholder styling */
 .details-markdown-editor .cm-placeholder {
@@ -124,11 +124,6 @@
     line-height: 1.5;
 }
 
-/* Ensure the editor line doesn't add extra padding */
-.nl-markdown-editor .cm-line {
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-}
 
 .nl-markdown-editor .cm-placeholder {
     color: var(--text-muted);
