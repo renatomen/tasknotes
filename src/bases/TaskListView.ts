@@ -17,7 +17,6 @@ import { parseDateToUTC } from "../utils/dateUtils";
 
 export class TaskListView extends BasesViewBase {
 	type = "tasknoteTaskList";
-	protected enableSearch = true; // Enable search functionality for task list view
 
 	private itemsContainer: HTMLElement | null = null;
 	private currentTaskElements = new Map<string, HTMLElement>();
@@ -67,11 +66,15 @@ export class TaskListView extends BasesViewBase {
 	private readViewOptions(): void {
 		// Guard: config may not be set yet if called too early
 		if (!this.config || typeof this.config.get !== 'function') {
+			console.debug('[TaskListView] Config not available yet in readViewOptions');
 			return;
 		}
 
 		try {
 			this.subGroupPropertyId = this.config.getAsPropertyId('subGroup');
+			// Read enableSearch toggle (default: false for backward compatibility)
+			const enableSearchValue = this.config.get('enableSearch');
+			this.enableSearch = (enableSearchValue as boolean) ?? false;
 			// Mark config as successfully loaded
 			this.configLoaded = true;
 		} catch (e) {
@@ -86,11 +89,6 @@ export class TaskListView extends BasesViewBase {
 		// Make rootElement fill its container and establish flex context
 		if (this.rootElement) {
 			this.rootElement.style.cssText = "display: flex; flex-direction: column; height: 100%;";
-		}
-
-		// Setup search functionality (inherited from BasesViewBase)
-		if (this.rootElement) {
-			this.setupSearch(this.rootElement);
 		}
 
 		// Create items container
@@ -111,6 +109,11 @@ export class TaskListView extends BasesViewBase {
 		// Ensure view options are read (in case config wasn't available in onload)
 		if (!this.configLoaded && this.config) {
 			this.readViewOptions();
+		}
+
+		// Now that config is loaded, setup search (idempotent: will only create once)
+		if (this.rootElement) {
+			this.setupSearch(this.rootElement);
 		}
 
 		try {

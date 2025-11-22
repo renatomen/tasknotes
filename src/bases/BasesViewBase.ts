@@ -354,19 +354,30 @@ export abstract class BasesViewBase extends Component {
 
 	/**
 	 * Initialize search functionality for this view.
-	 * Call this from setupContainer() in subclasses that want search.
-	 * Requires enableSearch to be true.
+	 * Call this from render() in subclasses that want search.
+	 * Requires enableSearch to be true and will only create the UI once.
 	 */
 	protected setupSearch(container: HTMLElement): void {
+		// Idempotency: if search UI is already created, do nothing
+		if (this.searchBox) {
+			return;
+		}
 		if (!this.enableSearch) {
-			console.debug(`[${this.type}] Search not enabled for this view`);
 			return;
 		}
 
 		// Create search container
 		const searchContainer = document.createElement("div");
 		searchContainer.className = "tn-search-container";
-		container.appendChild(searchContainer);
+
+		// Insert search container at the top of the container so it appears above
+		// the main items/content (e.g., the task list). This keeps the search box
+		// visible while the list itself can scroll independently.
+		if (container.firstChild) {
+			container.insertBefore(searchContainer, container.firstChild);
+		} else {
+			container.appendChild(searchContainer);
+		}
 
 		// Initialize search filter with visible properties (if available)
 		// Config might not be available yet during initial setup

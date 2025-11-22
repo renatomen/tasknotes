@@ -34,6 +34,12 @@ export async function registerBasesTaskList(plugin: TaskNotesPlugin): Promise<vo
 							return prop.startsWith("note.") || prop.startsWith("task.");
 						},
 					},
+					{
+						type: "toggle",
+						key: "enableSearch",
+						displayName: "Enable search box",
+						default: false,
+					},
 				],
 			});
 
