@@ -313,11 +313,6 @@ class RelationshipsDecorationsPlugin implements PluginValue {
 				return;
 			}
 
-			// Only show in live preview mode, not source mode
-			if (!view.state.field(editorLivePreviewField)) {
-				return;
-			}
-
 			// Get the current file
 			const file = this.currentFile || this.getFileFromView(view);
 			if (!file) {
@@ -326,17 +321,20 @@ class RelationshipsDecorationsPlugin implements PluginValue {
 
 			// Show widget in task notes OR project notes (notes referenced by tasks)
 			// Get the file's frontmatter to check if it's a task or project
+			let isTaskNote = false;
+			let isProjectNote = false;
 			const metadata = this.plugin.app.metadataCache.getFileCache(file);
 			if (!metadata?.frontmatter) {
-				// No frontmatter - not a task or project note
-				return;
+				// Check if this is a project note (referenced by tasks via the project property)
+				// Some project notes will not have frontmatter
+				isProjectNote = this.plugin.dependencyCache?.isFileUsedAsProject(file.path) || false;
+			} else {
+				// Check if this is a task note
+				isTaskNote = this.plugin.cacheManager.isTaskFile(metadata.frontmatter);
+				// Check if this is a project note (referenced by tasks via the project property)
+				isProjectNote = this.plugin.dependencyCache?.isFileUsedAsProject(file.path) || false;
 			}
 
-			// Check if this is a task note
-			const isTaskNote = this.plugin.cacheManager.isTaskFile(metadata.frontmatter);
-
-			// Check if this is a project note (referenced by tasks via the project property)
-			const isProjectNote = this.plugin.dependencyCache?.isFileUsedAsProject(file.path) || false;
 
 			// Only show widget if it's either a task note or a project note
 			if (!isTaskNote && !isProjectNote) {
@@ -442,14 +440,21 @@ async function injectReadingModeWidget(
 		return;
 	}
 
-	// Show widget in task notes OR project notes
-	const metadata = plugin.app.metadataCache.getFileCache(file);
+	// Show widget in task notes OR project notes (notes referenced by tasks)
+	// Get the file's frontmatter to check if it's a task or project
+	let isTaskNote = false;
+	let isProjectNote = false;
+	const metadata = this.plugin.app.metadataCache.getFileCache(file);
 	if (!metadata?.frontmatter) {
-		return;
+		// Check if this is a project note (referenced by tasks via the project property)
+		// Some project notes will not have frontmatter
+		isProjectNote = this.plugin.dependencyCache?.isFileUsedAsProject(file.path) || false;
+	} else {
+		// Check if this is a task note
+		isTaskNote = this.plugin.cacheManager.isTaskFile(metadata.frontmatter);
+		// Check if this is a project note (referenced by tasks via the project property)
+		isProjectNote = this.plugin.dependencyCache?.isFileUsedAsProject(file.path) || false;
 	}
-
-	const isTaskNote = plugin.cacheManager.isTaskFile(metadata.frontmatter);
-	const isProjectNote = plugin.dependencyCache?.isFileUsedAsProject(file.path) || false;
 
 	if (!isTaskNote && !isProjectNote) {
 		// Remove any existing widgets if conditions no longer met

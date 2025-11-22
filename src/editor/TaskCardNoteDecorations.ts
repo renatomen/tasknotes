@@ -353,11 +353,6 @@ export class TaskCardNoteDecorationsPlugin implements PluginValue {
 				return;
 			}
 
-			// Only show in live preview mode, not source mode
-			if (!view.state.field(editorLivePreviewField)) {
-				return;
-			}
-
 			// Only inject if we have a cached task
 			if (!this.cachedTask) {
 				return;
