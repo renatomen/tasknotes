@@ -84,6 +84,12 @@ export async function registerBasesTaskList(plugin: TaskNotesPlugin): Promise<vo
 						default: false,
 					},
 					{
+						type: "toggle",
+						key: "enableSearch",
+						displayName: "Enable search box",
+						default: false,
+					},
+					{
 						type: "multitext",
 						key: "columnOrder",
 						displayName: "Column Order (Advanced)",
