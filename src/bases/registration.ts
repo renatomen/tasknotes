@@ -319,6 +319,12 @@ export async function registerBasesTaskList(plugin: TaskNotesPlugin): Promise<vo
 										max: 100,
 										step: 5,
 									},
+									{
+										type: "toggle",
+										key: "enableSearch",
+										displayName: "Enable search box",
+										default: false,
+									},
 								],
 							},
 							{
