@@ -290,6 +290,7 @@ export const DEFAULT_SETTINGS: TaskNotesSettings = {
 	recurrenceMigrated: false,
 	// Release notes defaults
 	lastSeenVersion: undefined,
+	showReleaseNotesOnUpdate: true,
 	// Status bar defaults
 	showTrackedTasksInStatusBar: false,
 	// Time tracking defaults
