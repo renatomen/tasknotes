@@ -179,9 +179,24 @@ export function createTaskInfoFromBasesData(
 			basesItem.path,
 			plugin.settings.storeTitleInFilename
 		);
+		const taskInfo = createTaskInfoFromProperties(mappedTaskInfo, basesItem, plugin);
+
+		// Preserve file.* properties from original props (they won't be in mappedTaskInfo)
+		const fileProperties: Record<string, any> = {};
+		Object.keys(props).forEach(key => {
+			if (key.startsWith('file.')) {
+				fileProperties[key] = props[key];
+			}
+		});
+
+		// Merge file properties with existing custom properties
 		return {
-			...createTaskInfoFromProperties(mappedTaskInfo, basesItem, plugin),
-			customProperties: mappedTaskInfo.customProperties,
+			...taskInfo,
+			customProperties: {
+				...mappedTaskInfo.customProperties,
+				...taskInfo.customProperties,
+				...fileProperties,
+			},
 		};
 	} else {
 		return createTaskInfoFromProperties(props, basesItem, plugin);

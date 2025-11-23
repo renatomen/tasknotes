@@ -94,9 +94,8 @@ export class PropertyMappingService {
 			// Map file properties to TaskInfo equivalents
 			if (basesPropertyId === "file.ctime") return "dateCreated";
 			if (basesPropertyId === "file.mtime") return "dateModified";
-			if (basesPropertyId === "file.name") return "title";
-			if (basesPropertyId === "file.basename") return "title";
 
+			// For other file properties, strip the prefix and use the property name
 			const stripped = basesPropertyId.substring(5);
 			return this.applySpecialTransformations(stripped);
 		}

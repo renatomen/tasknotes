@@ -166,6 +166,14 @@ function getPropertyValue(task: TaskInfo, propertyId: string, plugin: TaskNotesP
 			return task.customProperties[propertyId];
 		}
 
+		// Check for file properties (stored as "file.name", "file.basename", etc.)
+		if (task.customProperties) {
+			const filePropertyId = `file.${propertyId}`;
+			if (filePropertyId in task.customProperties) {
+				return task.customProperties[filePropertyId];
+			}
+		}
+
 		// Handle Bases formula properties
 		if (propertyId.startsWith("formula.")) {
 			try {
