@@ -63,3 +63,6 @@ Example:
 	- Thanks @ki5ck, @minchinweb and @ThamirysOlv for reporting 
 - Fixed calendar to ensure that it respects user's locale
     - Tries to use calendar locale, then tries UI language, then system language, then falls back to English
+- (#1043) Fixed default reminders with "at time of event" (0 offset) not being applied to tasks
+	- UI was displaying "1" instead of "0" for zero-offset reminders in settings
+	- Thanks to @dblinnikov for reporting

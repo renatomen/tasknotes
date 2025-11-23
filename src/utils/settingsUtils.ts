@@ -23,7 +23,7 @@ export function convertDefaultRemindersToReminders(
 				// For relative reminders, validate that the anchor date will be available
 				if (
 					defaultReminder.relatedTo &&
-					defaultReminder.offset &&
+					defaultReminder.offset !== undefined &&
 					defaultReminder.unit &&
 					defaultReminder.direction
 				) {

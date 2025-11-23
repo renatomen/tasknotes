@@ -660,7 +660,7 @@ function formatReminderTiming(
 		const unit = translate(
 			`settings.defaults.reminders.units.${reminder.unit || "hours"}` as TranslationKey
 		);
-		const offset = reminder.offset || 1;
+		const offset = reminder.offset ?? 1;
 		const relatedTo =
 			reminder.relatedTo === "due"
 				? translate("settings.defaults.reminders.relatedTo.due")
