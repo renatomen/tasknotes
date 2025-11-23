@@ -93,6 +93,44 @@ export class CalendarView extends BasesViewBase {
 	private calendarEl: HTMLElement | null = null;
 	private currentTasks: TaskInfo[] = [];
 	private basesEntryByPath: Map<string, any> = new Map(); // Map task path to Bases entry for enrichment
+	
+	private viewOptions: {
+		// Events
+		showScheduled: boolean;
+		showDue: boolean;
+		showRecurring: boolean;
+		showTimeEntries: boolean;
+		showTimeblocks: boolean;
+		showPropertyBasedEvents: boolean;
+
+		// Date navigation
+		initialDate: string;
+		initialDateProperty: string | null;
+		initialDateStrategy: "first" | "earliest" | "latest";
+
+		// Layout
+		calendarView: string;
+		customDayCount: number;
+		listDayCount: number;
+		slotMinTime: string;
+		slotMaxTime: string;
+		slotDuration: string;
+		firstDay: number;
+		weekNumbers: boolean;
+		nowIndicator: boolean;
+		showWeekends: boolean;
+		showAllDaySlot: boolean;
+		showTodayHighlight: boolean;
+		selectMirror: boolean;
+		timeFormat: string;
+		scrollTime: string;
+		eventMinHeight: number;
+
+		// Property-based events
+		startDateProperty: string | null;
+		endDateProperty: string | null;
+		titleProperty: string | null;
+	};
 
 
 	// ICS/Google/Microsoft calendar toggles (dynamic)
@@ -127,9 +165,10 @@ export class CalendarView extends BasesViewBase {
 			calendarView: calendarSettings.defaultView,
 			customDayCount: calendarSettings.customDayCount,
 			listDayCount: 7,
-			slotMinTime: calendarSettings.slotMinTime,
-			slotMaxTime: calendarSettings.slotMaxTime,
-			slotDuration: calendarSettings.slotDuration,
+			slotMinTime: this.validateTimeValue(calendarSettings.slotMinTime, "00:00:00", false),
+			slotMaxTime: this.validateTimeValue(calendarSettings.slotMaxTime, "24:00:00", true), 
+			slotDuration: this.validateTimeValue( calendarSettings.slotDuration, "00:30:00", false),
+			scrollTime: this.validateTimeValue( calendarSettings.scrollTime, "08:00:00", false),
 			firstDay: calendarSettings.firstDay,
 			weekNumbers: calendarSettings.weekNumbers,
 			nowIndicator: calendarSettings.nowIndicator,
@@ -138,7 +177,6 @@ export class CalendarView extends BasesViewBase {
 			showTodayHighlight: calendarSettings.showTodayHighlight,
 			selectMirror: calendarSettings.selectMirror,
 			timeFormat: calendarSettings.timeFormat,
-			scrollTime: calendarSettings.scrollTime,
 			eventMinHeight: calendarSettings.eventMinHeight,
 
 			// Property-based events
