@@ -26,10 +26,10 @@ Example:
 
 ## Changed
 
-- Task edit modal now shows unresolved project links with appropriate styling
+- (#790) Task edit modal now shows unresolved project links with appropriate styling
 	- Similar to how dependencies are displayed, unresolved projects now appear with visual indication
 	- Hovering over an unresolved project shows a tooltip explaining it couldn't be resolved
-	- Improves visibility of broken project references when editing tasks
+	- Thanks to @aubreyz for reporting
 
 ## Fixed
 
@@ -37,10 +37,11 @@ Example:
 	- Project index was incorrectly adding all linked files instead of only files referenced in the projects field
 	- Now properly parses the projects field and only indexes those specific files as projects
 	- Also fixed alias handling in project and dependency links - aliases are now correctly stripped before link resolution
+	- Thanks to @craziedde for reporting
 - (#1200) Fixed kanban drag & drop not updating task properties correctly
 	- Dragging tasks to different columns now properly triggers business logic (completedDate, auto-archive, webhooks)
 	- Previously, kanban updates bypassed `updateProperty` and directly modified frontmatter
-	- Thanks to @tvoklov for the fix
+	- Thanks to @tvoklov for the PR
 - (#1203) Fixed autocomplete dropdown being clipped inside NLP field boundaries
 	- Configure CodeMirror tooltips to render in document.body instead of constrained editor container
 	- Prevents suggestion dropdown from being hidden when it extends beyond the NLP field height
