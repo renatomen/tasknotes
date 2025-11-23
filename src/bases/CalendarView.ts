@@ -125,11 +125,14 @@ export class CalendarView extends BasesViewBase {
 		timeFormat: string;
 		scrollTime: string;
 		eventMinHeight: number;
+		// Locale (non-configurable per view)
+		locale: string;
 
 		// Property-based events
 		startDateProperty: string | null;
 		endDateProperty: string | null;
 		titleProperty: string | null;
+
 	};
 
 
@@ -178,6 +181,7 @@ export class CalendarView extends BasesViewBase {
 			selectMirror: calendarSettings.selectMirror,
 			timeFormat: calendarSettings.timeFormat,
 			eventMinHeight: calendarSettings.eventMinHeight,
+			locale: calendarSettings.locale,
 
 			// Property-based events
 			startDateProperty: null as string | null,
@@ -398,7 +402,6 @@ export class CalendarView extends BasesViewBase {
 	}
 
 	private async initializeCalendar(taskNotes: TaskInfo[]): Promise<void> {
-		console.log('showTodayHighlight being passed to FullCalendar:', this.viewOptions.showTodayHighlight);
 		if (!this.calendarEl) return;
 
 		// Determine initial date
@@ -485,7 +488,7 @@ export class CalendarView extends BasesViewBase {
 			expandRows: true,
 			handleWindowResize: true,
 			stickyHeaderDates: false,
-			locale: navigator.language || "en",
+			locale: this.viewOptions.locale || this.plugin.settings.uiLanguage || navigator.language || "en",
 			slotMinTime: this.viewOptions.slotMinTime,
 			slotMaxTime: this.viewOptions.slotMaxTime,
 			slotDuration: this.viewOptions.slotDuration,

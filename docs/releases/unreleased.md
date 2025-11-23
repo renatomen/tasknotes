@@ -49,3 +49,5 @@ Example:
 	- Previously, new Bases calendar views used hardcoded inline defaults instead of user-configured preferences
 	- Calendar view initialization now correctly uses `plugin.settings.calendarViewSettings` as the fallback
 	- Thanks @ki5ck, @minchinweb and @ThamirysOlv for reporting 
+- Fixed calendar to ensure that it respects user's locale
+    - Tries to use calendar locale, then tries UI language, then system language, then falls back to English
