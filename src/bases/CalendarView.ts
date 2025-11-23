@@ -94,44 +94,6 @@ export class CalendarView extends BasesViewBase {
 	private currentTasks: TaskInfo[] = [];
 	private basesEntryByPath: Map<string, any> = new Map(); // Map task path to Bases entry for enrichment
 
-	// View options (read from config)
-	private viewOptions = {
-		// Events
-		showScheduled: true,
-		showDue: true,
-		showRecurring: true,
-		showTimeEntries: true,
-		showTimeblocks: true,
-		showPropertyBasedEvents: true,
-
-		// Date navigation
-		initialDate: "",
-		initialDateProperty: null as string | null,
-		initialDateStrategy: "first" as "first" | "earliest" | "latest",
-
-		// Layout
-		calendarView: "dayGridMonth",
-		customDayCount: 3,
-		listDayCount: 7,
-		slotMinTime: "06:00:00",
-		slotMaxTime: "22:00:00",
-		slotDuration: "00:30:00",
-		firstDay: 1,
-		weekNumbers: false,
-		nowIndicator: true,
-		showWeekends: true,
-		showAllDaySlot: true,
-		showTodayHighlight: true,
-		selectMirror: true,
-		timeFormat: "24",
-		scrollTime: "08:00:00",
-		eventMinHeight: 30,
-
-		// Property-based events
-		startDateProperty: null as string | null,
-		endDateProperty: null as string | null,
-		titleProperty: null as string | null,
-	};
 
 	// ICS/Google/Microsoft calendar toggles (dynamic)
 	private icsCalendarToggles = new Map<string, boolean>();
@@ -145,6 +107,45 @@ export class CalendarView extends BasesViewBase {
 		(this.dataAdapter as any).basesView = this;
 		// Note: Don't read config here - this.config is not set until after construction
 		// readViewOptions() will be called in onload()
+		// View options (read from config)
+		const calendarSettings = this.plugin.settings.calendarViewSettings;
+		this.viewOptions = {
+			// Events
+			showScheduled: calendarSettings.defaultShowScheduled,
+			showDue: calendarSettings.defaultShowDue, 
+			showRecurring: calendarSettings.defaultShowRecurring,
+			showTimeEntries: calendarSettings.defaultShowTimeEntries,
+			showTimeblocks: calendarSettings.defaultShowTimeblocks,
+			showPropertyBasedEvents: true,
+
+			// Date navigation
+			initialDate: "",
+			initialDateProperty: null as string | null,
+			initialDateStrategy: "first" as "first" | "earliest" | "latest",
+
+			// Layout
+			calendarView: calendarSettings.defaultView,
+			customDayCount: calendarSettings.customDayCount,
+			listDayCount: 7,
+			slotMinTime: calendarSettings.slotMinTime,
+			slotMaxTime: calendarSettings.slotMaxTime,
+			slotDuration: calendarSettings.slotDuration,
+			firstDay: calendarSettings.firstDay,
+			weekNumbers: calendarSettings.weekNumbers,
+			nowIndicator: calendarSettings.nowIndicator,
+			showWeekends: calendarSettings.showWeekends,
+			showAllDaySlot: true,
+			showTodayHighlight: calendarSettings.showTodayHighlight,
+			selectMirror: calendarSettings.selectMirror,
+			timeFormat: calendarSettings.timeFormat,
+			scrollTime: calendarSettings.scrollTime,
+			eventMinHeight: calendarSettings.eventMinHeight,
+
+			// Property-based events
+			startDateProperty: null as string | null,
+			endDateProperty: null as string | null,
+			titleProperty: null as string | null,
+		};
 	}
 
 	/**
@@ -359,6 +360,7 @@ export class CalendarView extends BasesViewBase {
 	}
 
 	private async initializeCalendar(taskNotes: TaskInfo[]): Promise<void> {
+		console.log('showTodayHighlight being passed to FullCalendar:', this.viewOptions.showTodayHighlight);
 		if (!this.calendarEl) return;
 
 		// Determine initial date

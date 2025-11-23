@@ -633,6 +633,7 @@
 
 /* Header toolbar styling */
 .advanced-calendar-view .fc-header-toolbar {
+	flex-wrap: wrap;
     padding: 0;
     border-bottom: 1px solid var(--background-modifier-border);
     background: transparent;

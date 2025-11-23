@@ -42,3 +42,10 @@ Example:
 	- Widget now correctly shows on any note referenced as a project by tasks, regardless of whether the note has frontmatter
 - Fixed task card and relationships widgets not appearing when opening notes in source mode
 	- Removed live preview mode restriction to allow widgets to render in both source and live preview modes
+- (#901) Fixed calendar view toolbar buttons overflowing on narrow screens
+    - Added `flex-wrap: wrap` to calendar header toolbar to allow buttons to wrap to multiple lines
+    - Thanks to @RumiaKitinari for reporting
+- (#1193), (#1194), (#1185) Fixed new calendar views not respecting user's default calendar settings
+	- Previously, new Bases calendar views used hardcoded inline defaults instead of user-configured preferences
+	- Calendar view initialization now correctly uses `plugin.settings.calendarViewSettings` as the fallback
+	- Thanks @ki5ck, @minchinweb and @ThamirysOlv for reporting 
