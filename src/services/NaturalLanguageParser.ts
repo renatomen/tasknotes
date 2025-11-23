@@ -57,6 +57,7 @@ export class NaturalLanguageParser {
 		handler: (match: RegExpMatchArray) => string;
 	}>;
 	private readonly statusConfigs: StatusConfig[];
+	private readonly priorityConfigs: PriorityConfig[];
 	private readonly defaultToScheduled: boolean;
 	private readonly languageConfig: NLPLanguageConfig;
 	private readonly processingPipeline: ParseProcessor[];
@@ -92,6 +93,7 @@ export class NaturalLanguageParser {
 
 		// Store status configs for string-based matching
 		this.statusConfigs = statusConfigs;
+		this.priorityConfigs = priorityConfigs;
 
 		// Initialize trigger configuration service
 		// If no config provided, use defaults
@@ -449,11 +451,46 @@ export class NaturalLanguageParser {
 		return patterns;
 	}
 
-	/** Extracts priority using pre-compiled patterns. */
+	/** Extracts priority using string-based matching for custom priorities and regex for fallbacks. */
 	private extractPriority(text: string, result: ParsedTaskData): string {
+		if (this.priorityConfigs.length > 0) {
+			const sortedConfigs = [...this.priorityConfigs].sort(
+				(a, b) => b.label.length - a.label.length
+			);
+
+			const priorityTrigger = this.triggerConfig.getTriggerForProperty("priority");
+			const trigger = priorityTrigger?.enabled ? priorityTrigger.trigger : "";
+
+			for (const config of sortedConfigs) {
+				const candidates = [config.label, config.value];
+
+				for (const candidate of candidates) {
+					if (!candidate || candidate.trim() === "") continue;
+
+					// 1. Try trigger + candidate
+					if (trigger) {
+						const triggerPlusCandidate = trigger + candidate;
+						const match = this.findTextMatch(text, triggerPlusCandidate);
+						if (match) {
+							result.priority = config.value;
+							return this.cleanupWhitespace(text.replace(match.fullMatch, ""));
+						}
+					}
+
+					// 2. Fallback: candidate only
+					const match = this.findTextMatch(text, candidate);
+					if (match) {
+						result.priority = config.value;
+						return this.cleanupWhitespace(text.replace(match.fullMatch, ""));
+					}
+				}
+			}
+			return text;
+		}
+
+		// Fallback to regex patterns (for default language priorities)
 		let foundMatch: { pattern: RegexPattern; index: number } | null = null;
 
-		// Find the first occurrence in the text
 		for (const pattern of this.priorityPatterns) {
 			const match = text.match(pattern.regex);
 			if (match && match.index !== undefined) {
@@ -541,14 +578,8 @@ export class NaturalLanguageParser {
 				(a, b) => b.label.length - a.label.length
 			);
 
-			// Strip the status trigger from text once before searching
 			const statusTrigger = this.triggerConfig.getTriggerForProperty("status");
-			let textToSearch = text;
-
-			if (statusTrigger && statusTrigger.enabled && statusTrigger.trigger) {
-				const escapedTrigger = this.escapeRegex(statusTrigger.trigger);
-				textToSearch = text.replace(new RegExp(escapedTrigger, 'g'), '');
-			}
+			const trigger = statusTrigger?.enabled ? statusTrigger.trigger : "";
 
 			for (const config of sortedConfigs) {
 				// Try both label and value
@@ -560,18 +591,21 @@ export class NaturalLanguageParser {
 						continue;
 					}
 
-					// Try matching the candidate in the cleaned text
-					const match = this.findStatusMatch(textToSearch, candidate);
+					// 1. Try to find trigger + candidate first (if trigger exists)
+					if (trigger) {
+						const triggerPlusCandidate = trigger + candidate;
+						const match = this.findTextMatch(text, triggerPlusCandidate);
+
+						if (match) {
+							result.status = config.value;
+							return this.cleanupWhitespace(text.replace(match.fullMatch, ""));
+						}
+					}
+
+					// 2. Fallback: Try to find just the candidate (backward compatibility / autocomplete)
+					const match = this.findTextMatch(text, candidate);
 					if (match) {
 						result.status = config.value;
-
-						// If we stripped the trigger, remove trigger + match from original text
-						if (textToSearch !== text && statusTrigger) {
-							const triggerPlusMatch = statusTrigger.trigger + match.fullMatch;
-							return this.cleanupWhitespace(text.replace(triggerPlusMatch, ""));
-						}
-
-						// Otherwise just remove the match
 						return this.cleanupWhitespace(text.replace(match.fullMatch, ""));
 					}
 				}
@@ -592,20 +626,20 @@ export class NaturalLanguageParser {
 	}
 
 	/**
-	 * Finds a status match using case-insensitive string search with boundary checking.
+	 * Finds a match using case-insensitive string search with boundary checking.
 	 * Returns the match details or null if no valid match found.
 	 */
-	private findStatusMatch(
+	private findTextMatch(
 		text: string,
-		statusText: string
+		searchText: string
 	): { fullMatch: string; startIndex: number } | null {
 		// Guard against empty status text to prevent infinite loop
-		if (!statusText || statusText.trim() === "") {
+		if (!searchText || searchText.trim() === "") {
 			return null;
 		}
 
 		const lowerText = text.toLowerCase();
-		const lowerStatus = statusText.toLowerCase();
+		const lowerStatus = searchText.toLowerCase();
 
 		let searchIndex = 0;
 		// eslint-disable-next-line no-constant-condition
@@ -615,7 +649,7 @@ export class NaturalLanguageParser {
 
 			// Check if this is a valid word boundary match
 			const beforeChar = index > 0 ? text[index - 1] : " ";
-			const afterIndex = index + statusText.length;
+			const afterIndex = index + searchText.length;
 			const afterChar = afterIndex < text.length ? text[afterIndex] : " ";
 
 			// Valid if surrounded by whitespace or string boundaries

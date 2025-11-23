@@ -66,3 +66,8 @@ Example:
 - (#1043) Fixed default reminders with "at time of event" (0 offset) not being applied to tasks
 	- UI was displaying "1" instead of "0" for zero-offset reminders in settings
 	- Thanks to @dblinnikov for reporting
+- (#1206) Fixed NLP status parsing regressions with trigger prefixes and temporal keywords
+	- Manually typing status trigger + label now correctly parses (e.g., `*Done` when label is `Done`)
+	- Status values containing temporal keywords no longer misparsed as dates (e.g., `Expedite = Now`)
+	- Thanks to @renatomen for the PR
+
