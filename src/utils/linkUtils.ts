@@ -15,7 +15,13 @@ export function parseLinkToPath(linkText: string): string {
 	// Handle wikilinks: [[path]] or [[path|alias]]
 	if (trimmed.startsWith("[[") && trimmed.endsWith("]]")) {
 		const inner = trimmed.slice(2, -2).trim();
-		const parsed = parseLinktext(inner);
+
+		// Manually strip alias if present
+		// parseLinktext doesn't always handle aliases correctly 
+		const pipeIndex = inner.indexOf('|');
+		const pathOnly = pipeIndex !== -1 ? inner.substring(0, pipeIndex) : inner;
+		const parsed = parseLinktext(pathOnly);
+
 		return parsed.path;
 	}
 

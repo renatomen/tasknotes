@@ -186,17 +186,29 @@ export class ProjectSubtasksService {
 				const projectsFieldName = this.plugin.fieldMapper.toUserField("projects");
 				const projects = metadata.frontmatter[projectsFieldName];
 
-				if (
-					Array.isArray(projects) &&
-					projects.some(
-						(p: any) => typeof p === "string" && p.startsWith("[[") && p.endsWith("]]")
-					)
-				) {
-					// This file has project references, add all its targets as projects
-					for (const targetPath of Object.keys(targets)) {
-						if (targets[targetPath] > 0) {
-							projectPaths.add(targetPath);
-						}
+				if (!Array.isArray(projects)) continue;
+
+				// Check if any project reference resolves to our target
+				for (const project of projects) {
+					if (!project || typeof project !== "string") continue;
+
+					// Parse the link to extract the path (handles both wikilinks and markdown links)
+					const linkPath = parseLinkToPath(project);
+
+					// Skip if not a link format
+					if (linkPath === project && !project.startsWith("[[")) {
+						continue; // Plain text, not a link
+					}
+
+					// Resolve the link to get the actual file
+					const resolvedFile = this.plugin.app.metadataCache.getFirstLinkpathDest(
+						linkPath,
+						sourcePath
+					);
+					// After line 207:
+
+					if (resolvedFile) {
+						projectPaths.add(resolvedFile.path);
 					}
 				}
 			}

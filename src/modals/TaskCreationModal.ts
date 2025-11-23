@@ -702,7 +702,7 @@ export class TaskCreationModal extends TaskModal {
 		// Re-render projects list if pre-populated values were applied or defaults are set
 		if (
 			(this.options.prePopulatedValues && this.options.prePopulatedValues.projects) ||
-			this.selectedProjectFiles.length > 0
+			this.selectedProjectItems.length > 0
 		) {
 			this.renderProjectsList();
 		}

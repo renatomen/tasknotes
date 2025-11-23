@@ -1,7 +1,7 @@
 import { App, TFile, parseLinktext } from "obsidian";
 import type { TaskDependency, TaskDependencyRelType } from "../types";
 import { splitListPreservingLinksAndQuotes } from "./stringSplit";
-import { generateLink } from "./linkUtils";
+import { generateLink, parseLinkToPath } from "./linkUtils";
 
 export const DEFAULT_DEPENDENCY_RELTYPE: TaskDependencyRelType = "FINISHTOSTART";
 
@@ -123,36 +123,7 @@ export function resolveDependencyEntry(
 		return null;
 	}
 
-	const trimmed = rawUid.trim();
-	if (!trimmed) {
-		return null;
-	}
-
-	// Parse link text to extract path (handles both wikilinks and markdown links)
-	let target = trimmed;
-
-	// Handle wikilinks: [[link]] or [[link|alias]]
-	if (trimmed.startsWith("[[") && trimmed.endsWith("]]")) {
-		const inner = trimmed.slice(2, -2).trim();
-		target = parseLinktext(inner).path;
-	}
-	// Handle markdown links: [text](path)
-	else {
-		const markdownMatch = trimmed.match(/^\[([^\]]*)\]\(([^)]+)\)$/);
-		if (markdownMatch) {
-			let linkPath = markdownMatch[2].trim();
-
-			// URL decode the link path - crucial for paths with spaces
-			try {
-				linkPath = decodeURIComponent(linkPath);
-			} catch (error) {
-				console.debug("Failed to decode URI component:", linkPath, error);
-			}
-
-			// Use parseLinktext to handle subpaths/headings
-			target = parseLinktext(linkPath).path;
-		}
-	}
+	const target = parseLinkToPath(rawUid);
 
 	if (!target) {
 		return null;

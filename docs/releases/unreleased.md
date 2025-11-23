@@ -24,8 +24,19 @@ Example:
 
 -->
 
+## Changed
+
+- Task edit modal now shows unresolved project links with appropriate styling
+	- Similar to how dependencies are displayed, unresolved projects now appear with visual indication
+	- Hovering over an unresolved project shows a tooltip explaining it couldn't be resolved
+	- Improves visibility of broken project references when editing tasks
+
 ## Fixed
 
+- (#1011) Fixed chevrons incorrectly showing on tasks with no subtasks
+	- Project index was incorrectly adding all linked files instead of only files referenced in the projects field
+	- Now properly parses the projects field and only indexes those specific files as projects
+	- Also fixed alias handling in project and dependency links - aliases are now correctly stripped before link resolution
 - (#1200) Fixed kanban drag & drop not updating task properties correctly
 	- Dragging tasks to different columns now properly triggers business logic (completedDate, auto-archive, webhooks)
 	- Previously, kanban updates bypassed `updateProperty` and directly modified frontmatter

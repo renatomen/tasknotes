@@ -40,6 +40,13 @@ interface DependencyItem {
 	unresolved?: boolean;
 }
 
+interface ProjectItem {
+	file?: TFile;
+	name: string;
+	link: string;
+	unresolved?: boolean;
+}
+
 export abstract class TaskModal extends Modal {
 	plugin: TaskNotesPlugin;
 	private keyboardHandler: ((e: KeyboardEvent) => void) | null = null;
@@ -50,7 +57,12 @@ export abstract class TaskModal extends Modal {
 		options: { sourcePath?: string } = {}
 	): DependencyItem {
 		const sourcePath = options.sourcePath ?? this.getDependencySourcePath();
-		const uid = formatDependencyLink(this.plugin.app, sourcePath, file.path, this.plugin.settings.useFrontmatterMarkdownLinks);
+		const uid = formatDependencyLink(
+			this.plugin.app,
+			sourcePath,
+			file.path,
+			this.plugin.settings.useFrontmatterMarkdownLinks
+		);
 		return {
 			dependency: { uid, reltype: DEFAULT_DEPENDENCY_RELTYPE },
 			path: file.path,
@@ -69,9 +81,7 @@ export abstract class TaskModal extends Modal {
 		);
 		if (resolution) {
 			const name =
-				resolution.file?.basename ||
-				resolution.path.split("/").pop() ||
-				dependency.uid;
+				resolution.file?.basename || resolution.path.split("/").pop() || dependency.uid;
 			return {
 				dependency,
 				path: resolution.path,
@@ -93,7 +103,12 @@ export abstract class TaskModal extends Modal {
 		if (file instanceof TFile) {
 			return {
 				dependency: {
-					uid: formatDependencyLink(this.plugin.app, sourcePath, file.path, this.plugin.settings.useFrontmatterMarkdownLinks),
+					uid: formatDependencyLink(
+						this.plugin.app,
+						sourcePath,
+						file.path,
+						this.plugin.settings.useFrontmatterMarkdownLinks
+					),
 					reltype: DEFAULT_DEPENDENCY_RELTYPE,
 				},
 				path: file.path,
@@ -234,7 +249,12 @@ export abstract class TaskModal extends Modal {
 
 	protected addBlockedByTask(file: TFile): void {
 		const dependency: TaskDependency = {
-			uid: formatDependencyLink(this.plugin.app, this.getDependencySourcePath(), file.path, this.plugin.settings.useFrontmatterMarkdownLinks),
+			uid: formatDependencyLink(
+				this.plugin.app,
+				this.getDependencySourcePath(),
+				file.path,
+				this.plugin.settings.useFrontmatterMarkdownLinks
+			),
 			reltype: DEFAULT_DEPENDENCY_RELTYPE,
 		};
 		this.addBlockedByDependency(dependency);
@@ -266,7 +286,8 @@ export abstract class TaskModal extends Modal {
 		}
 		const item = this.createDependencyItemFromPath(path);
 		const exists = this.blockingItems.some(
-			(existing) => existing.path === item.path || existing.dependency.uid === item.dependency.uid
+			(existing) =>
+				existing.path === item.path || existing.dependency.uid === item.dependency.uid
 		);
 		if (exists) {
 			return;
@@ -278,9 +299,7 @@ export abstract class TaskModal extends Modal {
 	protected async openBlockedBySelector(): Promise<void> {
 		const sourcePath = this.getDependencySourcePath();
 		const currentPath = this.getCurrentTaskPath();
-		const existingUids = new Set(
-			this.blockedByItems.map((item) => item.dependency.uid)
-		);
+		const existingUids = new Set(this.blockedByItems.map((item) => item.dependency.uid));
 
 		await this.openTaskDependencySelector(
 			(candidate) => {
@@ -313,9 +332,7 @@ export abstract class TaskModal extends Modal {
 				.map((item) => item.path)
 				.filter((path): path is string => typeof path === "string")
 		);
-		const existingUids = new Set(
-			this.blockingItems.map((item) => item.dependency.uid)
-		);
+		const existingUids = new Set(this.blockingItems.map((item) => item.dependency.uid));
 
 		await this.openTaskDependencySelector(
 			(candidate) => {
@@ -344,26 +361,18 @@ export abstract class TaskModal extends Modal {
 		onSelect: (selected: TaskInfo) => void
 	): Promise<void> {
 		try {
-			const allTasks: TaskInfo[] =
-				(await this.plugin.cacheManager.getAllTasks?.()) ?? [];
+			const allTasks: TaskInfo[] = (await this.plugin.cacheManager.getAllTasks?.()) ?? [];
 			const candidates = allTasks.filter(filter);
 
 			if (candidates.length === 0) {
-				new Notice(
-					this.t("contextMenus.task.dependencies.notices.noEligibleTasks")
-				);
+				new Notice(this.t("contextMenus.task.dependencies.notices.noEligibleTasks"));
 				return;
 			}
 
-			const modal = new TaskSelectorModal(
-				this.app,
-				this.plugin,
-				candidates,
-				(task) => {
-					if (!task) return;
-					onSelect(task);
-				}
-			);
+			const modal = new TaskSelectorModal(this.app, this.plugin, candidates, (task) => {
+				if (!task) return;
+				onSelect(task);
+			});
 			modal.open();
 		} catch (error) {
 			console.error("Failed to open task selector for dependencies:", error);
@@ -384,7 +393,7 @@ export abstract class TaskModal extends Modal {
 	protected tags = "";
 	protected timeEstimate = 0;
 	protected recurrenceRule = "";
-	protected recurrenceAnchor: 'scheduled' | 'completion' = 'scheduled';
+	protected recurrenceAnchor: "scheduled" | "completion" = "scheduled";
 	protected reminders: Reminder[] = [];
 
 	// User-defined fields (dynamic based on settings)
@@ -397,7 +406,7 @@ export abstract class TaskModal extends Modal {
 	protected blockingList?: HTMLElement;
 
 	// Project link storage
-	protected selectedProjectFiles: TAbstractFile[] = [];
+	protected selectedProjectItems: ProjectItem[] = [];
 
 	// Subtask storage - tracks tasks that should become subtasks of this task
 	protected selectedSubtaskFiles: TAbstractFile[] = [];
@@ -492,7 +501,7 @@ export abstract class TaskModal extends Modal {
 			if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
 				// Skip if event comes from a markdown editor (which has its own handler)
 				const target = e.target as HTMLElement;
-				if (target.closest('.cm-editor')) {
+				if (target.closest(".cm-editor")) {
 					return;
 				}
 				e.preventDefault();
@@ -636,7 +645,7 @@ export abstract class TaskModal extends Modal {
 		const icon = iconContainer.createSpan("icon");
 		setIcon(icon, iconName);
 
-		iconContainer.addEventListener("click", event => {
+		iconContainer.addEventListener("click", (event) => {
 			event.preventDefault();
 			event.stopPropagation();
 			onClick(iconContainer, event);
@@ -698,7 +707,8 @@ export abstract class TaskModal extends Modal {
 			detailsLabel.textContent = this.t("modals.task.detailsLabel");
 
 			// Create container for the markdown editor
-			const detailsEditorContainer = this.detailsContainer.createDiv("details-markdown-editor");
+			const detailsEditorContainer =
+				this.detailsContainer.createDiv("details-markdown-editor");
 
 			// Create embeddable markdown editor for details using shared method
 			this.detailsMarkdownEditor = this.createMarkdownEditor(detailsEditorContainer, {
@@ -753,7 +763,9 @@ export abstract class TaskModal extends Modal {
 		// Use field configuration (always initialized via migration in main.ts)
 		const config = this.plugin.settings.modalFieldsConfig;
 		if (!config) {
-			console.error("TaskModal: modalFieldsConfig is not initialized. This should never happen.");
+			console.error(
+				"TaskModal: modalFieldsConfig is not initialized. This should never happen."
+			);
 			return;
 		}
 		this.createFieldsFromConfig(container, config);
@@ -954,7 +966,9 @@ export abstract class TaskModal extends Modal {
 
 	protected createUserFieldByConfig(container: HTMLElement, fieldConfig: any): void {
 		// Find the user field definition
-		const userField = this.plugin.settings.userFields?.find((f: any) => f.id === fieldConfig.id);
+		const userField = this.plugin.settings.userFields?.find(
+			(f: any) => f.id === fieldConfig.id
+		);
 		if (!userField) return;
 
 		// Create the field based on its type (existing logic from createUserFields)
@@ -1608,18 +1622,24 @@ export abstract class TaskModal extends Modal {
 
 	protected addProject(file: TAbstractFile): void {
 		// Avoid duplicates
-		if (this.selectedProjectFiles.some((existing) => existing.path === file.path)) {
+		if (this.selectedProjectItems.some((existing) => existing.file?.path === file.path)) {
 			return;
 		}
 
-		this.selectedProjectFiles.push(file);
+		if (file instanceof TFile) {
+			this.selectedProjectItems.push({
+				file,
+				name: file.basename,
+				link: this.buildProjectReference(file, this.getCurrentTaskPath() || ""),
+			});
+		}
 		this.updateProjectsFromFiles();
 		this.renderProjectsList();
 	}
 
-	protected removeProject(file: TAbstractFile): void {
-		this.selectedProjectFiles = this.selectedProjectFiles.filter(
-			(existing) => existing.path !== file.path
+	protected removeProject(item: ProjectItem): void {
+		this.selectedProjectItems = this.selectedProjectItems.filter(
+			(existing) => existing !== item
 		);
 		this.updateProjectsFromFiles();
 		this.renderProjectsList();
@@ -1630,22 +1650,24 @@ export abstract class TaskModal extends Modal {
 		const currentFile = this.app.workspace.getActiveFile();
 		const sourcePath = currentFile?.path || "";
 
-		this.projects = this.selectedProjectFiles
-			.map((file) => {
-				// fileToLinktext expects TFile, so cast safely since we know these are markdown files
-				return this.buildProjectReference(file as TFile, sourcePath);
-			})
-			.join(", ");
+		this.projects = this.selectedProjectItems.map((item) => item.link).join(", ");
 	}
 
 	protected buildProjectReference(targetFile: TFile, sourcePath: string): string {
-		return generateLink(this.app, targetFile, sourcePath, "", "", this.plugin.settings.useFrontmatterMarkdownLinks);
+		return generateLink(
+			this.app,
+			targetFile,
+			sourcePath,
+			"",
+			"",
+			this.plugin.settings.useFrontmatterMarkdownLinks
+		);
 	}
 
 	protected initializeProjectsFromStrings(projects: string[]): void {
-		// Convert project strings to files
+		// Convert project string to ProjectItem objects
 		// This handles both old plain string projects and new [[link]] format
-		this.selectedProjectFiles = [];
+		this.selectedProjectItems = [];
 
 		for (const projectString of projects) {
 			// Skip null, undefined, or empty strings
@@ -1663,7 +1685,20 @@ export abstract class TaskModal extends Modal {
 				const linkPath = linkMatch[1];
 				const file = this.resolveLink(linkPath, "");
 				if (file) {
-					this.selectedProjectFiles.push(file);
+					// Resolved link
+					this.selectedProjectItems.push({
+						file,
+						name: file.basename,
+						link: projectString,
+					});
+				} else {
+					// Unresolved link - still add it!
+					const displayName = linkPath.split("|")[0]; // Strip alias if present
+					this.selectedProjectItems.push({
+						name: displayName,
+						link: projectString,
+						unresolved: true,
+					});
 				}
 			} else {
 				// For backwards compatibility, try to find a file with this name
@@ -1672,11 +1707,21 @@ export abstract class TaskModal extends Modal {
 					(f) => f.basename === projectString || f.name === projectString + ".md"
 				);
 				if (matchingFile) {
-					this.selectedProjectFiles.push(matchingFile);
+					this.selectedProjectItems.push({
+						file: matchingFile,
+						name: matchingFile.basename,
+						link: `[[${matchingFile.basename}]]`,
+					});
+				} else {
+					// Plain text that doesn't resolve
+					this.selectedProjectItems.push({
+						name: projectString,
+						link: `[[${projectString}]]`,
+						unresolved: true,
+					});
 				}
 			}
 		}
-
 		this.updateProjectsFromFiles();
 		// Don't render immediately - let the caller decide when to render
 	}
@@ -1686,25 +1731,46 @@ export abstract class TaskModal extends Modal {
 
 		this.projectsList.empty();
 
-		if (this.selectedProjectFiles.length === 0) {
+		if (this.selectedProjectItems.length === 0) {
 			return;
 		}
 
-		this.selectedProjectFiles.forEach((file) => {
-			if (!(file instanceof TFile)) return;
-
+		this.selectedProjectItems.forEach((item) => {
 			const projectItem = this.projectsList.createDiv({ cls: "task-project-item" });
+
+			// Add unresolved class if needed (same as dependencies)
+			if (item.unresolved) {
+				projectItem.addClass("task-project-item--unresolved");
+			}
+
 			const infoEl = projectItem.createDiv({ cls: "task-project-info" });
 			const nameEl = infoEl.createDiv({ cls: "task-project-name clickable-project" });
 
-			const projectAsWikilink = generateLinkWithDisplay(this.app, file, this.getCurrentTaskPath() || "", file.name);
-			this.renderProjectLinksWithoutPrefix(nameEl, [projectAsWikilink]);
+			if (item.file) {
+				// Resolved project -- render as link
+				const projectAsWikilink = generateLinkWithDisplay(
+					this.app,
+					item.file,
+					this.getCurrentTaskPath() || "",
+					item.file.name
+				);
+				this.renderProjectLinksWithoutPrefix(nameEl, [projectAsWikilink]);
 
-			if (file.path !== file.name) {
-				const pathEl = infoEl.createDiv({ cls: "task-project-path" });
-				pathEl.textContent = file.path;
+				if (item.file.path !== item.file.name) {
+					const pathEl = infoEl.createDiv({ cls: "task-project-path" });
+					pathEl.textContent = item.file.path;
+				}
+			} else {
+				// Unresolved project - render as plain text
+				nameEl.textContent = item.name;
+				setTooltip(
+					nameEl,
+					this.t("contextMenus.task.dependencies.notices.unresolved", {
+						name: item.name,
+					}),
+					{ placement: "top" }
+				);
 			}
-
 			const removeBtn = projectItem.createEl("button", {
 				cls: "task-project-remove",
 				text: "×",
@@ -1713,7 +1779,7 @@ export abstract class TaskModal extends Modal {
 				placement: "top",
 			});
 			removeBtn.addEventListener("click", () => {
-				this.removeProject(file);
+				this.removeProject(item);
 			});
 		});
 	}
@@ -1726,9 +1792,11 @@ export abstract class TaskModal extends Modal {
 
 			// Filter out tasks that are already subtasks and the current task (if editing)
 			const currentTaskPath = this.isEditMode() ? (this as any).task?.path : undefined;
-			const candidates = allTasks.filter(candidate => {
+			const candidates = allTasks.filter((candidate) => {
 				if (currentTaskPath && candidate.path === currentTaskPath) return false;
-				return !this.selectedSubtaskFiles.some(existing => existing.path === candidate.path);
+				return !this.selectedSubtaskFiles.some(
+					(existing) => existing.path === candidate.path
+				);
 			});
 
 			if (candidates.length === 0) {
@@ -1736,13 +1804,18 @@ export abstract class TaskModal extends Modal {
 				return;
 			}
 
-			const selector = new TaskSelectorModal(this.app, this.plugin, candidates, async (subtask) => {
-				if (!subtask) return;
-				const file = this.app.vault.getAbstractFileByPath(subtask.path);
-				if (file) {
-					this.addSubtask(file);
+			const selector = new TaskSelectorModal(
+				this.app,
+				this.plugin,
+				candidates,
+				async (subtask) => {
+					if (!subtask) return;
+					const file = this.app.vault.getAbstractFileByPath(subtask.path);
+					if (file) {
+						this.addSubtask(file);
+					}
 				}
-			});
+			);
 			selector.open();
 		} catch (error) {
 			console.error("Failed to open subtask selector:", error);
@@ -1783,7 +1856,12 @@ export abstract class TaskModal extends Modal {
 			const infoEl = subtaskItem.createDiv({ cls: "task-project-info" });
 			const nameEl = infoEl.createDiv({ cls: "task-project-name clickable-project" });
 
-			const taskLink = generateLinkWithDisplay(this.app, file, this.getCurrentTaskPath() || "", file.name);
+			const taskLink = generateLinkWithDisplay(
+				this.app,
+				file,
+				this.getCurrentTaskPath() || "",
+				file.name
+			);
 			this.renderProjectLinksWithoutPrefix(nameEl, [taskLink]);
 
 			if (file.path !== file.name) {

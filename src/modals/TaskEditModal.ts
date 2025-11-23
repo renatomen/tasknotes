@@ -88,11 +88,11 @@ export class TaskEditModal extends TaskModal {
 				this.initializeProjectsFromStrings(this.task.projects);
 			} else {
 				this.projects = "";
-				this.selectedProjectFiles = [];
+				this.selectedProjectItems = [];
 			}
 		} else {
 			this.projects = "";
-			this.selectedProjectFiles = [];
+			this.selectedProjectItems = [];
 		}
 
 		this.tags = this.task.tags
@@ -1051,43 +1051,6 @@ export class TaskEditModal extends TaskModal {
 
 		cancelButton.addEventListener("click", () => {
 			this.close();
-		});
-	}
-
-	protected renderProjectsList(): void {
-		if (!this.projectsList) return;
-
-		this.projectsList.empty();
-
-		if (this.selectedProjectFiles.length === 0) {
-			return;
-		}
-
-		this.selectedProjectFiles.forEach((file) => {
-			if (!(file instanceof TFile)) return;
-
-			const projectItem = this.projectsList.createDiv({ cls: "task-project-item" });
-			const infoEl = projectItem.createDiv({ cls: "task-project-info" });
-			const nameEl = infoEl.createDiv({ cls: "task-project-name clickable-project" });
-
-			const projectAsWikilink = generateLinkWithDisplay(this.app, file, this.task.path, file.name);
-			this.renderProjectLinksWithoutPrefix(nameEl, [projectAsWikilink]);
-
-			if (file.path !== file.name) {
-				const pathEl = infoEl.createDiv({ cls: "task-project-path" });
-				pathEl.textContent = file.path;
-			}
-
-			const removeBtn = projectItem.createEl("button", {
-				cls: "task-project-remove",
-				text: "×",
-			});
-			setTooltip(removeBtn, this.t("modals.task.projectsRemoveTooltip"), {
-				placement: "top",
-			});
-			removeBtn.addEventListener("click", () => {
-				this.removeProject(file);
-			});
 		});
 	}
 
