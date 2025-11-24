@@ -430,6 +430,7 @@ export class TaskEditModal extends TaskModal {
 			message: this.t("modals.task.unsavedChanges.message"),
 			confirmText: this.t("modals.task.unsavedChanges.save"),
 			cancelText: this.t("modals.task.unsavedChanges.discard"),
+			defaultToConfirm: true,
 		});
 
 		return await modal.show();
