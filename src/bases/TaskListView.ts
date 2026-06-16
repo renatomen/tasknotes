@@ -84,6 +84,7 @@ type TaskListController = {
 type TaskListEphemeralState = {
 	collapsedGroups?: unknown;
 	collapsedSubGroups?: unknown;
+	itemsContainerScrollTop?: unknown;
 	scrollTop?: unknown;
 };
 
@@ -2148,6 +2149,7 @@ export class TaskListView extends BasesViewBase {
 		return {
 			...baseStateObject,
 			scrollTop: this.rootElement?.scrollTop || 0,
+			itemsContainerScrollTop: this.itemsContainer?.scrollTop || 0,
 			collapsedGroups: Array.from(this.collapsedGroups),
 			collapsedSubGroups: Array.from(this.collapsedSubGroups),
 		};
@@ -2200,6 +2202,15 @@ export class TaskListView extends BasesViewBase {
 			window.requestAnimationFrame(() => {
 				if (this.rootElement && this.rootElement.isConnected) {
 					this.rootElement.scrollTop = scrollTop;
+				}
+			});
+		}
+		if (typeof state.itemsContainerScrollTop === "number") {
+			const itemsContainerScrollTop = state.itemsContainerScrollTop;
+			window.requestAnimationFrame(() => {
+				if (this.itemsContainer && this.itemsContainer.isConnected) {
+					this.itemsContainer.scrollTop = itemsContainerScrollTop;
+					this.virtualScroller?.recalculate();
 				}
 			});
 		}
