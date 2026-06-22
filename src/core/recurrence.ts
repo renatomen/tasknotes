@@ -17,9 +17,10 @@ export function getNextUncompletedOccurrence(task: RecurringTaskInput): Date | n
 
 export function updateToNextScheduledOccurrence(
 	task: RecurrenceUpdateTaskInput,
-	maintainDueOffset = true
+	maintainDueOffset = true,
+	options?: { minOccurrenceDate?: string }
 ): RecurrenceUpdateResult {
 	return updateToNextScheduledOccurrenceModel(task, maintainDueOffset, {
-		today: getTodayString(),
+		today: options?.minOccurrenceDate ?? getTodayString(),
 	});
 }

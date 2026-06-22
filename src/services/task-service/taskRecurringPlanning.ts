@@ -1,5 +1,6 @@
 import {
 	addDTSTARTToRecurrenceRule,
+	generateRecurringInstances,
 	updateDTSTARTInRecurrenceRule,
 	updateToNextScheduledOccurrence,
 } from "../../core/recurrence";
@@ -9,6 +10,7 @@ import {
 	formatDateForStorage,
 	getDatePart,
 	getTodayLocal,
+	getTodayString,
 	parseDateToUTC,
 } from "../../utils/dateUtils";
 import {
@@ -76,6 +78,47 @@ function getStringArray(value: unknown): string[] {
 	return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : [];
 }
 
+function findOwningRecurrenceDate(task: TaskInfo, targetDate: Date): Date | null {
+	if (!task.recurrence) return null;
+
+	// If targetDate is itself a recurrence occurrence, return it as-is.
+	// This keeps toggle-off (un-complete) working correctly when an explicit
+	// recurrence date is passed.
+	const exactOccurrences = generateRecurringInstances(task, targetDate, targetDate);
+	const targetDateStr = formatDateForStorage(targetDate);
+	if (exactOccurrences.some((occ) => formatDateForStorage(occ) === targetDateStr)) {
+		return targetDate;
+	}
+
+	// targetDate is a shifted scheduled date — find the recurrence occurrence it belongs to.
+	const processedInstances = new Set([
+		...(task.complete_instances || []),
+		...(task.skipped_instances || []),
+	]);
+
+	// Prefer the most recent UNCOMPLETED occurrence at or before the target date.
+	const lookBackStart = new Date(targetDate.getTime() - 400 * 24 * 60 * 60 * 1000);
+	const pastOccurrences = generateRecurringInstances(task, lookBackStart, targetDate);
+	for (let i = pastOccurrences.length - 1; i >= 0; i--) {
+		if (!processedInstances.has(formatDateForStorage(pastOccurrences[i]))) {
+			return pastOccurrences[i];
+		}
+	}
+
+	// All occurrences up to the target are already completed/skipped.
+	// The scheduled date was shifted to prepare for the next cycle — find its first
+	// uncompleted occurrence after the target date.
+	const lookAheadEnd = new Date(targetDate.getTime() + 400 * 24 * 60 * 60 * 1000);
+	const futureOccurrences = generateRecurringInstances(task, targetDate, lookAheadEnd);
+	for (const occ of futureOccurrences) {
+		if (!processedInstances.has(formatDateForStorage(occ))) {
+			return occ;
+		}
+	}
+
+	return null;
+}
+
 export function getRecurringTaskActionDate(task: TaskInfo, date?: Date): Date {
 	if (date) {
 		return date;
@@ -99,7 +142,19 @@ export function buildRecurringTaskCompletePlan({
 		throw new Error("Task is not recurring");
 	}
 
-	const dateStr = formatDateForStorage(targetDate);
+	const recurrenceAnchor = freshTask.recurrence_anchor || "scheduled";
+	// For scheduled-anchor tasks, find the recurrence date that owns the target date.
+	// The scheduled field may have been manually shifted forward from the actual recurrence
+	// date; storing the recurrence date in complete_instances ensures the model's exact-match
+	// check correctly marks this instance as done.
+	// Skip this for Google Calendar moved exceptions: the exception's scheduled date is
+	// distinct from the original series date and must be tracked as-is.
+	const owningRecurrenceDate =
+		recurrenceAnchor !== "completion" && !freshTask.googleCalendarExceptionOriginalScheduled
+			? findOwningRecurrenceDate(freshTask, targetDate)
+			: null;
+	const instanceDate = owningRecurrenceDate ?? targetDate;
+	const dateStr = formatDateForStorage(instanceDate);
 	const completeInstances = getStringArray(freshTask.complete_instances);
 	const currentComplete = completeInstances.includes(dateStr);
 	const newComplete = !currentComplete;
@@ -123,8 +178,6 @@ export function buildRecurringTaskCompletePlan({
 	}
 
 	if (newComplete && typeof updatedTask.recurrence === "string") {
-		const recurrenceAnchor = updatedTask.recurrence_anchor || "scheduled";
-
 		if (recurrenceAnchor === "completion") {
 			const updatedRecurrence = updateDTSTARTInRecurrenceRule(
 				updatedTask.recurrence,
@@ -141,9 +194,19 @@ export function buildRecurringTaskCompletePlan({
 		}
 	}
 
+	// Use the recurrence date (not the shifted scheduled date) as the reference for
+	// due-date offset calculation and next-occurrence search.
+	// Pass max(today, instanceDate) as the floor so future-dated tasks advance past
+	// the current cycle rather than jumping back to today's nearest occurrence.
+	const taskForNextOccurrence = owningRecurrenceDate
+		? { ...updatedTask, scheduled: formatDateForStorage(owningRecurrenceDate) }
+		: updatedTask;
+	const todayStr = getTodayString();
+	const floorDate = dateStr > todayStr ? dateStr : todayStr;
 	const nextDates = updateToNextScheduledOccurrence(
-		updatedTask,
-		maintainDueDateOffsetInRecurring
+		taskForNextOccurrence,
+		maintainDueDateOffsetInRecurring,
+		{ minOccurrenceDate: floorDate }
 	);
 	if (nextDates.scheduled) {
 		updatedTask.scheduled = nextDates.scheduled;
@@ -235,7 +298,13 @@ export function buildRecurringTaskSkippedPlan({
 		throw new Error("Task is not recurring");
 	}
 
-	const dateStr = formatDateForStorage(targetDate);
+	const recurrenceAnchor = freshTask.recurrence_anchor || "scheduled";
+	const owningRecurrenceDate =
+		recurrenceAnchor !== "completion"
+			? findOwningRecurrenceDate(freshTask, targetDate)
+			: null;
+	const instanceDate = owningRecurrenceDate ?? targetDate;
+	const dateStr = formatDateForStorage(instanceDate);
 	const skippedInstances = getStringArray(freshTask.skipped_instances);
 	const currentlySkipped = skippedInstances.includes(dateStr);
 	const newSkipped = !currentlySkipped;
@@ -255,9 +324,15 @@ export function buildRecurringTaskSkippedPlan({
 		updatedTask.skipped_instances = skippedInstances.filter((d) => d !== dateStr);
 	}
 
+	const taskForNextOccurrence = owningRecurrenceDate
+		? { ...updatedTask, scheduled: formatDateForStorage(owningRecurrenceDate) }
+		: updatedTask;
+	const todayStr = getTodayString();
+	const floorDate = dateStr > todayStr ? dateStr : todayStr;
 	const nextDates = updateToNextScheduledOccurrence(
-		updatedTask,
-		maintainDueDateOffsetInRecurring
+		taskForNextOccurrence,
+		maintainDueDateOffsetInRecurring,
+		{ minOccurrenceDate: floorDate }
 	);
 	if (nextDates.scheduled) {
 		updatedTask.scheduled = nextDates.scheduled;
