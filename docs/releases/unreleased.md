@@ -151,6 +151,9 @@ When a change has user-facing documentation, include a canonical tasknotes.dev l
   core plugin is enabled after TaskNotes, preventing default views from showing
   **Unknown view type** until TaskNotes is reloaded. Thanks to @yaye-work for
   reporting this.
+- (#2084) The Relationships widget no longer prevents editor text selection from
+  autoscrolling when dragging below the bottom edge of a task note. Thanks to
+  @lostwildland for reporting this.
 - (#2081, #2103) Kept task card and relationships widgets visible in reading mode
   when Obsidian scroll or preview updates remove their DOM, and refreshed visible
   widgets promptly after metadata changes. Thanks to @mukhozhuk for reporting and
