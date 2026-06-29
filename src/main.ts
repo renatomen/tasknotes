@@ -238,6 +238,7 @@ export default class TaskNotesPlugin extends Plugin {
 
 	// Bases registration state management
 	basesRegistered = false;
+	basesRegistrationRetryIntervalId: number | null = null;
 
 	/**
 	 * Get the system UI locale with proper priority order for TaskNotes plugin.
