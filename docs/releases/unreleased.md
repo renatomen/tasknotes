@@ -144,6 +144,9 @@ When a change has user-facing documentation, include a canonical tasknotes.dev l
 - (#2100) Tags added while creating a task now keep the same frontmatter order as
   tags added later from the task context menu. Thanks to @mgrecar for reporting
   this.
+- (#2092) New non-recurring tasks created directly in a completed status now get
+  a completed date, so completed-date views can find them immediately. Thanks
+  to @Crell for reporting this.
 - (#2096) Fixed TaskNotes Kanban swimlanes falling back to **None** when the
   swimlane used a Bases formula that was not already cached by Bases. Thanks to
   @ddevaal for reporting this.
