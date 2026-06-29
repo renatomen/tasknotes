@@ -1,12 +1,17 @@
 import type { TaskInfo } from "../../types";
-import type { TaskNotesSettings } from "../../types/settings";
+import type { TaskCreationDefaults, TaskNotesSettings } from "../../types/settings";
 import { getCurrentTimestamp } from "../../utils/dateUtils";
+import { calculateDefaultDateTime } from "../../utils/helpers";
 import { stringifyUnknownArray } from "../../utils/stringUtils";
 
 type CurrentNoteConversionSettings = Pick<
 	TaskNotesSettings,
-	"defaultTaskStatus" | "defaultTaskPriority"
+	"defaultTaskStatus" | "defaultTaskPriority" | "taskCreationDefaults"
 >;
+
+export interface CurrentNoteConversionAdapters {
+	calculateDefaultDateTime?: typeof calculateDefaultDateTime;
+}
 
 export interface CurrentNoteConversionInput {
 	path: string;
@@ -15,6 +20,7 @@ export interface CurrentNoteConversionInput {
 	frontmatter?: Record<string, unknown>;
 	settings: CurrentNoteConversionSettings;
 	now?: string;
+	adapters?: CurrentNoteConversionAdapters;
 }
 
 export function buildCurrentNoteConversionTaskInfo({
@@ -24,7 +30,16 @@ export function buildCurrentNoteConversionTaskInfo({
 	frontmatter = {},
 	settings,
 	now = getCurrentTimestamp(),
+	adapters = {},
 }: CurrentNoteConversionInput): TaskInfo {
+	const frontmatterScheduled = frontmatterString(frontmatter.scheduled);
+	const scheduled =
+		frontmatterScheduled ??
+		resolveCurrentNoteDefaultScheduled(
+			settings.taskCreationDefaults,
+			adapters.calculateDefaultDateTime ?? calculateDefaultDateTime
+		);
+
 	return {
 		path,
 		title: frontmatterString(frontmatter.title) || basename,
@@ -32,7 +47,7 @@ export function buildCurrentNoteConversionTaskInfo({
 		priority: frontmatterString(frontmatter.priority) ?? settings.defaultTaskPriority,
 		archived: false,
 		due: frontmatterString(frontmatter.due),
-		scheduled: frontmatterString(frontmatter.scheduled),
+		scheduled,
 		contexts: frontmatterStringArray(frontmatter.contexts),
 		projects: frontmatterStringArray(frontmatter.projects),
 		tags: frontmatterStringArray(frontmatter.tags) ?? [],
@@ -42,6 +57,22 @@ export function buildCurrentNoteConversionTaskInfo({
 		dateModified: now,
 		details: extractMarkdownBodyAfterFrontmatter(content),
 	};
+}
+
+function resolveCurrentNoteDefaultScheduled(
+	defaults: TaskCreationDefaults,
+	resolveDefaultDateTime: typeof calculateDefaultDateTime
+): string | undefined {
+	if (defaults.defaultScheduledDate === "none") {
+		return undefined;
+	}
+
+	return (
+		resolveDefaultDateTime(
+			defaults.defaultScheduledDate,
+			defaults.defaultScheduledTime
+		) || undefined
+	);
 }
 
 export function extractMarkdownBodyAfterFrontmatter(content: string): string {
