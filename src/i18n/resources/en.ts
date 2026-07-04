@@ -3050,6 +3050,7 @@ export const en: TranslationTree = {
 				noPickedDate: "No date selected",
 				noCompletedStatus: "No completed status configured",
 				pickDateTitle: "Complete on date",
+				completeFailure: "Failed to update task completion: {message}",
 			},
 			quickReminders: {
 				atTime: "At time of event",
