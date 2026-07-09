@@ -189,6 +189,10 @@ export class TaskCreationService {
 				runtime.app.vault
 			);
 			const fullPath = folder ? `${folder}/${uniqueFilename}.md` : `${uniqueFilename}.md`;
+			const titleIsRepresentedByFilename =
+				runtime.settings.storeTitleInFilename &&
+				uniqueFilename === filenameTitle &&
+				title === filenameTitle;
 
 			const completeTaskData: Partial<TaskInfo> = {
 				title,
@@ -267,7 +271,7 @@ export class TaskCreationService {
 			const frontmatter = runtime.fieldMapper.mapToFrontmatter(
 				completeTaskData,
 				taskTagForFrontmatter,
-				runtime.settings.storeTitleInFilename
+				titleIsRepresentedByFilename
 			);
 
 			if (runtime.settings.taskIdentificationMethod === "property") {
@@ -299,7 +303,7 @@ export class TaskCreationService {
 			if (taskData.customFrontmatter) {
 				finalFrontmatter = { ...finalFrontmatter, ...taskData.customFrontmatter };
 			}
-			if (runtime.settings.storeTitleInFilename) {
+			if (titleIsRepresentedByFilename) {
 				delete finalFrontmatter[runtime.fieldMapper.toUserField("title")];
 			}
 			if (runtime.settings.taskIdentificationMethod === "property") {

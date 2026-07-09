@@ -14,6 +14,14 @@ function normalizeVaultPath(path: string): string {
 		.replace(/^\/+/, "");
 }
 
+async function vaultPathExists(vault: Vault, path: string): Promise<boolean> {
+	if (vault.getAbstractFileByPath(path)) {
+		return true;
+	}
+
+	return vault.adapter.exists(path, false);
+}
+
 export interface FilenameContext {
 	title: string;
 	priority: string;
@@ -590,7 +598,7 @@ export async function generateUniqueFilename(
 		}
 
 		// Check if the base filename is available
-		if (!vault.getAbstractFileByPath(basePath)) {
+		if (!(await vaultPathExists(vault, basePath))) {
 			return sanitizedFilename;
 		}
 
@@ -604,7 +612,7 @@ export async function generateUniqueFilename(
 				break; // Stop if paths become too long
 			}
 
-			if (!vault.getAbstractFileByPath(candidatePath)) {
+			if (!(await vaultPathExists(vault, candidatePath))) {
 				return candidateFilename;
 			}
 		}
