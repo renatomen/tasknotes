@@ -33,6 +33,9 @@ const createMockPlugin = (settingsOverride: Record<string, unknown> = {}) => {
 				{ value: "done", label: "Done", isCompleted: true },
 			],
 			defaultVisibleProperties: ["status", "priority", "due"],
+			calendarViewSettings: {
+				firstDay: 1,
+			},
 			userFields: [],
 			fieldMapping,
 			...settingsOverride,
@@ -129,6 +132,20 @@ describe("defaultBasesFiles", () => {
 		expect(template).toContain('slotDuration: "00:30:00"');
 		expect(template).not.toContain("slotMinTime");
 		expect(template).not.toContain("slotMaxTime");
+	});
+
+	it("uses the configured first day for generated calendar views", () => {
+		const template = generateBasesFileTemplate(
+			"open-advanced-calendar-view",
+			createMockPlugin({
+				calendarViewSettings: {
+					firstDay: 1,
+				},
+			}) as any
+		);
+
+		expect(template).toContain("firstDay: 1");
+		expect(template).not.toContain("firstDay: 0");
 	});
 
 	it("does not force the due-in agenda property when due dates are hidden by default", () => {

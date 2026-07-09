@@ -527,7 +527,7 @@ views:
       createDailyNotesFromDateLinks: true
       calendarView: "timeGridWeek"
       customDayCount: 3
-      firstDay: 0
+      firstDay: 1
       slotDuration: "00:30:00"
 ```
 

@@ -901,7 +901,7 @@ ${orderYaml}
       createDailyNotesFromDateLinks: true
       calendarView: "timeGridWeek"
       customDayCount: 3
-      firstDay: 0
+      firstDay: ${plugin.settings.calendarViewSettings.firstDay}
       slotDuration: "00:30:00"
 `;
 
