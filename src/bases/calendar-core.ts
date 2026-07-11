@@ -164,6 +164,8 @@ export interface CalendarEventGenerationOptions {
 	showTimeblocks?: boolean;
 	visibleStart?: Date;
 	visibleEnd?: Date;
+	visibleStartDate?: string;
+	visibleEndDate?: string;
 }
 
 interface RecurringInstanceVisibilityOptions {
@@ -172,9 +174,16 @@ interface RecurringInstanceVisibilityOptions {
 	showProjectedRecurringInstances?: boolean;
 	showScheduledToDueSpan?: boolean;
 	materializedOccurrenceDates?: ReadonlySet<string> | readonly string[];
+	visibleStartDate?: string;
+	visibleEndDate?: string;
 }
 
 type RecurringSpanInstanceKind = "next-scheduled" | "pattern" | "recorded";
+
+function getCalendarBoundaryDatePart(date: Date, explicitDate?: string): string {
+	const explicitDatePart = explicitDate ? getDatePart(explicitDate) : "";
+	return explicitDatePart || format(date, "yyyy-MM-dd");
+}
 
 /**
  * Convert a configured color to a translucent calendar color.
@@ -1095,10 +1104,14 @@ export function generateRecurringTaskInstances(
 		showProjectedRecurringInstances = true,
 		showScheduledToDueSpan = false,
 		materializedOccurrenceDates,
+		visibleStartDate,
+		visibleEndDate,
 	} = options;
 	const instances: CalendarEvent[] = [];
 	const emittedInstanceDates = new Set<string>();
 	const materializedDates = normalizeMaterializedOccurrenceDates(materializedOccurrenceDates);
+	const startDateOnly = getCalendarBoundaryDatePart(startDate, visibleStartDate);
+	const endDateOnly = getCalendarBoundaryDatePart(endDate, visibleEndDate);
 	const hasOriginalTime = hasTimeComponent(task.scheduled);
 	const templateTime = getRecurringTime(task);
 	const nextScheduledDate = getDatePart(task.scheduled);
@@ -1172,15 +1185,15 @@ export function generateRecurringTaskInstances(
 		// Filter instances to only show those within the original visible date range.
 		// FullCalendar's visibleEnd is exclusive, so an instance on that day belongs
 		// to the next fetched range.
-		// Compare by date only (not time) since FullCalendar boundaries are at midnight local time
-		// but RRule generates occurrences at the task's scheduled time in UTC (issue #1582)
-		const endDateOnly = formatDateForStorage(endDate);
+		// Compare by the date strings FullCalendar uses for the local visible range.
+		// Its Date objects are instants, so UTC formatting can shift local midnight
+		// boundaries in positive timezones.
 		for (const date of recurringDates) {
 			const instanceDate = formatDateForStorage(date);
 
 			// Skip instances outside the original visible range (for yearly tasks with extended look-ahead)
 			// Compare dates as strings (YYYY-MM-DD) to avoid timezone/time issues
-			if (instanceDate >= endDateOnly) {
+			if (instanceDate < startDateOnly || instanceDate >= endDateOnly) {
 				continue;
 			}
 
@@ -1236,7 +1249,9 @@ export function generateRecurringTaskInstances(
 		recurringSearchStartDate,
 		endDate,
 		showCompletedRecurringInstances,
-		showSkippedRecurringInstances
+		showSkippedRecurringInstances,
+		startDateOnly,
+		endDateOnly
 	)) {
 		if (materializedDates.has(instanceDate)) {
 			continue;
@@ -1286,10 +1301,10 @@ function getRecordedRecurringInstanceDatesInRange(
 	startDate: Date,
 	endDate: Date,
 	showCompletedRecurringInstances: boolean,
-	showSkippedRecurringInstances: boolean
+	showSkippedRecurringInstances: boolean,
+	startDateOnly = getCalendarBoundaryDatePart(startDate),
+	endDateOnly = getCalendarBoundaryDatePart(endDate)
 ): string[] {
-	const startDateOnly = formatDateForStorage(startDate);
-	const endDateOnly = formatDateForStorage(endDate);
 	const dates = new Set<string>();
 
 	if (showCompletedRecurringInstances) {
@@ -1507,6 +1522,8 @@ export async function generateCalendarEvents(
 		showTimeblocks = false,
 		visibleStart,
 		visibleEnd,
+		visibleStartDate,
+		visibleEndDate,
 	} = options;
 
 	const events: CalendarEvent[] = [];
@@ -1593,6 +1610,8 @@ export async function generateCalendarEvents(
 									materializedOccurrenceDateIndex.get(
 										getTaskOccurrenceKey(task)
 									) ?? new Set<string>(),
+								visibleStartDate,
+								visibleEndDate,
 							}
 						);
 						events.push(...recurringEvents);
