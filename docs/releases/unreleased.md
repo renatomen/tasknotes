@@ -130,6 +130,9 @@ When a change has user-facing documentation, include a canonical tasknotes.dev l
 - (#2114) Completing a rescheduled occurrence for a scheduled-anchored recurring
   task now advances the parent from the moved occurrence date instead of an
   earlier original occurrence date. Thanks to @chrabia for reporting this.
+- (#2113) Failed Google Calendar manual refreshes no longer make the next
+  immediate refresh show a misleading success notice. Thanks to @JohWQ for
+  reporting this.
 - (#2109) TaskNotes no longer injects instant-conversion controls into embedded
   or detached Markdown editors, preventing checkbox notes opened from unrelated
   Bases from freezing Obsidian on mobile. Thanks to @jmartinmcfly for the clear
