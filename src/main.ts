@@ -61,6 +61,8 @@ import { AutoExportService } from "./services/AutoExportService";
 import type { HTTPAPIService } from "./services/HTTPAPIService";
 import { createI18nService, I18nService } from "./i18n";
 import { OAuthService } from "./services/OAuthService";
+import { OAuthSecretStore } from "./services/OAuthSecretStore";
+import { migrateLegacyOAuthData, stripLegacyOAuthData } from "./services/oauthSecretMigration";
 import { GoogleCalendarService } from "./services/GoogleCalendarService";
 import { MicrosoftCalendarService } from "./services/MicrosoftCalendarService";
 import { CalendarProviderRegistry } from "./services/CalendarProvider";
@@ -197,8 +199,10 @@ export default class TaskNotesPlugin extends Plugin {
 	// Public JavaScript API for in-vault scripts
 	api: import("./api/TaskNotesAPI").TaskNotesPublicAPI;
 
-	// OAuth service
+	// OAuth services
 	oauthService: OAuthService;
+	oauthSecretStore: OAuthSecretStore;
+	private oauthSecretStorageReady = false;
 
 	// Google Calendar service
 	googleCalendarService: GoogleCalendarService;
@@ -695,7 +699,19 @@ export default class TaskNotesPlugin extends Plugin {
 	}
 
 	async loadSettings() {
-		const loadedData = await this.loadSettingsData();
+		let loadedData = await this.loadSettingsData();
+		this.oauthSecretStore ??= new OAuthSecretStore(this.app.secretStorage);
+		this.oauthSecretStorageReady = false;
+
+		if (!this.settingsLoadCompromised) {
+			const migration = migrateLegacyOAuthData(loadedData, this.oauthSecretStore);
+			if (migration.changed && migration.data) {
+				await super.saveData(migration.data);
+			}
+			loadedData = migration.data;
+			this.oauthSecretStorageReady = true;
+		}
+
 		const { settings, shouldPersistMigratedSettings } = buildSettingsFromLoadedData(loadedData);
 		this.settings = settings;
 		this.shouldCreateStarterNoteOnStartup = !settings.lastSeenVersion;
@@ -718,6 +734,17 @@ export default class TaskNotesPlugin extends Plugin {
 		}
 
 		// Cache setting migration is no longer needed (native cache only)
+	}
+
+	async saveData(data: unknown): Promise<void> {
+		const sanitizedData =
+			this.oauthSecretStorageReady &&
+			typeof data === "object" &&
+			data !== null &&
+			!Array.isArray(data)
+				? stripLegacyOAuthData(data as Record<string, unknown>)
+				: data;
+		await super.saveData(sanitizedData);
 	}
 
 	async saveSettings() {
