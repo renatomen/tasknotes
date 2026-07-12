@@ -14,7 +14,9 @@ import {
 	buildMaterializedOccurrenceUnskipPlan,
 	findMaterializedOccurrence,
 	isMaterializedOccurrenceTask,
+	taskInfoToSpecFields,
 	taskInfoUpdatesToFrontmatterPatch,
+	type MaterializedOccurrenceStatusPlan,
 } from "@tasknotes/model/operations";
 import { AutoArchiveService } from "./AutoArchiveService";
 import { TFile, normalizePath } from "obsidian";
@@ -31,7 +33,12 @@ import {
 	formatDateForStorage,
 	getCurrentDateString,
 	getCurrentTimestamp,
+	getDatePart,
 } from "../utils/dateUtils";
+import {
+	updateDTSTARTInRecurrenceRule,
+	updateToNextScheduledOccurrence,
+} from "../core/recurrence";
 import { processFolderTemplate, TaskTemplateData } from "../utils/folderTemplateProcessor";
 
 import TaskNotesPlugin from "../main";
@@ -974,7 +981,7 @@ export class TaskService {
 		}
 
 		const currentTimestamp = getCurrentTimestamp();
-		const plan = isCompleted
+		let plan = isCompleted
 			? buildMaterializedOccurrenceCompletePlan({
 					occurrenceTask: updatedOccurrence,
 					parentTask,
@@ -991,6 +998,15 @@ export class TaskService {
 					activeStatus: this.normalizeStatusValue(newValue),
 					currentTimestamp,
 				});
+
+		if (isCompleted) {
+			plan = this.adjustRescheduledOccurrenceCompletionProgression(
+				plan,
+				updatedOccurrence,
+				parentTask,
+				currentTimestamp
+			);
+		}
 
 		const updatedParent = await this.persistTaskInfoUpdates(
 			parentTask,
@@ -1028,6 +1044,94 @@ export class TaskService {
 					error: materializeError,
 				});
 			}
+		}
+	}
+
+	private adjustRescheduledOccurrenceCompletionProgression(
+		plan: MaterializedOccurrenceStatusPlan,
+		occurrenceTask: TaskInfo,
+		parentTask: TaskInfo,
+		currentTimestamp: string
+	): MaterializedOccurrenceStatusPlan {
+		const progressionDate = this.getRescheduledOccurrenceProgressionDate(occurrenceTask);
+		if (!progressionDate || typeof parentTask.recurrence !== "string") {
+			return plan;
+		}
+
+		let recurrence =
+			typeof plan.updatedParentTask.recurrence === "string"
+				? plan.updatedParentTask.recurrence
+				: parentTask.recurrence;
+		const recurrenceAnchor = plan.updatedParentTask.recurrence_anchor || "scheduled";
+		if (recurrenceAnchor === "completion") {
+			recurrence =
+				updateDTSTARTInRecurrenceRule(
+					recurrence,
+					occurrenceTask.scheduled || progressionDate
+				) || recurrence;
+		}
+
+		const nextDates = updateToNextScheduledOccurrence(
+			{
+				...plan.updatedParentTask,
+				recurrence,
+				scheduled: occurrenceTask.scheduled || progressionDate,
+				due: occurrenceTask.due ?? parentTask.due,
+			},
+			this.plugin.settings.maintainDueDateOffsetInRecurring,
+			{ minOccurrenceDate: progressionDate }
+		);
+
+		const parentUpdates: Partial<TaskInfo> = {
+			...plan.parentUpdates,
+			recurrence,
+			dateModified: currentTimestamp,
+		};
+		if (nextDates.scheduled) {
+			parentUpdates.scheduled = nextDates.scheduled;
+		} else {
+			delete parentUpdates.scheduled;
+		}
+		if (nextDates.due) {
+			parentUpdates.due = nextDates.due;
+		} else {
+			delete parentUpdates.due;
+		}
+
+		const updatedParentTask: TaskInfo = { ...parentTask, ...parentUpdates };
+		const materializeNextDate = plan.materializeNextDate
+			? getDatePart(updatedParentTask.scheduled || "")
+			: undefined;
+
+		return {
+			...plan,
+			updatedParentTask,
+			parentUpdates,
+			parentFields: taskInfoToSpecFields(parentUpdates),
+			materializeNextDate: materializeNextDate || undefined,
+			changed: true,
+		};
+	}
+
+	private getRescheduledOccurrenceProgressionDate(occurrenceTask: TaskInfo): string | null {
+		const occurrenceDate = this.getSafeDatePart(occurrenceTask.occurrence_date);
+		const scheduledDate = this.getSafeDatePart(occurrenceTask.scheduled);
+		if (!occurrenceDate || !scheduledDate || scheduledDate <= occurrenceDate) {
+			return null;
+		}
+
+		return scheduledDate;
+	}
+
+	private getSafeDatePart(value: string | undefined): string {
+		if (!value) {
+			return "";
+		}
+
+		try {
+			return getDatePart(value);
+		} catch {
+			return "";
 		}
 	}
 
