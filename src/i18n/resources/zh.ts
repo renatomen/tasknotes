@@ -2594,6 +2594,8 @@ export const zh: TranslationTree = {
 			},
 			metadata: {
 				totalTrackedTime: "总跟踪时间：",
+				due: "截止：",
+				scheduled: "计划：",
 				created: "创建：",
 				modified: "修改：",
 				file: "文件："
@@ -2770,6 +2772,7 @@ export const zh: TranslationTree = {
 			prioritySelected: "✓ {label}",
 			dueDate: "到期日期",
 			scheduledDate: "安排日期",
+			customDates: "自定义日期",
 			reminders: "提醒",
 			remindBeforeDue: "到期前提醒...",
 			remindBeforeScheduled: "安排前提醒...",
@@ -2877,6 +2880,7 @@ export const zh: TranslationTree = {
 				toggleSkipFailure: "切换重复任务跳过失败：{message}",
 				updateDueDateFailure: "更新任务到期日期失败：{message}",
 				updateScheduledFailure: "更新任务安排日期失败：{message}",
+				updateCustomDateFailure: "更新 {field} 失败：{message}",
 				updateRemindersFailure: "更新提醒失败",
 				clearRemindersFailure: "清除提醒失败",
 				addReminderFailure: "添加提醒失败",
