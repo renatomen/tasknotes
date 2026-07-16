@@ -104,6 +104,29 @@ describe("taskEditFormState", () => {
 		expect(state.initialTags).toBe("task, work");
 	});
 
+	it("normalizes scalar list fields before opening the edit modal", () => {
+		const task = createTask({
+			contexts: "Routine" as unknown as string[],
+			projects: "[[Projects/Alpha]]" as unknown as string[],
+			tags: "work" as unknown as string[],
+		});
+
+		const state = buildTaskEditFormState({
+			task,
+			details: "",
+			frontmatter: {},
+			settings: {
+				taskIdentificationMethod: "property",
+				taskTag: "task",
+			},
+			normalizeDetails: (value) => value,
+		});
+
+		expect(state.contexts).toBe("Routine");
+		expect(state.projectValues).toEqual(["[[Projects/Alpha]]"]);
+		expect(state.tags).toBe("work");
+	});
+
 	it("loads only configured user field values from frontmatter", () => {
 		expect(
 			getTaskEditUserFieldValues(

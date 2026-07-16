@@ -67,7 +67,7 @@ export function buildTaskEditFormStateFromTask(
 }
 
 export function buildTaskEditFormState(input: TaskEditFormStateInput): TaskEditFormState {
-	const rawTags = input.task.tags || [];
+	const rawTags = toTaskStringList(input.task.tags);
 	const visibleTags =
 		input.settings.taskIdentificationMethod === "tag"
 			? filterTaskIdentificationTags(
@@ -76,9 +76,10 @@ export function buildTaskEditFormState(input: TaskEditFormStateInput): TaskEditF
 					input.settings.hideIdentifyingTagsMode
 				)
 			: rawTags;
-	const tags = rawTags.length > 0 ? sanitizeTags(visibleTags.join(", ")) : "";
+	const tags = visibleTags.length > 0 ? sanitizeTags(visibleTags.join(", ")) : "";
 	const details = input.normalizeDetails(input.details);
-	const projectValues = input.task.projects || [];
+	const projectValues = toTaskStringList(input.task.projects);
+	const contextValues = toTaskStringList(input.task.contexts);
 
 	return {
 		title: input.task.title,
@@ -86,7 +87,7 @@ export function buildTaskEditFormState(input: TaskEditFormStateInput): TaskEditF
 		scheduledDate: input.task.scheduled || "",
 		priority: input.task.priority,
 		status: input.task.status,
-		contexts: input.task.contexts ? input.task.contexts.join(", ") : "",
+		contexts: contextValues.join(", "),
 		projectValues,
 		hasValidProjects: projectValues.some(
 			(project) => typeof project === "string" && project.trim() !== ""
@@ -101,6 +102,16 @@ export function buildTaskEditFormState(input: TaskEditFormStateInput): TaskEditF
 		originalDetails: details,
 		userFields: getTaskEditUserFieldValues(input.frontmatter, input.settings.userFields || []),
 	};
+}
+
+function toTaskStringList(value: unknown): string[] {
+	if (Array.isArray(value)) {
+		return value.filter((entry): entry is string => typeof entry === "string");
+	}
+	if (typeof value === "string") {
+		return value ? [value] : [];
+	}
+	return [];
 }
 
 export function getTaskEditUserFieldValues(
