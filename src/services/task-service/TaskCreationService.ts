@@ -13,6 +13,7 @@ import {
 	type TaskFilenameSettings,
 	generateTaskFilename,
 	generateUniqueFilename,
+	generateOccurrenceFilename,
 } from "../../utils/filenameGenerator";
 import { ensureFolderExists } from "../../utils/helpers";
 import { getCurrentTimestamp } from "../../utils/dateUtils";
@@ -167,7 +168,16 @@ export class TaskCreationService {
 				parentNote: taskData.parentNote,
 			};
 
-			const baseFilename = generateTaskFilename(filenameContext, runtime.settings);
+			const occurrenceFilenameTemplate = taskData.occurrenceFilenameTemplate?.trim();
+			const baseFilename =
+				occurrenceFilenameTemplate && taskData.occurrence_date
+					? generateOccurrenceFilename(
+							filenameContext,
+							occurrenceFilenameTemplate,
+							taskData.occurrence_date,
+							taskData.occurrenceParentRecurrence
+						)
+					: generateTaskFilename(filenameContext, runtime.settings);
 			const folder = await this.resolveTargetFolder(taskData);
 
 			if (folder) {
