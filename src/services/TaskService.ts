@@ -204,7 +204,10 @@ export class TaskService {
 	}
 
 	private getCompletionDateForTask(task: TaskInfo): string {
-		return task.occurrence_date || getCurrentDateString();
+		// Record the real completion date, matching non-recurring task behavior.
+		// Which occurrence was fulfilled is tracked separately on the parent's
+		// complete_instances (see buildMaterializedOccurrenceCompletePlan). #2125
+		return getCurrentDateString();
 	}
 
 	/**
