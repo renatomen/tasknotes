@@ -502,6 +502,8 @@ export interface TaskCreationData extends Partial<TaskInfo> {
 	parentNote?: string; // Optional parent note name/path for template variable
 	creationContext?: "inline-conversion" | "manual-creation" | "modal-inline-creation" | "api" | "import" | "ics-event"; // Context for folder determination
 	customFrontmatter?: Record<string, unknown>; // Custom frontmatter properties (including user fields)
+	occurrenceFilenameTemplate?: string; // Resolved filename template for a materialized occurrence (creation-only)
+	occurrenceParentRecurrence?: string | { frequency?: string }; // Parent's recurrence, for {{occurrencePeriod}} (creation-only)
 }
 
 export interface TimeEntry {

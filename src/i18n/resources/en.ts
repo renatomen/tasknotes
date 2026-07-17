@@ -1195,6 +1195,12 @@ export const en: TranslationTree = {
 				customTemplate: "Custom template:",
 				legacySyntaxWarning:
 					"Single-brace syntax like {title} is deprecated. Please use double-brace syntax {{title}} instead for consistency with body templates.",
+				occurrenceFilenameTemplate: "Occurrence filename template",
+				occurrenceFilenameTemplateHelp:
+					"Filename template for materialized occurrences of recurring tasks. Leave empty to keep the default name (parent title plus a numeric suffix). Variables: {{occurrencePeriod}} (matches the recurrence frequency: 2026-08-01 / 2026-W32 / 2026-08 / 2026), {{occurrenceDate}}, {{occurrenceWeek}}, {{occurrenceMonth}}, {{occurrenceYear}}, {{occurrenceMonthName}}, plus all regular filename variables. A parent task can override this template via the frontmatter property configured below.",
+				occurrenceFilenameProperty: "Occurrence template override property",
+				occurrenceFilenamePropertyHelp:
+					"Name of the frontmatter property on a recurring (parent) task that overrides the occurrence filename template for that task's occurrences.",
 			},
 			tagsCard: {
 				nativeObsidianTags: "Uses native Obsidian tags",

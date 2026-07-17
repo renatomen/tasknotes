@@ -265,6 +265,8 @@ export const DEFAULT_SETTINGS: TaskNotesSettings = {
 	taskFilenameFormat: "zettel", // Keep existing behavior as default
 	storeTitleInFilename: true,
 	customFilenameTemplate: "{{title}}", // Simple title template
+	occurrenceFilenameTemplate: "{{title}} — {{occurrencePeriod}}",
+	occurrenceFilenameTemplateProperty: "occurrenceFilenameTemplate",
 	// Task creation defaults
 	taskCreationDefaults: DEFAULT_TASK_CREATION_DEFAULTS,
 	openTaskAfterCreation: "none",
