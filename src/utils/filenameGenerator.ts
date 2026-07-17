@@ -3,6 +3,7 @@ import type { Vault } from "obsidian";
 import { TaskNotesSettings } from "../types/settings";
 import { getProjectDisplayName } from "./linkUtils";
 import { createTaskNotesLogger } from "./tasknotesLogger";
+import { parseDateToLocal } from "./dateUtils";
 
 const tasknotesLogger = createTaskNotesLogger({ tag: "Utils/FilenameGenerator" });
 
@@ -622,5 +623,83 @@ export async function generateUniqueFilename(
 		// Final fallback with timestamp
 		const timestamp = Date.now().toString(36);
 		return `task-${timestamp}`;
+	}
+}
+
+type ParentRecurrence = string | { frequency?: string } | undefined;
+
+function getOccurrencePeriodKey(
+	parentRecurrence: ParentRecurrence
+): "occurrenceDate" | "occurrenceWeek" | "occurrenceMonth" | "occurrenceYear" {
+	let freq: string | undefined;
+	if (typeof parentRecurrence === "string") {
+		freq = parentRecurrence.match(/FREQ=(DAILY|WEEKLY|MONTHLY|YEARLY)/i)?.[1];
+	} else if (parentRecurrence && typeof parentRecurrence === "object") {
+		freq = parentRecurrence.frequency;
+	}
+	switch (freq?.toUpperCase()) {
+		case "WEEKLY":
+			return "occurrenceWeek";
+		case "MONTHLY":
+			return "occurrenceMonth";
+		case "YEARLY":
+			return "occurrenceYear";
+		default:
+			return "occurrenceDate";
+	}
+}
+
+/**
+ * Builds the template variables derived from a materialized occurrence's date.
+ * `occurrencePeriod` auto-selects the granularity matching the parent's recurrence FREQ.
+ */
+export function buildOccurrenceFilenameVariables(
+	occurrenceDate: string,
+	parentRecurrence?: ParentRecurrence
+): Record<string, string> {
+	const date = parseDateToLocal(occurrenceDate);
+	if (!(date instanceof Date) || isNaN(date.getTime())) {
+		throw new Error(`Invalid occurrence date: ${occurrenceDate}`);
+	}
+	const variables: Record<string, string> = {
+		occurrenceDate: format(date, "yyyy-MM-dd"),
+		occurrenceWeek: format(date, "RRRR-'W'II"),
+		occurrenceMonth: format(date, "yyyy-MM"),
+		occurrenceYear: format(date, "yyyy"),
+		occurrenceMonthName: format(date, "MMMM"),
+	};
+	variables.occurrencePeriod = variables[getOccurrencePeriodKey(parentRecurrence)];
+	return variables;
+}
+
+/**
+ * Generates the filename for a materialized occurrence from a template.
+ * Falls back to the sanitized parent title on any error (a bad template must
+ * never break materialization).
+ */
+export function generateOccurrenceFilename(
+	context: FilenameContext,
+	template: string,
+	occurrenceDate: string,
+	parentRecurrence?: ParentRecurrence
+): string {
+	try {
+		const occurrenceVariables = buildOccurrenceFilenameVariables(
+			occurrenceDate,
+			parentRecurrence
+		);
+		return generateCustomFilename(
+			context,
+			template,
+			context.date || new Date(),
+			occurrenceVariables
+		);
+	} catch (error) {
+		tasknotesLogger.error("Error generating occurrence filename:", {
+			category: "persistence",
+			operation: "generating-occurrence-filename",
+			error: error,
+		});
+		return sanitizeForFilename(context.title);
 	}
 }
