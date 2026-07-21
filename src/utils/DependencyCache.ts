@@ -1,7 +1,12 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion -- Dependency graph traversal guards resolved task nodes before dereferencing. */
 import { TFile, App, Events, EventRef } from "obsidian";
 import { FieldMapper } from "../core/FieldMapper";
-import { normalizeDependencyList, resolveDependencyEntry } from "./dependencyUtils";
+import {
+	normalizeDependencyList,
+	reltypeGatesBlocked,
+	resolveDependencyEntry,
+} from "./dependencyUtils";
+import type { TaskDependencyRelType } from "../types";
 import { TaskNotesSettings } from "../types/settings";
 import { isPathInExcludedFolder, parseExcludedFolders } from "./pathExclusions";
 import { createTaskNotesLogger } from "./tasknotesLogger";
@@ -35,6 +40,8 @@ export class DependencyCache extends Events {
 	private dependencyTargets: Map<string, Set<string>> = new Map(); // task path -> tasks blocked by this task
 	private activeDependencySources: Map<string, Set<string>> = new Map(); // task path -> incomplete blocking task paths
 	private activeDependencyTargets: Map<string, Set<string>> = new Map(); // task path -> tasks actively blocked by this task
+	// dependent path -> blocking path -> parallel edge reltypes; kept so a completion-flip rebuild can re-gate without the original edge
+	private dependencyReltypes: Map<string, Map<string, Set<TaskDependencyRelType>>> = new Map();
 
 	// Project references index
 	private projectReferences: Map<string, Set<string>> = new Map(); // project path -> Set<task paths that reference it>
@@ -188,10 +195,13 @@ export class DependencyCache extends Events {
 	private getFileRelationshipSignature(path: string): string {
 		const blockingTasks = this.sortedSetValues(this.dependencySources.get(path));
 		const blockedTasks = this.sortedSetValues(this.activeDependencyTargets.get(path));
+		// own active blockers: a reltype-only edit (FS->SS) flips blocked-state without changing referenced paths, so the event still fires
+		const activeBlockers = this.sortedSetValues(this.activeDependencySources.get(path));
 		const referencedProjects = this.sortedSetValues(this.projectReferenceSources.get(path));
 		const projectTasks = this.sortedSetValues(this.projectReferences.get(path));
 
 		return JSON.stringify({
+			activeBlockers,
 			blockedTasks,
 			blockingTasks,
 			projectTasks,
@@ -284,15 +294,25 @@ export class DependencyCache extends Events {
 			const normalized = normalizeDependencyList(dependencies);
 			if (normalized) {
 				const blockingTasks = new Set<string>();
+				const reltypesByBlocker = new Map<string, Set<TaskDependencyRelType>>();
 
 				for (const dep of normalized) {
 					const resolved = resolveDependencyEntry(this.app, path, dep);
 					if (resolved?.path && this.isValidFile(resolved.path)) {
-						this.addDependencyLink(path, resolved.path, blockingTasks);
+						let reltypes = reltypesByBlocker.get(resolved.path);
+						if (!reltypes) {
+							reltypes = new Set<TaskDependencyRelType>();
+							reltypesByBlocker.set(resolved.path, reltypes);
+						}
+						reltypes.add(dep.reltype);
 					}
 				}
 
-				if (blockingTasks.size > 0) {
+				if (reltypesByBlocker.size > 0) {
+					this.dependencyReltypes.set(path, reltypesByBlocker);
+					for (const [blockingPath, reltypes] of reltypesByBlocker) {
+						this.addDependencyLink(path, blockingPath, blockingTasks, reltypes);
+					}
 					this.dependencySources.set(path, blockingTasks);
 				}
 			}
@@ -326,7 +346,8 @@ export class DependencyCache extends Events {
 	private addDependencyLink(
 		dependentPath: string,
 		blockingPath: string,
-		blockingTasks: Set<string>
+		blockingTasks: Set<string>,
+		reltypes: Set<TaskDependencyRelType>
 	): void {
 		blockingTasks.add(blockingPath);
 
@@ -335,9 +356,25 @@ export class DependencyCache extends Events {
 		}
 		this.dependencyTargets.get(blockingPath)!.add(dependentPath);
 
-		if (!this.isCompletedPath(blockingPath)) {
+		if (this.anyReltypeGates(reltypes) && !this.isCompletedPath(blockingPath)) {
 			this.addActiveDependencyLink(dependentPath, blockingPath);
 		}
+	}
+
+	private anyReltypeGates(reltypes: Set<TaskDependencyRelType> | undefined): boolean {
+		if (!reltypes || reltypes.size === 0) {
+			return true; // no recorded reltype defaults to Finish-to-Start (gating)
+		}
+		for (const reltype of reltypes) {
+			if (reltypeGatesBlocked(reltype)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private pairGatesBlocked(dependentPath: string, blockingPath: string): boolean {
+		return this.anyReltypeGates(this.dependencyReltypes.get(dependentPath)?.get(blockingPath));
 	}
 
 	private addActiveDependencyLink(dependentPath: string, blockingPath: string): void {
@@ -393,7 +430,9 @@ export class DependencyCache extends Events {
 		}
 
 		for (const dependentPath of blockedTasks) {
-			this.addActiveDependencyLink(dependentPath, blockingPath);
+			if (this.pairGatesBlocked(dependentPath, blockingPath)) {
+				this.addActiveDependencyLink(dependentPath, blockingPath);
+			}
 		}
 	}
 
@@ -402,8 +441,8 @@ export class DependencyCache extends Events {
 		const projectField = this.fieldMapper?.toUserField("projects") || "project";
 
 		const dependencies = (normalizeDependencyList(frontmatter[dependenciesField]) ?? [])
-			.map((dependency) => dependency.uid)
-			.filter((uid) => uid.length > 0)
+			.filter((dependency) => dependency.uid.length > 0)
+			.map((dependency) => `${dependency.uid} ${dependency.reltype}`)
 			.sort();
 		const projects = this.normalizeProjectFingerprintValues(frontmatter[projectField]);
 
@@ -506,6 +545,7 @@ export class DependencyCache extends Events {
 			this.dependencySources.delete(path);
 		}
 		this.activeDependencySources.delete(path);
+		this.dependencyReltypes.delete(path);
 
 		// Also clear project references since those are stored in this task's frontmatter
 		const referencedProjects = this.projectReferenceSources.get(path);
@@ -546,6 +586,7 @@ export class DependencyCache extends Events {
 			this.dependencySources.delete(path);
 		}
 		this.activeDependencySources.delete(path);
+		this.dependencyReltypes.delete(path);
 
 		// Clear from dependency targets
 		const blockedTasks = this.dependencyTargets.get(path);
@@ -557,6 +598,13 @@ export class DependencyCache extends Events {
 					sources.delete(path);
 					if (sources.size === 0) {
 						this.dependencySources.delete(blockedTask);
+					}
+				}
+				const reltypes = this.dependencyReltypes.get(blockedTask);
+				if (reltypes) {
+					reltypes.delete(path);
+					if (reltypes.size === 0) {
+						this.dependencyReltypes.delete(blockedTask);
 					}
 				}
 				this.removeActiveDependencyLink(blockedTask, path);
@@ -635,6 +683,22 @@ export class DependencyCache extends Events {
 		}
 
 		const blocked = this.activeDependencyTargets.get(taskPath);
+		return blocked ? Array.from(blocked) : [];
+	}
+
+	/**
+	 * Every task depending on this one, regardless of reltype, for relationship display — unlike the
+	 * gating getBlockedTaskPaths, this keeps Start-anchored dependents visible. Returns [] when this
+	 * task is completed, matching the gating reverse index so Finish-to-Start-only vaults render identically.
+	 */
+	getAllBlockedTaskPaths(taskPath: string): string[] {
+		if (!this.indexesBuilt) {
+			this.buildIndexesSync();
+		}
+		if (this.isCompletedPath(taskPath)) {
+			return [];
+		}
+		const blocked = this.dependencyTargets.get(taskPath);
 		return blocked ? Array.from(blocked) : [];
 	}
 
@@ -727,6 +791,7 @@ export class DependencyCache extends Events {
 		this.dependencyTargets.clear();
 		this.activeDependencySources.clear();
 		this.activeDependencyTargets.clear();
+		this.dependencyReltypes.clear();
 		this.projectReferences.clear();
 		this.projectReferenceSources.clear();
 		this.relationshipFingerprints.clear();

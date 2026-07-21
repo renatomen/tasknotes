@@ -8,7 +8,7 @@ import { convertInternalToUserProperties } from "../utils/propertyMapping";
 import { DEFAULT_INTERNAL_VISIBLE_PROPERTIES } from "../settings/defaults";
 import type { TaskCardOptions } from "../ui/TaskCard";
 import { PropertyMappingService } from "./PropertyMappingService";
-import { normalizeDependencyList } from "../utils/dependencyUtils";
+import { anyDependencyGatesBlocked, normalizeDependencyList } from "../utils/dependencyUtils";
 import { stringifyUnknown, stringifyUnknownArray } from "../utils/stringUtils";
 import { createTaskNotesLogger } from "../utils/tasknotesLogger";
 
@@ -221,13 +221,13 @@ function createTaskInfoFromProperties(
 	let blockingTasks: string[] = [];
 	let isBlocking = false;
 	if (plugin?.dependencyCache && basesItem.path) {
-		// Use DependencyCache for status-aware blocking check
+		// isBlocked/isBlocking are reltype-gated; the blocking list keeps every dependent.
 		isBlocked = plugin.dependencyCache.isTaskBlocked(basesItem.path);
-		blockingTasks = plugin.dependencyCache.getBlockedTaskPaths(basesItem.path);
-		isBlocking = blockingTasks.length > 0;
+		isBlocking = plugin.dependencyCache.getBlockedTaskPaths(basesItem.path).length > 0;
+		blockingTasks = plugin.dependencyCache.getAllBlockedTaskPaths(basesItem.path);
 	} else {
-		// Fallback when plugin not available: use simple existence check
-		isBlocked = Array.isArray(props.blockedBy) && props.blockedBy.length > 0;
+		// Fallback when the cache is unavailable: existence check, excluding Start-anchored edges.
+		isBlocked = anyDependencyGatesBlocked(props.blockedBy);
 	}
 
 	return {

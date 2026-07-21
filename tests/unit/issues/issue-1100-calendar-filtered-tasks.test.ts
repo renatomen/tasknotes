@@ -58,6 +58,7 @@ function createPlugin(): TaskNotesPlugin {
 		dependencyCache: {
 			isTaskBlocked: jest.fn(() => false),
 			getBlockedTaskPaths: jest.fn(() => []),
+			getAllBlockedTaskPaths: jest.fn(() => []),
 		},
 		app: {
 			metadataCache: {
