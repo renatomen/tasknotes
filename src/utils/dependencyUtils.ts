@@ -16,6 +16,35 @@ export function isValidDependencyRelType(value: string): value is TaskDependency
 	return VALID_RELATIONSHIP_TYPES.includes(value as TaskDependencyRelType);
 }
 
+const RELTYPE_SHORT_LABEL: Record<TaskDependencyRelType, string> = {
+	FINISHTOSTART: "FS",
+	FINISHTOFINISH: "FF",
+	STARTTOSTART: "SS",
+	STARTTOFINISH: "SF",
+};
+
+/** Short RFC 9253 code for a reltype, e.g. "SS" — for compact relationship badges. */
+export function reltypeShortLabel(reltype: TaskDependencyRelType): string {
+	return RELTYPE_SHORT_LABEL[reltype] ?? RELTYPE_SHORT_LABEL[DEFAULT_DEPENDENCY_RELTYPE];
+}
+
+/**
+ * Compact display badge for a dependency edge, or null when it is the plain default
+ * (Finish-to-Start with no gap) — so common Finish-to-Start-only vaults show no chrome.
+ * Non-default edges render the reltype code and, when set, the gap: "SS", "FF · P1D", "FS · P2D".
+ */
+export function formatDependencyBadge(dependency: TaskDependency): string | null {
+	const gap = dependency.gap?.trim();
+	if (dependency.reltype === DEFAULT_DEPENDENCY_RELTYPE && !gap) {
+		return null;
+	}
+	const parts = [reltypeShortLabel(dependency.reltype)];
+	if (gap) {
+		parts.push(gap);
+	}
+	return parts.join(" · ");
+}
+
 /** Whether a reltype contributes to "blocked" (RFC 9253): Finish-anchored gates, Start-anchored never. Completion is the caller's concern. */
 export function reltypeGatesBlocked(reltype: TaskDependencyRelType): boolean {
 	return reltype === "FINISHTOSTART" || reltype === "FINISHTOFINISH";
