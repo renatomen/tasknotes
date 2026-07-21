@@ -238,6 +238,8 @@ export interface TaskNotesSettings {
 	resetCheckboxesOnRecurrence: boolean; // Reset markdown checkboxes in task body when recurring task completes
 	// Frontmatter link format settings
 	useFrontmatterMarkdownLinks: boolean; // Use markdown links in frontmatter (requires obsidian-frontmatter-markdown-links plugin)
+	// Advanced dependency relationship types (RFC 9253): opt-in authoring of non-Finish-to-Start reltypes
+	enableAdvancedDependencyTypes: boolean;
 	// OAuth Calendar Integration settings
 	googleOAuthClientId: string;
 	googleOAuthClientSecret: string;

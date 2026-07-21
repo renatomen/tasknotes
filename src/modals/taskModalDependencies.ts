@@ -1,6 +1,6 @@
 import { setTooltip, TFile } from "obsidian";
 import TaskNotesPlugin from "../main";
-import { TaskDependency, TaskInfo } from "../types";
+import { TaskDependency, TaskDependencyRelType, TaskInfo } from "../types";
 import {
 	DEFAULT_DEPENDENCY_RELTYPE,
 	formatDependencyLink,
@@ -30,7 +30,16 @@ export interface RenderDependencyListOptions {
 	linkServices: LinkServices;
 	translate: (key: string, params?: Record<string, string | number>) => string;
 	onRemove: (index: number) => void;
+	showReltypeControls?: boolean;
+	onReltypeChange?: (index: number, reltype: TaskDependencyRelType) => void;
 }
+
+const RELTYPE_OPTION_KEYS: ReadonlyArray<[TaskDependencyRelType, string]> = [
+	["FINISHTOSTART", "finishToStart"],
+	["FINISHTOFINISH", "finishToFinish"],
+	["STARTTOSTART", "startToStart"],
+	["STARTTOFINISH", "startToFinish"],
+];
 
 export function createDependencyItemFromFile(
 	{ plugin, sourcePath }: CreateDependencyContext,
@@ -153,6 +162,8 @@ export async function renderDependencyList({
 	linkServices,
 	translate,
 	onRemove,
+	showReltypeControls,
+	onReltypeChange,
 }: RenderDependencyListOptions): Promise<void> {
 	if (!listEl) {
 		return;
@@ -191,6 +202,10 @@ export async function renderDependencyList({
 			renderUnresolvedDependency(contentEl, item);
 		}
 
+		if (showReltypeControls && onReltypeChange) {
+			renderReltypeSelect(itemEl, item, index, translate, onReltypeChange);
+		}
+
 		const removeBtn = itemEl.createEl("button", {
 			cls: "task-project-remove",
 			text: "×",
@@ -204,6 +219,29 @@ export async function renderDependencyList({
 			onRemove(index);
 		});
 	}
+}
+
+function renderReltypeSelect(
+	itemEl: HTMLElement,
+	item: DependencyItem,
+	index: number,
+	translate: (key: string, params?: Record<string, string | number>) => string,
+	onReltypeChange: (index: number, reltype: TaskDependencyRelType) => void
+): void {
+	const label = translate("modals.task.dependencies.reltypeLabel");
+	const select = itemEl.createEl("select", { cls: "task-project-item__reltype" });
+	select.setAttribute("aria-label", label);
+	setTooltip(select, label, { placement: "top" });
+	for (const [value, key] of RELTYPE_OPTION_KEYS) {
+		const option = select.createEl("option", {
+			value,
+			text: translate(`modals.task.dependencies.reltype.${key}`),
+		});
+		option.selected = item.dependency.reltype === value;
+	}
+	select.addEventListener("change", () => {
+		onReltypeChange(index, select.value as TaskDependencyRelType);
+	});
 }
 
 async function renderResolvedDependency(

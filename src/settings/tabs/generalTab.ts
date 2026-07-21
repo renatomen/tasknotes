@@ -683,6 +683,29 @@ export function renderGeneralTab(
 		);
 	}
 
+	// Dependencies Section
+	createSettingGroup(
+		container,
+		{
+			heading: translate("settings.general.dependencies.header"),
+			description: translate("settings.general.dependencies.description"),
+		},
+		(group) => {
+			group.addSetting(
+				(setting) =>
+					void configureToggleSetting(setting, {
+						name: translate("settings.general.dependencies.advancedTypes.name"),
+						desc: translate("settings.general.dependencies.advancedTypes.description"),
+						getValue: () => plugin.settings.enableAdvancedDependencyTypes,
+						setValue: async (value: boolean) => {
+							plugin.settings.enableAdvancedDependencyTypes = value;
+							save();
+						},
+					})
+			);
+		}
+	);
+
 	// Release Notes Section
 	createSettingGroup(
 		container,

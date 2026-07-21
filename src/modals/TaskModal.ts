@@ -16,7 +16,7 @@ import {
 } from "./taskModalDetailsEditor";
 import { splitFrontmatterAndBody } from "../utils/helpers";
 import { ProjectSelectModal } from "./ProjectSelectModal";
-import { TaskDependency, Reminder } from "../types";
+import { TaskDependency, TaskDependencyRelType, Reminder } from "../types";
 import { DEFAULT_DEPENDENCY_RELTYPE, formatDependencyLink } from "../utils/dependencyUtils";
 import { type LinkServices } from "../ui/renderers/linkRenderer";
 import { generateLink } from "../utils/linkUtils";
@@ -182,10 +182,23 @@ export abstract class TaskModal extends Modal {
 	}
 
 	protected renderBlockedByList(): void {
-		void this.renderDependencyList(this.blockedByList, this.blockedByItems, (index) => {
-			this.blockedByItems = removeDependencyItemAtIndex(this.blockedByItems, index);
-			this.renderBlockedByList();
-		});
+		void this.renderDependencyList(
+			this.blockedByList,
+			this.blockedByItems,
+			(index) => {
+				this.blockedByItems = removeDependencyItemAtIndex(this.blockedByItems, index);
+				this.renderBlockedByList();
+			},
+			{
+				showReltypeControls: this.plugin.settings.enableAdvancedDependencyTypes,
+				onReltypeChange: (index, reltype) => {
+					const item = this.blockedByItems[index];
+					if (item) {
+						item.dependency = { ...item.dependency, reltype };
+					}
+				},
+			}
+		);
 	}
 
 	protected renderBlockingList(): void {
@@ -198,7 +211,11 @@ export abstract class TaskModal extends Modal {
 	private async renderDependencyList(
 		listEl: HTMLElement | undefined,
 		items: DependencyItem[],
-		onRemove: (index: number) => void
+		onRemove: (index: number) => void,
+		reltypeControls?: {
+			showReltypeControls: boolean;
+			onReltypeChange: (index: number, reltype: TaskDependencyRelType) => void;
+		}
 	): Promise<void> {
 		if (!listEl) {
 			return;
@@ -211,6 +228,8 @@ export abstract class TaskModal extends Modal {
 			linkServices: this.getLinkServices(),
 			translate: (key, params) => this.t(key, params),
 			onRemove,
+			showReltypeControls: reltypeControls?.showReltypeControls,
+			onReltypeChange: reltypeControls?.onReltypeChange,
 		});
 	}
 

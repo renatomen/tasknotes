@@ -397,6 +397,7 @@ export const DEFAULT_SETTINGS: TaskNotesSettings = {
 	resetCheckboxesOnRecurrence: false, // Off by default - user opts in
 	// Frontmatter link format defaults
 	useFrontmatterMarkdownLinks: false, // Default to wikilinks for compatibility
+	enableAdvancedDependencyTypes: false, // Opt-in: authoring of non-Finish-to-Start dependency types
 	// OAuth Calendar Integration defaults
 	googleOAuthClientId: "",
 	googleOAuthClientSecret: "",
