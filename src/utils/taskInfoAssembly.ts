@@ -6,6 +6,7 @@ export interface BuildTaskInfoFromMappedTaskInput {
 	mappedTask: Partial<TaskInfo>;
 	defaultTaskStatus: string;
 	isBlocked: boolean;
+	isBlocking: boolean;
 	blockingTasks: string[];
 }
 
@@ -14,6 +15,7 @@ export function buildTaskInfoFromMappedTask({
 	mappedTask,
 	defaultTaskStatus,
 	isBlocked,
+	isBlocking,
 	blockingTasks,
 }: BuildTaskInfoFromMappedTaskInput): TaskInfo {
 	const totalTrackedTime = mappedTask.timeEntries
@@ -33,7 +35,7 @@ export function buildTaskInfoFromMappedTask({
 		projects: Array.isArray(mappedTask.projects) ? mappedTask.projects : [],
 		totalTrackedTime,
 		isBlocked,
-		isBlocking: blockingTasks.length > 0,
+		isBlocking,
 		blocking: blockingTasks.length > 0 ? blockingTasks : undefined,
 	};
 }

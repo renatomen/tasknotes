@@ -7,6 +7,7 @@ import { TaskNotesSettings } from "../types/settings";
 import type { DependencyCache } from "./DependencyCache";
 import { isPathInExcludedFolder, parseExcludedFolders } from "./pathExclusions";
 import { buildTaskInfoFromMappedTask } from "./taskInfoAssembly";
+import { anyDependencyGatesBlocked } from "./dependencyUtils";
 import { isTaskFrontmatter } from "./taskIdentification";
 import { createTaskNotesLogger } from "./tasknotesLogger";
 
@@ -333,14 +334,16 @@ export class TaskManager extends Events {
 
 			// Get dependency information from DependencyCache
 			let isBlocked = false;
+			let isBlocking = false;
 			let blockingTasks: string[] = [];
 			if (this._dependencyCache) {
-				// Use DependencyCache for status-aware blocking check
+				// isBlocked/isBlocking are reltype-gated; the blocking list keeps every dependent.
 				isBlocked = this._dependencyCache.isTaskBlocked(path);
-				blockingTasks = this._dependencyCache.getBlockedTaskPaths(path);
+				isBlocking = this._dependencyCache.getBlockedTaskPaths(path).length > 0;
+				blockingTasks = this._dependencyCache.getAllBlockedTaskPaths(path);
 			} else {
-				// Fallback when dependency cache not available: use simple existence check
-				isBlocked = Array.isArray(mappedTask.blockedBy) && mappedTask.blockedBy.length > 0;
+				// cache-absent fallback: existence check that still excludes Start-anchored edges
+				isBlocked = anyDependencyGatesBlocked(mappedTask.blockedBy);
 			}
 
 			return buildTaskInfoFromMappedTask({
@@ -348,6 +351,7 @@ export class TaskManager extends Events {
 				mappedTask,
 				defaultTaskStatus: this.settings.defaultTaskStatus,
 				isBlocked,
+				isBlocking,
 				blockingTasks,
 			});
 		} catch (error) {

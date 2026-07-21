@@ -23,6 +23,7 @@ describe("buildTaskInfoFromMappedTask", () => {
 			mappedTask: makeTask({ id: "old-id", path: "Mapped/original.md" }),
 			defaultTaskStatus: "open",
 			isBlocked: true,
+			isBlocking: true,
 			blockingTasks: ["Tasks/dependent.md"],
 		});
 
@@ -33,6 +34,20 @@ describe("buildTaskInfoFromMappedTask", () => {
 			isBlocking: true,
 			blocking: ["Tasks/dependent.md"],
 		});
+	});
+
+	it("keeps a non-gating dependent in the blocking list while isBlocking stays false", () => {
+		const task = buildTaskInfoFromMappedTask({
+			path: "Tasks/predecessor.md",
+			mappedTask: makeTask(),
+			defaultTaskStatus: "open",
+			isBlocked: false,
+			isBlocking: false,
+			blockingTasks: ["Tasks/start-anchored-dependent.md"],
+		});
+
+		expect(task.isBlocking).toBe(false);
+		expect(task.blocking).toEqual(["Tasks/start-anchored-dependent.md"]);
 	});
 
 	it("defaults missing display fields and list fields", () => {
@@ -48,6 +63,7 @@ describe("buildTaskInfoFromMappedTask", () => {
 			}),
 			defaultTaskStatus: "todo",
 			isBlocked: false,
+			isBlocking: false,
 			blockingTasks: [],
 		});
 
@@ -82,6 +98,7 @@ describe("buildTaskInfoFromMappedTask", () => {
 			}),
 			defaultTaskStatus: "open",
 			isBlocked: false,
+			isBlocking: false,
 			blockingTasks: [],
 		});
 

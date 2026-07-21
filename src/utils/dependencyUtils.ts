@@ -16,6 +16,11 @@ export function isValidDependencyRelType(value: string): value is TaskDependency
 	return VALID_RELATIONSHIP_TYPES.includes(value as TaskDependencyRelType);
 }
 
+/** Whether a reltype contributes to "blocked" (RFC 9253): Finish-anchored gates, Start-anchored never. Completion is the caller's concern. */
+export function reltypeGatesBlocked(reltype: TaskDependencyRelType): boolean {
+	return reltype === "FINISHTOSTART" || reltype === "FINISHTOFINISH";
+}
+
 export function extractDependencyUid(entry: unknown): string {
 	if (typeof entry === "string") {
 		return entry;
@@ -52,6 +57,12 @@ export function normalizeDependencyEntry(value: unknown): TaskDependency | null 
 	}
 
 	return null;
+}
+
+/** Whether a raw `blockedBy` has any gating (Finish-anchored) edge; a coarse cache-absent fallback that ignores completion. */
+export function anyDependencyGatesBlocked(value: unknown): boolean {
+	const normalized = normalizeDependencyList(value);
+	return normalized ? normalized.some((dependency) => reltypeGatesBlocked(dependency.reltype)) : false;
 }
 
 export function normalizeDependencyList(value: unknown): TaskDependency[] | undefined {
