@@ -980,6 +980,15 @@ export const en: TranslationTree = {
 						"Generate markdown links ([text](path)) instead of wikilinks ([[link]]) in frontmatter properties.\n\n⚠️ Requires the 'obsidian-frontmatter-markdown-links' plugin to work correctly.",
 				},
 			},
+			dependencies: {
+				header: "Dependencies",
+				description: "Configure task dependency relationships.",
+				advancedTypes: {
+					name: "Enable advanced dependency types",
+					description:
+						"Show a relationship-type selector on the blocked-by list in the task modal so you can author finish → finish, start → start, and start → finish dependencies, not just the default finish → start. Only finish-anchored types mark a task as blocked.",
+				},
+			},
 			taskInteraction: {
 				header: "Task interaction",
 				description: "Configure how clicking on tasks behaves.",
@@ -2631,6 +2640,13 @@ export const en: TranslationTree = {
 				addTaskButton: "Add task",
 				selectTaskTooltip: "Select a task note using fuzzy search",
 				removeTaskTooltip: "Remove task",
+				reltypeLabel: "Type",
+				reltype: {
+					finishToStart: "Finish → start",
+					finishToFinish: "Finish → finish",
+					startToStart: "Start → start",
+					startToFinish: "Start → finish",
+				},
 			},
 			organization: {
 				projects: "Projects",
