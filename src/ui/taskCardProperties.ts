@@ -33,7 +33,11 @@ import {
 	type LinkServices,
 } from "./renderers/linkRenderer";
 import { renderContextsValue, renderTagsValue, type TagServices } from "./renderers/tagRenderer";
-import { normalizeDependencyEntry, resolveDependencyEntry } from "../utils/dependencyUtils";
+import {
+	formatDependencyBadge,
+	normalizeDependencyEntry,
+	resolveDependencyEntry,
+} from "../utils/dependencyUtils";
 import { createTaskNotesLogger } from "../utils/tasknotesLogger";
 
 const tasknotesLogger = createTaskNotesLogger({ tag: "Ui/TaskCardProperties" });
@@ -463,6 +467,20 @@ const PROPERTY_RENDERERS: Record<string, PropertyRenderer> = {
 						dependencyLink.displayText,
 						linkServices
 					);
+					const normalized = normalizeDependencyEntry(dep);
+					const badge = normalized ? formatDependencyBadge(normalized) : null;
+					if (badge && normalized) {
+						const badgeEl = linksContainer.createEl("span", {
+							cls: "task-card__dependency-badge",
+							text: badge,
+						});
+						setTooltip(
+							badgeEl,
+							normalized.gap
+								? `${normalized.reltype} (gap ${normalized.gap})`
+								: normalized.reltype
+						);
+					}
 				}
 			});
 		}

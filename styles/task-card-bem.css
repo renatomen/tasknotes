@@ -207,6 +207,17 @@
     border-color: color-mix(in srgb, var(--tn-color-error) 70%, transparent);
 }
 
+.tasknotes-plugin .task-card__dependency-badge {
+    margin-inline-start: var(--tn-spacing-xs);
+    padding-inline: var(--tn-spacing-xs);
+    border-radius: var(--tn-radius-sm);
+    background: var(--tn-bg-secondary);
+    color: var(--tn-text-muted);
+    font-size: var(--tn-font-size-xs);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
 .tasknotes-plugin .task-card__metadata-pill--google-calendar {
     background: transparent;
     color: var(--tn-color-google-calendar);
