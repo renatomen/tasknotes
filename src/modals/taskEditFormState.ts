@@ -1,7 +1,10 @@
 import type { Reminder, TaskInfo } from "../types";
 import type { HideIdentifyingTagsMode, UserMappedField } from "../types/settings";
 import { sanitizeTags } from "../utils/helpers";
-import { filterTaskIdentificationTags } from "../utils/taskTagFiltering";
+import {
+	filterTaskIdentificationTags,
+	shouldHideTaskIdentificationTags,
+} from "../utils/taskTagFiltering";
 import {
 	readTaskEditFrontmatter,
 	type TaskEditFrontmatterReadInput,
@@ -10,6 +13,7 @@ import {
 export interface TaskEditFormStateSettings {
 	taskIdentificationMethod?: string;
 	taskTag?: string;
+	hideIdentifyingTagsInCards?: boolean;
 	hideIdentifyingTagsMode?: HideIdentifyingTagsMode;
 	userFields?: UserMappedField[];
 }
@@ -69,7 +73,12 @@ export function buildTaskEditFormStateFromTask(
 export function buildTaskEditFormState(input: TaskEditFormStateInput): TaskEditFormState {
 	const rawTags = toTaskStringList(input.task.tags);
 	const visibleTags =
-		input.settings.taskIdentificationMethod === "tag"
+		shouldHideTaskIdentificationTags({
+			taskIdentificationMethod: input.settings.taskIdentificationMethod || "",
+			taskTag: input.settings.taskTag || "",
+			hideIdentifyingTagsInCards: input.settings.hideIdentifyingTagsInCards,
+			hideIdentifyingTagsMode: input.settings.hideIdentifyingTagsMode,
+		})
 			? filterTaskIdentificationTags(
 					rawTags,
 					input.settings.taskTag || "",

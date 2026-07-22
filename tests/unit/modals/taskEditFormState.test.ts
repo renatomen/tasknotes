@@ -36,7 +36,7 @@ describe("taskEditFormState", () => {
 		MockObsidian.reset();
 	});
 
-	it("builds core edit form state and hides identifying tags in tag mode", () => {
+	it("builds core edit form state and hides identifying tags when enabled", () => {
 		const reminder = { id: "reminder-1", type: "absolute" as const, date: "2026-05-19" };
 		const task = createTask({
 			title: "Tagged task",
@@ -60,6 +60,7 @@ describe("taskEditFormState", () => {
 			settings: {
 				taskIdentificationMethod: "tag",
 				taskTag: "task",
+				hideIdentifyingTagsInCards: true,
 				hideIdentifyingTagsMode: "all",
 			},
 			normalizeDetails: (value) => value.replace(/\r\n/g, "\n").trimEnd(),
