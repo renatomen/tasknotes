@@ -41,6 +41,9 @@ jobs:
           fi
       - name: Docs quality checks
         run: npm run docs:check
+      - name: Generate release notes import
+        # src/releaseNotes.ts is generated (gitignored); typecheck and tests import it.
+        run: node generate-release-notes-import.mjs
       - name: Type check
         run: npm run typecheck
       - name: Lint
