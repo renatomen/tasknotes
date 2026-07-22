@@ -1,0 +1,1 @@
+Verify SonarCloud analyzes PRs into fork/main. Safe to delete.
