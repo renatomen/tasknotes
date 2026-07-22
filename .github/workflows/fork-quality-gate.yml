@@ -8,7 +8,7 @@ on:
   pull_request:
     branches: [main, tooling/ci]
   push:
-    branches: [dogfood]
+    branches: [main, dogfood]
   workflow_dispatch:
 
 permissions:
