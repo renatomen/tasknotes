@@ -17,7 +17,7 @@ const createStatus = (
 	...overrides,
 });
 
-describe("StatusManager status lifecycle (U1)", () => {
+describe("StatusManager status lifecycle", () => {
 	describe("isCompletedStatus characterization (must stay unchanged)", () => {
 		it("keeps the default statuses' completion behavior", () => {
 			const manager = new StatusManager(DEFAULT_STATUSES);
@@ -55,6 +55,14 @@ describe("StatusManager status lifecycle (U1)", () => {
 			]);
 			expect(finished.category).toBe("completed");
 			expect(finished.isCompleted).toBe(true);
+		});
+
+		it("reconciles a completed status carrying a non-completed category to completed", () => {
+			const [status] = normalizeStatusCategories([
+				createStatus("legacy", { isCompleted: true, category: "planned" }),
+			]);
+			expect(status.category).toBe("completed");
+			expect(status.isCompleted).toBe(true);
 		});
 
 		it("is idempotent", () => {

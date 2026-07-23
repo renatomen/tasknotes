@@ -277,13 +277,13 @@ function renderStatusList(
 				{
 					value: "",
 					label: translate(
-						"settings.taskProperties.taskStatuses.categoryOptions.uncategorized"
+						"settings.taskProperties.taskStatuses.badges.uncategorized"
 					),
 				},
 				...STATUS_CATEGORIES.map((category) => ({
 					value: category,
 					label: translate(
-						`settings.taskProperties.taskStatuses.categoryOptions.${categoryI18nKey(category)}`
+						`settings.taskProperties.taskStatuses.badges.${categoryI18nKey(category)}`
 					),
 				})),
 			],

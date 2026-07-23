@@ -11,7 +11,7 @@ import { StatusConfig } from "../../../src/types";
 	this.setAttribute(name, value);
 };
 
-// Deliberately named "todo" (not a category name) so findCategorySelect can key on the
+// Deliberately named "todo" (not a category name) so categorySelect can key on the
 // "planned" option to disambiguate the category dropdown from the default/next-status selects.
 function createStatus(overrides: Partial<StatusConfig> = {}): StatusConfig {
 	return {
@@ -68,7 +68,7 @@ function badge(container: HTMLElement): HTMLElement | null {
 	return container.querySelector(".tasknotes-settings__card-status-badge");
 }
 
-describe("Status config card — category dropdown + pill (U2)", () => {
+describe("Status config card — category dropdown + pill", () => {
 	it("selecting Completed sets category and keeps isCompleted true", () => {
 		const { container, status } = renderCard(createStatus());
 		choose(categorySelect(container), "completed");

@@ -1219,8 +1219,6 @@ export const en: TranslationTree = {
 					label: 'Label: The display name shown in the interface (e.g., "In Progress")',
 					color: "Color: Visual indicator color for the status dot and badges",
 					icon: 'Icon: Optional Lucide icon name to display instead of colored dot (e.g., "check", "circle", "clock"). Browse icons at lucide.dev',
-					completed:
-						"Completed: When checked, tasks with this status are considered finished and may be filtered differently",
 					category:
 						"Category: Sets the lifecycle stage so dependencies can tell when a task has started or finished. A completed category counts as done, the same as the old completed toggle.",
 					autoArchive:
@@ -1242,7 +1240,6 @@ export const en: TranslationTree = {
 					label: "Label:",
 					color: "Color:",
 					icon: "Icon:",
-					completed: "Completed:",
 					category: "Category:",
 					excludeFromCycle: "Skip when cycling:",
 					nextStatus: "Next status:",
@@ -1260,12 +1257,6 @@ export const en: TranslationTree = {
 					planned: "Planned",
 					inProgress: "In progress",
 					uncategorized: "Uncategorized",
-				},
-				categoryOptions: {
-					uncategorized: "Uncategorized",
-					planned: "Planned",
-					inProgress: "In progress",
-					completed: "Completed",
 				},
 				deleteConfirm: 'Are you sure you want to delete the status "{label}"?',
 			},

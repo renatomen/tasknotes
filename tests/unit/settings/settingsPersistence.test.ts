@@ -8,6 +8,7 @@ import {
 	pluginDataFileExists,
 } from "../../../src/settings/settingsPersistence";
 import type { TaskNotesSettings } from "../../../src/types/settings";
+import type { StatusConfig } from "../../../src/types";
 
 function createHost(options: {
 	dir?: string;
@@ -209,5 +210,35 @@ describe("settings persistence helpers", () => {
 				tasksFolder: "Projects/Tasks",
 			})
 		);
+	});
+});
+
+describe("status category migration on load", () => {
+	const legacyStatus = (overrides: Partial<StatusConfig>): StatusConfig => ({
+		id: "s",
+		value: "s",
+		label: "S",
+		color: "#808080",
+		isCompleted: false,
+		order: 0,
+		autoArchive: false,
+		autoArchiveDelay: 5,
+		...overrides,
+	});
+
+	it("backfills category on a legacy completed status through the load path", () => {
+		const { settings } = buildSettingsFromLoadedData({
+			customStatuses: [legacyStatus({ value: "done", isCompleted: true })],
+		});
+		expect(settings.customStatuses[0].category).toBe("completed");
+		expect(settings.customStatuses[0].isCompleted).toBe(true);
+	});
+
+	it("leaves a legacy non-completed status uncategorized through the load path", () => {
+		const { settings } = buildSettingsFromLoadedData({
+			customStatuses: [legacyStatus({ value: "open", isCompleted: false })],
+		});
+		expect(settings.customStatuses[0].category).toBeUndefined();
+		expect(settings.customStatuses[0].isCompleted).toBe(false);
 	});
 });
