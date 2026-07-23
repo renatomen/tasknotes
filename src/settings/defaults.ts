@@ -32,6 +32,7 @@ export const DEFAULT_STATUSES: StatusConfig[] = [
 		label: "None",
 		color: "#cccccc",
 		isCompleted: false,
+		category: "planned",
 		excludeFromCycle: false,
 		order: 0,
 		autoArchive: false,
@@ -43,6 +44,7 @@ export const DEFAULT_STATUSES: StatusConfig[] = [
 		label: "Open",
 		color: "#808080",
 		isCompleted: false,
+		category: "planned",
 		excludeFromCycle: false,
 		order: 1,
 		autoArchive: false,
@@ -54,6 +56,7 @@ export const DEFAULT_STATUSES: StatusConfig[] = [
 		label: "In progress",
 		color: "#0066cc",
 		isCompleted: false,
+		category: "in-progress",
 		excludeFromCycle: false,
 		order: 2,
 		autoArchive: false,
@@ -65,12 +68,30 @@ export const DEFAULT_STATUSES: StatusConfig[] = [
 		label: "Done",
 		color: "#00aa00",
 		isCompleted: true,
+		category: "completed",
 		excludeFromCycle: false,
 		order: 3,
 		autoArchive: false,
 		autoArchiveDelay: 5,
 	},
 ];
+
+/**
+ * Backfills lifecycle `category` on load: an already-`isCompleted` status becomes
+ * `completed` (and stays in sync); every other status is left uncategorized — no
+ * guess of planned vs in-progress. Idempotent.
+ */
+export function normalizeStatusCategories(statuses: StatusConfig[]): StatusConfig[] {
+	return statuses.map((status) => {
+		if (status.category === "completed") {
+			return status.isCompleted ? status : { ...status, isCompleted: true };
+		}
+		if (status.category !== undefined) {
+			return status;
+		}
+		return status.isCompleted ? { ...status, category: "completed" } : status;
+	});
+}
 
 // Default priority configuration matches current hardcoded behavior
 export const DEFAULT_PRIORITIES: PriorityConfig[] = [

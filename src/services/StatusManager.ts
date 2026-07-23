@@ -1,4 +1,4 @@
-import { StatusConfig } from "../types";
+import { StatusConfig, StatusCategory } from "../types";
 import { normalizeStatusConfigValue } from "../core/fieldMapping";
 import { isSupportedColorValue, normalizeThemeColor } from "../utils/themeColors";
 
@@ -134,6 +134,27 @@ export class StatusManager {
 	isCompletedStatus(statusValue: string): boolean {
 		const status = this.getStatusConfig(statusValue);
 		return status?.isCompleted || false;
+	}
+
+	getCategory(statusValue: string): StatusCategory | undefined {
+		return this.getStatusConfig(statusValue)?.category;
+	}
+
+	/**
+	 * Whether the status counts as started — the constraint anchor for STARTTOSTART /
+	 * STARTTOFINISH edges. Uncategorized and planned are not started.
+	 */
+	isStarted(statusValue: string): boolean {
+		const category = this.getCategory(statusValue);
+		return category === "in-progress" || category === "completed";
+	}
+
+	/**
+	 * Whether the status counts as finished — the certain anchor for FINISHTOSTART /
+	 * FINISHTOFINISH edges. Equivalent to isCompleted.
+	 */
+	isFinished(statusValue: string): boolean {
+		return this.isCompletedStatus(statusValue);
 	}
 
 	/**

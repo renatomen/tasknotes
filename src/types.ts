@@ -732,13 +732,22 @@ export interface FieldMapping {
 	sortOrder: string; // Numeric ordering within column (lower = higher)
 }
 
+/**
+ * Lifecycle stage of a status. An absent category means uncategorized — it computes as
+ * not-started/not-finished (like planned) but records that the user has not set it yet.
+ */
+export type StatusCategory = "planned" | "in-progress" | "completed";
+
+export const STATUS_CATEGORIES: readonly StatusCategory[] = ["planned", "in-progress", "completed"];
+
 export interface StatusConfig {
 	id: string; // Unique identifier
 	value: string; // What gets written to YAML
 	label: string; // What displays in UI
 	color: string; // Hex color for UI elements
 	icon?: string; // Optional Lucide icon name (e.g., "circle", "check", "clock")
-	isCompleted: boolean; // Whether this counts as "done"
+	isCompleted: boolean; // Whether this counts as "done"; kept in sync with category === "completed"
+	category?: StatusCategory; // Lifecycle stage; absent = uncategorized (computes as not-started)
 	isSkipped?: boolean; // Whether this counts as a skipped occurrence
 	excludeFromCycle?: boolean; // Whether status-dot cycling should skip this status
 	nextStatus?: string; // Optional status value to use when cycling forward from this status
