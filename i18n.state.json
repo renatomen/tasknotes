@@ -8010,6 +8010,7 @@
       "source": "17e5c29b584df3fa8161559141c209308994dccb",
       "translation": "3564edcba569e2d15e34f0b38542e0cdc5bae04f"
     },
+    "ui.taskCard.blockingToggleBreakdown": null,
     "ui.taskCard.priorityAriaLabel": {
       "source": "28f478cb8ee60d0167b0507b87fa966e52061d81",
       "translation": "86e4a49489b8cc0ced8c7249cfce2ae618268af3"
@@ -16930,6 +16931,7 @@
       "source": "17e5c29b584df3fa8161559141c209308994dccb",
       "translation": "9f322ef2ec9a09368c7b0635c59b991157055425"
     },
+    "ui.taskCard.blockingToggleBreakdown": null,
     "ui.taskCard.priorityAriaLabel": {
       "source": "28f478cb8ee60d0167b0507b87fa966e52061d81",
       "translation": "f15a805078c511a9555a8a88c16b670a4b9c6f92"
@@ -25850,6 +25852,7 @@
       "source": "17e5c29b584df3fa8161559141c209308994dccb",
       "translation": "46307ae570790f319bb1435f2c6652b116e3c8d7"
     },
+    "ui.taskCard.blockingToggleBreakdown": null,
     "ui.taskCard.priorityAriaLabel": {
       "source": "28f478cb8ee60d0167b0507b87fa966e52061d81",
       "translation": "9e64071edad38ec04234439e93121798318e2d06"
@@ -34770,6 +34773,7 @@
       "source": "17e5c29b584df3fa8161559141c209308994dccb",
       "translation": "4b9503320c661915dc9dac425fd7fa084d7c67e1"
     },
+    "ui.taskCard.blockingToggleBreakdown": null,
     "ui.taskCard.priorityAriaLabel": {
       "source": "28f478cb8ee60d0167b0507b87fa966e52061d81",
       "translation": "c4a27cd7c9b3e2f6e9db4992ef231d61f66cbdba"
@@ -43690,6 +43694,7 @@
       "source": "17e5c29b584df3fa8161559141c209308994dccb",
       "translation": "1c82e0b019f0faf4bb9d8ed4bf3f655d87b4eb7a"
     },
+    "ui.taskCard.blockingToggleBreakdown": null,
     "ui.taskCard.priorityAriaLabel": {
       "source": "28f478cb8ee60d0167b0507b87fa966e52061d81",
       "translation": "f67350f40f7ad2d24672f5e562f54a3bdb8d1103"
@@ -52610,6 +52615,7 @@
       "source": "17e5c29b584df3fa8161559141c209308994dccb",
       "translation": "a84cad376851638e4537357667959951433ef52a"
     },
+    "ui.taskCard.blockingToggleBreakdown": null,
     "ui.taskCard.priorityAriaLabel": {
       "source": "28f478cb8ee60d0167b0507b87fa966e52061d81",
       "translation": "96c717aafcb524053df980be7f24731052107dd9"
@@ -61530,6 +61536,7 @@
       "source": "17e5c29b584df3fa8161559141c209308994dccb",
       "translation": "c8b5589a0fffc49c324be3d5a717608734455df3"
     },
+    "ui.taskCard.blockingToggleBreakdown": null,
     "ui.taskCard.priorityAriaLabel": {
       "source": "28f478cb8ee60d0167b0507b87fa966e52061d81",
       "translation": "d05244686c421dd71e5cca6c8bc76879f43ca0cf"
@@ -70450,6 +70457,7 @@
       "source": "17e5c29b584df3fa8161559141c209308994dccb",
       "translation": "bac942705dd9850c28f2a6716dcede66a2c5c806"
     },
+    "ui.taskCard.blockingToggleBreakdown": null,
     "ui.taskCard.priorityAriaLabel": {
       "source": "28f478cb8ee60d0167b0507b87fa966e52061d81",
       "translation": "8783c8a8decc50ccc704bfb179c3a43374df33a8"

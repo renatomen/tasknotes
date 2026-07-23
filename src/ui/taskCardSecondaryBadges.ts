@@ -93,6 +93,21 @@ function shouldExpandSubtasksByDefault(plugin: TaskNotesPlugin): boolean {
 	);
 }
 
+// Break the reverse (blocking) count down by endpoint when this task gates any successor's
+// finish; an all-start default (finish = 0, the finish-to-start case) keeps the plain summary.
+function blockingToggleTooltip(task: TaskInfo, plugin: TaskNotesPlugin, count: number): string {
+	const finishCount = plugin.dependencyCache?.getFinishBlockedDependentPaths(task.path).length ?? 0;
+	if (finishCount === 0) {
+		return tTaskCard(plugin, "blockingToggle", { count });
+	}
+	const startCount = plugin.dependencyCache?.getStartBlockedDependentPaths(task.path).length ?? 0;
+	return tTaskCard(plugin, "blockingToggleBreakdown", {
+		count,
+		start: startCount,
+		finish: finishCount,
+	});
+}
+
 export function isTaskCardSubtasksExpanded(task: TaskInfo, plugin: TaskNotesPlugin): boolean {
 	if (!canToggleProjectSubtasks(plugin)) {
 		return false;
@@ -368,9 +383,7 @@ function renderDependencyToggles(
 
 	if (task.blocking && task.blocking.length > 0) {
 		const blockingCount = task.blocking.length;
-		const toggleLabel = plugin.i18n.translate("ui.taskCard.blockingToggle", {
-			count: blockingCount,
-		});
+		const toggleLabel = blockingToggleTooltip(task, plugin, blockingCount);
 		const toggle = createBadgeIndicator({
 			container: badgesContainer,
 			className: "task-card__blocking-toggle is-visible",
@@ -568,9 +581,7 @@ function updateBlockingToggle(options: UpdateTaskCardSecondaryBadgesOptions): vo
 	const { card, task, plugin, handlers } = options;
 	const blockingCount = task.blocking?.length ?? 0;
 	const shouldExist = blockingCount > 0;
-	const toggleLabel = plugin.i18n.translate("ui.taskCard.blockingToggle", {
-		count: blockingCount,
-	});
+	const toggleLabel = blockingToggleTooltip(task, plugin, blockingCount);
 
 	const toggle = updateBadgeIndicator(card, ".task-card__blocking-toggle", {
 		shouldExist,
