@@ -76,7 +76,7 @@ describe("Status config card — category dropdown + pill", () => {
 		expect(status.isCompleted).toBe(true);
 	});
 
-	it("selecting Planned or In progress sets isCompleted false", () => {
+	it("selecting Not started or Started sets isCompleted false", () => {
 		const { container, status } = renderCard(
 			createStatus({ isCompleted: true, category: "completed" })
 		);
@@ -89,13 +89,10 @@ describe("Status config card — category dropdown + pill", () => {
 		expect(status.isCompleted).toBe(false);
 	});
 
-	it("selecting Uncategorized clears both category and isCompleted", () => {
-		const { container, status } = renderCard(
-			createStatus({ isCompleted: true, category: "completed" })
-		);
-		choose(categorySelect(container), "");
-		expect(status.category).toBeUndefined();
-		expect(status.isCompleted).toBe(false);
+	it("offers exactly the three categories — no uncategorized option", () => {
+		const { container } = renderCard(createStatus());
+		const values = Array.from(categorySelect(container).options).map((o) => o.value);
+		expect(values).toEqual(["planned", "in-progress", "completed"]);
 	});
 
 	it("updates the pill text and variant class to match the selected category", () => {
@@ -103,28 +100,28 @@ describe("Status config card — category dropdown + pill", () => {
 		const select = categorySelect(container);
 
 		choose(select, "in-progress");
-		expect(badge(container)?.textContent).toBe("In progress");
+		expect(badge(container)?.textContent).toBe("Started");
 		expect(
 			badge(container)?.classList.contains(
 				"tasknotes-settings__card-status-badge--in-progress"
 			)
 		).toBe(true);
 
-		choose(select, "");
-		expect(badge(container)?.textContent).toBe("Uncategorized");
+		choose(select, "planned");
+		expect(badge(container)?.textContent).toBe("Not started");
 		expect(
 			badge(container)?.classList.contains(
-				"tasknotes-settings__card-status-badge--uncategorized"
+				"tasknotes-settings__card-status-badge--planned"
 			)
 		).toBe(true);
 	});
 
-	it("shows a neutral Uncategorized pill for a migrated (categoryless) status", () => {
-		const { container } = renderCard(createStatus());
-		expect(badge(container)?.textContent).toBe("Uncategorized");
+	it("shows a Not started pill for a status categorized planned", () => {
+		const { container } = renderCard(createStatus({ category: "planned" }));
+		expect(badge(container)?.textContent).toBe("Not started");
 		expect(
 			badge(container)?.classList.contains(
-				"tasknotes-settings__card-status-badge--uncategorized"
+				"tasknotes-settings__card-status-badge--planned"
 			)
 		).toBe(true);
 	});

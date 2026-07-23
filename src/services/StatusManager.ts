@@ -142,7 +142,7 @@ export class StatusManager {
 
 	/**
 	 * Whether the status counts as started — the constraint anchor for STARTTOSTART /
-	 * STARTTOFINISH edges. Uncategorized and planned are not started.
+	 * STARTTOFINISH edges. A Not-started (planned) status is not started.
 	 */
 	isStarted(statusValue: string): boolean {
 		const category = this.getCategory(statusValue);
@@ -278,6 +278,7 @@ export class StatusManager {
 			label: "New status",
 			color: "#808080",
 			isCompleted: false,
+			category: "planned",
 			excludeFromCycle: false,
 			order,
 			autoArchive: false,

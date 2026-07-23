@@ -522,7 +522,6 @@ export function createStatusBadge(
 		| "completed"
 		| "planned"
 		| "in-progress"
-		| "uncategorized"
 		| "default" = "default"
 ): HTMLElement {
 	const badge = activeWindow.createSpan();

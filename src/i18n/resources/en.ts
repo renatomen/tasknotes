@@ -1254,9 +1254,8 @@ export const en: TranslationTree = {
 				},
 				badges: {
 					completed: "Completed",
-					planned: "Planned",
-					inProgress: "In progress",
-					uncategorized: "Uncategorized",
+					planned: "Not started",
+					inProgress: "Started",
 				},
 				deleteConfirm: 'Are you sure you want to delete the status "{label}"?',
 			},

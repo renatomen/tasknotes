@@ -21,16 +21,16 @@ import { createIconInput } from "../../components/IconSuggest";
 import { createNLPTriggerRows, createPropertyDescription, TranslateFn } from "./helpers";
 import { StatusCategory, STATUS_CATEGORIES } from "../../../types";
 
-// The badge i18n keys are camelCase, but the stored category value for "In progress" is
+// The badge i18n keys are camelCase, but the stored category value for "Started" is
 // the hyphenated "in-progress" (also the CSS variant); map the one that differs.
-const categoryI18nKey = (category: StatusCategory | "uncategorized"): string =>
+const categoryI18nKey = (category: StatusCategory): string =>
 	category === "in-progress" ? "inProgress" : category;
 
 function createCategoryBadge(
 	category: StatusCategory | undefined,
 	translate: TranslateFn
 ): HTMLElement {
-	const variant = category ?? "uncategorized";
+	const variant = category ?? "planned";
 	return createStatusBadge(
 		translate(`settings.taskProperties.taskStatuses.badges.${categoryI18nKey(variant)}`),
 		variant
@@ -171,8 +171,8 @@ export function renderStatusPropertyCard(
 			value: "",
 			label: "",
 			color: "#6366f1",
-			completed: false,
 			isCompleted: false,
+			category: "planned" as StatusCategory,
 			excludeFromCycle: false,
 			order: plugin.settings.customStatuses.length,
 			autoArchive: false,
@@ -273,26 +273,18 @@ function renderStatusList(
 		);
 
 		const categorySelect = createCardSelect(
-			[
-				{
-					value: "",
-					label: translate(
-						"settings.taskProperties.taskStatuses.badges.uncategorized"
-					),
-				},
-				...STATUS_CATEGORIES.map((category) => ({
-					value: category,
-					label: translate(
-						`settings.taskProperties.taskStatuses.badges.${categoryI18nKey(category)}`
-					),
-				})),
-			],
-			status.category ?? ""
+			STATUS_CATEGORIES.map((category) => ({
+				value: category,
+				label: translate(
+					`settings.taskProperties.taskStatuses.badges.${categoryI18nKey(category)}`
+				),
+			})),
+			status.category ?? "planned"
 		);
 
 		categorySelect.addEventListener("change", () => {
-			const value = categorySelect.value;
-			status.category = value ? (value as StatusCategory) : undefined;
+			const value = categorySelect.value as StatusCategory;
+			status.category = value;
 			status.isCompleted = value === "completed";
 			const metaContainer = statusCard?.querySelector(".tasknotes-settings__card-meta");
 			if (metaContainer) {

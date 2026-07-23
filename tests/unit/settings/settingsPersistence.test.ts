@@ -234,11 +234,11 @@ describe("status category migration on load", () => {
 		expect(settings.customStatuses[0].isCompleted).toBe(true);
 	});
 
-	it("leaves a legacy non-completed status uncategorized through the load path", () => {
+	it("defaults a legacy non-completed status to Not started through the load path", () => {
 		const { settings } = buildSettingsFromLoadedData({
 			customStatuses: [legacyStatus({ value: "open", isCompleted: false })],
 		});
-		expect(settings.customStatuses[0].category).toBeUndefined();
+		expect(settings.customStatuses[0].category).toBe("planned");
 		expect(settings.customStatuses[0].isCompleted).toBe(false);
 	});
 });

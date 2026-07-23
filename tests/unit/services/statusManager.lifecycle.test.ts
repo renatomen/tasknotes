@@ -35,13 +35,13 @@ describe("StatusManager status lifecycle", () => {
 			expect(done.isCompleted).toBe(true);
 		});
 
-		it("leaves a non-completed status uncategorized (category absent), isCompleted unchanged", () => {
+		it("defaults a non-completed status with no category to planned (Not started), isCompleted unchanged", () => {
 			const [open] = normalizeStatusCategories([createStatus("open", { isCompleted: false })]);
-			expect(open.category).toBeUndefined();
+			expect(open.category).toBe("planned");
 			expect(open.isCompleted).toBe(false);
 		});
 
-		it("leaves a status that already carries a category as-is", () => {
+		it("leaves a status that already carries a valid category as-is", () => {
 			const [inProgress] = normalizeStatusCategories([
 				createStatus("doing", { isCompleted: false, category: "in-progress" }),
 			]);
@@ -76,38 +76,46 @@ describe("StatusManager status lifecycle", () => {
 		const buildManager = () =>
 			new StatusManager([
 				createStatus("planned", { category: "planned", isCompleted: false }),
-				createStatus("uncategorized", { isCompleted: false }),
 				createStatus("doing", { category: "in-progress", isCompleted: false }),
 				createStatus("done", { category: "completed", isCompleted: true }),
+				createStatus("nocat", { isCompleted: false }),
 			]);
 
-		it("isStarted is true for in-progress and completed, false for planned and uncategorized", () => {
+		it("isStarted is true for in-progress and completed, false for planned and a categoryless status", () => {
 			const manager = buildManager();
 			expect(manager.isStarted("doing")).toBe(true);
 			expect(manager.isStarted("done")).toBe(true);
 			expect(manager.isStarted("planned")).toBe(false);
-			expect(manager.isStarted("uncategorized")).toBe(false);
+			expect(manager.isStarted("nocat")).toBe(false);
 		});
 
 		it("isFinished is true only for completed and equals isCompleted for every status", () => {
 			const manager = buildManager();
-			for (const value of ["planned", "uncategorized", "doing", "done"]) {
+			for (const value of ["planned", "nocat", "doing", "done"]) {
 				expect(manager.isFinished(value)).toBe(manager.isCompletedStatus(value));
 			}
 			expect(manager.isFinished("done")).toBe(true);
 			expect(manager.isFinished("doing")).toBe(false);
 		});
 
-		it("getCategory returns the configured category or undefined when uncategorized", () => {
+		it("getCategory returns the configured category", () => {
 			const manager = buildManager();
 			expect(manager.getCategory("doing")).toBe<StatusCategory>("in-progress");
-			expect(manager.getCategory("uncategorized")).toBeUndefined();
+			expect(manager.getCategory("planned")).toBe<StatusCategory>("planned");
 		});
 
 		it("treats an unknown status as neither started nor finished", () => {
 			const manager = buildManager();
 			expect(manager.isStarted("missing")).toBe(false);
 			expect(manager.isFinished("missing")).toBe(false);
+		});
+	});
+
+	describe("createDefaultStatus", () => {
+		it("produces a status with a default category (Not started) and isCompleted false", () => {
+			const status = StatusManager.createDefaultStatus([]);
+			expect(status.category).toBe("planned");
+			expect(status.isCompleted).toBe(false);
 		});
 	});
 });

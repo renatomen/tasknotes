@@ -520,12 +520,6 @@ body.is-mobile .tasknotes-plugin .tasknotes-settings__card-action-btn {
     color: var(--text-normal);
 }
 
-.tasknotes-settings__card-status-badge--uncategorized {
-    background: transparent;
-    color: var(--text-muted);
-    border: 1px dashed var(--background-modifier-border);
-}
-
 .tasknotes-settings__card-info-badge {
     padding: 3px 6px;
     border-radius: 10px;

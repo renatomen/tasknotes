@@ -77,9 +77,9 @@ export const DEFAULT_STATUSES: StatusConfig[] = [
 ];
 
 /**
- * Reconciles the `isCompleted` <-> `category === "completed"` invariant on load: a status
- * completed by either signal becomes category `completed`; others keep their category or
- * stay uncategorized (no planned/in-progress guess). Idempotent.
+ * Reconciles the `isCompleted` <-> `category === "completed"` invariant on load and fills the
+ * always-on category: completed by either signal becomes `completed`; every other status keeps
+ * a valid `planned`/`in-progress` category or defaults to `planned` (Not started). Idempotent.
  */
 export function normalizeStatusCategories(statuses: StatusConfig[]): StatusConfig[] {
 	return statuses.map((status) => {
@@ -89,7 +89,10 @@ export function normalizeStatusCategories(statuses: StatusConfig[]): StatusConfi
 			}
 			return { ...status, isCompleted: true, category: "completed" };
 		}
-		return status;
+		if (status.category === "planned" || status.category === "in-progress") {
+			return status;
+		}
+		return { ...status, category: "planned" };
 	});
 }
 
