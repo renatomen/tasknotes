@@ -2640,6 +2640,38 @@ export const en: TranslationTree = {
 				addTaskButton: "Add task",
 				selectTaskTooltip: "Select a task note using fuzzy search",
 				removeTaskTooltip: "Remove task",
+				thisTask: "This task",
+				reltype: {
+					label: "Relationship",
+					finishToStart: "Finish-to-start",
+					startToStart: "Start-to-start",
+					finishToFinish: "Finish-to-finish",
+					startToFinish: "Start-to-finish",
+				},
+				gap: {
+					label: "Lag",
+					placeholder: "0",
+					exotic: "Custom offset: {gap}",
+					unit: {
+						hours: "Hours",
+						days: "Days",
+						weeks: "Weeks",
+					},
+				},
+				summary: {
+					blockedBy: {
+						finishToStart: "{other} must finish before {self} can start",
+						startToStart: "{other} must start before {self} can start",
+						finishToFinish: "{other} must finish before {self} can finish",
+						startToFinish: "{other} must start before {self} can finish",
+					},
+					blocking: {
+						finishToStart: "{self} must finish before {other} can start",
+						startToStart: "{self} must start before {other} can start",
+						finishToFinish: "{self} must finish before {other} can finish",
+						startToFinish: "{self} must start before {other} can finish",
+					},
+				},
 			},
 			organization: {
 				projects: "Projects",

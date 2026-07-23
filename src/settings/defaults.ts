@@ -356,6 +356,7 @@ export const DEFAULT_SETTINGS: TaskNotesSettings = {
 	// Relationships widget defaults (unified subtasks, projects, and dependencies)
 	showRelationships: true,
 	relationshipsPosition: "bottom",
+	enableAdvancedDependencyTypes: false,
 	// Task card in note defaults
 	showTaskCardInNote: true,
 	showCompletedTaskStrikethrough: true,

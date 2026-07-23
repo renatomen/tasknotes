@@ -179,6 +179,8 @@ export interface TaskNotesSettings {
 	// Relationships widget settings (unified subtasks, projects, and dependencies)
 	showRelationships: boolean;
 	relationshipsPosition: "top" | "bottom";
+	// Gates the RFC 9253 reltype/gap authoring controls in the task dependency lists.
+	enableAdvancedDependencyTypes: boolean;
 	// Task card in note settings
 	showTaskCardInNote: boolean;
 	showCompletedTaskStrikethrough: boolean;

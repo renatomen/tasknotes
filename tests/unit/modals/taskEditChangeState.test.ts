@@ -168,7 +168,7 @@ describe("taskEditChangeState", () => {
 			review: "new",
 		});
 		expect(result.changes.dateModified).toEqual(expect.any(String));
-		expect(result.blockingUpdates).toEqual({ added: [], removed: [], raw: {} });
+		expect(result.blockingUpdates).toEqual({ added: [], removed: [], modified: [], raw: {} });
 		expect(result.unresolvedBlockingEntries).toEqual([]);
 	});
 

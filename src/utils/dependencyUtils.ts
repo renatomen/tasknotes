@@ -31,6 +31,43 @@ export function reltypeReleasedByPredecessorFinish(reltype: TaskDependencyRelTyp
 	return reltype === "FINISHTOSTART" || reltype === "FINISHTOFINISH";
 }
 
+export type DependencyGapUnit = "hours" | "days" | "weeks";
+
+export interface StructuredGap {
+	value: number;
+	unit: DependencyGapUnit;
+}
+
+const GAP_UNIT_TOKEN: Record<DependencyGapUnit, string> = {
+	hours: "PT{n}H",
+	days: "P{n}D",
+	weeks: "P{n}W",
+};
+
+// Compose a whole-number offset into the ISO-8601 duration subset this UI authors.
+export function composeDependencyGap(value: number, unit: DependencyGapUnit): string | undefined {
+	if (!Number.isFinite(value) || value <= 0) {
+		return undefined;
+	}
+	return GAP_UNIT_TOKEN[unit].replace("{n}", String(Math.floor(value)));
+}
+
+// Parses only the whole-unit forms this UI composes; an exotic stored gap returns null so
+// the caller surfaces it read-only rather than silently rewriting it.
+export function parseDependencyGap(gap: string | undefined): StructuredGap | null {
+	if (!gap) {
+		return null;
+	}
+	const match = /^P(?:T(\d+)H|(\d+)([DW]))$/.exec(gap.trim().toUpperCase());
+	if (!match) {
+		return null;
+	}
+	if (match[1]) {
+		return { value: Number(match[1]), unit: "hours" };
+	}
+	return { value: Number(match[2]), unit: match[3] === "W" ? "weeks" : "days" };
+}
+
 export function extractDependencyUid(entry: unknown): string {
 	if (typeof entry === "string") {
 		return entry;

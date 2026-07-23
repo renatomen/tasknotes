@@ -39,6 +39,7 @@ export interface TaskEditModalChangeState {
 	initialBlockedBy: TaskDependency[];
 	blockingItems: DependencyItemLike[];
 	initialBlockingPaths: string[];
+	initialBlockingEntries?: Record<string, TaskDependency>;
 	details: string;
 	originalDetails: string;
 	completedInstancesChanges: string[];
@@ -91,6 +92,7 @@ export function buildTaskEditChangesFromModalState(
 		initialBlockedBy: input.initialBlockedBy,
 		blockingItems: input.blockingItems,
 		initialBlockingPaths: input.initialBlockingPaths,
+		initialBlockingEntries: input.initialBlockingEntries,
 		details: input.details,
 		originalDetails: input.originalDetails,
 		completedInstancesChanges: input.completedInstancesChanges,
