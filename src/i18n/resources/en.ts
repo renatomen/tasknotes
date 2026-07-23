@@ -3335,7 +3335,7 @@ export const en: TranslationTree = {
 			blockingBadge: "Blocking",
 			blockingBadgeTooltip: "This task is blocking another task",
 			blockingToggle: "Blocking {count} tasks",
-			blockingToggleBreakdown: "Blocking {count} tasks: {start} to start, {finish} to finish",
+			blockingToggleBreakdown: "Blocking {count} tasks:\n{start} to start\n{finish} to finish",
 			priorityAriaLabel: "Priority: {label}",
 			taskOptions: "Task options",
 			recurrenceTooltip: "{label}: {value}",
