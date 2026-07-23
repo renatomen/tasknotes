@@ -107,6 +107,14 @@ export function getBlockedByTaskPaths(task: TaskInfo, app: App): string[] {
 	return Array.from(paths);
 }
 
+export function hasUnresolvedBlockedBy(task: TaskInfo, app: App): boolean {
+	const entries = Array.isArray(task.blockedBy) ? task.blockedBy : [];
+	return entries.some((entry) => {
+		const normalized = normalizeDependencyEntry(entry);
+		return normalized !== null && !resolveDependencyEntry(app, task.path, normalized);
+	});
+}
+
 export interface DependencyConstraintSource {
 	getStartBlockingPredecessorPaths(taskPath: string): string[];
 	getFinishBlockingPredecessorPaths(taskPath: string): string[];
@@ -133,8 +141,8 @@ export interface BlockedConstraintInfo {
 	count: number;
 }
 
-// Start wins over finish (an un-startable task is implicitly un-finishable), and the
-// count excludes released edges: a satisfied dependency is listed but not counted.
+// Start wins over finish (an un-startable task is implicitly un-finishable), and the count
+// excludes released edges: a satisfied dependency is listed but not counted.
 export function resolveBlockedConstraint(
 	task: TaskInfo,
 	app: App,
@@ -151,6 +159,10 @@ export function resolveBlockedConstraint(
 	if (task.finishBlocked) {
 		const constraining = getFinishBlockingTaskPaths(task, cache).length;
 		return { state: "finish", count: constraining || existence.length };
+	}
+	// A broken-link blocker can't be confirmed satisfied — hold it pessimistically blocked.
+	if (hasUnresolvedBlockedBy(task, app)) {
+		return { state: "start", count: existence.length };
 	}
 	return { state: "released", count: existence.length };
 }

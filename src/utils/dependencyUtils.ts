@@ -31,6 +31,47 @@ export function reltypeReleasedByPredecessorFinish(reltype: TaskDependencyRelTyp
 	return reltype === "FINISHTOSTART" || reltype === "FINISHTOFINISH";
 }
 
+export interface BlockingStateSource {
+	isTaskStartBlocked(taskPath: string): boolean;
+	isTaskFinishBlocked(taskPath: string): boolean;
+	getBlockedTaskPaths(taskPath: string): string[];
+	getStartBlockedDependentPaths(taskPath: string): string[];
+	getFinishBlockedDependentPaths(taskPath: string): string[];
+}
+
+export interface DerivedBlockingState {
+	startBlocked: boolean;
+	finishBlocked: boolean;
+	blockingTasks: string[];
+	isBlockingStart: boolean;
+	isBlockingFinish: boolean;
+}
+
+// Per-endpoint blocking state for a task: status-aware from the cache when available, else an
+// existence-based fallback from the task's own edge reltypes (the fallback has no reverse view).
+export function deriveBlockingState(
+	cache: BlockingStateSource | undefined,
+	taskPath: string,
+	blockedByEntries: readonly TaskDependency[]
+): DerivedBlockingState {
+	if (cache && taskPath) {
+		return {
+			startBlocked: cache.isTaskStartBlocked(taskPath),
+			finishBlocked: cache.isTaskFinishBlocked(taskPath),
+			blockingTasks: cache.getBlockedTaskPaths(taskPath),
+			isBlockingStart: cache.getStartBlockedDependentPaths(taskPath).length > 0,
+			isBlockingFinish: cache.getFinishBlockedDependentPaths(taskPath).length > 0,
+		};
+	}
+	return {
+		startBlocked: blockedByEntries.some((edge) => reltypeConstrainsStart(edge.reltype)),
+		finishBlocked: blockedByEntries.some((edge) => reltypeConstrainsFinish(edge.reltype)),
+		blockingTasks: [],
+		isBlockingStart: false,
+		isBlockingFinish: false,
+	};
+}
+
 export type DependencyGapUnit = "hours" | "days" | "weeks";
 
 export interface StructuredGap {
@@ -44,12 +85,14 @@ const GAP_UNIT_TOKEN: Record<DependencyGapUnit, string> = {
 	weeks: "P{n}W",
 };
 
-// Compose a whole-number offset into the ISO-8601 duration subset this UI authors.
+// Compose a whole-number ISO-8601 offset. Floors first (a sub-1 value clears the gap rather
+// than composing a "P0D" no-op) and bounds the size (never a scientific-notation token).
 export function composeDependencyGap(value: number, unit: DependencyGapUnit): string | undefined {
-	if (!Number.isFinite(value) || value <= 0) {
+	const whole = Math.floor(value);
+	if (!Number.isFinite(value) || whole <= 0 || whole > 100000) {
 		return undefined;
 	}
-	return GAP_UNIT_TOKEN[unit].replace("{n}", String(Math.floor(value)));
+	return GAP_UNIT_TOKEN[unit].replace("{n}", String(whole));
 }
 
 // Parses only the whole-unit forms this UI composes; an exotic stored gap returns null so

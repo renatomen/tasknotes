@@ -1,12 +1,19 @@
 import { describe, expect, it } from "@jest/globals";
-import type { App } from "obsidian";
+import { App, TFile } from "obsidian";
 import type { TaskDependency, TaskInfo } from "../../../src/types";
 import {
 	type DependencyConstraintSource,
 	resolveBlockedConstraint,
 } from "../../../src/ui/taskCardRelationships";
 
+// Resolves every blocked-by uid to a real file, so edges count as resolved.
 const app = {
+	metadataCache: { getFirstLinkpathDest: (linkpath: string) => new TFile(linkpath) },
+	vault: { getAbstractFileByPath: () => null },
+} as unknown as App;
+
+// Resolves nothing, so every blocked-by edge is a broken link.
+const unresolvedApp = {
 	metadataCache: { getFirstLinkpathDest: () => null },
 	vault: { getAbstractFileByPath: () => null },
 } as unknown as App;
@@ -85,6 +92,19 @@ describe("resolveBlockedConstraint honest signal (U5)", () => {
 		});
 		expect(resolveBlockedConstraint(task, app, cache([], []))).toEqual({
 			state: "released",
+			count: 1,
+		});
+	});
+
+	it("holds a broken-link blocker pessimistically start-blocked", () => {
+		const task = makeTask({
+			blockedBy: [edge("[[Missing]]", "STARTTOSTART")],
+			startBlocked: false,
+			finishBlocked: false,
+			isBlocked: false,
+		});
+		expect(resolveBlockedConstraint(task, unresolvedApp, cache([], []))).toEqual({
+			state: "start",
 			count: 1,
 		});
 	});

@@ -350,6 +350,8 @@ export class DependencyCache extends Events {
 			edges = new Map();
 			this.edgeReltypes.set(dependentPath, edges);
 		}
+		// One reltype per (dependent, predecessor): a hand-authored duplicate edge to the same
+		// predecessor keeps the last reltype. The dependency picker prevents duplicates.
 		edges.set(blockingPath, reltype);
 	}
 

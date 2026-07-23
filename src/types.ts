@@ -491,7 +491,7 @@ export interface TaskInfo {
 	basesData?: unknown; // Raw Bases data for formula computation (internal use)
 	blockedBy?: TaskDependency[]; // Dependencies that must be satisfied before this task can start
 	blocking?: string[]; // Task paths that this task is blocking
-	isBlocked?: boolean; // True if startBlocked || finishBlocked
+	isBlocked?: boolean;
 	isBlocking?: boolean; // True if this task blocks at least one other task
 	startBlocked?: boolean; // Cannot start: an FS predecessor unfinished or an SS predecessor unstarted
 	finishBlocked?: boolean; // Cannot finish: an FF predecessor unfinished or an SF predecessor unstarted

@@ -359,6 +359,8 @@ function renderGapField(
 		type: "number",
 	});
 	gapValue.min = "0";
+	gapValue.max = "100000";
+	gapValue.step = "1";
 	gapValue.placeholder = translate("modals.task.dependencies.gap.placeholder");
 	if (parsed) {
 		gapValue.value = String(parsed.value);

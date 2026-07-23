@@ -11,9 +11,18 @@ describe("dependency gap compose/parse (U6)", () => {
 		expect(composeDependencyGap(0, "days")).toBeUndefined();
 		expect(composeDependencyGap(-1, "days")).toBeUndefined();
 		expect(composeDependencyGap(Number.NaN, "days")).toBeUndefined();
+		expect(composeDependencyGap(Number.POSITIVE_INFINITY, "days")).toBeUndefined();
 	});
 
-	it("floors a fractional value", () => {
+	it("omits a sub-1 value instead of composing a zero-duration no-op", () => {
+		expect(composeDependencyGap(0.5, "days")).toBeUndefined();
+	});
+
+	it("omits an absurd value that would serialize in scientific notation", () => {
+		expect(composeDependencyGap(1e21, "days")).toBeUndefined();
+	});
+
+	it("floors a fractional value at or above 1", () => {
 		expect(composeDependencyGap(2.9, "days")).toBe("P2D");
 	});
 

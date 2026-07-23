@@ -141,6 +141,18 @@ describe("DependencyCache per-endpoint constraints (U3)", () => {
 		expect(cache.getFinishBlockedDependentPaths(p("pred"))).toEqual([p("f")]);
 	});
 
+	it("reverse accessors drop a successor once its edge releases", async () => {
+		// pred started (not completed): the SS edge releases the successor's start, but the FF
+		// edge still gates the other successor's finish (that one needs completion).
+		const cache = await buildCache([
+			{ name: "pred", status: "in-progress" },
+			{ name: "s", status: "open", blockedBy: [ss("pred")] },
+			{ name: "f", status: "open", blockedBy: [ff("pred")] },
+		]);
+		expect(cache.getStartBlockedDependentPaths(p("pred"))).toEqual([]);
+		expect(cache.getFinishBlockedDependentPaths(p("pred"))).toEqual([p("f")]);
+	});
+
 	it("FS-only vault: isTaskBlocked matches the today's-blocked set (regression parity)", async () => {
 		const cache = await buildCache([
 			{ name: "p1", status: "open" },

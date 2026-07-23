@@ -145,8 +145,10 @@ export class StatusManager {
 	 * STARTTOFINISH edges. A Not-started (planned) status is not started.
 	 */
 	isStarted(statusValue: string): boolean {
-		const category = this.getCategory(statusValue);
-		return category === "in-progress" || category === "completed";
+		if (this.isCompletedStatus(statusValue)) {
+			return true;
+		}
+		return this.getCategory(statusValue) === "in-progress";
 	}
 
 	/**
