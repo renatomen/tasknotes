@@ -18,6 +18,7 @@ import {
 	normalizeThemeColor,
 } from "../../utils/themeColors";
 import { configureThemeColorInput } from "../components/CardComponent";
+import { countStatusCategories } from "../defaults";
 
 async function getInitializedPomodoroService(plugin: TaskNotesPlugin) {
 	if (!plugin.pomodoroService) {
@@ -1000,9 +1001,32 @@ export function renderFeaturesTab(
 						setValue: async (value: boolean) => {
 							plugin.settings.enableAdvancedDependencyTypes = value;
 							save();
+							renderFeaturesTab(container, plugin, save);
 						},
 					})
 			);
+
+			if (plugin.settings.enableAdvancedDependencyTypes) {
+				const counts = countStatusCategories(plugin.settings.customStatuses);
+				const startReady = counts["in-progress"] > 0 && counts.planned > 0;
+				group.addSetting((setting) => {
+					setting.setName(translate("settings.features.dependencies.readiness.name"));
+					setting.setDesc(
+						`${translate("settings.features.dependencies.readiness.counts", {
+							notStarted: counts.planned,
+							started: counts["in-progress"],
+							completed: counts.completed,
+						})} ${translate(
+							startReady
+								? "settings.features.dependencies.readiness.ready"
+								: "settings.features.dependencies.readiness.notReady"
+						)}`
+					);
+					setting.settingEl.addClass(
+						startReady ? "tn-dependency-readiness--ok" : "tn-dependency-readiness--warn"
+					);
+				});
+			}
 		}
 	);
 

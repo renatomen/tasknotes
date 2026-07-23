@@ -522,6 +522,13 @@ export const en: TranslationTree = {
 					description:
 						"Choose a relationship type (finish-to-start, start-to-start, finish-to-finish, start-to-finish) and an optional lag for each dependency in the task edit modal. When off, dependencies use finish-to-start.",
 				},
+				readiness: {
+					name: "Status readiness",
+					counts: "Not started: {notStarted}, Started: {started}, Completed: {completed}.",
+					ready: "Start-based dependencies are ready.",
+					notReady:
+						"Start-to-start and start-to-finish dependencies need at least one not-started status and one started status; without a started status they only release when the predecessor completes. Categorize a status in the task properties settings.",
+				},
 			},
 			inlineTasks: {
 				header: "Inline tasks",
@@ -1266,6 +1273,8 @@ export const en: TranslationTree = {
 					planned: "Not started",
 					inProgress: "Started",
 				},
+				categoryAdvisory:
+					"Advanced dependency types are on, but no {categories} status exists. Start-based dependencies release as authored only when every category has a status.",
 				deleteConfirm: 'Are you sure you want to delete the status "{label}"?',
 			},
 			taskPriorities: {

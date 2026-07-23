@@ -1,4 +1,4 @@
-import { FieldMapping, StatusConfig, PriorityConfig } from "../types";
+import { FieldMapping, StatusCategory, StatusConfig, PriorityConfig } from "../types";
 import {
 	TaskNotesSettings,
 	TaskCreationDefaults,
@@ -94,6 +94,14 @@ export function normalizeStatusCategories(statuses: StatusConfig[]): StatusConfi
 		}
 		return { ...status, category: "planned" };
 	});
+}
+
+export function countStatusCategories(statuses: StatusConfig[]): Record<StatusCategory, number> {
+	const counts: Record<StatusCategory, number> = { planned: 0, "in-progress": 0, completed: 0 };
+	for (const status of normalizeStatusCategories(statuses)) {
+		counts[status.category ?? "planned"]++;
+	}
+	return counts;
 }
 
 // Default priority configuration matches current hardcoded behavior

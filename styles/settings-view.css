@@ -1436,3 +1436,23 @@ body.is-mobile .tasknotes-plugin .tasknotes-settings__card-action-btn {
         transition: none;
     }
 }
+
+.setting-item.tn-dependency-readiness--ok {
+    border-inline-start: 3px solid var(--color-green);
+    padding-inline-start: var(--size-4-2);
+}
+
+.setting-item.tn-dependency-readiness--warn {
+    border-inline-start: 3px solid var(--color-orange);
+    padding-inline-start: var(--size-4-2);
+}
+
+.tn-status-category-advisory {
+    margin-bottom: var(--size-4-2);
+    padding: var(--size-4-2) var(--size-4-3);
+    border-inline-start: 3px solid var(--color-orange);
+    background: var(--background-modifier-hover);
+    border-radius: var(--radius-s);
+    color: var(--text-muted);
+    font-size: var(--font-ui-small);
+}

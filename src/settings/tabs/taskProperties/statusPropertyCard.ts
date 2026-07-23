@@ -20,6 +20,7 @@ import {
 import { createIconInput } from "../../components/IconSuggest";
 import { createNLPTriggerRows, createPropertyDescription, TranslateFn } from "./helpers";
 import { StatusCategory, STATUS_CATEGORIES } from "../../../types";
+import { countStatusCategories } from "../../defaults";
 
 // The badge i18n keys are camelCase, but the stored category value for "Started" is
 // the hyphenated "in-progress" (also the CSS variant); map the one that differs.
@@ -34,6 +35,32 @@ function createCategoryBadge(
 	return createStatusBadge(
 		translate(`settings.taskProperties.taskStatuses.badges.${categoryI18nKey(variant)}`),
 		variant
+	);
+}
+
+// Advisory (not a gate): when advanced dependency types are on, a missing category means
+// start-based edges can't release as authored. Guidance at the point statuses are edited.
+function renderStatusCategoryAdvisory(
+	container: HTMLElement,
+	plugin: TaskNotesPlugin,
+	translate: TranslateFn
+): void {
+	if (!plugin.settings.enableAdvancedDependencyTypes) {
+		return;
+	}
+	const counts = countStatusCategories(plugin.settings.customStatuses ?? []);
+	const missing = STATUS_CATEGORIES.filter((category) => counts[category] === 0);
+	if (missing.length === 0) {
+		return;
+	}
+	const categories = missing
+		.map((category) =>
+			translate(`settings.taskProperties.taskStatuses.badges.${categoryI18nKey(category)}`)
+		)
+		.join(", ");
+	const advisory = container.createDiv({ cls: "tn-status-category-advisory" });
+	advisory.setText(
+		translate("settings.taskProperties.taskStatuses.categoryAdvisory", { categories })
 	);
 }
 
@@ -245,6 +272,8 @@ function renderStatusList(
 	onStatusesChanged?: () => void
 ): void {
 	container.empty();
+
+	renderStatusCategoryAdvisory(container, plugin, translate);
 
 	if (!plugin.settings.customStatuses || plugin.settings.customStatuses.length === 0) {
 		showCardEmptyState(container, translate("settings.taskProperties.taskStatuses.emptyState"));

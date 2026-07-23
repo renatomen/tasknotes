@@ -1400,6 +1400,10 @@
     "settings.features.dependencies.description": null,
     "settings.features.dependencies.advancedTypes.name": null,
     "settings.features.dependencies.advancedTypes.description": null,
+    "settings.features.dependencies.readiness.name": null,
+    "settings.features.dependencies.readiness.counts": null,
+    "settings.features.dependencies.readiness.ready": null,
+    "settings.features.dependencies.readiness.notReady": null,
     "settings.features.inlineTasks.header": {
       "source": "a0f498bf59b33369a6a0aca916b487fd04ea40a7",
       "translation": "f98acefe1cdc9c888903a42f94689b0e6d7bef41"
@@ -2932,6 +2936,7 @@
     },
     "settings.taskProperties.taskStatuses.badges.planned": null,
     "settings.taskProperties.taskStatuses.badges.inProgress": null,
+    "settings.taskProperties.taskStatuses.categoryAdvisory": null,
     "settings.taskProperties.taskStatuses.deleteConfirm": {
       "source": "179626d7a4d216da031ac7ca2ec87e0ed97bc5fc",
       "translation": "bd5e5868fd22e54aa9b5018245a7dac8304bd1f6"
@@ -10315,6 +10320,10 @@
     "settings.features.dependencies.description": null,
     "settings.features.dependencies.advancedTypes.name": null,
     "settings.features.dependencies.advancedTypes.description": null,
+    "settings.features.dependencies.readiness.name": null,
+    "settings.features.dependencies.readiness.counts": null,
+    "settings.features.dependencies.readiness.ready": null,
+    "settings.features.dependencies.readiness.notReady": null,
     "settings.features.inlineTasks.header": {
       "source": "a0f498bf59b33369a6a0aca916b487fd04ea40a7",
       "translation": "a7f016a7bf869a4faec082a631841e0f359e46c2"
@@ -11847,6 +11856,7 @@
     },
     "settings.taskProperties.taskStatuses.badges.planned": null,
     "settings.taskProperties.taskStatuses.badges.inProgress": null,
+    "settings.taskProperties.taskStatuses.categoryAdvisory": null,
     "settings.taskProperties.taskStatuses.deleteConfirm": {
       "source": "179626d7a4d216da031ac7ca2ec87e0ed97bc5fc",
       "translation": "6181bea9a3b42002b16368c96c4b7ec405424a9d"
@@ -19230,6 +19240,10 @@
     "settings.features.dependencies.description": null,
     "settings.features.dependencies.advancedTypes.name": null,
     "settings.features.dependencies.advancedTypes.description": null,
+    "settings.features.dependencies.readiness.name": null,
+    "settings.features.dependencies.readiness.counts": null,
+    "settings.features.dependencies.readiness.ready": null,
+    "settings.features.dependencies.readiness.notReady": null,
     "settings.features.inlineTasks.header": {
       "source": "a0f498bf59b33369a6a0aca916b487fd04ea40a7",
       "translation": "a32a664acc6d5279c6600620c1a3fb0a8bb8cd1b"
@@ -20762,6 +20776,7 @@
     },
     "settings.taskProperties.taskStatuses.badges.planned": null,
     "settings.taskProperties.taskStatuses.badges.inProgress": null,
+    "settings.taskProperties.taskStatuses.categoryAdvisory": null,
     "settings.taskProperties.taskStatuses.deleteConfirm": {
       "source": "179626d7a4d216da031ac7ca2ec87e0ed97bc5fc",
       "translation": "b9270228ed590ded12e0538f71a4adaa6702b218"
@@ -28145,6 +28160,10 @@
     "settings.features.dependencies.description": null,
     "settings.features.dependencies.advancedTypes.name": null,
     "settings.features.dependencies.advancedTypes.description": null,
+    "settings.features.dependencies.readiness.name": null,
+    "settings.features.dependencies.readiness.counts": null,
+    "settings.features.dependencies.readiness.ready": null,
+    "settings.features.dependencies.readiness.notReady": null,
     "settings.features.inlineTasks.header": {
       "source": "a0f498bf59b33369a6a0aca916b487fd04ea40a7",
       "translation": "7277ee93a6bc575b91eacbff0045075f71fa9b22"
@@ -29677,6 +29696,7 @@
     },
     "settings.taskProperties.taskStatuses.badges.planned": null,
     "settings.taskProperties.taskStatuses.badges.inProgress": null,
+    "settings.taskProperties.taskStatuses.categoryAdvisory": null,
     "settings.taskProperties.taskStatuses.deleteConfirm": {
       "source": "179626d7a4d216da031ac7ca2ec87e0ed97bc5fc",
       "translation": "d7a8c7b2efbbd6760f19259c206a211ffc3b0674"
@@ -37060,6 +37080,10 @@
     "settings.features.dependencies.description": null,
     "settings.features.dependencies.advancedTypes.name": null,
     "settings.features.dependencies.advancedTypes.description": null,
+    "settings.features.dependencies.readiness.name": null,
+    "settings.features.dependencies.readiness.counts": null,
+    "settings.features.dependencies.readiness.ready": null,
+    "settings.features.dependencies.readiness.notReady": null,
     "settings.features.inlineTasks.header": {
       "source": "a0f498bf59b33369a6a0aca916b487fd04ea40a7",
       "translation": "1e85b7120ae8c808302b3a235b6f91916bbf7de8"
@@ -38592,6 +38616,7 @@
     },
     "settings.taskProperties.taskStatuses.badges.planned": null,
     "settings.taskProperties.taskStatuses.badges.inProgress": null,
+    "settings.taskProperties.taskStatuses.categoryAdvisory": null,
     "settings.taskProperties.taskStatuses.deleteConfirm": {
       "source": "179626d7a4d216da031ac7ca2ec87e0ed97bc5fc",
       "translation": "f6882f9122f9b4e5f620c536e1d062ebc3225517"
@@ -45975,6 +46000,10 @@
     "settings.features.dependencies.description": null,
     "settings.features.dependencies.advancedTypes.name": null,
     "settings.features.dependencies.advancedTypes.description": null,
+    "settings.features.dependencies.readiness.name": null,
+    "settings.features.dependencies.readiness.counts": null,
+    "settings.features.dependencies.readiness.ready": null,
+    "settings.features.dependencies.readiness.notReady": null,
     "settings.features.inlineTasks.header": {
       "source": "a0f498bf59b33369a6a0aca916b487fd04ea40a7",
       "translation": "e4840351a15b65cb43b38b53ce73a1b976f8993f"
@@ -47507,6 +47536,7 @@
     },
     "settings.taskProperties.taskStatuses.badges.planned": null,
     "settings.taskProperties.taskStatuses.badges.inProgress": null,
+    "settings.taskProperties.taskStatuses.categoryAdvisory": null,
     "settings.taskProperties.taskStatuses.deleteConfirm": {
       "source": "179626d7a4d216da031ac7ca2ec87e0ed97bc5fc",
       "translation": "5a9415cfc781eb37f56b19b6451cd9da046630de"
@@ -54890,6 +54920,10 @@
     "settings.features.dependencies.description": null,
     "settings.features.dependencies.advancedTypes.name": null,
     "settings.features.dependencies.advancedTypes.description": null,
+    "settings.features.dependencies.readiness.name": null,
+    "settings.features.dependencies.readiness.counts": null,
+    "settings.features.dependencies.readiness.ready": null,
+    "settings.features.dependencies.readiness.notReady": null,
     "settings.features.inlineTasks.header": {
       "source": "a0f498bf59b33369a6a0aca916b487fd04ea40a7",
       "translation": "ed325e2a0e049939e66b927ab4ad76ff76319842"
@@ -56422,6 +56456,7 @@
     },
     "settings.taskProperties.taskStatuses.badges.planned": null,
     "settings.taskProperties.taskStatuses.badges.inProgress": null,
+    "settings.taskProperties.taskStatuses.categoryAdvisory": null,
     "settings.taskProperties.taskStatuses.deleteConfirm": {
       "source": "179626d7a4d216da031ac7ca2ec87e0ed97bc5fc",
       "translation": "0c211b5422e7e0d78ec042fbd5154781a79bcd90"
@@ -63805,6 +63840,10 @@
     "settings.features.dependencies.description": null,
     "settings.features.dependencies.advancedTypes.name": null,
     "settings.features.dependencies.advancedTypes.description": null,
+    "settings.features.dependencies.readiness.name": null,
+    "settings.features.dependencies.readiness.counts": null,
+    "settings.features.dependencies.readiness.ready": null,
+    "settings.features.dependencies.readiness.notReady": null,
     "settings.features.inlineTasks.header": {
       "source": "a0f498bf59b33369a6a0aca916b487fd04ea40a7",
       "translation": "29a6c4edbeac9373f6e112eee10387b97be35a25"
@@ -65337,6 +65376,7 @@
     },
     "settings.taskProperties.taskStatuses.badges.planned": null,
     "settings.taskProperties.taskStatuses.badges.inProgress": null,
+    "settings.taskProperties.taskStatuses.categoryAdvisory": null,
     "settings.taskProperties.taskStatuses.deleteConfirm": {
       "source": "179626d7a4d216da031ac7ca2ec87e0ed97bc5fc",
       "translation": "20035d63eaafed20bd3b4001a0dca01e09b82186"
