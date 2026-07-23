@@ -214,6 +214,7 @@ function createProjectSubtasksToggleHandler(
 
 function createBlockingToggleClickHandler(
 	task: TaskInfo,
+	plugin: TaskNotesPlugin,
 	card: HTMLElement,
 	handlers: TaskCardSecondaryBadgeHandlers
 ): () => void {
@@ -224,6 +225,7 @@ function createBlockingToggleClickHandler(
 				return;
 			}
 			const expanded = toggle.classList.toggle("task-card__blocking-toggle--expanded");
+			plugin.expandedProjectsService?.setBlockingExpanded(task.path, expanded);
 			await handlers.toggleBlockingTasks(card, task, expanded);
 		})();
 	};
@@ -260,9 +262,10 @@ export function syncTaskCardBlockedByExpansionControls(
 export async function toggleTaskCardBlockedByExpansion(
 	options: ToggleBlockedByExpansionOptions
 ): Promise<void> {
-	const { card, task, handlers } = options;
+	const { card, task, plugin, handlers } = options;
 	const expanded = !card.querySelector(".task-card__blocked-by");
 	syncTaskCardBlockedByExpansionControls(card, expanded);
+	plugin.expandedProjectsService?.setBlockedByExpanded(task.path, expanded);
 	await handlers.toggleBlockedByTasks(card, task, expanded);
 }
 
@@ -373,10 +376,18 @@ function renderDependencyToggles(
 			className: "task-card__blocking-toggle is-visible",
 			icon: "git-branch",
 			tooltip: toggleLabel,
-			onClick: createBlockingToggleClickHandler(task, card, handlers),
+			onClick: createBlockingToggleClickHandler(task, plugin, card, handlers),
 		});
 		if (toggle) {
 			toggle.dataset.count = String(blockingCount);
+			restoreRelationshipExpansion({
+				toggle,
+				expanded: plugin.expandedProjectsService?.isBlockingExpanded(task.path) ?? false,
+				expandedClass: "task-card__blocking-toggle--expanded",
+				render: () => handlers.toggleBlockingTasks(card, task, true),
+				plugin,
+				task,
+			});
 		}
 	}
 
@@ -392,8 +403,40 @@ function renderDependencyToggles(
 		if (toggle) {
 			toggle.dataset.count = String(blocked.count);
 			toggle.dataset.blockedState = blocked.state;
+			restoreRelationshipExpansion({
+				toggle,
+				expanded: plugin.expandedProjectsService?.isBlockedByExpanded(task.path) ?? false,
+				expandedClass: "task-card__blocked-toggle--expanded",
+				render: () => handlers.toggleBlockedByTasks(card, task, true),
+				plugin,
+				task,
+			});
 		}
 	}
+}
+
+// A card re-render rebuilds the toggle fresh, so the on/off state lives in the expansion
+// service, not the DOM; re-open the relationship list here when the service says it was open.
+function restoreRelationshipExpansion(options: {
+	toggle: HTMLElement;
+	expanded: boolean;
+	expandedClass: string;
+	render: () => Promise<void>;
+	plugin: TaskNotesPlugin;
+	task: TaskInfo;
+}): void {
+	if (!options.expanded) {
+		return;
+	}
+	options.toggle.classList.add(options.expandedClass);
+	options.render().catch((error: unknown) => {
+		getTaskCardBadgeLogger(options.plugin).error("Error restoring relationship expansion", {
+			category: "internal",
+			operation: "restore-relationship-expansion",
+			details: { taskPath: options.task.path },
+			error,
+		});
+	});
 }
 
 export function renderTaskCardSecondaryBadges(
@@ -534,7 +577,7 @@ function updateBlockingToggle(options: UpdateTaskCardSecondaryBadgesOptions): vo
 		className: "task-card__blocking-toggle is-visible",
 		icon: "git-branch",
 		tooltip: toggleLabel,
-		onClick: createBlockingToggleClickHandler(task, card, handlers),
+		onClick: createBlockingToggleClickHandler(task, plugin, card, handlers),
 	});
 
 	if (!shouldExist) {
