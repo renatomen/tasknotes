@@ -8,7 +8,11 @@ import { convertInternalToUserProperties } from "../utils/propertyMapping";
 import { DEFAULT_INTERNAL_VISIBLE_PROPERTIES } from "../settings/defaults";
 import type { TaskCardOptions } from "../ui/TaskCard";
 import { PropertyMappingService } from "./PropertyMappingService";
-import { normalizeDependencyList } from "../utils/dependencyUtils";
+import {
+	normalizeDependencyList,
+	reltypeConstrainsStart,
+	reltypeConstrainsFinish,
+} from "../utils/dependencyUtils";
 import { stringifyUnknown, stringifyUnknownArray } from "../utils/stringUtils";
 import { createTaskNotesLogger } from "../utils/tasknotesLogger";
 import { createElementInDocument } from "../utils/documentDom";
@@ -218,18 +222,28 @@ function createTaskInfoFromProperties(
 	const totalTrackedTime = timeEntries ? calculateTotalTimeSpent(timeEntries) : 0;
 
 	// Get dependency information from DependencyCache if plugin is available
-	let isBlocked = false;
+	let startBlocked = false;
+	let finishBlocked = false;
 	let blockingTasks: string[] = [];
-	let isBlocking = false;
+	let isBlockingStart = false;
+	let isBlockingFinish = false;
 	if (plugin?.dependencyCache && basesItem.path) {
-		// Use DependencyCache for status-aware blocking check
-		isBlocked = plugin.dependencyCache.isTaskBlocked(basesItem.path);
+		// Status-aware, per-endpoint blocking state from the cache
+		startBlocked = plugin.dependencyCache.isTaskStartBlocked(basesItem.path);
+		finishBlocked = plugin.dependencyCache.isTaskFinishBlocked(basesItem.path);
 		blockingTasks = plugin.dependencyCache.getBlockedTaskPaths(basesItem.path);
-		isBlocking = blockingTasks.length > 0;
+		isBlockingStart =
+			plugin.dependencyCache.getStartBlockedDependentPaths(basesItem.path).length > 0;
+		isBlockingFinish =
+			plugin.dependencyCache.getFinishBlockedDependentPaths(basesItem.path).length > 0;
 	} else {
-		// Fallback when plugin not available: use simple existence check
-		isBlocked = Array.isArray(props.blockedBy) && props.blockedBy.length > 0;
+		// Cache-absent fallback: existence-based, from this task's own edge reltypes.
+		const edges = normalizeDependencyList(props.blockedBy) ?? [];
+		startBlocked = edges.some((edge) => reltypeConstrainsStart(edge.reltype));
+		finishBlocked = edges.some((edge) => reltypeConstrainsFinish(edge.reltype));
 	}
+	const isBlocked = startBlocked || finishBlocked;
+	const isBlocking = blockingTasks.length > 0;
 
 	return {
 		title:
@@ -271,6 +285,10 @@ function createTaskInfoFromProperties(
 		blocking: blockingTasks.length > 0 ? blockingTasks : undefined,
 		isBlocked: isBlocked,
 		isBlocking: isBlocking,
+		startBlocked,
+		finishBlocked,
+		isBlockingStart,
+		isBlockingFinish,
 		sortOrder: toOptionalString(props.sortOrder),
 		customProperties: Object.keys(customProperties).length > 0 ? customProperties : undefined,
 		basesData: basesItem.basesData,

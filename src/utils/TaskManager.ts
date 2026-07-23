@@ -7,6 +7,7 @@ import { TaskNotesSettings } from "../types/settings";
 import type { DependencyCache } from "./DependencyCache";
 import { isPathInExcludedFolder, parseExcludedFolders } from "./pathExclusions";
 import { buildTaskInfoFromMappedTask } from "./taskInfoAssembly";
+import { reltypeConstrainsStart, reltypeConstrainsFinish } from "./dependencyUtils";
 import { isTaskFrontmatter } from "./taskIdentification";
 import { createTaskNotesLogger } from "./tasknotesLogger";
 
@@ -337,23 +338,37 @@ export class TaskManager extends Events {
 			);
 
 			// Get dependency information from DependencyCache
-			let isBlocked = false;
+			let startBlocked = false;
+			let finishBlocked = false;
 			let blockingTasks: string[] = [];
+			let isBlockingStart = false;
+			let isBlockingFinish = false;
 			if (this._dependencyCache) {
-				// Use DependencyCache for status-aware blocking check
-				isBlocked = this._dependencyCache.isTaskBlocked(path);
+				// Status-aware, per-endpoint blocking state from the cache
+				startBlocked = this._dependencyCache.isTaskStartBlocked(path);
+				finishBlocked = this._dependencyCache.isTaskFinishBlocked(path);
 				blockingTasks = this._dependencyCache.getBlockedTaskPaths(path);
+				isBlockingStart =
+					this._dependencyCache.getStartBlockedDependentPaths(path).length > 0;
+				isBlockingFinish =
+					this._dependencyCache.getFinishBlockedDependentPaths(path).length > 0;
 			} else {
-				// Fallback when dependency cache not available: use simple existence check
-				isBlocked = Array.isArray(mappedTask.blockedBy) && mappedTask.blockedBy.length > 0;
+				// Cache-absent fallback: existence-based, from this task's own edge reltypes.
+				const edges = Array.isArray(mappedTask.blockedBy) ? mappedTask.blockedBy : [];
+				startBlocked = edges.some((edge) => reltypeConstrainsStart(edge.reltype));
+				finishBlocked = edges.some((edge) => reltypeConstrainsFinish(edge.reltype));
 			}
 
 			return buildTaskInfoFromMappedTask({
 				path,
 				mappedTask,
 				defaultTaskStatus: this.settings.defaultTaskStatus,
-				isBlocked,
+				isBlocked: startBlocked || finishBlocked,
 				blockingTasks,
+				startBlocked,
+				finishBlocked,
+				isBlockingStart,
+				isBlockingFinish,
 			});
 		} catch (error) {
 			tasknotesLogger.error(`Error extracting task info from native metadata for ${path}:`, {
