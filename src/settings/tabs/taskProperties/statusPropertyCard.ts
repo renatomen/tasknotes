@@ -19,6 +19,23 @@ import {
 } from "../../components/CardComponent";
 import { createIconInput } from "../../components/IconSuggest";
 import { createNLPTriggerRows, createPropertyDescription, TranslateFn } from "./helpers";
+import { StatusCategory, STATUS_CATEGORIES } from "../../../types";
+
+// The badge i18n keys are camelCase, but the stored category value for "In progress" is
+// the hyphenated "in-progress" (also the CSS variant); map the one that differs.
+const categoryI18nKey = (category: StatusCategory | "uncategorized"): string =>
+	category === "in-progress" ? "inProgress" : category;
+
+function createCategoryBadge(
+	category: StatusCategory | undefined,
+	translate: TranslateFn
+): HTMLElement {
+	const variant = category ?? "uncategorized";
+	return createStatusBadge(
+		translate(`settings.taskProperties.taskStatuses.badges.${categoryI18nKey(variant)}`),
+		variant
+	);
+}
 
 /**
  * Renders the Status property card with nested status value cards
@@ -103,7 +120,7 @@ export function renderStatusPropertyCard(
 		text: translate("settings.taskProperties.taskStatuses.howTheyWork.icon"),
 	});
 	statusHelpList.createEl("li", {
-		text: translate("settings.taskProperties.taskStatuses.howTheyWork.completed"),
+		text: translate("settings.taskProperties.taskStatuses.howTheyWork.category"),
 	});
 	statusHelpList.createEl("li", {
 		text: translate("settings.taskProperties.taskStatuses.howTheyWork.autoArchive"),
@@ -255,19 +272,32 @@ function renderStatusList(
 			status.icon || ""
 		);
 
-		const completedToggle = createCardToggle(status.isCompleted || false, (value) => {
-			status.isCompleted = value;
+		const categorySelect = createCardSelect(
+			[
+				{
+					value: "",
+					label: translate(
+						"settings.taskProperties.taskStatuses.categoryOptions.uncategorized"
+					),
+				},
+				...STATUS_CATEGORIES.map((category) => ({
+					value: category,
+					label: translate(
+						`settings.taskProperties.taskStatuses.categoryOptions.${categoryI18nKey(category)}`
+					),
+				})),
+			],
+			status.category ?? ""
+		);
+
+		categorySelect.addEventListener("change", () => {
+			const value = categorySelect.value;
+			status.category = value ? (value as StatusCategory) : undefined;
+			status.isCompleted = value === "completed";
 			const metaContainer = statusCard?.querySelector(".tasknotes-settings__card-meta");
 			if (metaContainer) {
 				metaContainer.empty();
-				if (status.isCompleted) {
-					metaContainer.appendChild(
-						createStatusBadge(
-							translate("settings.taskProperties.taskStatuses.badges.completed"),
-							"completed"
-						)
-					);
-				}
+				metaContainer.appendChild(createCategoryBadge(status.category, translate));
 			}
 			save();
 		});
@@ -311,14 +341,7 @@ function renderStatusList(
 			status.autoArchiveDelay || 5
 		);
 
-		const metaElements = status.isCompleted
-			? [
-					createStatusBadge(
-						translate("settings.taskProperties.taskStatuses.badges.completed"),
-						"completed"
-					),
-				]
-			: [];
+		const metaElements = [createCategoryBadge(status.category, translate)];
 
 		let statusCard: HTMLElement;
 
@@ -417,9 +440,9 @@ function renderStatusList(
 							},
 							{
 								label: translate(
-									"settings.taskProperties.taskStatuses.fields.completed"
+									"settings.taskProperties.taskStatuses.fields.category"
 								),
-								input: completedToggle,
+								input: categorySelect,
 							},
 							{
 								label: translate(

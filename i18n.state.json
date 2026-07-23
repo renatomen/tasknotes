@@ -2844,6 +2844,7 @@
       "source": "e6bd6dc7043b1d939ae805d795e5f3b6c2d4470b",
       "translation": "cb9ab4cdcceb9e2aeb360e177c24b02d93f30ac8"
     },
+    "settings.taskProperties.taskStatuses.howTheyWork.category": null,
     "settings.taskProperties.taskStatuses.howTheyWork.autoArchive": {
       "source": "bd84a52c7f3268c53cbd87f48ca89f2224a7ac31",
       "translation": "692e1e30972b496ecd275c59b3bdef98fc743fd4"
@@ -2896,6 +2897,7 @@
       "source": "208409ffed559a03204711e8976b06e3710deca5",
       "translation": "a138e2592f8e86664bee5d2261abd967cb1e1024"
     },
+    "settings.taskProperties.taskStatuses.fields.category": null,
     "settings.taskProperties.taskStatuses.fields.excludeFromCycle": {
       "source": "6e3d4319d8e9bc72452a8ea748a148aace623f36",
       "translation": "977a68aff1290a7f18c23491f18fd496635c4704"
@@ -2932,6 +2934,13 @@
       "source": "1798b3ba42ee08ea09d9720b2d9c0181abbfe3e4",
       "translation": "be274c6e71f4a5837b1f8124da980ac92a56ac7e"
     },
+    "settings.taskProperties.taskStatuses.badges.planned": null,
+    "settings.taskProperties.taskStatuses.badges.inProgress": null,
+    "settings.taskProperties.taskStatuses.badges.uncategorized": null,
+    "settings.taskProperties.taskStatuses.categoryOptions.uncategorized": null,
+    "settings.taskProperties.taskStatuses.categoryOptions.planned": null,
+    "settings.taskProperties.taskStatuses.categoryOptions.inProgress": null,
+    "settings.taskProperties.taskStatuses.categoryOptions.completed": null,
     "settings.taskProperties.taskStatuses.deleteConfirm": {
       "source": "179626d7a4d216da031ac7ca2ec87e0ed97bc5fc",
       "translation": "bd5e5868fd22e54aa9b5018245a7dac8304bd1f6"
@@ -11734,6 +11743,7 @@
       "source": "e6bd6dc7043b1d939ae805d795e5f3b6c2d4470b",
       "translation": "ef5bc07ca67951bfd0227f7cde1f9d628e93da09"
     },
+    "settings.taskProperties.taskStatuses.howTheyWork.category": null,
     "settings.taskProperties.taskStatuses.howTheyWork.autoArchive": {
       "source": "bd84a52c7f3268c53cbd87f48ca89f2224a7ac31",
       "translation": "3d6f9cec0a3f2f016e0d1d5d97750710f924e41a"
@@ -11786,6 +11796,7 @@
       "source": "208409ffed559a03204711e8976b06e3710deca5",
       "translation": "49bcf96e290b8b04ab476892243e71fa2f3c486a"
     },
+    "settings.taskProperties.taskStatuses.fields.category": null,
     "settings.taskProperties.taskStatuses.fields.excludeFromCycle": {
       "source": "6e3d4319d8e9bc72452a8ea748a148aace623f36",
       "translation": "9b8011e3aa98c24cba7a3abd3cfd47fa59d3f447"
@@ -11822,6 +11833,13 @@
       "source": "1798b3ba42ee08ea09d9720b2d9c0181abbfe3e4",
       "translation": "76a3d55ad062a9d4590170afbe43b600933f564d"
     },
+    "settings.taskProperties.taskStatuses.badges.planned": null,
+    "settings.taskProperties.taskStatuses.badges.inProgress": null,
+    "settings.taskProperties.taskStatuses.badges.uncategorized": null,
+    "settings.taskProperties.taskStatuses.categoryOptions.uncategorized": null,
+    "settings.taskProperties.taskStatuses.categoryOptions.planned": null,
+    "settings.taskProperties.taskStatuses.categoryOptions.inProgress": null,
+    "settings.taskProperties.taskStatuses.categoryOptions.completed": null,
     "settings.taskProperties.taskStatuses.deleteConfirm": {
       "source": "179626d7a4d216da031ac7ca2ec87e0ed97bc5fc",
       "translation": "6181bea9a3b42002b16368c96c4b7ec405424a9d"
@@ -20624,6 +20642,7 @@
       "source": "e6bd6dc7043b1d939ae805d795e5f3b6c2d4470b",
       "translation": "8df3b29da68c74050b5af7233aa7f88b32cba2cc"
     },
+    "settings.taskProperties.taskStatuses.howTheyWork.category": null,
     "settings.taskProperties.taskStatuses.howTheyWork.autoArchive": {
       "source": "bd84a52c7f3268c53cbd87f48ca89f2224a7ac31",
       "translation": "5a24d44f681e6afe77c73cff479d5c7828569810"
@@ -20676,6 +20695,7 @@
       "source": "208409ffed559a03204711e8976b06e3710deca5",
       "translation": "6edcf9c3483f8a2577d3a8175dac1e55219a8241"
     },
+    "settings.taskProperties.taskStatuses.fields.category": null,
     "settings.taskProperties.taskStatuses.fields.excludeFromCycle": {
       "source": "6e3d4319d8e9bc72452a8ea748a148aace623f36",
       "translation": "042f017c2648c2cd227ff2b0cf95a821e19cea54"
@@ -20712,6 +20732,13 @@
       "source": "1798b3ba42ee08ea09d9720b2d9c0181abbfe3e4",
       "translation": "3bc5972000ab5d6e76d30edba6b124eaf7f3bc15"
     },
+    "settings.taskProperties.taskStatuses.badges.planned": null,
+    "settings.taskProperties.taskStatuses.badges.inProgress": null,
+    "settings.taskProperties.taskStatuses.badges.uncategorized": null,
+    "settings.taskProperties.taskStatuses.categoryOptions.uncategorized": null,
+    "settings.taskProperties.taskStatuses.categoryOptions.planned": null,
+    "settings.taskProperties.taskStatuses.categoryOptions.inProgress": null,
+    "settings.taskProperties.taskStatuses.categoryOptions.completed": null,
     "settings.taskProperties.taskStatuses.deleteConfirm": {
       "source": "179626d7a4d216da031ac7ca2ec87e0ed97bc5fc",
       "translation": "b9270228ed590ded12e0538f71a4adaa6702b218"
@@ -29514,6 +29541,7 @@
       "source": "e6bd6dc7043b1d939ae805d795e5f3b6c2d4470b",
       "translation": "9e0eaf71298108654fd791ac948dd6c8dd1b439e"
     },
+    "settings.taskProperties.taskStatuses.howTheyWork.category": null,
     "settings.taskProperties.taskStatuses.howTheyWork.autoArchive": {
       "source": "bd84a52c7f3268c53cbd87f48ca89f2224a7ac31",
       "translation": "c7ecc4029c4dd7625ebca6fe44c596c26338d981"
@@ -29566,6 +29594,7 @@
       "source": "208409ffed559a03204711e8976b06e3710deca5",
       "translation": "886556b844ad628bf72491209c1e20304e58c722"
     },
+    "settings.taskProperties.taskStatuses.fields.category": null,
     "settings.taskProperties.taskStatuses.fields.excludeFromCycle": {
       "source": "6e3d4319d8e9bc72452a8ea748a148aace623f36",
       "translation": "8d3d57a8b4f55f55dcc1d748c73d05ff110619cf"
@@ -29602,6 +29631,13 @@
       "source": "1798b3ba42ee08ea09d9720b2d9c0181abbfe3e4",
       "translation": "1cae18a9a401bd5c4ec499d517e0c653ad6a5a1b"
     },
+    "settings.taskProperties.taskStatuses.badges.planned": null,
+    "settings.taskProperties.taskStatuses.badges.inProgress": null,
+    "settings.taskProperties.taskStatuses.badges.uncategorized": null,
+    "settings.taskProperties.taskStatuses.categoryOptions.uncategorized": null,
+    "settings.taskProperties.taskStatuses.categoryOptions.planned": null,
+    "settings.taskProperties.taskStatuses.categoryOptions.inProgress": null,
+    "settings.taskProperties.taskStatuses.categoryOptions.completed": null,
     "settings.taskProperties.taskStatuses.deleteConfirm": {
       "source": "179626d7a4d216da031ac7ca2ec87e0ed97bc5fc",
       "translation": "d7a8c7b2efbbd6760f19259c206a211ffc3b0674"
@@ -38404,6 +38440,7 @@
       "source": "e6bd6dc7043b1d939ae805d795e5f3b6c2d4470b",
       "translation": "92fc9c57e556f7b81989589101b7e3b4cf77244e"
     },
+    "settings.taskProperties.taskStatuses.howTheyWork.category": null,
     "settings.taskProperties.taskStatuses.howTheyWork.autoArchive": {
       "source": "bd84a52c7f3268c53cbd87f48ca89f2224a7ac31",
       "translation": "f410df49c842cee9f0fd04207f66a9f7d084835e"
@@ -38456,6 +38493,7 @@
       "source": "208409ffed559a03204711e8976b06e3710deca5",
       "translation": "18bafeed301d12d6ecf88b2ad49467af8a9f3498"
     },
+    "settings.taskProperties.taskStatuses.fields.category": null,
     "settings.taskProperties.taskStatuses.fields.excludeFromCycle": {
       "source": "6e3d4319d8e9bc72452a8ea748a148aace623f36",
       "translation": "3b2c81ef0aabc2b45ca597bfc52ff601abaa9540"
@@ -38492,6 +38530,13 @@
       "source": "1798b3ba42ee08ea09d9720b2d9c0181abbfe3e4",
       "translation": "1f74613ee3eeed953e1aa998a0b081df5eb6949f"
     },
+    "settings.taskProperties.taskStatuses.badges.planned": null,
+    "settings.taskProperties.taskStatuses.badges.inProgress": null,
+    "settings.taskProperties.taskStatuses.badges.uncategorized": null,
+    "settings.taskProperties.taskStatuses.categoryOptions.uncategorized": null,
+    "settings.taskProperties.taskStatuses.categoryOptions.planned": null,
+    "settings.taskProperties.taskStatuses.categoryOptions.inProgress": null,
+    "settings.taskProperties.taskStatuses.categoryOptions.completed": null,
     "settings.taskProperties.taskStatuses.deleteConfirm": {
       "source": "179626d7a4d216da031ac7ca2ec87e0ed97bc5fc",
       "translation": "f6882f9122f9b4e5f620c536e1d062ebc3225517"
@@ -47294,6 +47339,7 @@
       "source": "e6bd6dc7043b1d939ae805d795e5f3b6c2d4470b",
       "translation": "c041d0942c21612e1c4fd36563380da2781424bc"
     },
+    "settings.taskProperties.taskStatuses.howTheyWork.category": null,
     "settings.taskProperties.taskStatuses.howTheyWork.autoArchive": {
       "source": "bd84a52c7f3268c53cbd87f48ca89f2224a7ac31",
       "translation": "a5d6f43e85055d22939a19a1f69673400925464e"
@@ -47346,6 +47392,7 @@
       "source": "208409ffed559a03204711e8976b06e3710deca5",
       "translation": "8fbc8d895e59321d9d909fd12d9322147afddc98"
     },
+    "settings.taskProperties.taskStatuses.fields.category": null,
     "settings.taskProperties.taskStatuses.fields.excludeFromCycle": {
       "source": "6e3d4319d8e9bc72452a8ea748a148aace623f36",
       "translation": "f9a26783183369f7753926a8c50f866faffaddfc"
@@ -47382,6 +47429,13 @@
       "source": "1798b3ba42ee08ea09d9720b2d9c0181abbfe3e4",
       "translation": "dbeb4db1889042371ea9e0acdbed584b61f923dc"
     },
+    "settings.taskProperties.taskStatuses.badges.planned": null,
+    "settings.taskProperties.taskStatuses.badges.inProgress": null,
+    "settings.taskProperties.taskStatuses.badges.uncategorized": null,
+    "settings.taskProperties.taskStatuses.categoryOptions.uncategorized": null,
+    "settings.taskProperties.taskStatuses.categoryOptions.planned": null,
+    "settings.taskProperties.taskStatuses.categoryOptions.inProgress": null,
+    "settings.taskProperties.taskStatuses.categoryOptions.completed": null,
     "settings.taskProperties.taskStatuses.deleteConfirm": {
       "source": "179626d7a4d216da031ac7ca2ec87e0ed97bc5fc",
       "translation": "5a9415cfc781eb37f56b19b6451cd9da046630de"
@@ -56184,6 +56238,7 @@
       "source": "e6bd6dc7043b1d939ae805d795e5f3b6c2d4470b",
       "translation": "652c5354d61a3dd8ee6f00b351a77d0d86d34a79"
     },
+    "settings.taskProperties.taskStatuses.howTheyWork.category": null,
     "settings.taskProperties.taskStatuses.howTheyWork.autoArchive": {
       "source": "bd84a52c7f3268c53cbd87f48ca89f2224a7ac31",
       "translation": "58d500bcc42fe10e16454b41f6c9caf89a3ec23e"
@@ -56236,6 +56291,7 @@
       "source": "208409ffed559a03204711e8976b06e3710deca5",
       "translation": "bb155f6460bf0b86f81e40d4cb310624c008ea76"
     },
+    "settings.taskProperties.taskStatuses.fields.category": null,
     "settings.taskProperties.taskStatuses.fields.excludeFromCycle": {
       "source": "6e3d4319d8e9bc72452a8ea748a148aace623f36",
       "translation": "7ca1e438ff083d0121ab00f1abc9c81aed81e5cf"
@@ -56272,6 +56328,13 @@
       "source": "1798b3ba42ee08ea09d9720b2d9c0181abbfe3e4",
       "translation": "016bc923f7ff6c70ac895a10fe7d5205b7fb35f0"
     },
+    "settings.taskProperties.taskStatuses.badges.planned": null,
+    "settings.taskProperties.taskStatuses.badges.inProgress": null,
+    "settings.taskProperties.taskStatuses.badges.uncategorized": null,
+    "settings.taskProperties.taskStatuses.categoryOptions.uncategorized": null,
+    "settings.taskProperties.taskStatuses.categoryOptions.planned": null,
+    "settings.taskProperties.taskStatuses.categoryOptions.inProgress": null,
+    "settings.taskProperties.taskStatuses.categoryOptions.completed": null,
     "settings.taskProperties.taskStatuses.deleteConfirm": {
       "source": "179626d7a4d216da031ac7ca2ec87e0ed97bc5fc",
       "translation": "0c211b5422e7e0d78ec042fbd5154781a79bcd90"
@@ -65074,6 +65137,7 @@
       "source": "e6bd6dc7043b1d939ae805d795e5f3b6c2d4470b",
       "translation": "2b7120e8e1d1fdc14d8013fb0f784020d4179f3e"
     },
+    "settings.taskProperties.taskStatuses.howTheyWork.category": null,
     "settings.taskProperties.taskStatuses.howTheyWork.autoArchive": {
       "source": "bd84a52c7f3268c53cbd87f48ca89f2224a7ac31",
       "translation": "bcea4aa6f70e5baa25c94c14da65f9473fcf697c"
@@ -65126,6 +65190,7 @@
       "source": "208409ffed559a03204711e8976b06e3710deca5",
       "translation": "4fc47c7b6e532be9bca0e26fb998757773d99999"
     },
+    "settings.taskProperties.taskStatuses.fields.category": null,
     "settings.taskProperties.taskStatuses.fields.excludeFromCycle": {
       "source": "6e3d4319d8e9bc72452a8ea748a148aace623f36",
       "translation": "050a8fffceabd90128bd8a5b501c6dc71c67d346"
@@ -65162,6 +65227,13 @@
       "source": "1798b3ba42ee08ea09d9720b2d9c0181abbfe3e4",
       "translation": "e99b48a29bdfdc828623c75b4e5f41367c3c076c"
     },
+    "settings.taskProperties.taskStatuses.badges.planned": null,
+    "settings.taskProperties.taskStatuses.badges.inProgress": null,
+    "settings.taskProperties.taskStatuses.badges.uncategorized": null,
+    "settings.taskProperties.taskStatuses.categoryOptions.uncategorized": null,
+    "settings.taskProperties.taskStatuses.categoryOptions.planned": null,
+    "settings.taskProperties.taskStatuses.categoryOptions.inProgress": null,
+    "settings.taskProperties.taskStatuses.categoryOptions.completed": null,
     "settings.taskProperties.taskStatuses.deleteConfirm": {
       "source": "179626d7a4d216da031ac7ca2ec87e0ed97bc5fc",
       "translation": "20035d63eaafed20bd3b4001a0dca01e09b82186"
