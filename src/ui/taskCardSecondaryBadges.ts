@@ -12,7 +12,10 @@ import {
 	updateBadgeIndicator,
 } from "./taskCardIndicators";
 import { removeRelationshipContainer } from "./taskCardRelationshipExpansion";
-import { getBlockedByTaskPaths } from "./taskCardRelationships";
+import {
+	type BlockedConstraintState,
+	resolveBlockedConstraint,
+} from "./taskCardRelationships";
 import { type TaskCardPresentationOptions } from "./taskCardPresentation";
 
 export interface TaskCardSecondaryBadgeOptions {
@@ -315,6 +318,45 @@ function renderProjectBadges(
 	}
 }
 
+type BlockedToggleState = Exclude<BlockedConstraintState, "none">;
+
+const BLOCKED_STATE_CLASSES = ["is-start-blocked", "is-finish-blocked", "is-released"];
+
+const BLOCKED_BADGE_TREATMENT: Record<
+	BlockedToggleState,
+	{ stateClass: string; tooltipKey: "blockedStart" | "blockedFinish" | "dependenciesBadge" }
+> = {
+	start: { stateClass: "is-start-blocked", tooltipKey: "blockedStart" },
+	finish: { stateClass: "is-finish-blocked", tooltipKey: "blockedFinish" },
+	released: { stateClass: "is-released", tooltipKey: "dependenciesBadge" },
+};
+
+interface BlockedToggleDescriptor {
+	state: BlockedToggleState;
+	stateClass: string;
+	className: string;
+	tooltip: string;
+	count: number;
+}
+
+function describeBlockedToggle(
+	task: TaskInfo,
+	plugin: TaskNotesPlugin
+): BlockedToggleDescriptor | null {
+	const blocked = resolveBlockedConstraint(task, plugin.app, plugin.dependencyCache);
+	if (blocked.state === "none") {
+		return null;
+	}
+	const { stateClass, tooltipKey } = BLOCKED_BADGE_TREATMENT[blocked.state];
+	return {
+		state: blocked.state,
+		stateClass,
+		className: `task-card__blocked-toggle is-visible ${stateClass}`,
+		tooltip: `${tTaskCard(plugin, tooltipKey)} (${blocked.count})`,
+		count: blocked.count,
+	};
+}
+
 function renderDependencyToggles(
 	options: RenderTaskCardSecondaryBadgesOptions,
 	badgesContainer: HTMLElement
@@ -338,18 +380,18 @@ function renderDependencyToggles(
 		}
 	}
 
-	const blockedByPaths = getBlockedByTaskPaths(task, plugin.app);
-	if (blockedByPaths.length > 0) {
-		const toggleLabel = `${tTaskCard(plugin, "blockedBadge")} (${blockedByPaths.length})`;
+	const blocked = describeBlockedToggle(task, plugin);
+	if (blocked) {
 		const toggle = createBadgeIndicator({
 			container: badgesContainer,
-			className: "task-card__blocked-toggle is-visible",
+			className: blocked.className,
 			icon: "git-merge",
-			tooltip: toggleLabel,
+			tooltip: blocked.tooltip,
 			onClick: createBlockedByToggleClickHandler(task, plugin, card, handlers),
 		});
 		if (toggle) {
-			toggle.dataset.count = String(blockedByPaths.length);
+			toggle.dataset.count = String(blocked.count);
+			toggle.dataset.blockedState = blocked.state;
 		}
 	}
 }
@@ -522,19 +564,17 @@ function updateBlockingToggle(options: UpdateTaskCardSecondaryBadgesOptions): vo
 
 function updateBlockedByToggle(options: UpdateTaskCardSecondaryBadgesOptions): void {
 	const { card, task, plugin, handlers } = options;
-	const blockedByPaths = getBlockedByTaskPaths(task, plugin.app);
-	const shouldExist = blockedByPaths.length > 0;
-	const toggleLabel = `${tTaskCard(plugin, "blockedBadge")} (${blockedByPaths.length})`;
+	const blocked = describeBlockedToggle(task, plugin);
 
 	const toggle = updateBadgeIndicator(card, ".task-card__blocked-toggle", {
-		shouldExist,
-		className: "task-card__blocked-toggle is-visible",
+		shouldExist: blocked !== null,
+		className: blocked?.className ?? "task-card__blocked-toggle is-visible",
 		icon: "git-merge",
-		tooltip: toggleLabel,
+		tooltip: blocked?.tooltip ?? "",
 		onClick: createBlockedByToggleClickHandler(task, plugin, card, handlers),
 	});
 
-	if (!shouldExist) {
+	if (!blocked) {
 		removeRelationshipContainer(card, ".task-card__blocked-by");
 		return;
 	}
@@ -545,14 +585,17 @@ function updateBlockedByToggle(options: UpdateTaskCardSecondaryBadgesOptions): v
 
 	toggle.classList.add("is-visible");
 	toggle.classList.remove("is-hidden");
-	toggle.dataset.count = String(blockedByPaths.length);
+	toggle.classList.remove(...BLOCKED_STATE_CLASSES);
+	toggle.classList.add(blocked.stateClass);
+	toggle.dataset.count = String(blocked.count);
+	toggle.dataset.blockedState = blocked.state;
 
 	if (toggle.classList.contains("task-card__blocked-toggle--expanded")) {
 		handlers.toggleBlockedByTasks(card, task, true).catch((error: unknown) => {
 			getTaskCardBadgeLogger(plugin).error("Error refreshing blocked-by tasks", {
 				category: "internal",
 				operation: "refresh-blocked-by-tasks",
-				details: { taskPath: task.path, blockedByCount: blockedByPaths.length },
+				details: { taskPath: task.path, blockedByCount: blocked.count },
 				error,
 			});
 		});

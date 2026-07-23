@@ -7964,6 +7964,11 @@
       "source": "5c34a82e776374bf83ad16d8d8ffb1edad391579",
       "translation": "f12277cffadcf891e3fb0ee75c8b256a8af4af76"
     },
+    "ui.taskCard.blockedStart": null,
+    "ui.taskCard.blockedStartTooltip": null,
+    "ui.taskCard.blockedFinish": null,
+    "ui.taskCard.blockedFinishTooltip": null,
+    "ui.taskCard.dependenciesBadge": null,
     "ui.taskCard.blockingBadge": {
       "source": "d785c0d4b3b9c24878b62f64a7bcf78e9506ab27",
       "translation": "94fa45d32ab235bc9cf188ee29f5189bd3b34782"
@@ -16850,6 +16855,11 @@
       "source": "5c34a82e776374bf83ad16d8d8ffb1edad391579",
       "translation": "53b0d18cdb8872b5b47fc9c80a55ca41784cee12"
     },
+    "ui.taskCard.blockedStart": null,
+    "ui.taskCard.blockedStartTooltip": null,
+    "ui.taskCard.blockedFinish": null,
+    "ui.taskCard.blockedFinishTooltip": null,
+    "ui.taskCard.dependenciesBadge": null,
     "ui.taskCard.blockingBadge": {
       "source": "d785c0d4b3b9c24878b62f64a7bcf78e9506ab27",
       "translation": "8a50b0ef4b49d07acfdf58ca7b4578ea5e9a760e"
@@ -25736,6 +25746,11 @@
       "source": "5c34a82e776374bf83ad16d8d8ffb1edad391579",
       "translation": "93a69f5c9a8fc2ca2f66caf7afde44468e27c861"
     },
+    "ui.taskCard.blockedStart": null,
+    "ui.taskCard.blockedStartTooltip": null,
+    "ui.taskCard.blockedFinish": null,
+    "ui.taskCard.blockedFinishTooltip": null,
+    "ui.taskCard.dependenciesBadge": null,
     "ui.taskCard.blockingBadge": {
       "source": "d785c0d4b3b9c24878b62f64a7bcf78e9506ab27",
       "translation": "c05c5176e9c9c242715c6d11a0deec2695191f9f"
@@ -34622,6 +34637,11 @@
       "source": "5c34a82e776374bf83ad16d8d8ffb1edad391579",
       "translation": "bfc388ea0f2bb3290fad0e726b561e5357dd8ed9"
     },
+    "ui.taskCard.blockedStart": null,
+    "ui.taskCard.blockedStartTooltip": null,
+    "ui.taskCard.blockedFinish": null,
+    "ui.taskCard.blockedFinishTooltip": null,
+    "ui.taskCard.dependenciesBadge": null,
     "ui.taskCard.blockingBadge": {
       "source": "d785c0d4b3b9c24878b62f64a7bcf78e9506ab27",
       "translation": "1a2fe6fc48859372352cc38a1e3be6d2ee96f4dd"
@@ -43508,6 +43528,11 @@
       "source": "5c34a82e776374bf83ad16d8d8ffb1edad391579",
       "translation": "07df251b75d8834bb89fc167a8a89c4228122203"
     },
+    "ui.taskCard.blockedStart": null,
+    "ui.taskCard.blockedStartTooltip": null,
+    "ui.taskCard.blockedFinish": null,
+    "ui.taskCard.blockedFinishTooltip": null,
+    "ui.taskCard.dependenciesBadge": null,
     "ui.taskCard.blockingBadge": {
       "source": "d785c0d4b3b9c24878b62f64a7bcf78e9506ab27",
       "translation": "120c87f0634c333a403f8fb8a4110d583895a634"
@@ -52394,6 +52419,11 @@
       "source": "5c34a82e776374bf83ad16d8d8ffb1edad391579",
       "translation": "e64e7cd6bed7acf660a2f86dfc4360403bb13a23"
     },
+    "ui.taskCard.blockedStart": null,
+    "ui.taskCard.blockedStartTooltip": null,
+    "ui.taskCard.blockedFinish": null,
+    "ui.taskCard.blockedFinishTooltip": null,
+    "ui.taskCard.dependenciesBadge": null,
     "ui.taskCard.blockingBadge": {
       "source": "d785c0d4b3b9c24878b62f64a7bcf78e9506ab27",
       "translation": "8a50b0ef4b49d07acfdf58ca7b4578ea5e9a760e"
@@ -61280,6 +61310,11 @@
       "source": "5c34a82e776374bf83ad16d8d8ffb1edad391579",
       "translation": "72075cbdefafa41ae10ea6f92a436ba3031c23af"
     },
+    "ui.taskCard.blockedStart": null,
+    "ui.taskCard.blockedStartTooltip": null,
+    "ui.taskCard.blockedFinish": null,
+    "ui.taskCard.blockedFinishTooltip": null,
+    "ui.taskCard.dependenciesBadge": null,
     "ui.taskCard.blockingBadge": {
       "source": "d785c0d4b3b9c24878b62f64a7bcf78e9506ab27",
       "translation": "5ac46244a26dc9ecf19afa26ec61535a71eeb983"
@@ -70166,6 +70201,11 @@
       "source": "5c34a82e776374bf83ad16d8d8ffb1edad391579",
       "translation": "8841dcd71dcfd341e4532af66be062b909830f91"
     },
+    "ui.taskCard.blockedStart": null,
+    "ui.taskCard.blockedStartTooltip": null,
+    "ui.taskCard.blockedFinish": null,
+    "ui.taskCard.blockedFinishTooltip": null,
+    "ui.taskCard.dependenciesBadge": null,
     "ui.taskCard.blockingBadge": {
       "source": "d785c0d4b3b9c24878b62f64a7bcf78e9506ab27",
       "translation": "1127903a5c2adf803c50e0dc75386e7a93f91a88"

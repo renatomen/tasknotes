@@ -106,3 +106,51 @@ export function getBlockedByTaskPaths(task: TaskInfo, app: App): string[] {
 
 	return Array.from(paths);
 }
+
+export interface DependencyConstraintSource {
+	getStartBlockingPredecessorPaths(taskPath: string): string[];
+	getFinishBlockingPredecessorPaths(taskPath: string): string[];
+}
+
+export function getStartBlockingTaskPaths(
+	task: TaskInfo,
+	cache: DependencyConstraintSource | undefined
+): string[] {
+	return cache ? cache.getStartBlockingPredecessorPaths(task.path) : [];
+}
+
+export function getFinishBlockingTaskPaths(
+	task: TaskInfo,
+	cache: DependencyConstraintSource | undefined
+): string[] {
+	return cache ? cache.getFinishBlockingPredecessorPaths(task.path) : [];
+}
+
+export type BlockedConstraintState = "start" | "finish" | "released" | "none";
+
+export interface BlockedConstraintInfo {
+	state: BlockedConstraintState;
+	count: number;
+}
+
+// Start wins over finish (an un-startable task is implicitly un-finishable), and the
+// count excludes released edges: a satisfied dependency is listed but not counted.
+export function resolveBlockedConstraint(
+	task: TaskInfo,
+	app: App,
+	cache: DependencyConstraintSource | undefined
+): BlockedConstraintInfo {
+	const existence = getBlockedByTaskPaths(task, app);
+	if (existence.length === 0) {
+		return { state: "none", count: 0 };
+	}
+	if (task.startBlocked) {
+		const constraining = getStartBlockingTaskPaths(task, cache).length;
+		return { state: "start", count: constraining || existence.length };
+	}
+	if (task.finishBlocked) {
+		const constraining = getFinishBlockingTaskPaths(task, cache).length;
+		return { state: "finish", count: constraining || existence.length };
+	}
+	return { state: "released", count: existence.length };
+}

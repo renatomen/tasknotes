@@ -361,12 +361,14 @@ export class DependencyCache extends Events {
 			: (this.startedStatusByPath.get(predecessorPath) ?? false);
 	}
 
-	private computeBlockedState(taskPath: string): {
-		startBlocked: boolean;
-		finishBlocked: boolean;
+	// Forward view: the predecessors whose unreleased edges currently constrain this task,
+	// split by the endpoint they gate. A released edge (started-SS, completed FS) is excluded.
+	private computeConstrainingPredecessors(taskPath: string): {
+		start: Set<string>;
+		finish: Set<string>;
 	} {
-		let startBlocked = false;
-		let finishBlocked = false;
+		const start = new Set<string>();
+		const finish = new Set<string>();
 		const edges = this.edgeReltypes.get(taskPath);
 		if (edges) {
 			for (const [predecessorPath, reltype] of edges) {
@@ -374,13 +376,21 @@ export class DependencyCache extends Events {
 					continue;
 				}
 				if (reltypeConstrainsStart(reltype)) {
-					startBlocked = true;
+					start.add(predecessorPath);
 				} else {
-					finishBlocked = true;
+					finish.add(predecessorPath);
 				}
 			}
 		}
-		return { startBlocked, finishBlocked };
+		return { start, finish };
+	}
+
+	private computeBlockedState(taskPath: string): {
+		startBlocked: boolean;
+		finishBlocked: boolean;
+	} {
+		const { start, finish } = this.computeConstrainingPredecessors(taskPath);
+		return { startBlocked: start.size > 0, finishBlocked: finish.size > 0 };
 	}
 
 	// Reverse view: the successors this task currently blocks, split by the endpoint it gates.
@@ -667,6 +677,21 @@ export class DependencyCache extends Events {
 			this.buildIndexesSync();
 		}
 		return this.computeBlockedState(taskPath).finishBlocked;
+	}
+
+	// Forward, release-aware view: FS/SS edges still gating start, FF/SF still gating finish.
+	getStartBlockingPredecessorPaths(taskPath: string): string[] {
+		if (!this.indexesBuilt) {
+			this.buildIndexesSync();
+		}
+		return Array.from(this.computeConstrainingPredecessors(taskPath).start);
+	}
+
+	getFinishBlockingPredecessorPaths(taskPath: string): string[] {
+		if (!this.indexesBuilt) {
+			this.buildIndexesSync();
+		}
+		return Array.from(this.computeConstrainingPredecessors(taskPath).finish);
 	}
 
 	// Reverse: the successors this task currently blocks from starting.
