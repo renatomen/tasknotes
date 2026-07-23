@@ -514,6 +514,15 @@ export const en: TranslationTree = {
 			integrations: "Integrations",
 		},
 		features: {
+			dependencies: {
+				header: "Dependencies",
+				description: "Task dependency relationship settings.",
+				advancedTypes: {
+					name: "Advanced dependency types",
+					description:
+						"Choose a relationship type (finish-to-start, start-to-start, finish-to-finish, start-to-finish) and an optional lag for each dependency in the task edit modal. When off, dependencies use finish-to-start.",
+				},
+			},
 			inlineTasks: {
 				header: "Inline tasks",
 				description: "Settings for task links and checkbox-to-task conversion in notes.",

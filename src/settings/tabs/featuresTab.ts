@@ -983,6 +983,29 @@ export function renderFeaturesTab(
 		}
 	);
 
+	// Dependencies Section
+	createSettingGroup(
+		container,
+		{
+			heading: translate("settings.features.dependencies.header"),
+			description: translate("settings.features.dependencies.description"),
+		},
+		(group) => {
+			group.addSetting(
+				(setting) =>
+					void configureToggleSetting(setting, {
+						name: translate("settings.features.dependencies.advancedTypes.name"),
+						desc: translate("settings.features.dependencies.advancedTypes.description"),
+						getValue: () => plugin.settings.enableAdvancedDependencyTypes,
+						setValue: async (value: boolean) => {
+							plugin.settings.enableAdvancedDependencyTypes = value;
+							save();
+						},
+					})
+			);
+		}
+	);
+
 	// Debug Logging Section
 	createSettingGroup(
 		container,
