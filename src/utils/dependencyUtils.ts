@@ -16,6 +16,21 @@ export function isValidDependencyRelType(value: string): value is TaskDependency
 	return VALID_RELATIONSHIP_TYPES.includes(value as TaskDependencyRelType);
 }
 
+// RFC 9253 per-endpoint reading: FS/SS constrain the successor's start, FF/SF its finish.
+export function reltypeConstrainsStart(reltype: TaskDependencyRelType): boolean {
+	return reltype === "FINISHTOSTART" || reltype === "STARTTOSTART";
+}
+
+export function reltypeConstrainsFinish(reltype: TaskDependencyRelType): boolean {
+	return reltype === "FINISHTOFINISH" || reltype === "STARTTOFINISH";
+}
+
+// The edge releases when the predecessor reaches its own endpoint: FINISH* on completion,
+// START* once started.
+export function reltypeReleasedByPredecessorFinish(reltype: TaskDependencyRelType): boolean {
+	return reltype === "FINISHTOSTART" || reltype === "FINISHTOFINISH";
+}
+
 export function extractDependencyUid(entry: unknown): string {
 	if (typeof entry === "string") {
 		return entry;

@@ -529,6 +529,7 @@ export const PluginFactory = {
       },
       statusManager: {
         isCompletedStatus: jest.fn((status) => status === 'done' || status === 'completed'),
+        isStarted: jest.fn((status) => status === 'done' || status === 'completed' || status === 'in-progress'),
         getCompletedStatuses: jest.fn(() => ['done', 'completed']),
         getNextStatus: jest.fn((currentStatus) => {
           const statusMap: Record<string, string> = {
