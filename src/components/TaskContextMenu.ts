@@ -28,7 +28,11 @@ import {
 	extractDependencyUid,
 	formatDependencyLink,
 } from "../utils/dependencyUtils";
-import { addBlockedByDependency, addBlockingDependency } from "./taskContextMenuDependencies";
+import {
+	addBlockedByDependency,
+	addBlockingDependency,
+	addReltypeMenuItems,
+} from "./taskContextMenuDependencies";
 import { generateLink } from "../utils/linkUtils";
 import { ContextMenu } from "./ContextMenu";
 import { buildTimeblockPrefillForTask } from "../utils/timeblockPrefillUtils";
@@ -1038,10 +1042,15 @@ export class TaskContextMenu {
 			subItem.setTitle(this.t("contextMenus.task.dependencies.addBlockedBy"));
 			subItem.setIcon("link-2");
 			if (plugin.settings.enableAdvancedDependencyTypes) {
-				this.addReltypeMenuItems(getSubmenu(subItem), "blockedBy", (reltype) => {
-					this.menu.hide();
-					void this.openBlockedBySelector(task, plugin, reltype);
-				});
+				addReltypeMenuItems(
+					getSubmenu(subItem),
+					"blockedBy",
+					(key, params) => this.t(key, params),
+					(reltype) => {
+						this.menu.hide();
+						void this.openBlockedBySelector(task, plugin, reltype);
+					}
+				);
 			} else {
 				subItem.onClick(() => {
 					this.menu.hide();
@@ -1100,10 +1109,15 @@ export class TaskContextMenu {
 			subItem.setTitle(this.t("contextMenus.task.dependencies.addBlocking"));
 			subItem.setIcon("git-branch-plus");
 			if (plugin.settings.enableAdvancedDependencyTypes) {
-				this.addReltypeMenuItems(getSubmenu(subItem), "blocking", (reltype) => {
-					this.menu.hide();
-					void this.openBlockingSelector(task, plugin, reltype);
-				});
+				addReltypeMenuItems(
+					getSubmenu(subItem),
+					"blocking",
+					(key, params) => this.t(key, params),
+					(reltype) => {
+						this.menu.hide();
+						void this.openBlockingSelector(task, plugin, reltype);
+					}
+				);
 			} else {
 				subItem.onClick(() => {
 					this.menu.hide();
@@ -1155,33 +1169,6 @@ export class TaskContextMenu {
 						});
 					});
 				});
-			});
-		}
-	}
-
-	private addReltypeMenuItems(
-		submenu: Menu,
-		side: "blockedBy" | "blocking",
-		onPick: (reltype: TaskDependencyRelType) => void
-	): void {
-		const order: TaskDependencyRelType[] = [
-			"FINISHTOSTART",
-			"STARTTOSTART",
-			"FINISHTOFINISH",
-			"STARTTOFINISH",
-		];
-		const key: Record<TaskDependencyRelType, string> = {
-			FINISHTOSTART: "finishToStart",
-			STARTTOSTART: "startToStart",
-			FINISHTOFINISH: "finishToFinish",
-			STARTTOFINISH: "startToFinish",
-		};
-		for (const reltype of order) {
-			submenu.addItem((item) => {
-				item.setTitle(
-					this.t(`contextMenus.task.dependencies.reltype.${side}.${key[reltype]}`)
-				);
-				item.onClick(() => onPick(reltype));
 			});
 		}
 	}

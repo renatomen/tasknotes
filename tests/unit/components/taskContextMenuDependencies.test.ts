@@ -2,7 +2,9 @@ import { describe, it, expect, jest } from "@jest/globals";
 import {
 	addBlockedByDependency,
 	addBlockingDependency,
+	addReltypeMenuItems,
 } from "../../../src/components/taskContextMenuDependencies";
+import type { Menu } from "obsidian";
 import type { TaskInfo } from "../../../src/types";
 
 function makePlugin() {
@@ -31,6 +33,29 @@ function makePlugin() {
 
 function task(path: string, extra: Partial<TaskInfo> = {}): TaskInfo {
 	return { path, ...extra } as unknown as TaskInfo;
+}
+
+function fakeSubmenu() {
+	const items: Array<{ title: string; onClick: () => void }> = [];
+	const submenu = {
+		addItem(cb: (item: any) => void) {
+			const rec = { title: "", onClick: () => {} };
+			const item: any = {
+				setTitle: (t: string) => {
+					rec.title = t;
+					return item;
+				},
+				onClick: (fn: () => void) => {
+					rec.onClick = fn;
+					return item;
+				},
+			};
+			cb(item);
+			items.push(rec);
+			return submenu;
+		},
+	};
+	return { submenu: submenu as unknown as Menu, items };
 }
 
 const translate = (key: string) => key;
@@ -125,6 +150,45 @@ describe("taskContextMenuDependencies", () => {
 				translate,
 			});
 			expect(plugin.taskService.updateBlockingRelationships).not.toHaveBeenCalled();
+		});
+	});
+
+	describe("addReltypeMenuItems", () => {
+		it("builds the four types in order with side titles and threads the reltype", () => {
+			const { submenu, items } = fakeSubmenu();
+			const picks: string[] = [];
+			addReltypeMenuItems(
+				submenu,
+				"blocking",
+				(key) => key,
+				(rel) => {
+					picks.push(rel);
+				}
+			);
+
+			expect(items).toHaveLength(4);
+			expect(items.map((i) => i.title)).toEqual([
+				"contextMenus.task.dependencies.reltype.blocking.finishToStart",
+				"contextMenus.task.dependencies.reltype.blocking.startToStart",
+				"contextMenus.task.dependencies.reltype.blocking.finishToFinish",
+				"contextMenus.task.dependencies.reltype.blocking.startToFinish",
+			]);
+
+			items.forEach((i) => i.onClick());
+			expect(picks).toEqual([
+				"FINISHTOSTART",
+				"STARTTOSTART",
+				"FINISHTOFINISH",
+				"STARTTOFINISH",
+			]);
+		});
+
+		it("uses blocked-by titles for the blocked-by side", () => {
+			const { submenu, items } = fakeSubmenu();
+			addReltypeMenuItems(submenu, "blockedBy", (key) => key, () => {});
+			expect(items[0].title).toBe(
+				"contextMenus.task.dependencies.reltype.blockedBy.finishToStart"
+			);
 		});
 	});
 });

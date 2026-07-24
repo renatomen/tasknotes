@@ -1,4 +1,4 @@
-import { Notice } from "obsidian";
+import { Menu, Notice } from "obsidian";
 import TaskNotesPlugin from "../main";
 import { TaskDependency, TaskDependencyRelType, TaskInfo } from "../types";
 import {
@@ -138,5 +138,39 @@ export async function addBlockingDependency({
 			error,
 		});
 		new Notice(translate("contextMenus.task.dependencies.notices.updateFailed"));
+	}
+}
+
+export type DependencyMenuSide = "blockedBy" | "blocking";
+
+const RELTYPE_MENU_ORDER: TaskDependencyRelType[] = [
+	"FINISHTOSTART",
+	"STARTTOSTART",
+	"FINISHTOFINISH",
+	"STARTTOFINISH",
+];
+
+const RELTYPE_MENU_KEY: Record<TaskDependencyRelType, string> = {
+	FINISHTOSTART: "finishToStart",
+	STARTTOSTART: "startToStart",
+	FINISHTOFINISH: "finishToFinish",
+	STARTTOFINISH: "startToFinish",
+};
+
+export function addReltypeMenuItems(
+	submenu: Menu,
+	side: DependencyMenuSide,
+	translate: DependencyTranslate,
+	onPick: (reltype: TaskDependencyRelType) => void
+): void {
+	for (const reltype of RELTYPE_MENU_ORDER) {
+		submenu.addItem((item) => {
+			item.setTitle(
+				translate(
+					`contextMenus.task.dependencies.reltype.${side}.${RELTYPE_MENU_KEY[reltype]}`
+				)
+			);
+			item.onClick(() => onPick(reltype));
+		});
 	}
 }
