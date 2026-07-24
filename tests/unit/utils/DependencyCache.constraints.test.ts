@@ -15,7 +15,7 @@ const ss = edge("STARTTOSTART");
 const ff = edge("FINISHTOFINISH");
 const sf = edge("STARTTOFINISH");
 
-async function buildCache(tasks: TaskSpec[]): Promise<DependencyCache> {
+async function buildCache(tasks: TaskSpec[], build = true): Promise<DependencyCache> {
 	const app = MockObsidian.createMockApp();
 	const fileByName = new Map<string, unknown>();
 	for (const task of tasks) {
@@ -46,7 +46,9 @@ async function buildCache(tasks: TaskSpec[]): Promise<DependencyCache> {
 		} as never,
 		(frontmatter) => Array.isArray((frontmatter as { tags?: unknown }).tags)
 	);
-	await cache.buildIndexes();
+	if (build) {
+		await cache.buildIndexes();
+	}
 	return cache;
 }
 
@@ -163,5 +165,27 @@ describe("DependencyCache per-endpoint constraints (U3)", () => {
 		expect(cache.isTaskBlocked(p("d1"))).toBe(true);
 		expect(cache.isTaskStartBlocked(p("d1"))).toBe(true);
 		expect(cache.isTaskBlocked(p("d2"))).toBe(false);
+	});
+
+	it("forward blocking-predecessor accessors split constraints by endpoint", async () => {
+		const cache = await buildCache([
+			{ name: "a", status: "open" },
+			{ name: "b", status: "in-progress" },
+			{ name: "dep", status: "open", blockedBy: [fs("a"), ff("b")] },
+		]);
+		expect(cache.getStartBlockingPredecessorPaths(p("dep"))).toEqual([p("a")]);
+		expect(cache.getFinishBlockingPredecessorPaths(p("dep"))).toEqual([p("b")]);
+	});
+
+	it("lazily builds indexes on the first constraint query", async () => {
+		const cache = await buildCache(
+			[
+				{ name: "pred", status: "open" },
+				{ name: "dep", status: "open", blockedBy: [fs("pred")] },
+			],
+			false
+		);
+		expect(cache.getStartBlockingPredecessorPaths(p("dep"))).toEqual([p("pred")]);
+		expect(cache.isTaskStartBlocked(p("dep"))).toBe(true);
 	});
 });
