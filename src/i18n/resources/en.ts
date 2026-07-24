@@ -3051,6 +3051,20 @@ export const en: TranslationTree = {
 				removeBlockedBy: "Remove blocked-by…",
 				removeBlocking: "Remove blocking…",
 				unknownDependency: "Unknown",
+				reltype: {
+					blocking: {
+						finishToStart: "Finish → start · they can't start until this finishes",
+						startToStart: "Start → start · they can't start until this starts",
+						finishToFinish: "Finish → finish · they can't finish until this finishes",
+						startToFinish: "Start → finish · they can't finish until this starts",
+					},
+					blockedBy: {
+						finishToStart: "Finish → start · this can't start until that finishes",
+						startToStart: "Start → start · this can't start until that starts",
+						finishToFinish: "Finish → finish · this can't finish until that finishes",
+						startToFinish: "Start → finish · this can't finish until that starts",
+					},
+				},
 				inputPlaceholder: "[[Task Note]]",
 				notices: {
 					noEntries: "Please enter at least one task",
