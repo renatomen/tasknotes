@@ -59,6 +59,10 @@ function createPlugin(overrides: Partial<TaskNotesPlugin> = {}): TaskNotesPlugin
 		expandedProjectsService: {
 			isExpanded: jest.fn(() => false),
 			toggle: jest.fn(() => true),
+			isBlockedByExpanded: jest.fn(() => false),
+			isBlockingExpanded: jest.fn(() => false),
+			setBlockedByExpanded: jest.fn(),
+			setBlockingExpanded: jest.fn(),
 		},
 		...overrides,
 	} as unknown as TaskNotesPlugin;
