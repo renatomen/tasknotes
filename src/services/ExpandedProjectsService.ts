@@ -4,8 +4,6 @@ export class ExpandedProjectsService {
 	private plugin: TaskNotesPlugin;
 	private expandedProjects: Set<string> = new Set();
 	private collapsedDefaultExpandedProjects: Set<string> = new Set();
-	private readonly expandedBlockedBy: Set<string> = new Set();
-	private readonly expandedBlocking: Set<string> = new Set();
 
 	constructor(plugin: TaskNotesPlugin) {
 		this.plugin = plugin;
@@ -71,41 +69,12 @@ export class ExpandedProjectsService {
 		}
 	}
 
-	isBlockedByExpanded(taskPath: string): boolean {
-		return this.expandedBlockedBy.has(taskPath);
-	}
-
-	setBlockedByExpanded(taskPath: string, expanded: boolean): void {
-		if (expanded) {
-			this.expandedBlockedBy.add(taskPath);
-		} else {
-			this.expandedBlockedBy.delete(taskPath);
-		}
-	}
-
-	isBlockingExpanded(taskPath: string): boolean {
-		return this.expandedBlocking.has(taskPath);
-	}
-
-	setBlockingExpanded(taskPath: string, expanded: boolean): void {
-		if (expanded) {
-			this.expandedBlocking.add(taskPath);
-		} else {
-			this.expandedBlocking.delete(taskPath);
-		}
-	}
-
 	/**
 	 * Preserve expansion when a task file is renamed.
 	 */
 	renamePath(oldPath: string, newPath: string): void {
 		if (oldPath === newPath) return;
-		for (const set of [
-			this.expandedProjects,
-			this.collapsedDefaultExpandedProjects,
-			this.expandedBlockedBy,
-			this.expandedBlocking,
-		]) {
+		for (const set of [this.expandedProjects, this.collapsedDefaultExpandedProjects]) {
 			if (set.delete(oldPath)) {
 				set.add(newPath);
 			}
@@ -125,8 +94,6 @@ export class ExpandedProjectsService {
 	clearAll(): void {
 		this.expandedProjects.clear();
 		this.collapsedDefaultExpandedProjects.clear();
-		this.expandedBlockedBy.clear();
-		this.expandedBlocking.clear();
 	}
 
 	/**

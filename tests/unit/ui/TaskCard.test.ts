@@ -193,10 +193,6 @@ describe('TaskCard Component', () => {
       expandedProjectsService: {
         isExpanded: jest.fn(() => false),
         toggle: jest.fn(() => true),
-        isBlockedByExpanded: jest.fn(() => false),
-        isBlockingExpanded: jest.fn(() => false),
-        setBlockedByExpanded: jest.fn(),
-        setBlockingExpanded: jest.fn(),
       },
       i18n: {
         translate: jest.fn((key, vars) => {
