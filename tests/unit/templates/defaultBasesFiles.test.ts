@@ -125,16 +125,16 @@ describe("defaultBasesFiles", () => {
 		expect(template).toContain("listDayCount: 7");
 	});
 
-	it("lets generated calendar views inherit app-level time bounds", () => {
+	it("lets generated calendar views inherit app-level time settings", () => {
 		const template = generateBasesFileTemplate(
 			"open-advanced-calendar-view",
 			createMockPlugin() as any
 		);
 
 		expect(template).toContain('calendarView: "timeGridWeek"');
-		expect(template).toContain('slotDuration: "00:30:00"');
 		expect(template).not.toContain("slotMinTime");
 		expect(template).not.toContain("slotMaxTime");
+		expect(template).not.toContain("slotDuration");
 	});
 
 	it("uses the configured first day for generated calendar views", () => {

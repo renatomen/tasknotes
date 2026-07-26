@@ -906,7 +906,6 @@ ${orderYaml}
       calendarView: "timeGridWeek"
       customDayCount: 3
       firstDay: ${plugin.settings.calendarViewSettings.firstDay}
-      slotDuration: "00:30:00"
 `;
 
 		case 'open-agenda-view': {

@@ -528,7 +528,6 @@ views:
       calendarView: "timeGridWeek"
       customDayCount: 3
       firstDay: 1
-      slotDuration: "00:30:00"
 ```
 
 ## Agenda
