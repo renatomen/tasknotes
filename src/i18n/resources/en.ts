@@ -2876,6 +2876,18 @@ export const en: TranslationTree = {
 				switch: "Switch storage",
 			},
 		},
+		dependencyReadiness: {
+			title: "Enable advanced dependency types?",
+			missing: "No status is categorized as {categories}.",
+			consequence:
+				"Start-to-start and start-to-finish dependencies will release only when the predecessor completes, not when it starts.",
+			remedy: "To change that, assign the missing category to one of your existing statuses in the task properties settings.",
+			buttons: {
+				goBack: "Go back",
+				justEnable: "Just enable",
+				enableAndOpenStatuses: "Enable and go to statuses...",
+			},
+		},
 		dueDate: {
 			title: "Set due date",
 			taskLabel: "Task: {title}",

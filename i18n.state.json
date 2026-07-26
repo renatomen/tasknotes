@@ -6753,6 +6753,13 @@
       "source": "51bd93f90cb59c08ac41590cef8747ee8f4b583d",
       "translation": "df7f83027b9bed1c2c26c22375b6ab9926f1eb65"
     },
+    "modals.dependencyReadiness.title": null,
+    "modals.dependencyReadiness.missing": null,
+    "modals.dependencyReadiness.consequence": null,
+    "modals.dependencyReadiness.remedy": null,
+    "modals.dependencyReadiness.buttons.goBack": null,
+    "modals.dependencyReadiness.buttons.justEnable": null,
+    "modals.dependencyReadiness.buttons.enableAndOpenStatuses": null,
     "modals.dueDate.title": {
       "source": "ecf07cea2d2a6681f6074ac3d82bcae990c04a8d",
       "translation": "ea17eb3a01fafaa08a2c6068709006374270596c"
@@ -15682,6 +15689,13 @@
       "source": "51bd93f90cb59c08ac41590cef8747ee8f4b583d",
       "translation": "1155ca941c4063adf6bbca335cdabf6435b05830"
     },
+    "modals.dependencyReadiness.title": null,
+    "modals.dependencyReadiness.missing": null,
+    "modals.dependencyReadiness.consequence": null,
+    "modals.dependencyReadiness.remedy": null,
+    "modals.dependencyReadiness.buttons.goBack": null,
+    "modals.dependencyReadiness.buttons.justEnable": null,
+    "modals.dependencyReadiness.buttons.enableAndOpenStatuses": null,
     "modals.dueDate.title": {
       "source": "ecf07cea2d2a6681f6074ac3d82bcae990c04a8d",
       "translation": "912590ebaf2895ce8451d7fbdd2fd45532f39c1e"
@@ -24611,6 +24625,13 @@
       "source": "51bd93f90cb59c08ac41590cef8747ee8f4b583d",
       "translation": "3e46765817dc6f2609415e3ac4d98ed15f1268ff"
     },
+    "modals.dependencyReadiness.title": null,
+    "modals.dependencyReadiness.missing": null,
+    "modals.dependencyReadiness.consequence": null,
+    "modals.dependencyReadiness.remedy": null,
+    "modals.dependencyReadiness.buttons.goBack": null,
+    "modals.dependencyReadiness.buttons.justEnable": null,
+    "modals.dependencyReadiness.buttons.enableAndOpenStatuses": null,
     "modals.dueDate.title": {
       "source": "ecf07cea2d2a6681f6074ac3d82bcae990c04a8d",
       "translation": "7536e48e850a487db99105674f802c5f8e7e69b1"
@@ -33540,6 +33561,13 @@
       "source": "51bd93f90cb59c08ac41590cef8747ee8f4b583d",
       "translation": "d0307d5cb896750ab9171a27ae7b4f90c4ef5b18"
     },
+    "modals.dependencyReadiness.title": null,
+    "modals.dependencyReadiness.missing": null,
+    "modals.dependencyReadiness.consequence": null,
+    "modals.dependencyReadiness.remedy": null,
+    "modals.dependencyReadiness.buttons.goBack": null,
+    "modals.dependencyReadiness.buttons.justEnable": null,
+    "modals.dependencyReadiness.buttons.enableAndOpenStatuses": null,
     "modals.dueDate.title": {
       "source": "ecf07cea2d2a6681f6074ac3d82bcae990c04a8d",
       "translation": "66bd7e64ba93ecb64a23e690462b5264b3906040"
@@ -42469,6 +42497,13 @@
       "source": "51bd93f90cb59c08ac41590cef8747ee8f4b583d",
       "translation": "c22873de7d8942c694cbb1f9fe90233e4a9c0632"
     },
+    "modals.dependencyReadiness.title": null,
+    "modals.dependencyReadiness.missing": null,
+    "modals.dependencyReadiness.consequence": null,
+    "modals.dependencyReadiness.remedy": null,
+    "modals.dependencyReadiness.buttons.goBack": null,
+    "modals.dependencyReadiness.buttons.justEnable": null,
+    "modals.dependencyReadiness.buttons.enableAndOpenStatuses": null,
     "modals.dueDate.title": {
       "source": "ecf07cea2d2a6681f6074ac3d82bcae990c04a8d",
       "translation": "3a62361e71f557ce405601c25bd33821c05e8c15"
@@ -51398,6 +51433,13 @@
       "source": "51bd93f90cb59c08ac41590cef8747ee8f4b583d",
       "translation": "963e91b6bb2a5c0619a93fb548590e63fb98f18b"
     },
+    "modals.dependencyReadiness.title": null,
+    "modals.dependencyReadiness.missing": null,
+    "modals.dependencyReadiness.consequence": null,
+    "modals.dependencyReadiness.remedy": null,
+    "modals.dependencyReadiness.buttons.goBack": null,
+    "modals.dependencyReadiness.buttons.justEnable": null,
+    "modals.dependencyReadiness.buttons.enableAndOpenStatuses": null,
     "modals.dueDate.title": {
       "source": "ecf07cea2d2a6681f6074ac3d82bcae990c04a8d",
       "translation": "e5b59351885f6cc4ffbc6bf25925c52e6246ca7f"
@@ -60327,6 +60369,13 @@
       "source": "51bd93f90cb59c08ac41590cef8747ee8f4b583d",
       "translation": "a1c0c23d9d221acd81e19e6483ccc3b8dab1f87e"
     },
+    "modals.dependencyReadiness.title": null,
+    "modals.dependencyReadiness.missing": null,
+    "modals.dependencyReadiness.consequence": null,
+    "modals.dependencyReadiness.remedy": null,
+    "modals.dependencyReadiness.buttons.goBack": null,
+    "modals.dependencyReadiness.buttons.justEnable": null,
+    "modals.dependencyReadiness.buttons.enableAndOpenStatuses": null,
     "modals.dueDate.title": {
       "source": "ecf07cea2d2a6681f6074ac3d82bcae990c04a8d",
       "translation": "23ba71c9ff6b67a5966dea1e8b9eaa24137a6575"
@@ -69256,6 +69305,13 @@
       "source": "51bd93f90cb59c08ac41590cef8747ee8f4b583d",
       "translation": "c1162f368fa18fed1e0d512536ea661c209b3ccf"
     },
+    "modals.dependencyReadiness.title": null,
+    "modals.dependencyReadiness.missing": null,
+    "modals.dependencyReadiness.consequence": null,
+    "modals.dependencyReadiness.remedy": null,
+    "modals.dependencyReadiness.buttons.goBack": null,
+    "modals.dependencyReadiness.buttons.justEnable": null,
+    "modals.dependencyReadiness.buttons.enableAndOpenStatuses": null,
     "modals.dueDate.title": {
       "source": "ecf07cea2d2a6681f6074ac3d82bcae990c04a8d",
       "translation": "f026d9b9641613528baa06c0e18ed8d76071aab5"
