@@ -2881,8 +2881,12 @@ export const en: TranslationTree = {
 		dependencyReadiness: {
 			title: "Enable advanced dependency types?",
 			missing: "No status is categorized as {categories}.",
-			consequence:
-				"Start-to-start and start-to-finish dependencies will release only when the predecessor completes, not when it starts.",
+			consequence: {
+				releasesOnCompletion:
+					"Start-to-start and start-to-finish dependencies will release only when the predecessor completes, not when it starts.",
+				releasesImmediately:
+					"Every status already counts as started, so start-to-start and start-to-finish dependencies will release immediately instead of holding the task until the predecessor starts.",
+			},
 			remedy: "To change that, assign the missing category to one of your existing statuses in the task properties settings.",
 			buttons: {
 				goBack: "Go back",

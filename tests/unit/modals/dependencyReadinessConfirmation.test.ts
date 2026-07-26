@@ -76,10 +76,24 @@ describe("Dependency readiness confirmation modal", () => {
 		expect(bodyText(modal)).toContain("No status is categorized as Not started or Started.");
 	});
 
-	it("states that start-based dependencies release on completion rather than on start", () => {
+	it("states that start-based dependencies wait for completion when no status is Started", () => {
 		const { modal } = openModal(["in-progress"]);
 		expect(bodyText(modal)).toContain(
 			"release only when the predecessor completes, not when it starts"
+		);
+	});
+
+	it("states that start-based dependencies stop gating when no status is Not started", () => {
+		const { modal } = openModal(["planned"]);
+		expect(bodyText(modal)).toContain(
+			"release immediately instead of holding the task until the predecessor starts"
+		);
+	});
+
+	it("states that start-based dependencies stop gating when both categories are missing", () => {
+		const { modal } = openModal(["planned", "in-progress"]);
+		expect(bodyText(modal)).toContain(
+			"release immediately instead of holding the task until the predecessor starts"
 		);
 	});
 

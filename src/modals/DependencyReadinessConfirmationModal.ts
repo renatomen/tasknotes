@@ -16,8 +16,8 @@ const CHOICES: ReadonlyArray<[string, DependencyReadinessChoice]> = [
  * status. Callers pass the missing categories; the modal reads no settings of its own.
  */
 export class DependencyReadinessConfirmationModal extends Modal {
-	private plugin: TaskNotesPlugin;
-	private missingCategories: StatusCategory[];
+	private readonly plugin: TaskNotesPlugin;
+	private readonly missingCategories: StatusCategory[];
 	private resolve: ((choice: DependencyReadinessChoice) => void) | null = null;
 
 	constructor(plugin: TaskNotesPlugin, missingCategories: StatusCategory[]) {
@@ -28,6 +28,13 @@ export class DependencyReadinessConfirmationModal extends Modal {
 
 	private t(key: string, params?: Record<string, string | number>): string {
 		return this.plugin.i18n.translate(key, params);
+	}
+
+	/** Without a Not started status every remaining status counts as started, which inverts the degradation. */
+	private consequenceKey(): string {
+		return this.missingCategories.includes("planned")
+			? "modals.dependencyReadiness.consequence.releasesImmediately"
+			: "modals.dependencyReadiness.consequence.releasesOnCompletion";
 	}
 
 	public show(): Promise<DependencyReadinessChoice> {
@@ -50,7 +57,7 @@ export class DependencyReadinessConfirmationModal extends Modal {
 		contentEl.createEl("p", {
 			text: this.t("modals.dependencyReadiness.missing", { categories }),
 		});
-		contentEl.createEl("p", { text: this.t("modals.dependencyReadiness.consequence") });
+		contentEl.createEl("p", { text: this.t(this.consequenceKey()) });
 		contentEl.createEl("p", { text: this.t("modals.dependencyReadiness.remedy") });
 
 		const buttonContainer = contentEl.createDiv({ cls: "modal-button-container" });

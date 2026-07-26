@@ -49,7 +49,7 @@ describe("Settings tab programmatic navigation", () => {
 	it("renders a tab that has never been rendered", () => {
 		const { tab } = createTab();
 		tab.display();
-		expect(tabContent(tab, "features").children.length).toBe(0);
+		expect(tabContent(tab, "features").children).toHaveLength(0);
 
 		tab.navigateToTab("features");
 
