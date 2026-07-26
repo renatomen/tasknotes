@@ -1456,3 +1456,20 @@ body.is-mobile .tasknotes-plugin .tasknotes-settings__card-action-btn {
     color: var(--text-muted);
     font-size: var(--font-ui-small);
 }
+
+.tn-status-category-advisory--ready {
+    border-inline-start-color: var(--color-green);
+}
+
+.tn-status-category-advisory__glyph {
+    margin-inline-end: var(--size-2-1);
+    font-weight: 500;
+}
+
+.tn-status-category-advisory--warning .tn-status-category-advisory__glyph {
+    color: var(--text-warning);
+}
+
+.tn-status-category-advisory__link {
+    margin-inline-start: var(--size-2-2);
+}

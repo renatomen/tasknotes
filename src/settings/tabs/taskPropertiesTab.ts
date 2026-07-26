@@ -11,6 +11,7 @@ import { createCardInput } from "../components/CardComponent";
 import {
 	renderTitlePropertyCard,
 	renderStatusPropertyCard,
+	renderStatusReadinessIndicator,
 	renderPriorityPropertyCard,
 	renderProjectsPropertyCard,
 	renderTagsPropertyCard,
@@ -53,7 +54,11 @@ export function renderTaskPropertiesTab(
 	renderTitlePropertyCard(container, plugin, save, translate);
 
 	// Status Property Card
-	renderStatusPropertyCard(container, plugin, save, translate);
+	const statusReadinessHost = container.createDiv();
+	const refreshStatusReadiness = () =>
+		renderStatusReadinessIndicator(statusReadinessHost, plugin, translate);
+	refreshStatusReadiness();
+	renderStatusPropertyCard(container, plugin, save, translate, refreshStatusReadiness);
 
 	// Priority Property Card
 	renderPriorityPropertyCard(container, plugin, save, translate);

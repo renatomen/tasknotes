@@ -2937,6 +2937,8 @@
     "settings.taskProperties.taskStatuses.badges.planned": null,
     "settings.taskProperties.taskStatuses.badges.inProgress": null,
     "settings.taskProperties.taskStatuses.categoryAdvisory": null,
+    "settings.taskProperties.taskStatuses.categoryAdvisoryLink": null,
+    "settings.taskProperties.taskStatuses.categoryReady": null,
     "settings.taskProperties.taskStatuses.deleteConfirm": {
       "source": "179626d7a4d216da031ac7ca2ec87e0ed97bc5fc",
       "translation": "bd5e5868fd22e54aa9b5018245a7dac8304bd1f6"
@@ -11873,6 +11875,8 @@
     "settings.taskProperties.taskStatuses.badges.planned": null,
     "settings.taskProperties.taskStatuses.badges.inProgress": null,
     "settings.taskProperties.taskStatuses.categoryAdvisory": null,
+    "settings.taskProperties.taskStatuses.categoryAdvisoryLink": null,
+    "settings.taskProperties.taskStatuses.categoryReady": null,
     "settings.taskProperties.taskStatuses.deleteConfirm": {
       "source": "179626d7a4d216da031ac7ca2ec87e0ed97bc5fc",
       "translation": "6181bea9a3b42002b16368c96c4b7ec405424a9d"
@@ -20809,6 +20813,8 @@
     "settings.taskProperties.taskStatuses.badges.planned": null,
     "settings.taskProperties.taskStatuses.badges.inProgress": null,
     "settings.taskProperties.taskStatuses.categoryAdvisory": null,
+    "settings.taskProperties.taskStatuses.categoryAdvisoryLink": null,
+    "settings.taskProperties.taskStatuses.categoryReady": null,
     "settings.taskProperties.taskStatuses.deleteConfirm": {
       "source": "179626d7a4d216da031ac7ca2ec87e0ed97bc5fc",
       "translation": "b9270228ed590ded12e0538f71a4adaa6702b218"
@@ -29745,6 +29751,8 @@
     "settings.taskProperties.taskStatuses.badges.planned": null,
     "settings.taskProperties.taskStatuses.badges.inProgress": null,
     "settings.taskProperties.taskStatuses.categoryAdvisory": null,
+    "settings.taskProperties.taskStatuses.categoryAdvisoryLink": null,
+    "settings.taskProperties.taskStatuses.categoryReady": null,
     "settings.taskProperties.taskStatuses.deleteConfirm": {
       "source": "179626d7a4d216da031ac7ca2ec87e0ed97bc5fc",
       "translation": "d7a8c7b2efbbd6760f19259c206a211ffc3b0674"
@@ -38681,6 +38689,8 @@
     "settings.taskProperties.taskStatuses.badges.planned": null,
     "settings.taskProperties.taskStatuses.badges.inProgress": null,
     "settings.taskProperties.taskStatuses.categoryAdvisory": null,
+    "settings.taskProperties.taskStatuses.categoryAdvisoryLink": null,
+    "settings.taskProperties.taskStatuses.categoryReady": null,
     "settings.taskProperties.taskStatuses.deleteConfirm": {
       "source": "179626d7a4d216da031ac7ca2ec87e0ed97bc5fc",
       "translation": "f6882f9122f9b4e5f620c536e1d062ebc3225517"
@@ -47617,6 +47627,8 @@
     "settings.taskProperties.taskStatuses.badges.planned": null,
     "settings.taskProperties.taskStatuses.badges.inProgress": null,
     "settings.taskProperties.taskStatuses.categoryAdvisory": null,
+    "settings.taskProperties.taskStatuses.categoryAdvisoryLink": null,
+    "settings.taskProperties.taskStatuses.categoryReady": null,
     "settings.taskProperties.taskStatuses.deleteConfirm": {
       "source": "179626d7a4d216da031ac7ca2ec87e0ed97bc5fc",
       "translation": "5a9415cfc781eb37f56b19b6451cd9da046630de"
@@ -56553,6 +56565,8 @@
     "settings.taskProperties.taskStatuses.badges.planned": null,
     "settings.taskProperties.taskStatuses.badges.inProgress": null,
     "settings.taskProperties.taskStatuses.categoryAdvisory": null,
+    "settings.taskProperties.taskStatuses.categoryAdvisoryLink": null,
+    "settings.taskProperties.taskStatuses.categoryReady": null,
     "settings.taskProperties.taskStatuses.deleteConfirm": {
       "source": "179626d7a4d216da031ac7ca2ec87e0ed97bc5fc",
       "translation": "0c211b5422e7e0d78ec042fbd5154781a79bcd90"
@@ -65489,6 +65503,8 @@
     "settings.taskProperties.taskStatuses.badges.planned": null,
     "settings.taskProperties.taskStatuses.badges.inProgress": null,
     "settings.taskProperties.taskStatuses.categoryAdvisory": null,
+    "settings.taskProperties.taskStatuses.categoryAdvisoryLink": null,
+    "settings.taskProperties.taskStatuses.categoryReady": null,
     "settings.taskProperties.taskStatuses.deleteConfirm": {
       "source": "179626d7a4d216da031ac7ca2ec87e0ed97bc5fc",
       "translation": "20035d63eaafed20bd3b4001a0dca01e09b82186"

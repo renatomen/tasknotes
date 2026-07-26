@@ -1273,7 +1273,10 @@ export const en: TranslationTree = {
 					inProgress: "Started",
 				},
 				categoryAdvisory:
-					"Advanced dependency types are on, but no {categories} status exists. Start-based dependencies release as authored only when every category has a status.",
+					"Advanced dependency types are on, but no {categories} status exists. Start-based dependencies can't release as authored until every start category has a status.",
+				categoryAdvisoryLink: "Open dependency settings",
+				categoryReady:
+					"Advanced dependency types are on and every start category has a status. Start-based dependencies release as authored.",
 				deleteConfirm: 'Are you sure you want to delete the status "{label}"?',
 			},
 			taskPriorities: {

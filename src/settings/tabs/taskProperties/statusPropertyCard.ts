@@ -20,7 +20,7 @@ import {
 import { createIconInput } from "../../components/IconSuggest";
 import { createNLPTriggerRows, createPropertyDescription, TranslateFn } from "./helpers";
 import { StatusCategory, STATUS_CATEGORIES } from "../../../types";
-import { countStatusCategories } from "../../defaults";
+import { findMissingStartCategories } from "../../defaults";
 
 // The badge i18n keys are camelCase, but the stored category value for "Started" is
 // the hyphenated "in-progress" (also the CSS variant); map the one that differs.
@@ -38,30 +38,61 @@ function createCategoryBadge(
 	);
 }
 
-// Advisory (not a gate): when advanced dependency types are on, a missing category means
-// start-based edges can't release as authored. Guidance at the point statuses are edited.
-function renderStatusCategoryAdvisory(
-	container: HTMLElement,
+/**
+ * Renders the start-category readiness state into `host`, replacing whatever it holds;
+ * renders nothing while advanced dependency types are off.
+ */
+export function renderStatusReadinessIndicator(
+	host: HTMLElement,
 	plugin: TaskNotesPlugin,
 	translate: TranslateFn
 ): void {
+	host.empty();
 	if (!plugin.settings.enableAdvancedDependencyTypes) {
 		return;
 	}
-	const counts = countStatusCategories(plugin.settings.customStatuses ?? []);
-	const missing = STATUS_CATEGORIES.filter((category) => counts[category] === 0);
+
+	const missing = findMissingStartCategories(plugin.settings.customStatuses);
+	const indicator = host.createDiv({ cls: "tn-status-category-advisory" });
+
 	if (missing.length === 0) {
+		indicator.addClass("tn-status-category-advisory--ready");
+		indicator.createSpan({
+			cls: "tn-status-category-advisory__glyph",
+			text: "✓",
+			attr: { "aria-hidden": "true" },
+		});
+		indicator.appendText(translate("settings.taskProperties.taskStatuses.categoryReady"));
 		return;
 	}
-	const categories = missing
-		.map((category) =>
-			translate(`settings.taskProperties.taskStatuses.badges.${categoryI18nKey(category)}`)
-		)
-		.join(", ");
-	const advisory = container.createDiv({ cls: "tn-status-category-advisory" });
-	advisory.setText(
-		translate("settings.taskProperties.taskStatuses.categoryAdvisory", { categories })
+
+	indicator.addClass("tn-status-category-advisory--warning");
+	indicator.createSpan({
+		cls: "tn-status-category-advisory__glyph",
+		text: "!",
+		attr: { "aria-hidden": "true" },
+	});
+	indicator.appendText(
+		translate("settings.taskProperties.taskStatuses.categoryAdvisory", {
+			categories: missing
+				.map((category) =>
+					translate(
+						`settings.taskProperties.taskStatuses.badges.${categoryI18nKey(category)}`
+					)
+				)
+				.join(" or "),
+		})
 	);
+
+	const link = indicator.createEl("a", {
+		cls: "tn-status-category-advisory__link",
+		text: translate("settings.taskProperties.taskStatuses.categoryAdvisoryLink"),
+		href: "#",
+	});
+	link.addEventListener("click", (event) => {
+		event.preventDefault();
+		plugin.settingTab?.navigateToTab("features");
+	});
 }
 
 /**
@@ -71,7 +102,8 @@ export function renderStatusPropertyCard(
 	container: HTMLElement,
 	plugin: TaskNotesPlugin,
 	save: () => void,
-	translate: TranslateFn
+	translate: TranslateFn,
+	refreshReadiness?: () => void
 ): void {
 	const propertyKeyInput = createCardInput("text", "status", plugin.settings.fieldMapping.status);
 
@@ -159,19 +191,26 @@ export function renderStatusPropertyCard(
 
 	// Render status value cards
 	const statusListContainer = statusValuesContent.createDiv("tasknotes-statuses-container");
-	renderStatusList(statusListContainer, plugin, save, translate, () => {
-		// Re-render the default select when statuses change
-		defaultSelect.empty();
-		plugin.settings.customStatuses.forEach((status) => {
-			const option = defaultSelect.createEl("option", {
-				value: status.value,
-				text: status.label || status.value,
+	renderStatusList(
+		statusListContainer,
+		plugin,
+		save,
+		translate,
+		() => {
+			// Re-render the default select when statuses change
+			defaultSelect.empty();
+			plugin.settings.customStatuses.forEach((status) => {
+				const option = defaultSelect.createEl("option", {
+					value: status.value,
+					text: status.label || status.value,
+				});
+				if (status.value === plugin.settings.defaultTaskStatus) {
+					option.selected = true;
+				}
 			});
-			if (status.value === plugin.settings.defaultTaskStatus) {
-				option.selected = true;
-			}
-		});
-	});
+		},
+		refreshReadiness
+	);
 
 	// Add status button
 	const addStatusButton = statusValuesContent.createEl("button", {
@@ -207,18 +246,25 @@ export function renderStatusPropertyCard(
 		};
 		plugin.settings.customStatuses.push(newStatus);
 		save();
-		renderStatusList(statusListContainer, plugin, save, translate, () => {
-			defaultSelect.empty();
-			plugin.settings.customStatuses.forEach((status) => {
-				const option = defaultSelect.createEl("option", {
-					value: status.value,
-					text: status.label || status.value,
+		renderStatusList(
+			statusListContainer,
+			plugin,
+			save,
+			translate,
+			() => {
+				defaultSelect.empty();
+				plugin.settings.customStatuses.forEach((status) => {
+					const option = defaultSelect.createEl("option", {
+						value: status.value,
+						text: status.label || status.value,
+					});
+					if (status.value === plugin.settings.defaultTaskStatus) {
+						option.selected = true;
+					}
 				});
-				if (status.value === plugin.settings.defaultTaskStatus) {
-					option.selected = true;
-				}
-			});
-		});
+			},
+			refreshReadiness
+		);
 	};
 
 	// Toggle collapse
@@ -269,11 +315,12 @@ function renderStatusList(
 	plugin: TaskNotesPlugin,
 	save: () => void,
 	translate: TranslateFn,
-	onStatusesChanged?: () => void
+	onStatusesChanged?: () => void,
+	refreshReadiness?: () => void
 ): void {
 	container.empty();
 
-	renderStatusCategoryAdvisory(container, plugin, translate);
+	if (refreshReadiness) refreshReadiness();
 
 	if (!plugin.settings.customStatuses || plugin.settings.customStatuses.length === 0) {
 		showCardEmptyState(container, translate("settings.taskProperties.taskStatuses.emptyState"));
@@ -321,6 +368,8 @@ function renderStatusList(
 				metaContainer.appendChild(createCategoryBadge(status.category, translate));
 			}
 			save();
+			// Refreshed in place; a renderStatusList rebuild would drop this dropdown mid-edit.
+			if (refreshReadiness) refreshReadiness();
 		});
 
 		const excludeFromCycleToggle = createCardToggle(
@@ -413,7 +462,14 @@ function renderStatusList(
 					}
 
 					save();
-					renderStatusList(container, plugin, save, translate, onStatusesChanged);
+					renderStatusList(
+						container,
+						plugin,
+						save,
+						translate,
+						onStatusesChanged,
+						refreshReadiness
+					);
 					if (onStatusesChanged) onStatusesChanged();
 				}
 			})();
@@ -519,7 +575,7 @@ function renderStatusList(
 			});
 			previousStatusValue = status.value;
 			save();
-			renderStatusList(container, plugin, save, translate, onStatusesChanged);
+			renderStatusList(container, plugin, save, translate, onStatusesChanged, refreshReadiness);
 		});
 
 		labelInput.addEventListener("input", () => {
@@ -584,7 +640,7 @@ function renderStatusList(
 
 			plugin.settings.customStatuses = reorderedStatuses;
 			save();
-			renderStatusList(container, plugin, save, translate, onStatusesChanged);
+			renderStatusList(container, plugin, save, translate, onStatusesChanged, refreshReadiness);
 		});
 	});
 }
