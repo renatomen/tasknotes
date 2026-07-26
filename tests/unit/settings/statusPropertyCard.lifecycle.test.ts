@@ -41,6 +41,7 @@ function renderCard(status: StatusConfig) {
 		defaultTaskStatus: status.value,
 	};
 	(plugin as any).registerEvent = jest.fn();
+	(plugin as any).settingTab = { invalidateTab: jest.fn(), navigateToTab: jest.fn() };
 	(plugin as any).manifest = { version: "0.0.0" };
 	const i18n = createI18nService();
 	(plugin as any).i18n = i18n;

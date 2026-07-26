@@ -18,15 +18,13 @@ import {
 	normalizeThemeColor,
 } from "../../utils/themeColors";
 import { configureThemeColorInput } from "../components/CardComponent";
-import { countStatusCategories, findMissingStartCategories } from "../defaults";
+import {
+	countStatusCategories,
+	describeMissingStartCategories,
+	findMissingStartCategories,
+	missingStartCategories,
+} from "../defaults";
 import { DependencyReadinessConfirmationModal } from "../../modals/DependencyReadinessConfirmationModal";
-import { StatusCategory } from "../../types";
-
-const STATUS_CATEGORY_LABEL_KEYS: Record<StatusCategory, TranslationKey> = {
-	planned: "settings.taskProperties.taskStatuses.badges.planned",
-	"in-progress": "settings.taskProperties.taskStatuses.badges.inProgress",
-	completed: "settings.taskProperties.taskStatuses.badges.completed",
-};
 
 async function getInitializedPomodoroService(plugin: TaskNotesPlugin) {
 	if (!plugin.pomodoroService) {
@@ -1013,7 +1011,7 @@ export function renderFeaturesTab(
 
 			if (plugin.settings.enableAdvancedDependencyTypes) {
 				const counts = countStatusCategories(plugin.settings.customStatuses);
-				const missingCategories = findMissingStartCategories(plugin.settings.customStatuses);
+				const missingCategories = missingStartCategories(counts);
 				const countsText = translate("settings.features.dependencies.readiness.counts", {
 					notStarted: counts.planned,
 					started: counts["in-progress"],
@@ -1038,9 +1036,7 @@ export function renderFeaturesTab(
 					});
 					warning.appendText(
 						translate("settings.features.dependencies.readiness.missing", {
-							categories: missingCategories
-								.map((category) => translate(STATUS_CATEGORY_LABEL_KEYS[category]))
-								.join(" or "),
+							categories: describeMissingStartCategories(missingCategories, translate),
 						})
 					);
 				});
@@ -1089,6 +1085,7 @@ export async function applyAdvancedDependencyTypesToggle(
 	if (missingCategories.length === 0) {
 		plugin.settings.enableAdvancedDependencyTypes = value;
 		save();
+		plugin.settingTab?.invalidateTab("task-properties");
 		renderFeaturesTab(container, plugin, save);
 		return;
 	}
@@ -1107,13 +1104,17 @@ export async function applyAdvancedDependencyTypesToggle(
 
 		plugin.settings.enableAdvancedDependencyTypes = true;
 		save();
+		plugin.settingTab?.invalidateTab("task-properties");
 
 		if (choice === "enable-and-open-statuses") {
-			// Left empty rather than re-rendered so returning to Features rebuilds it against
-			// the repaired status set instead of the warning captured here.
+			// Discarded only once the destination has taken over, so a refused navigation
+			// cannot leave both panes blank.
 			finish = () => {
-				container.empty();
-				plugin.settingTab?.navigateToTab("task-properties");
+				if (plugin.settingTab?.navigateToTab("task-properties")) {
+					container.empty();
+				} else {
+					renderFeaturesTab(container, plugin, save);
+				}
 			};
 		}
 	} finally {

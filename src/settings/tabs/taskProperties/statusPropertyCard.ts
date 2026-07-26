@@ -20,7 +20,7 @@ import {
 import { createIconInput } from "../../components/IconSuggest";
 import { createNLPTriggerRows, createPropertyDescription, TranslateFn } from "./helpers";
 import { StatusCategory, STATUS_CATEGORIES } from "../../../types";
-import { findMissingStartCategories } from "../../defaults";
+import { describeMissingStartCategories, findMissingStartCategories } from "../../defaults";
 
 // The badge i18n keys are camelCase, but the stored category value for "Started" is
 // the hyphenated "in-progress" (also the CSS variant); map the one that differs.
@@ -74,13 +74,7 @@ export function renderStatusReadinessIndicator(
 	});
 	indicator.appendText(
 		translate("settings.taskProperties.taskStatuses.categoryAdvisory", {
-			categories: missing
-				.map((category) =>
-					translate(
-						`settings.taskProperties.taskStatuses.badges.${categoryI18nKey(category)}`
-					)
-				)
-				.join(" or "),
+			categories: describeMissingStartCategories(missing, translate),
 		})
 	);
 
@@ -370,6 +364,7 @@ function renderStatusList(
 			save();
 			// Refreshed in place; a renderStatusList rebuild would drop this dropdown mid-edit.
 			if (refreshReadiness) refreshReadiness();
+			plugin.settingTab?.invalidateTab("features");
 		});
 
 		const excludeFromCycleToggle = createCardToggle(

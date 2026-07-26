@@ -1,4 +1,5 @@
 import { FieldMapping, StatusCategory, StatusConfig, PriorityConfig } from "../types";
+import type { TranslationKey } from "../i18n";
 import {
 	TaskNotesSettings,
 	TaskCreationDefaults,
@@ -106,13 +107,30 @@ export function countStatusCategories(statuses: StatusConfig[]): Record<StatusCa
 
 const START_CATEGORIES: readonly StatusCategory[] = ["planned", "in-progress"];
 
+const STATUS_CATEGORY_LABEL_KEYS: Record<StatusCategory, TranslationKey> = {
+	planned: "settings.taskProperties.taskStatuses.badges.planned",
+	"in-progress": "settings.taskProperties.taskStatuses.badges.inProgress",
+	completed: "settings.taskProperties.taskStatuses.badges.completed",
+};
+
 /**
  * Reports which of Not started / Started no status carries, in badge order; empty means
  * start-based dependency edges can release as authored.
  */
 export function findMissingStartCategories(statuses?: StatusConfig[] | null): StatusCategory[] {
-	const counts = countStatusCategories(statuses ?? []);
+	return missingStartCategories(countStatusCategories(statuses ?? []));
+}
+
+/** The same answer for callers that already tallied the set, without normalizing it twice. */
+export function missingStartCategories(counts: Record<StatusCategory, number>): StatusCategory[] {
 	return START_CATEGORIES.filter((category) => counts[category] === 0);
+}
+
+export function describeMissingStartCategories(
+	missing: StatusCategory[],
+	translate: (key: TranslationKey) => string
+): string {
+	return missing.map((category) => translate(STATUS_CATEGORY_LABEL_KEYS[category])).join(" or ");
 }
 
 // Default priority configuration matches current hardcoded behavior

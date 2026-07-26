@@ -57,7 +57,6 @@ export function renderTaskPropertiesTab(
 	const statusReadinessHost = container.createDiv();
 	const refreshStatusReadiness = () =>
 		renderStatusReadinessIndicator(statusReadinessHost, plugin, translate);
-	refreshStatusReadiness();
 	renderStatusPropertyCard(container, plugin, save, translate, refreshStatusReadiness);
 
 	// Priority Property Card

@@ -174,11 +174,11 @@ export class TaskNotesSettingTab extends PluginSettingTab {
 	 * Opens a tab from outside the settings view, ignoring unknown ids.
 	 * Always re-renders: cached content can predate the change that prompted the navigation.
 	 */
-	navigateToTab(tabId: string): void {
+	navigateToTab(tabId: string): boolean {
 		const tabConfig = this.getTabConfigurations().find((tab) => tab.id === tabId);
 		const tabContent = this.tabContents[tabId];
 		if (!tabConfig || !tabContent) {
-			return;
+			return false;
 		}
 
 		this.activeTab = tabId;
@@ -188,6 +188,15 @@ export class TaskNotesSettingTab extends PluginSettingTab {
 		tabConfig.renderFn(tabContent, this.plugin, this.debouncedSave);
 
 		this.focusTabButton(tabId);
+		return true;
+	}
+
+	/**
+	 * Discards a tab's cached content so the next activation rebuilds it. Needed when one tab
+	 * changes state another tab reports, which the cache-and-reveal switch would otherwise hide.
+	 */
+	invalidateTab(tabId: string): void {
+		this.tabContents[tabId]?.empty();
 	}
 
 	private switchTab(tabId: string): void {

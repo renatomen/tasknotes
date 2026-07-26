@@ -1,14 +1,9 @@
 import { Modal, Setting } from "obsidian";
 import TaskNotesPlugin from "../main";
 import { StatusCategory } from "../types";
+import { describeMissingStartCategories } from "../settings/defaults";
 
 export type DependencyReadinessChoice = "go-back" | "enable" | "enable-and-open-statuses";
-
-const CATEGORY_LABEL_KEYS: Record<StatusCategory, string> = {
-	planned: "settings.taskProperties.taskStatuses.badges.planned",
-	"in-progress": "settings.taskProperties.taskStatuses.badges.inProgress",
-	completed: "settings.taskProperties.taskStatuses.badges.completed",
-};
 
 const CHOICES: ReadonlyArray<[string, DependencyReadinessChoice]> = [
 	["goBack", "go-back"],
@@ -48,9 +43,9 @@ export class DependencyReadinessConfirmationModal extends Modal {
 
 		new Setting(contentEl).setName(this.t("modals.dependencyReadiness.title")).setHeading();
 
-		const categories = this.missingCategories
-			.map((category) => this.t(CATEGORY_LABEL_KEYS[category]))
-			.join(" or ");
+		const categories = describeMissingStartCategories(this.missingCategories, (key) =>
+			this.t(key)
+		);
 
 		contentEl.createEl("p", {
 			text: this.t("modals.dependencyReadiness.missing", { categories }),

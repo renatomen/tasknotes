@@ -52,8 +52,9 @@ function renderTab(customStatuses: StatusConfig[], enableAdvancedDependencyTypes
 	(plugin as any).manifest = { version: "0.0.0" };
 	const i18n = createI18nService();
 	(plugin as any).i18n = i18n;
-	const navigateToTab = jest.fn();
-	(plugin as any).settingTab = { navigateToTab };
+	const navigateToTab = jest.fn().mockReturnValue(true);
+	const invalidateTab = jest.fn();
+	(plugin as any).settingTab = { navigateToTab, invalidateTab };
 
 	const translate = (key: string, params?: Record<string, string | number>) =>
 		i18n.translate(key, params);

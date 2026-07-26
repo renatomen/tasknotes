@@ -53,8 +53,9 @@ function createHarness(customStatuses: StatusConfig[]) {
 		toUserField: jest.fn((field: any) => field),
 		toInternalField: jest.fn((field: any) => field),
 	};
-	const navigateToTab = jest.fn();
-	(plugin as any).settingTab = { navigateToTab };
+	const navigateToTab = jest.fn().mockReturnValue(true);
+	const invalidateTab = jest.fn();
+	(plugin as any).settingTab = { navigateToTab, invalidateTab };
 
 	const container = document.createElement("div");
 	const save = jest.fn();

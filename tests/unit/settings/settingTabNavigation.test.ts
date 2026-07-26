@@ -56,6 +56,28 @@ describe("Settings tab programmatic navigation", () => {
 		expect(tabContent(tab, "features").children.length).toBeGreaterThan(0);
 	});
 
+	it("reports whether the requested tab was activated", () => {
+		const { tab } = createTab();
+		tab.display();
+
+		expect(tab.navigateToTab("features")).toBe(true);
+		expect(tab.navigateToTab("no-such-tab")).toBe(false);
+	});
+
+	it("rebuilds an invalidated tab on the next click-driven activation", () => {
+		const { tab, plugin } = createTab();
+		tab.display();
+		tab.navigateToTab("task-properties");
+		expect(tabContent(tab, "task-properties").children.length).toBeGreaterThan(0);
+
+		plugin.settings.customStatuses[0].label = "Renamed after render";
+		tab.invalidateTab("task-properties");
+		tabButton(tab, "features").click();
+		tabButton(tab, "task-properties").click();
+
+		expect(tabContent(tab, "task-properties").textContent).toContain("Renamed after render");
+	});
+
 	it("re-renders an already rendered tab so it reflects settings changed since", () => {
 		const { tab, plugin } = createTab();
 		plugin.settings.customStatuses[0].label = "Label before";
