@@ -170,12 +170,45 @@ export class TaskNotesSettingTab extends PluginSettingTab {
 		});
 	}
 
+	/**
+	 * Opens a tab from outside the settings view, ignoring unknown ids.
+	 * Always re-renders: cached content can predate the change that prompted the navigation.
+	 */
+	navigateToTab(tabId: string): void {
+		const tabConfig = this.getTabConfigurations().find((tab) => tab.id === tabId);
+		const tabContent = this.tabContents[tabId];
+		if (!tabConfig || !tabContent) {
+			return;
+		}
+
+		this.activeTab = tabId;
+		this.updateActiveTabElements(tabId);
+
+		tabContent.empty();
+		tabConfig.renderFn(tabContent, this.plugin, this.debouncedSave);
+
+		this.focusTabButton(tabId);
+	}
+
 	private switchTab(tabId: string): void {
 		// Update active tab state
 		// const previousTab = this.activeTab;
 		this.activeTab = tabId;
 
-		// Update tab button states
+		this.updateActiveTabElements(tabId);
+
+		const activeTabContent = this.tabContents[tabId];
+		if (activeTabContent && activeTabContent.children.length === 0) {
+			const tabConfig = this.getTabConfigurations().find((tab) => tab.id === tabId);
+			if (tabConfig) {
+				tabConfig.renderFn(activeTabContent, this.plugin, this.debouncedSave);
+			}
+		}
+
+		this.focusTabButton(tabId);
+	}
+
+	private updateActiveTabElements(tabId: string): void {
 		this.containerEl.querySelectorAll(".settings-tab-button").forEach((button) => {
 			const isActive = button.id === `tab-button-${tabId}`;
 			button.classList.toggle("active", isActive);
@@ -185,24 +218,14 @@ export class TaskNotesSettingTab extends PluginSettingTab {
 			button.setAttribute("tabindex", isActive ? "0" : "-1");
 		});
 
-		// Update tab content states
 		this.containerEl.querySelectorAll(".settings-tab-content").forEach((content) => {
 			const isActive = content.id === `settings-tab-${tabId}`;
 			content.classList.toggle("active", isActive);
 			content.classList.toggle("settings-view__tab-content--active", isActive);
 		});
+	}
 
-		// Render the new active tab content if it hasn't been rendered yet
-		const activeTabContent = this.tabContents[tabId];
-		if (activeTabContent && activeTabContent.children.length === 0) {
-			// Find the tab configuration and render it
-			const tabConfig = this.getTabConfigurations().find((tab) => tab.id === tabId);
-			if (tabConfig) {
-				tabConfig.renderFn(activeTabContent, this.plugin, this.debouncedSave);
-			}
-		}
-
-		// Focus the newly active tab button
+	private focusTabButton(tabId: string): void {
 		window.setTimeout(() => {
 			const activeTabButton = this.containerEl.querySelector(
 				`#tab-button-${tabId}`
