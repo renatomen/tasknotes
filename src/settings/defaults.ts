@@ -104,6 +104,17 @@ export function countStatusCategories(statuses: StatusConfig[]): Record<StatusCa
 	return counts;
 }
 
+const START_CATEGORIES: readonly StatusCategory[] = ["planned", "in-progress"];
+
+/**
+ * Reports which of Not started / Started no status carries, in badge order; empty means
+ * start-based dependency edges can release as authored.
+ */
+export function findMissingStartCategories(statuses?: StatusConfig[] | null): StatusCategory[] {
+	const counts = countStatusCategories(statuses ?? []);
+	return START_CATEGORIES.filter((category) => counts[category] === 0);
+}
+
 // Default priority configuration matches current hardcoded behavior
 export const DEFAULT_PRIORITIES: PriorityConfig[] = [
 	{
