@@ -28,6 +28,7 @@ interface TimeTrackingSettingsSnapshot {
 
 export class SettingsLifecycleService {
 	private previousCacheSettings: CacheSettingsSnapshot | null = null;
+	private previousStatusClassification: string | null = null;
 	private previousTimeTrackingSettings: TimeTrackingSettingsSnapshot | null = null;
 	private autoStopTimeTrackingListener: unknown = null;
 	private saveSettingsPromise: Promise<void> | null = null;
@@ -37,6 +38,7 @@ export class SettingsLifecycleService {
 
 	captureCurrentSettings(): void {
 		this.updatePreviousCacheSettings();
+		this.updatePreviousStatusClassification();
 		this.updatePreviousTimeTrackingSettings();
 	}
 
@@ -91,6 +93,7 @@ export class SettingsLifecycleService {
 		this.plugin.apiService?.syncWebhookSettings?.();
 
 		const cacheSettingsChanged = this.haveCacheSettingsChanged();
+		const statusClassificationChanged = this.hasStatusClassificationChanged();
 		const timeTrackingSettingsChanged = this.haveTimeTrackingSettingsChanged();
 
 		this.plugin.fieldMapper?.updateMapping(this.plugin.settings.fieldMapping);
@@ -108,8 +111,16 @@ export class SettingsLifecycleService {
 				operation: "cache-related-settings-changed-updating-cache-configuration",
 			});
 			this.plugin.cacheManager.updateConfig(this.plugin.settings);
-			this.plugin.dependencyCache?.updateConfig(this.plugin.settings);
 			this.updatePreviousCacheSettings();
+		}
+
+		if (cacheSettingsChanged || statusClassificationChanged) {
+			tasknotesLogger.debug("Rebuilding dependency indexes for the current configuration", {
+				category: "configuration",
+				operation: "rebuilding-dependency-indexes-for-the-current-configuration",
+			});
+			this.plugin.dependencyCache?.updateConfig(this.plugin.settings);
+			this.updatePreviousStatusClassification();
 		}
 
 		this.plugin.injectCustomStyles();
@@ -141,6 +152,7 @@ export class SettingsLifecycleService {
 		this.plugin.cacheManager.updateConfig(this.plugin.settings);
 		this.plugin.dependencyCache?.updateConfig(this.plugin.settings);
 		this.updatePreviousCacheSettings();
+		this.updatePreviousStatusClassification();
 		this.setupTimeTrackingEventListeners();
 
 		this.plugin.injectCustomStyles();
@@ -225,6 +237,28 @@ export class SettingsLifecycleService {
 		);
 	}
 
+	/**
+	 * The dependency cache memoizes started/finished per file, so refreshing `StatusManager`
+	 * alone leaves those verdicts stale when a status is recategorized.
+	 */
+	private hasStatusClassificationChanged(): boolean {
+		if (this.previousStatusClassification === null) {
+			return true;
+		}
+
+		return this.buildStatusClassification() !== this.previousStatusClassification;
+	}
+
+	private buildStatusClassification(): string {
+		return JSON.stringify(
+			(this.plugin.settings.customStatuses ?? []).map((status) => [
+				status.value,
+				status.isCompleted === true,
+				status.category ?? null,
+			])
+		);
+	}
+
 	private haveTimeTrackingSettingsChanged(): boolean {
 		if (!this.previousTimeTrackingSettings) {
 			return true;
@@ -244,6 +278,10 @@ export class SettingsLifecycleService {
 			storeTitleInFilename: this.plugin.settings.storeTitleInFilename,
 			fieldMapping: JSON.parse(JSON.stringify(this.plugin.settings.fieldMapping)),
 		};
+	}
+
+	private updatePreviousStatusClassification(): void {
+		this.previousStatusClassification = this.buildStatusClassification();
 	}
 
 	private updatePreviousTimeTrackingSettings(): void {
