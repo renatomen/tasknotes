@@ -18,7 +18,8 @@ import {
 	normalizeThemeColor,
 } from "../../utils/themeColors";
 import { configureThemeColorInput } from "../components/CardComponent";
-import { countStatusCategories } from "../defaults";
+import { countStatusCategories, findMissingStartCategories } from "../defaults";
+import { DependencyReadinessConfirmationModal } from "../../modals/DependencyReadinessConfirmationModal";
 
 async function getInitializedPomodoroService(plugin: TaskNotesPlugin) {
 	if (!plugin.pomodoroService) {
@@ -998,11 +999,8 @@ export function renderFeaturesTab(
 						name: translate("settings.features.dependencies.advancedTypes.name"),
 						desc: translate("settings.features.dependencies.advancedTypes.description"),
 						getValue: () => plugin.settings.enableAdvancedDependencyTypes,
-						setValue: async (value: boolean) => {
-							plugin.settings.enableAdvancedDependencyTypes = value;
-							save();
-							renderFeaturesTab(container, plugin, save);
-						},
+						setValue: (value: boolean) =>
+							applyAdvancedDependencyTypesToggle(value, plugin, container, save),
 					})
 			);
 
@@ -1052,4 +1050,53 @@ export function renderFeaturesTab(
 			);
 		}
 	);
+}
+
+/**
+ * Applies an advanced-dependency-types toggle change, asking for acknowledgement first when a
+ * start category has no status. Re-evaluates the status set on every enable; stores no answer.
+ */
+export async function applyAdvancedDependencyTypesToggle(
+	value: boolean,
+	plugin: TaskNotesPlugin,
+	container: HTMLElement,
+	save: () => void
+): Promise<void> {
+	const missingCategories = value
+		? findMissingStartCategories(plugin.settings.customStatuses)
+		: [];
+
+	if (missingCategories.length === 0) {
+		plugin.settings.enableAdvancedDependencyTypes = value;
+		save();
+		renderFeaturesTab(container, plugin, save);
+		return;
+	}
+
+	// Obsidian flips the toggle before this runs, so every path — a rejected modal included —
+	// has to rebuild the tab from the stored value.
+	let finish = () => renderFeaturesTab(container, plugin, save);
+	try {
+		const choice = await new DependencyReadinessConfirmationModal(
+			plugin,
+			missingCategories
+		).show();
+		if (choice === "go-back") {
+			return;
+		}
+
+		plugin.settings.enableAdvancedDependencyTypes = true;
+		save();
+
+		if (choice === "enable-and-open-statuses") {
+			// Left empty rather than re-rendered so returning to Features rebuilds it against
+			// the repaired status set instead of the warning captured here.
+			finish = () => {
+				container.empty();
+				plugin.settingTab?.navigateToTab("task-properties");
+			};
+		}
+	} finally {
+		finish();
+	}
 }
