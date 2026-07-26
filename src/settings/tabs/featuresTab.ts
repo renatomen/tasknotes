@@ -20,6 +20,13 @@ import {
 import { configureThemeColorInput } from "../components/CardComponent";
 import { countStatusCategories, findMissingStartCategories } from "../defaults";
 import { DependencyReadinessConfirmationModal } from "../../modals/DependencyReadinessConfirmationModal";
+import { StatusCategory } from "../../types";
+
+const STATUS_CATEGORY_LABEL_KEYS: Record<StatusCategory, TranslationKey> = {
+	planned: "settings.taskProperties.taskStatuses.badges.planned",
+	"in-progress": "settings.taskProperties.taskStatuses.badges.inProgress",
+	completed: "settings.taskProperties.taskStatuses.badges.completed",
+};
 
 async function getInitializedPomodoroService(plugin: TaskNotesPlugin) {
 	if (!plugin.pomodoroService) {
@@ -1006,22 +1013,35 @@ export function renderFeaturesTab(
 
 			if (plugin.settings.enableAdvancedDependencyTypes) {
 				const counts = countStatusCategories(plugin.settings.customStatuses);
-				const startReady = counts["in-progress"] > 0 && counts.planned > 0;
+				const missingCategories = findMissingStartCategories(plugin.settings.customStatuses);
+				const countsText = translate("settings.features.dependencies.readiness.counts", {
+					notStarted: counts.planned,
+					started: counts["in-progress"],
+					completed: counts.completed,
+				});
 				group.addSetting((setting) => {
 					setting.setName(translate("settings.features.dependencies.readiness.name"));
-					setting.setDesc(
-						`${translate("settings.features.dependencies.readiness.counts", {
-							notStarted: counts.planned,
-							started: counts["in-progress"],
-							completed: counts.completed,
-						})} ${translate(
-							startReady
-								? "settings.features.dependencies.readiness.ready"
-								: "settings.features.dependencies.readiness.notReady"
-						)}`
-					);
-					setting.settingEl.addClass(
-						startReady ? "tn-dependency-readiness--ok" : "tn-dependency-readiness--warn"
+
+					if (missingCategories.length === 0) {
+						setting.setDesc(
+							`${countsText} ${translate("settings.features.dependencies.readiness.ready")}`
+						);
+						return;
+					}
+
+					setting.setDesc(countsText);
+					const warning = setting.descEl.createDiv({ cls: "tn-start-readiness-warning" });
+					warning.createSpan({
+						cls: "tn-start-readiness-warning__glyph",
+						text: "!",
+						attr: { "aria-hidden": "true" },
+					});
+					warning.appendText(
+						translate("settings.features.dependencies.readiness.missing", {
+							categories: missingCategories
+								.map((category) => translate(STATUS_CATEGORY_LABEL_KEYS[category]))
+								.join(" or "),
+						})
 					);
 				});
 			}

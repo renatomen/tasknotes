@@ -526,8 +526,7 @@ export const en: TranslationTree = {
 					name: "Status readiness",
 					counts: "Not started: {notStarted}, Started: {started}, Completed: {completed}.",
 					ready: "Start-based dependencies are ready.",
-					notReady:
-						"Start-to-start and start-to-finish dependencies need at least one not-started status and one started status; without a started status they only release when the predecessor completes. Categorize a status in the task properties settings.",
+					missing: "No status is categorized as {categories}.",
 				},
 			},
 			inlineTasks: {

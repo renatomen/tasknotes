@@ -1437,14 +1437,14 @@ body.is-mobile .tasknotes-plugin .tasknotes-settings__card-action-btn {
     }
 }
 
-.setting-item.tn-dependency-readiness--ok {
-    border-inline-start: 3px solid var(--color-green);
-    padding-inline-start: var(--size-4-2);
+/* Obsidian's settings group card owns the row's edges, so the warning rides on its text. */
+.tn-start-readiness-warning {
+    font-weight: 500;
+    color: var(--text-warning);
 }
 
-.setting-item.tn-dependency-readiness--warn {
-    border-inline-start: 3px solid var(--color-orange);
-    padding-inline-start: var(--size-4-2);
+.tn-start-readiness-warning__glyph {
+    margin-inline-end: var(--size-2-1);
 }
 
 .tn-status-category-advisory {
