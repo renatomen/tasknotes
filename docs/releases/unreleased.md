@@ -72,6 +72,10 @@ When a change has user-facing documentation, include a canonical tasknotes.dev l
 
 ## Fixed
 
+- (#1863) Microsoft Calendar event updates now accept opaque Exchange calendar
+  IDs instead of failing local validation before contacting Microsoft Graph.
+  Thanks to @fmacondray for reporting this and providing the follow-up stack
+  trace.
 - (#2180) Inline task cards in Live Preview now keep their click and context menu
   handlers active on Obsidian 1.13, so clicking a rendered task link opens the
   edit modal instead of revealing the raw wikilink. Thanks to @npondel for the
