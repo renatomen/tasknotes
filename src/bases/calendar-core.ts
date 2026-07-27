@@ -59,6 +59,11 @@ export { calculateAllDayEndDate } from "./calendarTaskEvents";
 const MIN_EXTERNAL_TIMED_EVENT_DURATION_MS = 1;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
+function getCalendarBoundaryDatePart(date: Date, explicitDate?: string): string {
+	const explicitDatePart = explicitDate ? getDatePart(explicitDate) : "";
+	return explicitDatePart || format(date, "yyyy-MM-dd");
+}
+
 export interface CalendarEvent {
 	id: string;
 	title: string;
@@ -1188,12 +1193,15 @@ export function generateRecurringTaskInstances(
 		// Compare by the date strings FullCalendar uses for the local visible range.
 		// Its Date objects are instants, so UTC formatting can shift local midnight
 		// boundaries in positive timezones.
+		const searchStartDateOnly = shouldCreateRecurringSpan
+			? getCalendarBoundaryDatePart(recurringSearchStartDate)
+			: startDateOnly;
 		for (const date of recurringDates) {
 			const instanceDate = formatDateForStorage(date);
 
 			// Skip instances outside the original visible range (for yearly tasks with extended look-ahead)
 			// Compare dates as strings (YYYY-MM-DD) to avoid timezone/time issues
-			if (instanceDate < startDateOnly || instanceDate >= endDateOnly) {
+			if (instanceDate < searchStartDateOnly || instanceDate >= endDateOnly) {
 				continue;
 			}
 
