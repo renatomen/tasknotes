@@ -110,6 +110,10 @@ function getPropertyName(fullPath: string): string {
 	return fullPath.replace(/^(note\.|file\.|task\.|formula\.)/, '');
 }
 
+function formatTaskPropertyId(propertyName: string): string {
+	return `task.${propertyName}`;
+}
+
 function formatBasesDateDayExpression(dateExpression: string): string {
 	return `date(${dateExpression}).format("YYYY-MM-DD")`;
 }
@@ -661,6 +665,7 @@ ${orderYaml}
 		}
 		case 'open-kanban-view': {
 			const statusProperty = getPropertyName(mapPropertyToBasesProperty('status', plugin));
+			const statusTaskProperty = formatTaskPropertyId(statusProperty);
 			const sortOrderProperty = mapPropertyToBasesProperty('sortOrder', plugin);
 			return `# Kanban Board
 
@@ -677,9 +682,9 @@ ${orderYaml}
       - column: ${sortOrderProperty}
         direction: DESC
     groupBy:
-      property: ${statusProperty}
+      property: ${statusTaskProperty}
       direction: ASC
-    options:
+    config:
       columnWidth: 280
       hideEmptyColumns: false
 `;
@@ -950,6 +955,7 @@ ${agendaOrderYaml}
 				const occurrenceDateProperty = mapPropertyToBasesProperty('occurrenceDate', plugin);
 				const scheduledProperty = mapPropertyToBasesProperty('scheduled', plugin);
 				const statusProperty = getPropertyName(mapPropertyToBasesProperty('status', plugin));
+				const statusTaskProperty = formatTaskPropertyId(statusProperty);
 				const sortOrderProperty = mapPropertyToBasesProperty('sortOrder', plugin);
 				const occurrenceOrderYaml = formatOrderArray(
 					insertOrderPropertyAfterOrAppend(orderArray, occurrenceDateProperty, scheduledProperty)
@@ -987,7 +993,7 @@ ${orderYaml}
       - column: ${sortOrderProperty}
         direction: DESC
     groupBy:
-      property: ${statusProperty}
+      property: ${statusTaskProperty}
       direction: ASC
   - type: tasknotesTaskList
     name: "Occurrences"
@@ -1030,7 +1036,7 @@ ${orderYaml}
       - column: ${sortOrderProperty}
         direction: DESC
     groupBy:
-      property: ${statusProperty}
+      property: ${statusTaskProperty}
       direction: ASC
 `;
 		}
