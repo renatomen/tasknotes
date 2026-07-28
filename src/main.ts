@@ -1264,6 +1264,7 @@ export default class TaskNotesPlugin extends Plugin {
 			content,
 			frontmatter,
 			settings: this.settings,
+			fieldMapper: this.fieldMapper,
 		});
 
 		// Open the task edit modal with the constructed TaskInfo
