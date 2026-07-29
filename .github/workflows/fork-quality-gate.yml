@@ -39,6 +39,10 @@ jobs:
             git status --porcelain
             exit 1
           fi
+      - name: Install docs-builder dependencies
+        # docs:check builds docs-builder; its deps are not in the root lockfile.
+        run: npm ci
+        working-directory: docs-builder
       - name: Docs quality checks
         run: npm run docs:check
       - name: Generate release notes import
