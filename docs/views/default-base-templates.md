@@ -23,7 +23,7 @@ The examples below assume:
 - **Priorities**: `none`, `low`, `normal`, `high` (sorted by weight)
 - **Visible properties**: `status`, `priority`, `due`, `scheduled`, `projects`, `contexts`, `tags`, `blocked`, `blocking`
 
-When task identification uses a property instead of a tag, generated filters reference the identifying note property with bracket notation, such as `note["Task Type"] == true`. This keeps filters valid when custom property names contain spaces or other characters that cannot be used with dot notation.
+When task identification uses a property instead of a tag, generated filters reference the identifying note property with bracket notation and list-tolerant matching, such as `list(note["Task Type"]).contains(true)`. This keeps filters valid when custom property names contain spaces or other characters that cannot be used with dot notation, and matches tasks whose identifying property is stored as either a scalar value or a list containing that value.
 
 ## Included formulas
 

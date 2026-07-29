@@ -61,16 +61,15 @@ function generateTaskFilterCondition(settings: TaskNotesSettings): string {
 			if (isTagsTaskIdentifierProperty(propertyName)) {
 				return `file.hasTag("${escapeBasesStringLiteral(propertyValue)}")`;
 			}
-			// Check property has specific value
-			// Boolean values must not be quoted — Obsidian stores checkbox/boolean
-			// frontmatter as actual booleans, so the Bases filter needs e.g.
-			// note["prop"] == true rather than note["prop"] == "true" (#1491)
+			// Check property has a specific value. list() handles scalar and list
+			// frontmatter values consistently, while preserving exact element
+			// comparisons. Boolean values must not be quoted (#1491).
 			const propertyRef = formatNotePropertyReference(propertyName);
 			const lower = propertyValue.toLowerCase();
 			if (lower === "true" || lower === "false") {
-				return `${propertyRef} == ${lower}`;
+				return `list(${propertyRef}).contains(${lower})`;
 			}
-			return `${propertyRef} == "${escapeBasesStringLiteral(propertyValue)}"`;
+			return `list(${propertyRef}).contains("${escapeBasesStringLiteral(propertyValue)}")`;
 		} else {
 			// Just check property exists (is not empty)
 			const propertyRef = formatNotePropertyReference(propertyName);

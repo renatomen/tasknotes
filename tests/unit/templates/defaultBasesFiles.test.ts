@@ -168,8 +168,22 @@ describe("defaultBasesFiles", () => {
 			}) as any
 		);
 
-		expect(template).toContain('note["Task Type"] == "task"');
+		expect(template).toContain('list(note["Task Type"]).contains("task")');
 		expect(template).not.toContain("note.Task Type");
+	});
+
+	it("matches list-valued property task identifiers in generated Bases filters", () => {
+		const template = generateBasesFileTemplate(
+			"open-tasks-view",
+			createMockPlugin({
+				taskIdentificationMethod: "property",
+				taskPropertyName: "type",
+				taskPropertyValue: "task",
+			}) as any
+		);
+
+		expect(template).toContain('list(note["type"]).contains("task")');
+		expect(template).not.toContain('note["type"] == "task"');
 	});
 
 	it("uses tag membership when property-based task identification targets tags (#1156)", () => {
@@ -196,7 +210,7 @@ describe("defaultBasesFiles", () => {
 			}) as any
 		);
 
-		expect(template).toContain('note["Task Type"] == true');
+		expect(template).toContain('list(note["Task Type"]).contains(true)');
 		expect(template).not.toContain('note["Task Type"] == "true"');
 	});
 
