@@ -269,6 +269,11 @@ export class TaskManager extends Events {
 				return pendingTaskInfo;
 			}
 
+			// getFileCache returns null only while a file is still unindexed; an indexed
+			// file that reports no frontmatter genuinely has no YAML block, so reading it
+			// from disk cannot surface anything the cache is missing.
+			if (metadata) return null;
+
 			const frontmatter = await this.readFrontmatterFromFile(file);
 			if (!frontmatter || !this.isTaskFile(frontmatter)) return null;
 
@@ -684,7 +689,11 @@ export class TaskManager extends Events {
 	}
 
 	/**
-	 * Get all tasks by scanning all markdown files (just-in-time)
+	 * Get all tasks by scanning all markdown files (just-in-time).
+	 *
+	 * Deliberately uses the synchronous metadataCache-only lookup: a vault-wide scan
+	 * must never fall through to getTaskInfo's disk-read fallback, which would issue
+	 * one vault.read per unindexed file on every call.
 	 */
 	async getAllTasks(): Promise<TaskInfo[]> {
 		const tasks: TaskInfo[] = [];
@@ -693,7 +702,7 @@ export class TaskManager extends Events {
 		for (const file of files) {
 			if (!this.isValidFile(file.path)) continue;
 
-			const taskInfo = await this.getTaskInfo(file.path);
+			const taskInfo = this.getCachedTaskInfoSync(file.path);
 			if (taskInfo) {
 				tasks.push(taskInfo);
 			}
