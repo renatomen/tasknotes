@@ -946,6 +946,7 @@ export class TaskService {
 					parentTask,
 					completedStatus: this.normalizeStatusValue(newValue),
 					currentTimestamp,
+					completionDate: new Date(currentTimestamp),
 					maintainDueDateOffsetInRecurring:
 						this.plugin.settings.maintainDueDateOffsetInRecurring,
 				})
