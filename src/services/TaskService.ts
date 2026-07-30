@@ -203,10 +203,6 @@ export class TaskService {
 		return "";
 	}
 
-	private getCompletionDateForTask(task: TaskInfo): string {
-		return task.occurrence_date || getCurrentDateString();
-	}
-
 	/**
 	 * Process a folder path template with task and date variables
 	 *
@@ -583,7 +579,7 @@ export class TaskService {
 				property,
 				value,
 				currentTimestamp: getCurrentTimestamp(),
-				currentDateString: this.getCompletionDateForTask(freshTask),
+				currentDateString: getCurrentDateString(),
 				normalizeStatusValue: (candidate) => this.normalizeStatusValue(candidate),
 				isCompletedStatus: (status) => this.plugin.statusManager.isCompletedStatus(status),
 			});
@@ -621,7 +617,7 @@ export class TaskService {
 					normalizeStatusValue: (candidate) => this.normalizeStatusValue(candidate),
 					isCompletedStatus: (status) =>
 						this.plugin.statusManager.isCompletedStatus(status),
-					currentDateString: this.getCompletionDateForTask(freshTask),
+					currentDateString: getCurrentDateString(),
 				});
 
 				this.writeOptionalFrontmatterField(
