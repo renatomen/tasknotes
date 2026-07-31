@@ -44,3 +44,9 @@ When a change has user-facing documentation, include a canonical tasknotes.dev l
   guides for adopting TaskNotes in an existing vault, mobile use, custom Bases,
   and backup and recovery. See the
   [TaskNotes documentation](https://tasknotes.dev/).
+
+## Fixed
+
+- Fixed recurring all-day ICS subscription events keeping the original end date
+  on later instances, which could cause calendar list views to show events under
+  the wrong day. Thanks to @abbiefalls90.
