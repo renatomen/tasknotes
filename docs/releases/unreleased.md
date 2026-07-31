@@ -53,3 +53,6 @@ When a change has user-facing documentation, include a canonical tasknotes.dev l
 - Fixed recurring all-day ICS subscription events keeping the original end date
   on later instances, which could cause calendar list views to show events under
   the wrong day. Thanks to @abbiefalls90.
+- (#2033) Fixed the project folder badge on task cards so, when expandable
+  subtasks are enabled, it expands or collapses inline subtasks instead of
+  showing an unavailable-action notice. Thanks to @abbiefalls90.
