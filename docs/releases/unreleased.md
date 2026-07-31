@@ -51,6 +51,10 @@ When a change has user-facing documentation, include a canonical tasknotes.dev l
 
 ## Fixed
 
+- (#2180) Inline task cards in Live Preview now keep their click and context menu
+  handlers active on Obsidian 1.13, so clicking a rendered task link opens the
+  edit modal instead of revealing the raw wikilink. Thanks to @npondel for the
+  detailed diagnosis and @minchinweb for confirming the issue.
 - ([#2171](https://github.com/callumalpass/tasknotes/pull/2171)) Stopped recurring
   notification and status-bar scans from reading unindexed notes directly from
   disk while preserving the fallback for direct task lookups. Thanks to
