@@ -101,3 +101,6 @@ When a change has user-facing documentation, include a canonical tasknotes.dev l
   they were actually completed, while the parent recurring task continues to
   track the occurrence date. Thanks to @raphaelfaouakhiri for reporting and
   fixing this.
+- (#2173, #2175) Completion-anchored recurring tasks with materialized
+  occurrence notes now schedule the next occurrence from the day the occurrence
+  was actually completed. Thanks to @chmac for reporting and fixing this.
