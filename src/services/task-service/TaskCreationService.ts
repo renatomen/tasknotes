@@ -92,7 +92,7 @@ export interface TaskCreationRuntime {
 	};
 	settings: TaskCreationSettings;
 	fieldMapper: TaskCreationFieldMapper;
-	statusManager: TaskCreationStatusManager;
+	statusManager?: TaskCreationStatusManager;
 	cacheManager: TaskCreationCacheManager;
 	emitter: TaskCreationEmitter;
 	taskCalendarSyncService?: TaskCreationCalendarSyncService;
@@ -148,7 +148,7 @@ export class TaskCreationService {
 			const recurrence = taskData.recurrence || undefined;
 			const completedDate = !recurrence
 				? taskData.completedDate ||
-					(runtime.statusManager.isCompletedStatus(status)
+					(runtime.statusManager?.isCompletedStatus(status)
 						? getCurrentDateString()
 						: undefined)
 				: undefined;
