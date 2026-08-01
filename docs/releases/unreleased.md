@@ -38,6 +38,10 @@ When a change has user-facing documentation, include a canonical tasknotes.dev l
   scheduled date is manually adjusted, preserving due-date offsets and times
   without jumping back to an earlier occurrence. Thanks to @chmac for reporting
   and fixing this.
+- (#2081, #2103) Kept task card and relationships widgets visible in reading mode
+  when Obsidian scroll or preview updates remove their DOM, and refreshed visible
+  widgets promptly after metadata changes. Thanks to @mukhozhuk for reporting and
+  debugging this and @martin-forge for fixing it.
 
 ## Changed
 
