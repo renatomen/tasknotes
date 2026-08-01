@@ -39,6 +39,9 @@ When a change has user-facing documentation, include a canonical tasknotes.dev l
 
 ## Added
 
+- (#2142) MCP `tasknotes_create_task` and `tasknotes_update_task` now accept
+  `customProperties` for configured TaskNotes user fields. Thanks to
+  @phillipadsmith for suggesting this.
 - (#2126, #2134) Added optional filename templates for materialized recurring
   occurrence notes, with explicit date, ISO week, month, year, and month-name
   variables plus per-parent overrides. Existing naming remains unchanged until a
@@ -48,28 +51,6 @@ When a change has user-facing documentation, include a canonical tasknotes.dev l
   variables for storing tasks alongside linked project notes. See
   [Template Variables](https://tasknotes.dev/features/template-variables/).
   Thanks to @carypruitt for this contribution.
-
-## Fixed
-
-- (#2180) Inline task cards in Live Preview now keep their click and context menu
-  handlers active on Obsidian 1.13, so clicking a rendered task link opens the
-  edit modal instead of revealing the raw wikilink. Thanks to @npondel for the
-  detailed diagnosis and @minchinweb for confirming the issue.
-- ([#2171](https://github.com/callumalpass/tasknotes/pull/2171)) Stopped recurring
-  notification and status-bar scans from reading unindexed notes directly from
-  disk while preserving the fallback for direct task lookups. Thanks to
-  @tgrosinger for identifying and diagnosing the excessive vault reads.
-- (#2166) Fixed Task List views configured to start collapsed so the first
-  chevron click expands only the selected group instead of expanding every
-  other group. Thanks to @renatomen for reporting and fixing this.
-- (#2064, #2066) Recurring tasks now advance correctly after their next
-  scheduled date is manually adjusted, preserving due-date offsets and times
-  without jumping back to an earlier occurrence. Thanks to @chmac for reporting
-  and fixing this.
-- (#2081, #2103) Kept task card and relationships widgets visible in reading mode
-  when Obsidian scroll or preview updates remove their DOM, and refreshed visible
-  widgets promptly after metadata changes. Thanks to @mukhozhuk for reporting and
-  debugging this and @martin-forge for fixing it.
 
 ## Changed
 
@@ -83,9 +64,66 @@ When a change has user-facing documentation, include a canonical tasknotes.dev l
   guides for adopting TaskNotes in an existing vault, mobile use, custom Bases,
   and backup and recovery. See the
   [TaskNotes documentation](https://tasknotes.dev/).
+- (#2088) Convert current note to task now uses your default scheduled date when
+  the note does not already have `scheduled` frontmatter, while the **None**
+  default still leaves converted notes unscheduled. See
+  [Task Properties](https://tasknotes.dev/settings/task-properties/#scheduled-date).
+  Thanks to @e-zz for suggesting this.
 
 ## Fixed
 
+- (#2180) Inline task cards in Live Preview now keep their click and context menu
+  handlers active on Obsidian 1.13, so clicking a rendered task link opens the
+  edit modal instead of revealing the raw wikilink. Thanks to @npondel for the
+  detailed diagnosis and @minchinweb for confirming the issue.
+- ([#2171](https://github.com/callumalpass/tasknotes/pull/2171)) Stopped recurring
+  notification and status-bar scans from reading unindexed notes directly from
+  disk while preserving the fallback for direct task lookups. Thanks to
+  @tgrosinger for identifying and diagnosing the excessive vault reads.
+- (#2169) Regenerated default Base views now include tasks whose identifying
+  property is stored as a list containing the configured task value. Thanks to
+  @GlebYavorski for reporting this.
+- (#2166) Fixed Task List views configured to start collapsed so the first
+  chevron click expands only the selected group instead of expanding every
+  other group. Thanks to @renatomen for reporting and fixing this.
+- (#2152) Fixed paginated Google Calendar refreshes for calendars with many
+  events so secondary calendars do not disappear after Google returns a second
+  page. Thanks to @wobafett for reporting and diagnosing this.
+- (#2141) Fixed Task List groups for tasks without scheduled or due dates showing
+  a raw Bases icon object instead of **None**. Thanks to @ks-studio-net for
+  reporting this.
+- (#2140) The edit task modal now shows saved task-identification tags when
+  hiding identification tags is disabled. Thanks to @3zra47 for reporting this.
+- (#2120, #2135) Long all-day event titles in Calendar week and day views now
+  truncate instead of stretching the all-day row. Thanks to @same774 and
+  @ks-studio-net for reporting this.
+- (#2124) Fixed a Kanban crash when opening or closing the edit modal immediately
+  after moving a task between list-valued swimlanes such as contexts. Thanks to
+  @Decia-C for reporting this.
+- (#2114) Completing a rescheduled materialized occurrence now advances the
+  recurring parent from the moved occurrence date instead of an earlier original
+  occurrence date. Thanks to @chrabia for reporting this.
+- (#2107, #2108) Creating tasks with **Store title in filename** enabled now
+  handles duplicate or case-variant titles without failing or replacing the task
+  title with a suffixed filename. Thanks to @AdmiralClackington for reporting and
+  diagnosing this.
+- (#2106) Regenerated default Calendar Base files now use your configured first
+  day of the week instead of forcing Sunday. Thanks to @atos2212-blip, @cweekly,
+  and @idontcode34 for reporting this.
+- (#2100) Tags added while creating a task now keep the same frontmatter order as
+  tags added later from the task context menu. Thanks to @mgrecar for reporting
+  this.
+- (#2096) Fixed TaskNotes Kanban swimlanes falling back to **None** when the
+  swimlane used a Bases formula that was not already cached by Bases. Thanks to
+  @ddevaal for reporting this.
+- (#2081, #2103) Kept task card and relationships widgets visible in reading mode
+  when Obsidian scroll or preview updates remove their DOM, and refreshed visible
+  widgets promptly after metadata changes. Thanks to @mukhozhuk for reporting and
+  debugging this and @martin-forge for fixing it.
+- (#2064, #2066) Recurring tasks now advance correctly after their next
+  scheduled date is manually adjusted, preserving due-date offsets and times
+  without jumping back to an earlier occurrence. Thanks to @chmac for reporting
+  and fixing this.
 - (#2018) Fixed **Hide empty columns** in Kanban views with swimlanes so columns
   with no visible tasks are hidden while pinned columns remain. Thanks to
   @scottTomaszewski for reporting and fixing this.
@@ -108,3 +146,6 @@ When a change has user-facing documentation, include a canonical tasknotes.dev l
 - (#2173, #2175) Completion-anchored recurring tasks with materialized
   occurrence notes now schedule the next occurrence from the day the occurrence
   was actually completed. Thanks to @chmac for reporting and fixing this.
+- (#1982) Preserved the Task List's own scroll position during Bases refreshes so
+  long mobile lists do not jump back to the top after task updates. Thanks to
+  @3zra47 for the follow-up report.
