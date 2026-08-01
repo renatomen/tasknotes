@@ -51,6 +51,9 @@ When a change has user-facing documentation, include a canonical tasknotes.dev l
 
 ## Fixed
 
+- (#2166) Fixed Task List views configured to start collapsed so the first
+  chevron click expands only the selected group instead of expanding every
+  other group. Thanks to @renatomen for reporting and fixing this.
 - (#2064, #2066) Recurring tasks now advance correctly after their next
   scheduled date is manually adjusted, preserving due-date offsets and times
   without jumping back to an earlier occurrence. Thanks to @chmac for reporting
