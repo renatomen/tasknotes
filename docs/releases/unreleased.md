@@ -39,6 +39,11 @@ When a change has user-facing documentation, include a canonical tasknotes.dev l
 
 ## Added
 
+- (#2126, #2134) Added optional filename templates for materialized recurring
+  occurrence notes, with explicit date, ISO week, month, year, and month-name
+  variables plus per-parent overrides. Existing naming remains unchanged until a
+  template is configured. See [Recurring Tasks](https://tasknotes.dev/features/recurring-tasks/#occurrence-filenames).
+  Thanks to @raphaelfaouakhiri for reporting and implementing this.
 - (#2105) Added `{{projectFolder}}` and `{{projectFolders}}` folder template
   variables for storing tasks alongside linked project notes. See
   [Template Variables](https://tasknotes.dev/features/template-variables/).

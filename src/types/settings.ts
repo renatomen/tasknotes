@@ -109,6 +109,8 @@ export interface TaskNotesSettings {
 	taskFilenameFormat: "title" | "zettel" | "timestamp" | "uuid" | "custom";
 	storeTitleInFilename: boolean;
 	customFilenameTemplate: string; // Template for custom format
+	occurrenceFilenameTemplate: string; // Template for materialized occurrence filenames ("" = legacy dedup suffix)
+	occurrenceFilenameTemplateProperty: string; // Frontmatter property on the parent that overrides the template
 	// Task creation defaults
 	taskCreationDefaults: TaskCreationDefaults;
 	openTaskAfterCreation: "none" | "same-tab" | "new-tab";

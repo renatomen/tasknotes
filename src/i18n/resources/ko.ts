@@ -1112,7 +1112,13 @@ export const ko: TranslationTree = {
 				filenameUpdatesWithTitle: "작업 제목이 변경되면 파일명이 자동으로 업데이트됩니다.",
 				filenameFormat: "파일명 형식:",
 				customTemplate: "사용자 지정 템플릿:",
-				legacySyntaxWarning: "{title}과 같은 단일 중괄호 구문은 더 이상 사용되지 않습니다. 본문 템플릿과의 일관성을 위해 {{title}}과 같은 이중 중괄호 구문을 사용하세요."
+				legacySyntaxWarning: "{title}과 같은 단일 중괄호 구문은 더 이상 사용되지 않습니다. 본문 템플릿과의 일관성을 위해 {{title}}과 같은 이중 중괄호 구문을 사용하세요.",
+				occurrenceFilenameTemplate: "발생 항목 파일명 템플릿",
+				occurrenceFilenameTemplateHelp:
+					"반복 작업에서 구체화된 발생 항목의 파일명 템플릿입니다. 비워 두면 기존 이름(상위 작업 제목과 숫자 접미사)을 유지합니다. {{occurrenceDate}}, {{occurrenceWeek}}, {{occurrenceMonth}}, {{occurrenceYear}}, {{occurrenceMonthName}} 중 하나로 파일명 단위를 명시적으로 선택하세요. 일반 파일명 변수도 모두 사용할 수 있습니다. 상위 작업은 아래에서 설정한 프론트매터 속성으로 이 템플릿을 재정의할 수 있습니다.",
+				occurrenceFilenameProperty: "발생 항목 템플릿 재정의 속성",
+				occurrenceFilenamePropertyHelp:
+					"반복 상위 작업에서 발생 항목 파일명 템플릿을 재정의하는 프론트매터 속성의 이름입니다."
 			},
 			tagsCard: {
 				nativeObsidianTags: "기본 Obsidian 태그 사용"

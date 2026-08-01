@@ -211,6 +211,10 @@ Date/time components provide uniqueness without relying only on title text.
 - `{{uuid}}` - UUID v4 (e.g., "550e8400-e29b-41d4-a716-446655440000")
 - `{{nano}}` - Nano ID with timestamp and random string
 
+### Materialized Occurrence Filename Variables
+
+Materialized recurring occurrence notes can use a separate, optional filename template. It supports all variables above plus explicit occurrence date, ISO week, month, year, and month-name variables. See [Recurring Tasks](../features/recurring-tasks.md#occurrence-filenames) for configuration, per-parent overrides, and examples.
+
 ### Filename Template Examples
 
 **Date-based with title:**
