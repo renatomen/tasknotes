@@ -85,3 +85,7 @@ When a change has user-facing documentation, include a canonical tasknotes.dev l
 - (#2046, #2051) The date and time picker now focuses the natural-language input
   when it is enabled, making keyboard-driven quick actions ready for immediate
   typing. Thanks to @DevOps-Toast for reporting this and @ther12k for fixing it.
+- (#2125, #2129) Materialized recurring occurrence notes now record the date
+  they were actually completed, while the parent recurring task continues to
+  track the occurrence date. Thanks to @raphaelfaouakhiri for reporting and
+  fixing this.
