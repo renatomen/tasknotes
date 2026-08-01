@@ -70,7 +70,7 @@ When connected, displays:
 
 ### Security
 
-- OAuth client credentials and account tokens are stored in Obsidian Secret Storage and encrypted at rest
+- OAuth client credentials and account tokens are stored in Obsidian Secret Storage, which is encrypted at rest when supported by the operating system
 - OAuth credentials and account tokens are not written to TaskNotes' `data.json`
 - Access tokens refresh automatically
 - Calendar data syncs directly between Obsidian and the calendar provider (no intermediary servers)

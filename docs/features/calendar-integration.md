@@ -30,7 +30,7 @@ OAuth calendar integration requires creating an OAuth application with your cale
 
 ### Token Management
 
-TaskNotes stores OAuth client credentials, access tokens, and refresh tokens in Obsidian Secret Storage, encrypted at rest and separate from TaskNotes' `data.json`. Tokens are refreshed automatically before expiration. You can revoke account access or forget the saved OAuth app credentials through the integrations settings.
+TaskNotes stores OAuth client credentials, access tokens, and refresh tokens in Obsidian Secret Storage, which is encrypted at rest when supported by the operating system and kept separate from TaskNotes' `data.json`. Tokens are refreshed automatically before expiration. You can revoke account access or forget the saved OAuth app credentials through the integrations settings.
 
 ## Calendar Views
 

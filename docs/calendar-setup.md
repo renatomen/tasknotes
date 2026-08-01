@@ -43,7 +43,7 @@ Next, add delegated Microsoft Graph API permissions (`Calendars.Read`, `Calendar
 
 ## Security Notes
 
-OAuth client IDs, client secrets, and account tokens are stored locally in Obsidian Secret Storage and encrypted at rest. They are not written to TaskNotes' `data.json`. Tokens refresh automatically, calendar data syncs directly between your vault and provider, and you can disconnect at any time to revoke account access.
+OAuth client IDs, client secrets, and account tokens are stored locally in Obsidian Secret Storage, which is encrypted at rest when supported by the operating system. They are not written to TaskNotes' `data.json`. Tokens refresh automatically, calendar data syncs directly between your vault and provider, and you can disconnect at any time to revoke account access.
 
 Secret Storage is local to the Obsidian installation and vault. When setting up TaskNotes on another device, enter the OAuth app credentials and connect the calendar again. After disconnecting, use **Forget saved credentials** if you also want to remove the client ID and client secret.
 

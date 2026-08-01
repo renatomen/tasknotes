@@ -31,7 +31,7 @@ Optional network features:
 ## OAuth Credentials and Tokens
 
 - OAuth client IDs and client secrets are configured by you in TaskNotes settings.
-- OAuth client credentials, access tokens, and refresh tokens are stored locally in Obsidian Secret Storage and encrypted at rest.
+- OAuth client credentials, access tokens, and refresh tokens are stored locally in Obsidian Secret Storage, which is encrypted at rest when supported by the operating system.
 - These values are not written to TaskNotes' `data.json`.
 - Secret Storage is local to the Obsidian installation and vault, so another device may require its own credentials and calendar connection.
 - You can disconnect providers at any time to revoke TaskNotes access. Disconnecting retains the OAuth app credentials for reconnection; **Forget saved credentials** removes them from Secret Storage.

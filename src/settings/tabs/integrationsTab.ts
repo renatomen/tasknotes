@@ -455,7 +455,7 @@ export function renderIntegrationsTab(
 			const credentialNote = activeDocument.createElement("div");
 			credentialNote.className = "tasknotes-credential-note";
 			credentialNote.textContent =
-				"Enter your OAUTH app credentials from Google cloud console. Credentials are encrypted at rest in Obsidian secret storage.";
+				"Enter your OAUTH app credentials from Google cloud console. Obsidian secret storage encrypts credentials at rest when supported by the operating system.";
 
 			sections.push({
 				rows: [
@@ -724,7 +724,7 @@ export function renderIntegrationsTab(
 			const credentialNote = activeDocument.createElement("div");
 			credentialNote.className = "tasknotes-credential-note";
 			credentialNote.textContent =
-				"Enter your OAUTH app credentials from azure portal. Credentials are encrypted at rest in Obsidian secret storage.";
+				"Enter your OAUTH app credentials from azure portal. Obsidian secret storage encrypts credentials at rest when supported by the operating system.";
 
 			sections.push({
 				rows: [
