@@ -71,6 +71,11 @@ jest.mock("../../../src/utils/filenameGenerator", () => ({
 }));
 
 describe("TaskService materialized occurrences", () => {
+	beforeEach(() => {
+		const dateUtils = jest.requireMock("../../../src/utils/dateUtils");
+		dateUtils.getCurrentDateString.mockReturnValue("2025-01-01");
+	});
+
 	function createService(tasks: Record<string, TaskInfo> = {}) {
 		const frontmatterByPath = new Map<string, Record<string, unknown>>();
 		const plugin = PluginFactory.createMockPlugin({
@@ -452,6 +457,56 @@ describe("TaskService materialized occurrences", () => {
 			scheduled: "2026-06-02",
 		});
 		expect(frontmatterByPath.get(parent.path)?.skipped_instances).toBeUndefined();
+	});
+
+	it("advances completion-anchored parents from the actual completion date", async () => {
+		const dateUtils = jest.requireMock("../../../src/utils/dateUtils");
+		dateUtils.getCurrentDateString.mockReturnValue("2026-07-30");
+		const parent = TaskFactory.createTask({
+			title: "Weekly task",
+			path: "Tasks/Weekly task.md",
+			recurrence: "DTSTART:20260727;FREQ=WEEKLY",
+			recurrence_anchor: "completion",
+			scheduled: "2026-07-27",
+			complete_instances: [],
+			occurrence_materialization: "on_completion",
+		});
+		const occurrence = TaskFactory.createTask({
+			title: "Weekly task",
+			path: "Tasks/Weekly task 2026-07-28.md",
+			status: "open",
+			recurrence_parent: "[[Tasks/Weekly task]]",
+			occurrence_date: "2026-07-28",
+			scheduled: "2026-07-29",
+		});
+		const { taskService, frontmatterByPath } = createService({
+			[parent.path]: parent,
+			[occurrence.path]: occurrence,
+		});
+
+		const completedOccurrence = await taskService.updateProperty(
+			occurrence,
+			"status",
+			"done"
+		);
+
+		expect(frontmatterByPath.get(occurrence.path)).toMatchObject({
+			status: "done",
+			completedDate: "2026-07-30",
+		});
+		expect(frontmatterByPath.get(parent.path)).toMatchObject({
+			complete_instances: ["2026-07-28"],
+			recurrence: "DTSTART:20260730;FREQ=WEEKLY",
+			scheduled: "2026-08-06",
+		});
+
+		await taskService.updateProperty(completedOccurrence, "status", "open");
+
+		expect(frontmatterByPath.get(parent.path)).toMatchObject({
+			recurrence: "DTSTART:20260730;FREQ=WEEKLY",
+			scheduled: "2026-08-06",
+		});
+		expect(frontmatterByPath.get(parent.path)?.complete_instances).toBeUndefined();
 	});
 
 	describe("issue #2126 — occurrence filename template wiring", () => {
