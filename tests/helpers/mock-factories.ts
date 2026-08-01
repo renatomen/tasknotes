@@ -409,6 +409,7 @@ export const PluginFactory = {
       // Core TaskManager methods
       initialize: jest.fn(),
       getAllTasks: jest.fn().mockResolvedValue([]),
+      getAllCachedTasks: jest.fn().mockReturnValue([]),
       getAllTaskPaths: jest.fn().mockReturnValue(new Set()),
       getTaskInfo: jest.fn().mockResolvedValue(null),
       getCachedTaskInfo: jest.fn().mockResolvedValue(null),

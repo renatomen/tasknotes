@@ -689,13 +689,31 @@ export class TaskManager extends Events {
 	}
 
 	/**
-	 * Get all tasks by scanning all markdown files (just-in-time).
-	 *
-	 * Deliberately uses the synchronous metadataCache-only lookup: a vault-wide scan
-	 * must never fall through to getTaskInfo's disk-read fallback, which would issue
-	 * one vault.read per unindexed file on every call.
+	 * Get all tasks by scanning all markdown files (just-in-time)
 	 */
 	async getAllTasks(): Promise<TaskInfo[]> {
+		const tasks: TaskInfo[] = [];
+		const files = this.app.vault.getMarkdownFiles();
+
+		for (const file of files) {
+			if (!this.isValidFile(file.path)) continue;
+
+			const taskInfo = await this.getTaskInfo(file.path);
+			if (taskInfo) {
+				tasks.push(taskInfo);
+			}
+		}
+
+		return tasks;
+	}
+
+	/**
+	 * Get every task currently available in Obsidian's metadata cache.
+	 *
+	 * This intentionally avoids getTaskInfo's disk fallback so recurring background
+	 * scans cannot turn an incomplete metadata cache into a vault-wide read.
+	 */
+	getAllCachedTasks(): TaskInfo[] {
 		const tasks: TaskInfo[] = [];
 		const files = this.app.vault.getMarkdownFiles();
 
