@@ -2153,14 +2153,11 @@ export class TaskListView extends BasesViewBase {
 		};
 	}
 
-	/**
-	 * Restore ephemeral state after view reload.
-	 * Restores scroll position, collapsed groups, and collapsed sub-groups.
-	 */
-	setEphemeralState(state: unknown): void {
-		if (!isTaskListEphemeralState(state)) return;
-		super.setEphemeralState(state);
+	private hasInitializedCollapseState(): boolean {
+		return this.initializedPrimaryGroupKeys.size > 0 || this.initializedSubGroupKeys.size > 0;
+	}
 
+	private restoreCollapsedStateFromEphemeral(state: TaskListEphemeralState): void {
 		let restoredCollapsedState = false;
 
 		// Restore collapsed groups immediately
@@ -2181,6 +2178,20 @@ export class TaskListView extends BasesViewBase {
 			restoredCollapsedState = restoredCollapsedState || filtered.length > 0;
 		}
 		this.deferCollapseDefaultForNextSnapshot = restoredCollapsedState;
+	}
+
+	/**
+	 * Restore ephemeral state after view reload. Collapse state is applied only before the
+	 * view builds its first grouping snapshot, so a stale snapshot captured before a render
+	 * cannot undo the collapse default that render seeded.
+	 */
+	setEphemeralState(state: unknown): void {
+		if (!isTaskListEphemeralState(state)) return;
+		super.setEphemeralState(state);
+
+		if (!this.hasInitializedCollapseState()) {
+			this.restoreCollapsedStateFromEphemeral(state);
+		}
 
 		// Restore scroll position after render completes
 		if (typeof state.scrollTop === "number" && this.rootElement) {
@@ -2515,9 +2526,6 @@ export class TaskListView extends BasesViewBase {
 					event
 				);
 				return;
-			case "filter-project-subtasks":
-				await this.filterProjectSubtasks(task);
-				return;
 			case "toggle-subtasks":
 				await this.toggleSubtasks(task, target);
 				return;
@@ -2750,19 +2758,6 @@ export class TaskListView extends BasesViewBase {
 			} else {
 				void app.workspace.getLeaf(false).openFile(file);
 			}
-		}
-	}
-
-	private async filterProjectSubtasks(task: TaskInfo): Promise<void> {
-		try {
-			await this.plugin.applyProjectSubtaskFilter(task);
-		} catch (error) {
-			tasknotesLogger.error("[TaskNotes][TaskListView] Failed to filter project subtasks", {
-				category: "persistence",
-				operation: "filter-project-subtasks",
-				error: error,
-			});
-			new Notice("Failed to filter project subtasks");
 		}
 	}
 

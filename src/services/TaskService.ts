@@ -203,6 +203,13 @@ export class TaskService {
 		return "";
 	}
 
+	private getCompletionDateForTask(task: TaskInfo): string {
+		// Record the real completion date, matching non-recurring task behavior.
+		// Which occurrence was fulfilled is tracked separately on the parent's
+		// complete_instances (see buildMaterializedOccurrenceCompletePlan). #2125
+		return getCurrentDateString();
+	}
+
 	/**
 	 * Process a folder path template with task and date variables
 	 *
@@ -579,7 +586,7 @@ export class TaskService {
 				property,
 				value,
 				currentTimestamp: getCurrentTimestamp(),
-				currentDateString: getCurrentDateString(),
+				currentDateString: this.getCompletionDateForTask(freshTask),
 				normalizeStatusValue: (candidate) => this.normalizeStatusValue(candidate),
 				isCompletedStatus: (status) => this.plugin.statusManager.isCompletedStatus(status),
 			});
@@ -617,7 +624,7 @@ export class TaskService {
 					normalizeStatusValue: (candidate) => this.normalizeStatusValue(candidate),
 					isCompletedStatus: (status) =>
 						this.plugin.statusManager.isCompletedStatus(status),
-					currentDateString: getCurrentDateString(),
+					currentDateString: this.getCompletionDateForTask(freshTask),
 				});
 
 				this.writeOptionalFrontmatterField(
@@ -751,12 +758,43 @@ export class TaskService {
 			...(plan.occurrenceTask as Partial<TaskInfo>),
 			creationContext: "api",
 			customFrontmatter: occurrenceTemplate.customFrontmatter,
+			occurrenceFilenameTemplate: this.resolveOccurrenceFilenameTemplate(freshParent),
 		};
 		const { taskInfo } = await this.createTask(taskData, {
 			applyDefaults: false,
 			applyTemplate: !occurrenceTemplate.configured,
 		});
 		return taskInfo;
+	}
+
+	/**
+	 * Resolves the filename template for a materialized occurrence (#2126):
+	 * the parent's frontmatter override property wins over the global setting.
+	 * Returns undefined when no non-empty template applies (legacy naming).
+	 */
+	private resolveOccurrenceFilenameTemplate(parentTask: TaskInfo): string | undefined {
+		try {
+			const propertyName =
+				this.plugin.settings.occurrenceFilenameTemplateProperty?.trim() ||
+				"occurrenceFilenameTemplate";
+			const parentFile = this.plugin.app.vault.getAbstractFileByPath(parentTask.path);
+			const frontmatter = parentFile instanceof TFile
+				? this.plugin.app.metadataCache.getFileCache(parentFile)?.frontmatter
+				: undefined;
+			const override = frontmatter?.[propertyName];
+			const template =
+				typeof override === "string" && override.trim()
+					? override
+					: this.plugin.settings.occurrenceFilenameTemplate;
+			return typeof template === "string" && template.trim() ? template : undefined;
+		} catch (error) {
+			tasknotesLogger.warn("Failed to resolve occurrence filename template:", {
+				category: "persistence",
+				operation: "resolving-occurrence-filename-template",
+				error,
+			});
+			return this.plugin.settings.occurrenceFilenameTemplate?.trim() || undefined;
+		}
 	}
 
 	async findMaterializedOccurrence(
@@ -942,7 +980,6 @@ export class TaskService {
 					parentTask,
 					completedStatus: this.normalizeStatusValue(newValue),
 					currentTimestamp,
-					completionDate: new Date(currentTimestamp),
 					maintainDueDateOffsetInRecurring:
 						this.plugin.settings.maintainDueDateOffsetInRecurring,
 				})
