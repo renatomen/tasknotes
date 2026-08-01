@@ -185,11 +185,6 @@ interface RecurringInstanceVisibilityOptions {
 
 type RecurringSpanInstanceKind = "next-scheduled" | "pattern" | "recorded";
 
-function getCalendarBoundaryDatePart(date: Date, explicitDate?: string): string {
-	const explicitDatePart = explicitDate ? getDatePart(explicitDate) : "";
-	return explicitDatePart || format(date, "yyyy-MM-dd");
-}
-
 /**
  * Convert a configured color to a translucent calendar color.
  * Theme colors are returned as color-mix() values so Obsidian themes can control them.
