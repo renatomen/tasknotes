@@ -626,37 +626,10 @@ export async function generateUniqueFilename(
 	}
 }
 
-type ParentRecurrence = string | { frequency?: string } | undefined;
-
-function getOccurrencePeriodKey(
-	parentRecurrence: ParentRecurrence
-): "occurrenceDate" | "occurrenceWeek" | "occurrenceMonth" | "occurrenceYear" {
-	let freq: string | undefined;
-	if (typeof parentRecurrence === "string") {
-		freq = parentRecurrence.match(/FREQ=(DAILY|WEEKLY|MONTHLY|YEARLY)/i)?.[1];
-	} else if (parentRecurrence && typeof parentRecurrence === "object") {
-		freq = parentRecurrence.frequency;
-	}
-	switch (freq?.toUpperCase()) {
-		case "WEEKLY":
-			return "occurrenceWeek";
-		case "MONTHLY":
-			return "occurrenceMonth";
-		case "YEARLY":
-			return "occurrenceYear";
-		default:
-			return "occurrenceDate";
-	}
-}
-
 /**
  * Builds the template variables derived from a materialized occurrence's date.
- * `occurrencePeriod` auto-selects the granularity matching the parent's recurrence FREQ.
  */
-export function buildOccurrenceFilenameVariables(
-	occurrenceDate: string,
-	parentRecurrence?: ParentRecurrence
-): Record<string, string> {
+export function buildOccurrenceFilenameVariables(occurrenceDate: string): Record<string, string> {
 	const date = parseDateToLocal(occurrenceDate);
 	if (!(date instanceof Date) || isNaN(date.getTime())) {
 		throw new Error(`Invalid occurrence date: ${occurrenceDate}`);
@@ -668,7 +641,6 @@ export function buildOccurrenceFilenameVariables(
 		occurrenceYear: format(date, "yyyy"),
 		occurrenceMonthName: format(date, "MMMM"),
 	};
-	variables.occurrencePeriod = variables[getOccurrencePeriodKey(parentRecurrence)];
 	return variables;
 }
 
@@ -680,14 +652,10 @@ export function buildOccurrenceFilenameVariables(
 export function generateOccurrenceFilename(
 	context: FilenameContext,
 	template: string,
-	occurrenceDate: string,
-	parentRecurrence?: ParentRecurrence
+	occurrenceDate: string
 ): string {
 	try {
-		const occurrenceVariables = buildOccurrenceFilenameVariables(
-			occurrenceDate,
-			parentRecurrence
-		);
+		const occurrenceVariables = buildOccurrenceFilenameVariables(occurrenceDate);
 		return generateCustomFilename(
 			context,
 			template,

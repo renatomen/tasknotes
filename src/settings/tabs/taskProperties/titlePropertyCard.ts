@@ -115,7 +115,7 @@ function renderFilenameSettingsContent(
 	});
 	const occurrenceTemplateInput = createCardInput(
 		"text",
-		"{{title}} — {{occurrencePeriod}}",
+		"{{title}} — {{occurrenceDate}}",
 		plugin.settings.occurrenceFilenameTemplate
 	);
 	occurrenceTemplateInput.addEventListener("change", () => {

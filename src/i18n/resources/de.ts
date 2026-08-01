@@ -1112,7 +1112,13 @@ export const de: TranslationTree = {
 				filenameUpdatesWithTitle: "Der Dateiname wird automatisch aktualisiert, wenn sich der Aufgabentitel ändert.",
 				filenameFormat: "Dateinamenformat:",
 				customTemplate: "Benutzerdefinierte Vorlage:",
-				legacySyntaxWarning: "Die Syntax mit einfachen Klammern wie {title} ist veraltet. Bitte verwenden Sie stattdessen die Syntax mit doppelten Klammern {{title}} für Konsistenz mit Body-Vorlagen."
+				legacySyntaxWarning: "Die Syntax mit einfachen Klammern wie {title} ist veraltet. Bitte verwenden Sie stattdessen die Syntax mit doppelten Klammern {{title}} für Konsistenz mit Body-Vorlagen.",
+				occurrenceFilenameTemplate: "Dateinamenvorlage für Vorkommen",
+				occurrenceFilenameTemplateHelp:
+					"Dateinamenvorlage für materialisierte Vorkommen wiederkehrender Aufgaben. Leer lassen, um den bisherigen Namen beizubehalten (Titel der übergeordneten Aufgabe plus Zahlensuffix). Wähle die Granularität ausdrücklich mit {{occurrenceDate}}, {{occurrenceWeek}}, {{occurrenceMonth}}, {{occurrenceYear}} oder {{occurrenceMonthName}}. Alle regulären Dateinamensvariablen funktionieren ebenfalls. Eine übergeordnete Aufgabe kann diese Vorlage über die unten konfigurierte Frontmatter-Eigenschaft überschreiben.",
+				occurrenceFilenameProperty: "Override-Eigenschaft für Vorkommensvorlagen",
+				occurrenceFilenamePropertyHelp:
+					"Name der Frontmatter-Eigenschaft einer wiederkehrenden übergeordneten Aufgabe, die die Dateinamenvorlage ihrer Vorkommen überschreibt."
 			},
 			tagsCard: {
 				nativeObsidianTags: "Verwendet native Obsidian-Tags"

@@ -759,7 +759,6 @@ export class TaskService {
 			creationContext: "api",
 			customFrontmatter: occurrenceTemplate.customFrontmatter,
 			occurrenceFilenameTemplate: this.resolveOccurrenceFilenameTemplate(freshParent),
-			occurrenceParentRecurrence: freshParent.recurrence,
 		};
 		const { taskInfo } = await this.createTask(taskData, {
 			applyDefaults: false,
@@ -779,8 +778,8 @@ export class TaskService {
 				this.plugin.settings.occurrenceFilenameTemplateProperty?.trim() ||
 				"occurrenceFilenameTemplate";
 			const parentFile = this.plugin.app.vault.getAbstractFileByPath(parentTask.path);
-			const frontmatter = parentFile
-				? this.plugin.app.metadataCache.getFileCache(parentFile as TFile)?.frontmatter
+			const frontmatter = parentFile instanceof TFile
+				? this.plugin.app.metadataCache.getFileCache(parentFile)?.frontmatter
 				: undefined;
 			const override = frontmatter?.[propertyName];
 			const template =

@@ -1117,7 +1117,7 @@ export const pt: TranslationTree = {
 				legacySyntaxWarning: "A sintaxe de chaves simples como {title} está obsoleta. Por favor, use a sintaxe de chaves duplas {{title}} para consistência com os modelos de corpo.",
 				occurrenceFilenameTemplate: "Modelo de nome de arquivo das ocorrências",
 				occurrenceFilenameTemplateHelp:
-					"Modelo do nome de arquivo das ocorrências materializadas de tarefas recorrentes. Deixe vazio para manter o nome padrão (título da tarefa-mãe com sufixo numérico). Variáveis: {{occurrencePeriod}} (acompanha a frequência da recorrência: 2026-08-01 / 2026-W32 / 2026-08 / 2026), {{occurrenceDate}}, {{occurrenceWeek}}, {{occurrenceMonth}}, {{occurrenceYear}}, {{occurrenceMonthName}}, além de todas as variáveis normais de nome de arquivo. Uma tarefa-mãe pode sobrescrever este modelo pela propriedade de frontmatter configurada abaixo.",
+					"Modelo do nome de arquivo das ocorrências materializadas de tarefas recorrentes. Deixe vazio para manter o nome existente (título da tarefa-mãe com sufixo numérico). Escolha explicitamente a granularidade com {{occurrenceDate}}, {{occurrenceWeek}}, {{occurrenceMonth}}, {{occurrenceYear}} ou {{occurrenceMonthName}}. Todas as variáveis normais de nome de arquivo também funcionam. Uma tarefa-mãe pode sobrescrever este modelo pela propriedade de frontmatter configurada abaixo.",
 				occurrenceFilenameProperty: "Propriedade de sobrescrita do modelo",
 				occurrenceFilenamePropertyHelp:
 					"Nome da propriedade de frontmatter na tarefa recorrente (mãe) que sobrescreve o modelo de nome de arquivo para as ocorrências daquela tarefa."

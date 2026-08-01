@@ -462,7 +462,7 @@ describe("TaskService materialized occurrences", () => {
 			filenameGenerator.generateTaskFilename.mockClear();
 		});
 
-		it("uses the global template and passes the parent recurrence", async () => {
+		it("uses the global template", async () => {
 			const parent = TaskFactory.createTask({
 				title: "Pay rent",
 				path: "Tasks/Pay rent.md",
@@ -470,15 +470,14 @@ describe("TaskService materialized occurrences", () => {
 				scheduled: "2026-08-01",
 			});
 			const { taskService, plugin } = createService({ [parent.path]: parent });
-			plugin.settings.occurrenceFilenameTemplate = "{{title}} — {{occurrencePeriod}}";
+			plugin.settings.occurrenceFilenameTemplate = "{{title}} — {{occurrenceDate}}";
 
 			const occurrence = await taskService.materializeOccurrence(parent, "2026-08-01");
 
 			expect(filenameGenerator.generateOccurrenceFilename).toHaveBeenCalledWith(
 				expect.objectContaining({ title: "Pay rent" }),
-				"{{title}} — {{occurrencePeriod}}",
-				"2026-08-01",
-				"FREQ=MONTHLY"
+				"{{title}} — {{occurrenceDate}}",
+				"2026-08-01"
 			);
 			expect(filenameGenerator.generateTaskFilename).not.toHaveBeenCalled();
 			expect(occurrence.path).toBe("Tasks/Pay rent OCC 2026-08-01.md");
@@ -492,7 +491,7 @@ describe("TaskService materialized occurrences", () => {
 				scheduled: "2026-08-03",
 			});
 			const { taskService, plugin } = createService({ [parent.path]: parent });
-			plugin.settings.occurrenceFilenameTemplate = "{{title}} — {{occurrencePeriod}}";
+			plugin.settings.occurrenceFilenameTemplate = "{{title}} — {{occurrenceDate}}";
 			plugin.settings.occurrenceFilenameTemplateProperty = "occurrenceFilenameTemplate";
 			// the harness resolves the parent frontmatter via metadataCache.getFileCache —
 			// override it so the parent note carries the per-task template override
@@ -507,8 +506,7 @@ describe("TaskService materialized occurrences", () => {
 			expect(filenameGenerator.generateOccurrenceFilename).toHaveBeenCalledWith(
 				expect.anything(),
 				"{{title}} ({{occurrenceWeek}})",
-				"2026-08-03",
-				"FREQ=WEEKLY"
+				"2026-08-03"
 			);
 		});
 

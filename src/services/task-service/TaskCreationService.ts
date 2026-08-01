@@ -174,8 +174,7 @@ export class TaskCreationService {
 					? generateOccurrenceFilename(
 							filenameContext,
 							occurrenceFilenameTemplate,
-							taskData.occurrence_date,
-							taskData.occurrenceParentRecurrence
+							taskData.occurrence_date
 						)
 					: generateTaskFilename(filenameContext, runtime.settings);
 			const folder = await this.resolveTargetFolder(taskData);
