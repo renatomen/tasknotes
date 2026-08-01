@@ -440,9 +440,12 @@ describe("TaskService materialized occurrences", () => {
 
 		await taskService.updateProperty(occurrence, "status", "done");
 
+		// completedDate records when the user actually completed the occurrence
+		// (the mocked "today", 2025-01-01), while the parent's complete_instances
+		// keeps tracking WHICH occurrence was fulfilled (the occurrence date).
 		expect(frontmatterByPath.get(occurrence.path)).toMatchObject({
 			status: "done",
-			completedDate: "2026-06-01",
+			completedDate: "2025-01-01",
 		});
 		expect(frontmatterByPath.get(parent.path)).toMatchObject({
 			complete_instances: ["2026-06-01"],

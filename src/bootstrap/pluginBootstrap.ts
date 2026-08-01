@@ -217,7 +217,7 @@ export function registerRibbonIcons(plugin: TaskNotesPlugin): void {
 }
 
 export function initializeCalendarProviders(plugin: TaskNotesPlugin): void {
-	plugin.oauthService = new OAuthService(plugin);
+	plugin.oauthService = new OAuthService(plugin, plugin.oauthSecretStore);
 	plugin.googleCalendarService = new GoogleCalendarService(plugin, plugin.oauthService);
 	plugin.microsoftCalendarService = new MicrosoftCalendarService(plugin, plugin.oauthService);
 	plugin.calendarProviderRegistry = new CalendarProviderRegistry();
@@ -457,7 +457,7 @@ export function initializeServicesLazily(plugin: TaskNotesPlugin): void {
 					(data: { path?: string; updatedTask?: TaskInfo }) => {
 						plugin.app.workspace.iterateRootLeaves((leaf) => {
 							if (leaf.view && leaf.view.getViewType() === "markdown") {
-									const editor = (leaf.view as MarkdownView).editor;
+								const editor = (leaf.view as MarkdownView).editor;
 								const cm = getCodeMirrorEditor(editor);
 								if (cm) {
 									const taskPath = data?.path || data?.updatedTask?.path;
@@ -472,7 +472,7 @@ export function initializeServicesLazily(plugin: TaskNotesPlugin): void {
 					plugin.app.workspace.on("active-leaf-change", (leaf) => {
 						window.setTimeout(() => {
 							if (leaf && leaf.view && leaf.view.getViewType() === "markdown") {
-									const editor = (leaf.view as MarkdownView).editor;
+								const editor = (leaf.view as MarkdownView).editor;
 								const cm = getCodeMirrorEditor(editor);
 								if (cm) {
 									dispatchTaskUpdate(cm as EditorView);
