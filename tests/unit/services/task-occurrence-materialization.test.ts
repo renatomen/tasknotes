@@ -65,6 +65,9 @@ jest.mock("../../../src/utils/dateUtils", () => {
 jest.mock("../../../src/utils/filenameGenerator", () => ({
 	generateTaskFilename: jest.fn((context) => context.title.toLowerCase().replace(/\s+/g, "-")),
 	generateUniqueFilename: jest.fn((base) => base),
+	generateOccurrenceFilename: jest.fn(
+		(context, template, occurrenceDate) => `${context.title} OCC ${occurrenceDate}`
+	),
 }));
 
 describe("TaskService materialized occurrences", () => {
@@ -437,14 +440,90 @@ describe("TaskService materialized occurrences", () => {
 
 		await taskService.updateProperty(occurrence, "status", "done");
 
+		// completedDate records when the user actually completed the occurrence
+		// (the mocked "today", 2025-01-01), while the parent's complete_instances
+		// keeps tracking WHICH occurrence was fulfilled (the occurrence date).
 		expect(frontmatterByPath.get(occurrence.path)).toMatchObject({
 			status: "done",
-			completedDate: "2026-06-01",
+			completedDate: "2025-01-01",
 		});
 		expect(frontmatterByPath.get(parent.path)).toMatchObject({
 			complete_instances: ["2026-06-01"],
 			scheduled: "2026-06-02",
 		});
 		expect(frontmatterByPath.get(parent.path)?.skipped_instances).toBeUndefined();
+	});
+
+	describe("issue #2126 — occurrence filename template wiring", () => {
+		const filenameGenerator = jest.requireMock("../../../src/utils/filenameGenerator");
+
+		beforeEach(() => {
+			filenameGenerator.generateOccurrenceFilename.mockClear();
+			filenameGenerator.generateTaskFilename.mockClear();
+		});
+
+		it("uses the global template", async () => {
+			const parent = TaskFactory.createTask({
+				title: "Pay rent",
+				path: "Tasks/Pay rent.md",
+				recurrence: "FREQ=MONTHLY",
+				scheduled: "2026-08-01",
+			});
+			const { taskService, plugin } = createService({ [parent.path]: parent });
+			plugin.settings.occurrenceFilenameTemplate = "{{title}} — {{occurrenceDate}}";
+
+			const occurrence = await taskService.materializeOccurrence(parent, "2026-08-01");
+
+			expect(filenameGenerator.generateOccurrenceFilename).toHaveBeenCalledWith(
+				expect.objectContaining({ title: "Pay rent" }),
+				"{{title}} — {{occurrenceDate}}",
+				"2026-08-01"
+			);
+			expect(filenameGenerator.generateTaskFilename).not.toHaveBeenCalled();
+			expect(occurrence.path).toBe("Tasks/Pay rent OCC 2026-08-01.md");
+		});
+
+		it("parent frontmatter property overrides the global template", async () => {
+			const parent = TaskFactory.createTask({
+				title: "Weekly review",
+				path: "Tasks/Weekly review.md",
+				recurrence: "FREQ=WEEKLY",
+				scheduled: "2026-08-03",
+			});
+			const { taskService, plugin } = createService({ [parent.path]: parent });
+			plugin.settings.occurrenceFilenameTemplate = "{{title}} — {{occurrenceDate}}";
+			plugin.settings.occurrenceFilenameTemplateProperty = "occurrenceFilenameTemplate";
+			// the harness resolves the parent frontmatter via metadataCache.getFileCache —
+			// override it so the parent note carries the per-task template override
+			plugin.app.metadataCache.getFileCache = jest.fn((file: { path: string }) =>
+				file.path === "Tasks/Weekly review.md"
+					? { frontmatter: { occurrenceFilenameTemplate: "{{title}} ({{occurrenceWeek}})" } }
+					: { frontmatter: {} }
+			);
+
+			await taskService.materializeOccurrence(parent, "2026-08-03");
+
+			expect(filenameGenerator.generateOccurrenceFilename).toHaveBeenCalledWith(
+				expect.anything(),
+				"{{title}} ({{occurrenceWeek}})",
+				"2026-08-03"
+			);
+		});
+
+		it("empty template preserves legacy filename behavior", async () => {
+			const parent = TaskFactory.createTask({
+				title: "Daily task",
+				path: "Tasks/Daily task.md",
+				recurrence: "FREQ=DAILY",
+				scheduled: "2026-08-01",
+			});
+			const { taskService, plugin } = createService({ [parent.path]: parent });
+			plugin.settings.occurrenceFilenameTemplate = "";
+
+			await taskService.materializeOccurrence(parent, "2026-08-01");
+
+			expect(filenameGenerator.generateOccurrenceFilename).not.toHaveBeenCalled();
+			expect(filenameGenerator.generateTaskFilename).toHaveBeenCalled();
+		});
 	});
 });
