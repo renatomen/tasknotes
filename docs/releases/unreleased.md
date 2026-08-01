@@ -51,6 +51,10 @@ When a change has user-facing documentation, include a canonical tasknotes.dev l
 
 ## Fixed
 
+- ([#2171](https://github.com/callumalpass/tasknotes/pull/2171)) Stopped recurring
+  notification and status-bar scans from reading unindexed notes directly from
+  disk while preserving the fallback for direct task lookups. Thanks to
+  @tgrosinger for identifying and diagnosing the excessive vault reads.
 - (#2166) Fixed Task List views configured to start collapsed so the first
   chevron click expands only the selected group instead of expanding every
   other group. Thanks to @renatomen for reporting and fixing this.
