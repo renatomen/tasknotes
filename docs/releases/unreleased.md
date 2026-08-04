@@ -105,6 +105,9 @@ When a change has user-facing documentation, include a canonical tasknotes.dev l
 - (#2194) Pomodoro task selection suggestions now keep rich task cards at the
   menu width, preventing task titles from wrapping one letter per line. Thanks
   to @Evilgenee for reporting this.
+- (#2196) Drag-to-reorder now works for Task List Bases embedded in Live Preview
+  notes, matching the behavior of directly opened Bases and Reading mode embeds.
+  Thanks to @jimbo108108 for reporting this.
 - (#2182) Checklist progress on task cards now excludes cancelled markdown
   checklist items such as `[-]` from the completed/total count. Thanks to
   @ctrl-q for reporting this.
