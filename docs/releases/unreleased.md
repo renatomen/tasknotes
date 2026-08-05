@@ -108,6 +108,9 @@ When a change has user-facing documentation, include a canonical tasknotes.dev l
 - (#2196) Drag-to-reorder now works for Task List Bases embedded in Live Preview
   notes, matching the behavior of directly opened Bases and Reading mode embeds.
   Thanks to @jimbo108108 for reporting this.
+- (#2198) Agenda Bases can now show overdue scheduled or due tasks on today's
+  row with `showOverdueOnToday`, and regenerated default Agenda files enable
+  that behavior by default. Thanks to @vicrdguez for reporting this.
 - (#2182) Checklist progress on task cards now excludes cancelled markdown
   checklist items such as `[-]` from the completed/total count. Thanks to
   @ctrl-q for reporting this.
