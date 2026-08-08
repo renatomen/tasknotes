@@ -37,3 +37,9 @@ When a change has user-facing documentation, include a canonical tasknotes.dev l
 - Public documentation is now published from the dedicated `tasknotes.dev`
   repository. Plugin release notes and internal documentation remain in this
   repository.
+- Updated TaskNotes for Obsidian's current plugin-review and settings-search requirements.
+
+## Fixed
+
+- Kept interface elements in the correct window when TaskNotes views are used in Obsidian pop-out windows.
+- Replaced unsafe browser dialogs and runtime HTML/style injection with Obsidian-native controls and packaged styles.

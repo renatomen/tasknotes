@@ -1059,3 +1059,5 @@ export class ICSSubscriptionService extends EventEmitter {
 			.sort((a, b) => a.path.localeCompare(b.path));
 	}
 }
+
+/* eslint-enable @typescript-eslint/no-non-null-assertion -- Re-enable after the subscription service implementation. */
