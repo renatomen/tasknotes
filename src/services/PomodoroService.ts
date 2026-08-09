@@ -1830,3 +1830,5 @@ export class PomodoroService {
 		}
 	}
 }
+
+/* eslint-enable @typescript-eslint/no-non-null-assertion -- Re-enable after the Pomodoro service implementation. */

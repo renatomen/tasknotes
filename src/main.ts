@@ -585,7 +585,7 @@ export default class TaskNotesPlugin extends Plugin {
 	}
 
 	private createReleaseAvailableNotice(version: string): DocumentFragment {
-		const fragment = activeDocument.createDocumentFragment();
+		const fragment = activeWindow.createFragment();
 		fragment.appendText(
 			this.i18n.translate("notices.releaseAvailable.message", {
 				version,
@@ -593,7 +593,7 @@ export default class TaskNotesPlugin extends Plugin {
 		);
 		fragment.appendText(" ");
 
-		const link = activeDocument.createElement("a");
+		const link = activeWindow.createEl("a");
 		link.textContent = this.i18n.translate("notices.releaseAvailable.action");
 		link.href = TASKNOTES_COMMUNITY_PLUGIN_URL;
 		link.addEventListener("click", (event) => {
@@ -1084,29 +1084,26 @@ export default class TaskNotesPlugin extends Plugin {
 	}
 
 	/**
-	 * Inject dynamic CSS for custom statuses and priorities
+	 * Apply dynamic CSS variables for custom statuses and priorities.
 	 */
 	injectCustomStyles(): void {
-		// Remove existing custom styles
-		const existingStyle = activeDocument.getElementById("tasknotes-custom-styles");
-		if (existingStyle) {
-			existingStyle.remove();
+		// Remove the style element used by TaskNotes 4.12.0 and earlier.
+		activeDocument.getElementById("tasknotes-custom-styles")?.remove();
+
+		const rootStyle = activeDocument.documentElement.style;
+		for (let index = rootStyle.length - 1; index >= 0; index -= 1) {
+			const propertyName = rootStyle.item(index);
+			if (propertyName.startsWith("--status-") || propertyName.startsWith("--priority-")) {
+				rootStyle.removeProperty(propertyName);
+			}
 		}
 
-		// Generate new styles
-		const statusStyles = this.statusManager.getStatusStyles();
-		const priorityStyles = this.priorityManager.getPriorityStyles();
-
-		// Create style element
-		const styleEl = activeDocument.createElement("style");
-		styleEl.id = "tasknotes-custom-styles";
-		styleEl.textContent = `
-		${statusStyles}
-		${priorityStyles}
-	`;
-
-		// Inject into document head
-		activeDocument.head.appendChild(styleEl);
+		for (const [propertyName, value] of [
+			...this.statusManager.getStatusColorVariables(),
+			...this.priorityManager.getPriorityColorVariables(),
+		]) {
+			rootStyle.setProperty(propertyName, value);
+		}
 	}
 
 	async updateTaskProperty(
