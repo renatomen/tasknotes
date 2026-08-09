@@ -45,3 +45,6 @@ When a change has user-facing documentation, include a canonical tasknotes.dev l
   `None` column when grouping by status. The generated Kanban templates now use
   the real status property, and existing Kanban files using `task.status` keep
   grouping from TaskNotes task data. Thanks to @Esvorst for reporting this.
+- (#2120, #2135) Long all-day event titles in Calendar week and day views now
+  truncate in the all-day row instead of stretching it vertically. Thanks to
+  @same774 and @ks-studio-net for reporting this.
