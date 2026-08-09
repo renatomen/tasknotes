@@ -32,16 +32,28 @@ function extractCssBlock(css: string, selector: string): string {
 }
 
 describe("Issue #2212: settings layout in Obsidian settings modal", () => {
-	it("keeps TaskNotes settings from inheriting the centered Obsidian settings-page padding", () => {
+	it("stacks the TaskNotes toolbar and tab content despite Obsidian's setting-item flex layout", () => {
 		const css = readRepoFile("styles/settings-view.css");
 
 		const rootBlock = extractCssBlock(
 			css,
-			"body:not(.is-mobile) .modal.mod-settings .tasknotes-settings.vertical-tab-content"
+			".modal.mod-settings .tasknotes-settings"
 		);
 
-		expect(rootBlock).toContain("padding-inline: var(--size-4-8);");
 		expect(rootBlock).toContain("box-sizing: border-box;");
+		expect(rootBlock).toContain("display: block;");
+		expect(css).not.toContain(".tasknotes-settings.vertical-tab-content");
+	});
+
+	it("keeps a compact desktop gutter around the TaskNotes settings view", () => {
+		const css = readRepoFile("styles/settings-view.css");
+
+		const desktopRootBlock = extractCssBlock(
+			css,
+			"body:not(.is-mobile) .modal.mod-settings .tasknotes-settings"
+		);
+
+		expect(desktopRootBlock).toContain("padding-inline: var(--size-4-8);");
 	});
 
 	it("left-aligns native SettingGroup sections beneath the TaskNotes tab bar", () => {
