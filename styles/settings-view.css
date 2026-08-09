@@ -2,6 +2,18 @@
    SETTINGS VIEW - MINIMAL CLEAN STRUCTURE
    ================================================ */
 
+/* Obsidian 1.13+ centers settings groups by applying large inline padding to
+   plugin setting tabs. TaskNotes has its own tabs, so keep that layout aligned
+   to the settings pane instead of inheriting the centered native page gutter. */
+body:not(.is-mobile) .modal.mod-settings .tasknotes-settings.vertical-tab-content {
+    box-sizing: border-box;
+    padding-inline: var(--size-4-8);
+}
+
+body:not(.is-mobile) .modal.mod-settings .tasknotes-settings .settings-view__tab-content > .setting-group {
+    margin-inline: 0;
+}
+
 /* ================================================
    SETTINGS HEADER
    ================================================ */
