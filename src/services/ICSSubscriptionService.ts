@@ -283,7 +283,8 @@ export class ICSSubscriptionService extends EventEmitter {
 
 	private async saveSubscriptions(): Promise<void> {
 		try {
-			const data = (await this.plugin.loadData()) || {};
+			const data = await this.plugin.loadPluginDataForSafeWrite("save-ics-subscriptions");
+			if (!data) return;
 			data.icsSubscriptions = this.subscriptions;
 			await this.plugin.saveData(data);
 		} catch (error) {

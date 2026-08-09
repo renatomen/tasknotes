@@ -31,3 +31,10 @@ When a change has user-facing documentation, include a canonical tasknotes.dev l
 ```
 
 -->
+
+## Fixed
+
+- (#2213) Runtime plugin-data updates now avoid writing when Obsidian cannot
+  safely read an existing TaskNotes `data.json`, preventing calendar sync,
+  Pomodoro, ICS, or auto-archive state writes from replacing saved settings.
+  Thanks to @3zra47 for the follow-up details and file-history evidence.
