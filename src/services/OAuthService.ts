@@ -14,6 +14,12 @@ type HttpModuleLike = {
 	createServer(handler?: (req: HTTPRequestLike, res: HTTPResponseLike) => void): HTTPServerLike;
 };
 
+type ElectronModuleLike = {
+	shell?: {
+		openExternal?: (url: string) => Promise<void> | void;
+	};
+};
+
 let cachedHttpModule: HttpModuleLike | null = null;
 
 function ensureHttpModule(): HttpModuleLike {
@@ -180,7 +186,7 @@ export class OAuthService {
 				);
 
 				// Open browser to authorization URL
-				window.open(authUrl, "_blank");
+				await this.openAuthorizationUrl(authUrl);
 
 				// Wait for callback with timeout
 				const code = await this.waitForCallback(state, 300000); // 5 minute timeout
@@ -213,6 +219,26 @@ export class OAuthService {
 		} finally {
 			await this.stopCallbackServer();
 		}
+	}
+
+	private async openAuthorizationUrl(authUrl: string): Promise<void> {
+		try {
+			// eslint-disable-next-line @typescript-eslint/no-require-imports, import/no-extraneous-dependencies -- OAuth must bypass Obsidian's in-app Web Viewer and use the system browser on desktop.
+			const electron = require("electron") as ElectronModuleLike;
+			const shell = electron.shell;
+			if (shell?.openExternal) {
+				await shell.openExternal(authUrl);
+				return;
+			}
+		} catch (error) {
+			tasknotesLogger.warn("Failed to open OAuth URL in system browser; falling back to window.open.", {
+				category: "provider",
+				operation: "oauth-open-external",
+				error,
+			});
+		}
+
+		window.open(authUrl, "_blank");
 	}
 
 	/**

@@ -31,3 +31,10 @@ When a change has user-facing documentation, include a canonical tasknotes.dev l
 ```
 
 -->
+
+## Fixed
+
+- (#2229) Google Calendar OAuth authorization now opens in the system browser
+  instead of Obsidian's Web Viewer, avoiding Google's 401 malformed-request
+  page in the in-app browser. Thanks to @prethrive for reporting this and
+  confirming the workaround.
