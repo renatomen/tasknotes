@@ -2,7 +2,7 @@ import { Menu, Notice, Platform, TFile, type MenuItem, type TAbstractFile } from
 import type { OccurrenceMaterializationMode, OccurrenceNextTrigger } from "@tasknotes/model";
 import TaskNotesPlugin from "../main";
 import { TaskDependency, TaskInfo } from "../types";
-import { formatDateForStorage } from "../utils/dateUtils";
+import { formatDateForStorage, getDatePart, parseDateToUTC } from "../utils/dateUtils";
 import { ReminderModal } from "../modals/ReminderModal";
 import {
 	addTaskToProject,
@@ -959,11 +959,24 @@ export class TaskContextMenu {
 				await openOrCreateOccurrenceNote({
 					plugin,
 					parentTask: task,
-					targetDate: this.options.targetDate,
+					targetDate: this.getOccurrenceNoteTargetDate(task),
 					onUpdate: this.options.onUpdate,
 				});
 			});
 		});
+	}
+
+	private getOccurrenceNoteTargetDate(task: TaskInfo): Date {
+		if (this.options.promoteOccurrenceControls || task.recurrence_anchor !== "completion") {
+			return this.options.targetDate;
+		}
+
+		try {
+			const scheduledDate = getDatePart(task.scheduled || "");
+			return scheduledDate ? parseDateToUTC(scheduledDate) : this.options.targetDate;
+		} catch {
+			return this.options.targetDate;
+		}
 	}
 
 	private addMaterializedOccurrenceMenuItems(task: TaskInfo, plugin: TaskNotesPlugin): void {
