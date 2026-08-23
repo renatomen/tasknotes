@@ -32,6 +32,10 @@ When a change has user-facing documentation, include a canonical tasknotes.dev l
 
 -->
 
+## Changed
+
+- Improved TaskNotes startup performance by allowing Bases registration to finish asynchronously. Thanks to @tgrosinger for the contribution.
+
 ## Fixed
 
 - (#2229) Google Calendar OAuth authorization now opens in the system browser
