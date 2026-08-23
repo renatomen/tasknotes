@@ -164,6 +164,14 @@ export class GoogleCalendarService extends CalendarProvider {
 		return this.availableCalendars;
 	}
 
+	getConnectionGeneration(): number {
+		return this.oauthService.getConnectionGeneration("google");
+	}
+
+	async isConnectionGenerationCurrent(expectedGeneration: number): Promise<boolean> {
+		return this.oauthService.isConnectionGenerationCurrent("google", expectedGeneration);
+	}
+
 	/**
 	 * Gets the list of enabled calendar IDs from settings
 	 */
@@ -694,7 +702,8 @@ export class GoogleCalendarService extends CalendarProvider {
 			};
 			colorId?: string;
 			recurrence?: string[];
-		}
+		},
+		expectedConnectionGeneration?: number
 	): Promise<ICSEvent> {
 		// Validate inputs
 		validateCalendarId(calendarId);
@@ -702,7 +711,10 @@ export class GoogleCalendarService extends CalendarProvider {
 		validateRequired(updates, "updates");
 
 		try {
-			const token = await this.oauthService.getValidToken("google");
+			const token = await this.oauthService.getValidToken(
+				"google",
+				expectedConnectionGeneration
+			);
 
 			// First, get the current event to merge with updates
 			const getResponse = await this.withRetry(async () => {
@@ -853,7 +865,8 @@ export class GoogleCalendarService extends CalendarProvider {
 			};
 			colorId?: string;
 			recurrence?: string[];
-		}
+		},
+		expectedConnectionGeneration?: number
 	): Promise<ICSEvent> {
 		// Validate inputs
 		validateCalendarId(calendarId);
@@ -866,7 +879,10 @@ export class GoogleCalendarService extends CalendarProvider {
 		validateRequired(event.end, "event.end");
 
 		try {
-			const token = await this.oauthService.getValidToken("google");
+			const token = await this.oauthService.getValidToken(
+				"google",
+				expectedConnectionGeneration
+			);
 
 			// Build Google Calendar API payload
 			const payload: GoogleCalendarEventPayload = {
@@ -953,13 +969,20 @@ export class GoogleCalendarService extends CalendarProvider {
 	/**
 	 * Deletes a Google Calendar event
 	 */
-	async deleteEvent(calendarId: string, eventId: string): Promise<void> {
+	async deleteEvent(
+		calendarId: string,
+		eventId: string,
+		expectedConnectionGeneration?: number
+	): Promise<void> {
 		// Validate inputs
 		validateCalendarId(calendarId);
 		validateEventId(eventId);
 
 		try {
-			const token = await this.oauthService.getValidToken("google");
+			const token = await this.oauthService.getValidToken(
+				"google",
+				expectedConnectionGeneration
+			);
 
 			await this.withRetry(async () => {
 				return await requestUrl({

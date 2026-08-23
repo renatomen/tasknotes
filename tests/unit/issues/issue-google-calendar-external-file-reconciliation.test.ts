@@ -164,7 +164,8 @@ describe("Google Calendar external file reconciliation", () => {
 			expect.objectContaining({
 				summary: "✓ Prepare plan",
 				description: expect.stringContaining("Status: Done"),
-			})
+			}),
+			expect.any(Number)
 		);
 		expect(pluginData.googleCalendarTaskFingerprints).toMatchObject({
 			[doneTask.path]: (syncService as any).getCalendarRelevantFingerprint(doneTask),
@@ -290,7 +291,8 @@ describe("Google Calendar external file reconciliation", () => {
 			expect.objectContaining({
 				summary: "✓ Offline linked",
 				description: expect.stringContaining("Status: Done"),
-			})
+			}),
+			expect.any(Number)
 		);
 	});
 
@@ -325,7 +327,8 @@ describe("Google Calendar external file reconciliation", () => {
 		expect(googleCalendarService.createEvent).toHaveBeenCalledTimes(1);
 		expect(googleCalendarService.createEvent).toHaveBeenCalledWith(
 			"primary",
-			expect.objectContaining({ summary: "Created offline" })
+			expect.objectContaining({ summary: "Created offline" }),
+			expect.any(Number)
 		);
 	});
 
