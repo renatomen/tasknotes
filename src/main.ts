@@ -101,6 +101,7 @@ import {
 } from "./settings/settingsPersistence";
 import { startDateChangeDetection } from "./bootstrap/dateChangeDetection";
 import { createTaskNotesLogger } from "./utils/tasknotesLogger";
+import { sanitizeLinkAliasText } from "./utils/linkAliasUtils";
 import { TASKNOTES_RUNTIME_LIFECYCLE_RAW_EVENTS } from "./api/runtime-api";
 import {
 	createTaskNotesPerformanceProfiler,
@@ -2016,7 +2017,7 @@ export default class TaskNotesPlugin extends Plugin {
 				file,
 				sourcePath,
 				"",
-				task.title // Use task title as alias
+				sanitizeLinkAliasText(task.title)
 			);
 
 			// Insert the link at the determined insertion point
