@@ -31,3 +31,7 @@ When a change has user-facing documentation, include a canonical tasknotes.dev l
 ```
 
 -->
+
+## Fixed
+
+- (#2222) The TaskNotes settings tab bar now wraps to a second line instead of clipping the Integrations tab beside the documentation link on narrow settings panes. Thanks to @nextstitch and @YongcaiHuang for reporting this.
