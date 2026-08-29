@@ -933,6 +933,51 @@ describe('TaskService', () => {
       expect(result.complete_instances).toEqual([]);
     });
 
+    it('preserves recurring history for an unchanged scheduled value', async () => {
+      const recurringTask = TaskFactory.createTask({
+        recurrence: 'FREQ=WEEKLY',
+        scheduled: '2026-06-12T09:00',
+        complete_instances: ['2026-06-12', '2026-06-19'],
+        skipped_instances: ['2026-06-26'],
+      });
+      mockPlugin.cacheManager.getTaskInfo.mockResolvedValue(recurringTask);
+      const confirm = jest.fn(async () => true);
+
+      const result = await taskService.updateProperty(
+        recurringTask,
+        'scheduled',
+        '2026-06-12T09:00',
+        { confirmClearInstances: confirm }
+      );
+
+      expect(result.complete_instances).toEqual(['2026-06-12', '2026-06-19']);
+      expect(result.skipped_instances).toEqual(['2026-06-26']);
+      expect(confirm).not.toHaveBeenCalled();
+    });
+
+    it('preserves recurring history when only the scheduled time changes', async () => {
+      const recurringTask = TaskFactory.createTask({
+        recurrence: 'FREQ=WEEKLY',
+        scheduled: '2026-06-12T09:00',
+        complete_instances: ['2026-06-12', '2026-06-19'],
+        skipped_instances: ['2026-06-26'],
+      });
+      mockPlugin.cacheManager.getTaskInfo.mockResolvedValue(recurringTask);
+      const confirm = jest.fn(async () => true);
+
+      const result = await taskService.updateProperty(
+        recurringTask,
+        'scheduled',
+        '2026-06-12T10:00',
+        { confirmClearInstances: confirm }
+      );
+
+      expect(result.scheduled).toBe('2026-06-12T10:00');
+      expect(result.complete_instances).toEqual(['2026-06-12', '2026-06-19']);
+      expect(result.skipped_instances).toEqual(['2026-06-26']);
+      expect(confirm).not.toHaveBeenCalled();
+    });
+
     it('clears an off-schedule completion/skip recorded on or after the rescheduled date, keeping older history', async () => {
       // Off-schedule completion (06-08) + later skip (06-19), reschedule back to 06-05:
       // the ">= new date" rule clears both while keeping the older 05-29 history.

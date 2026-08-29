@@ -625,15 +625,21 @@ export class TaskService {
 			if (
 				property === "scheduled" &&
 				freshTask.recurrence &&
+				typeof freshTask.scheduled === "string" &&
 				typeof updatePlan.normalizedValue === "string" &&
 				updatePlan.normalizedValue.length > 0
 			) {
+				const previousScheduledDateStr = getDatePart(freshTask.scheduled);
 				const scheduledDateStr = getDatePart(updatePlan.normalizedValue);
+				const scheduledDateChanged = previousScheduledDateStr !== scheduledDateStr;
 				const completeInstances = freshTask.complete_instances ?? [];
 				const skippedInstances = freshTask.skipped_instances ?? [];
 				const removedComplete = completeInstances.filter((d) => d >= scheduledDateStr);
 				const removedSkipped = skippedInstances.filter((d) => d >= scheduledDateStr);
-				if (removedComplete.length > 0 || removedSkipped.length > 0) {
+				if (
+					scheduledDateChanged &&
+					(removedComplete.length > 0 || removedSkipped.length > 0)
+				) {
 					// Give the caller a chance to confirm the destructive clear before
 					// anything is written; a false result aborts the whole reschedule.
 					if (options.confirmClearInstances) {
