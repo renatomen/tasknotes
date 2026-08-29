@@ -1,4 +1,5 @@
-import { FieldMapping, StatusConfig, PriorityConfig } from "../types";
+import { FieldMapping, StatusCategory, StatusConfig, PriorityConfig } from "../types";
+import type { TranslationKey } from "../i18n";
 import {
 	TaskNotesSettings,
 	TaskCreationDefaults,
@@ -32,6 +33,7 @@ export const DEFAULT_STATUSES: StatusConfig[] = [
 		label: "None",
 		color: "#cccccc",
 		isCompleted: false,
+		category: "planned",
 		excludeFromCycle: false,
 		order: 0,
 		autoArchive: false,
@@ -43,6 +45,7 @@ export const DEFAULT_STATUSES: StatusConfig[] = [
 		label: "Open",
 		color: "#808080",
 		isCompleted: false,
+		category: "planned",
 		excludeFromCycle: false,
 		order: 1,
 		autoArchive: false,
@@ -54,6 +57,7 @@ export const DEFAULT_STATUSES: StatusConfig[] = [
 		label: "In progress",
 		color: "#0066cc",
 		isCompleted: false,
+		category: "in-progress",
 		excludeFromCycle: false,
 		order: 2,
 		autoArchive: false,
@@ -65,12 +69,69 @@ export const DEFAULT_STATUSES: StatusConfig[] = [
 		label: "Done",
 		color: "#00aa00",
 		isCompleted: true,
+		category: "completed",
 		excludeFromCycle: false,
 		order: 3,
 		autoArchive: false,
 		autoArchiveDelay: 5,
 	},
 ];
+
+/**
+ * Reconciles the `isCompleted` <-> `category === "completed"` invariant on load and fills the
+ * always-on category: completed by either signal becomes `completed`; every other status keeps
+ * a valid `planned`/`in-progress` category or defaults to `planned` (Not started). Idempotent.
+ */
+export function normalizeStatusCategories(statuses: StatusConfig[]): StatusConfig[] {
+	return statuses.map((status) => {
+		if (status.isCompleted || status.category === "completed") {
+			if (status.isCompleted && status.category === "completed") {
+				return status;
+			}
+			return { ...status, isCompleted: true, category: "completed" };
+		}
+		if (status.category === "planned" || status.category === "in-progress") {
+			return status;
+		}
+		return { ...status, category: "planned" };
+	});
+}
+
+export function countStatusCategories(statuses: StatusConfig[]): Record<StatusCategory, number> {
+	const counts: Record<StatusCategory, number> = { planned: 0, "in-progress": 0, completed: 0 };
+	for (const status of normalizeStatusCategories(statuses)) {
+		counts[status.category ?? "planned"]++;
+	}
+	return counts;
+}
+
+const START_CATEGORIES: readonly StatusCategory[] = ["planned", "in-progress"];
+
+const STATUS_CATEGORY_LABEL_KEYS: Record<StatusCategory, TranslationKey> = {
+	planned: "settings.taskProperties.taskStatuses.badges.planned",
+	"in-progress": "settings.taskProperties.taskStatuses.badges.inProgress",
+	completed: "settings.taskProperties.taskStatuses.badges.completed",
+};
+
+/**
+ * Reports which of Not started / Started no status carries, in badge order; empty means
+ * start-based dependency edges can release as authored.
+ */
+export function findMissingStartCategories(statuses?: StatusConfig[] | null): StatusCategory[] {
+	return missingStartCategories(countStatusCategories(statuses ?? []));
+}
+
+/** The same answer for callers that already tallied the set, without normalizing it twice. */
+export function missingStartCategories(counts: Record<StatusCategory, number>): StatusCategory[] {
+	return START_CATEGORIES.filter((category) => counts[category] === 0);
+}
+
+export function describeMissingStartCategories(
+	missing: StatusCategory[],
+	translate: (key: TranslationKey) => string
+): string {
+	return missing.map((category) => translate(STATUS_CATEGORY_LABEL_KEYS[category])).join(" or ");
+}
 
 // Default priority configuration matches current hardcoded behavior
 export const DEFAULT_PRIORITIES: PriorityConfig[] = [
@@ -332,6 +393,7 @@ export const DEFAULT_SETTINGS: TaskNotesSettings = {
 	// Relationships widget defaults (unified subtasks, projects, and dependencies)
 	showRelationships: true,
 	relationshipsPosition: "bottom",
+	enableAdvancedDependencyTypes: false,
 	// Task card in note defaults
 	showTaskCardInNote: true,
 	showCompletedTaskStrikethrough: true,

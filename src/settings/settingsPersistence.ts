@@ -1,5 +1,5 @@
 import { normalizePath } from "obsidian";
-import { DEFAULT_NLP_TRIGGERS, DEFAULT_SETTINGS } from "./defaults";
+import { DEFAULT_NLP_TRIGGERS, DEFAULT_SETTINGS, normalizeStatusCategories } from "./defaults";
 import { hasMissingMigratedSettings } from "./settingsMigration";
 import type { TaskCreationDefaults, TaskNotesSettings } from "../types/settings";
 import { initializeFieldConfig } from "../utils/fieldConfigDefaults";
@@ -231,7 +231,9 @@ export function buildSettingsFromLoadedData(data: LoadedSettingsData | null): Se
 			loadedData?.modalFieldsConfig,
 			loadedData?.userFields
 		),
-		customStatuses: loadedData?.customStatuses || DEFAULT_SETTINGS.customStatuses,
+		customStatuses: normalizeStatusCategories(
+			loadedData?.customStatuses || DEFAULT_SETTINGS.customStatuses
+		),
 		customPriorities: loadedData?.customPriorities || DEFAULT_SETTINGS.customPriorities,
 		savedViews: loadedData?.savedViews || DEFAULT_SETTINGS.savedViews,
 	};

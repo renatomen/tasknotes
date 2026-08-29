@@ -505,6 +505,21 @@ body.is-mobile .tasknotes-plugin .tasknotes-settings__card-action-btn {
     color: var(--text-on-accent);
 }
 
+.tasknotes-settings__card-status-badge--completed {
+    background: var(--color-green);
+    color: var(--text-on-accent);
+}
+
+.tasknotes-settings__card-status-badge--in-progress {
+    background: var(--color-blue);
+    color: var(--text-on-accent);
+}
+
+.tasknotes-settings__card-status-badge--planned {
+    background: var(--background-modifier-border);
+    color: var(--text-normal);
+}
+
 .tasknotes-settings__card-info-badge {
     padding: 3px 6px;
     border-radius: 10px;
@@ -1420,4 +1435,41 @@ body.is-mobile .tasknotes-plugin .tasknotes-settings__card-action-btn {
     .tasknotes-settings__card-drag-handle {
         transition: none;
     }
+}
+
+/* Obsidian's settings group card owns the row's edges, so the warning rides on its text. */
+.tn-start-readiness-warning {
+    font-weight: 500;
+    color: var(--text-warning);
+}
+
+.tn-start-readiness-warning__glyph {
+    margin-inline-end: var(--size-2-1);
+}
+
+.tn-status-category-advisory {
+    margin-bottom: var(--size-4-2);
+    padding: var(--size-4-2) var(--size-4-3);
+    border-inline-start: 3px solid var(--color-orange);
+    background: var(--background-modifier-hover);
+    border-radius: var(--radius-s);
+    color: var(--text-muted);
+    font-size: var(--font-ui-small);
+}
+
+.tn-status-category-advisory--ready {
+    border-inline-start-color: var(--color-green);
+}
+
+.tn-status-category-advisory__glyph {
+    margin-inline-end: var(--size-2-1);
+    font-weight: 500;
+}
+
+.tn-status-category-advisory--warning .tn-status-category-advisory__glyph {
+    color: var(--text-warning);
+}
+
+.tn-status-category-advisory__link {
+    margin-inline-start: var(--size-2-2);
 }

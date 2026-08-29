@@ -30,7 +30,8 @@ export async function initializePluginRuntime(plugin: TaskNotesPlugin): Promise<
 	registerRibbonIcons(plugin);
 	plugin.commandRegistry.register();
 	registerCliHandlers(plugin);
-	plugin.addSettingTab(new TaskNotesSettingTab(plugin.app, plugin));
+	plugin.settingTab = new TaskNotesSettingTab(plugin.app, plugin);
+	plugin.addSettingTab(plugin.settingTab);
 }
 
 export async function cleanupPluginRuntime(plugin: TaskNotesPlugin): Promise<void> {

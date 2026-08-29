@@ -171,6 +171,7 @@ export default class TaskNotesPlugin extends Plugin {
 	taskActionCoordinator: import("./ui/TaskActionCoordinator").TaskActionCoordinator;
 	settingsLifecycleService: import("./services/SettingsLifecycleService").SettingsLifecycleService;
 	commandRegistry: import("./commands/TranslatedCommandRegistry").TranslatedCommandRegistry;
+	settingTab: import("./settings/TaskNotesSettingTab").TaskNotesSettingTab;
 
 	// Editor services
 	taskLinkDetectionService?: import("./services/TaskLinkDetectionService").TaskLinkDetectionService;

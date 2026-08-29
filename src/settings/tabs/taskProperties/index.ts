@@ -1,6 +1,9 @@
 // Re-export all property card modules
 export { renderTitlePropertyCard } from "./titlePropertyCard";
-export { renderStatusPropertyCard } from "./statusPropertyCard";
+export {
+	renderStatusPropertyCard,
+	renderStatusReadinessIndicator,
+} from "./statusPropertyCard";
 export { renderPriorityPropertyCard } from "./priorityPropertyCard";
 export { renderProjectsPropertyCard } from "./projectsPropertyCard";
 export { renderTagsPropertyCard } from "./tagsPropertyCard";

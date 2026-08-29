@@ -13,6 +13,7 @@ import { stringifyUnknown } from "../utils/stringUtils";
 import { ConfirmationModal, showConfirmationModal } from "./ConfirmationModal";
 import { createCompletionsCalendarSection } from "./taskEditCompletions";
 import { BlockingUpdates } from "./taskEditChanges";
+import { findBlockingEdgeDependency } from "./taskModalDependencies";
 import { createTaskModalActionButtons } from "./taskModalActionButtons";
 import { showTaskModalReminderContextMenu } from "./taskModalActionMenus";
 import { buildTaskEditChangesFromModalState } from "./taskEditChangeState";
@@ -37,7 +38,8 @@ export class TaskEditModal extends TaskModal {
 	private skippedInstancesChanges: string[] = [];
 	private initialBlockedBy: TaskDependency[] = [];
 	private initialBlockingPaths: string[] = [];
-	private pendingBlockingUpdates: BlockingUpdates = { added: [], removed: [], raw: {} };
+	private initialBlockingEntries: Record<string, TaskDependency> = {};
+	private pendingBlockingUpdates: BlockingUpdates = { added: [], removed: [], modified: [], raw: {} };
 	private unresolvedBlockingEntries: string[] = [];
 	private initialTags = "";
 	private isShowingConfirmation = false;
@@ -117,13 +119,30 @@ export class TaskEditModal extends TaskModal {
 		);
 		this.initialBlockedBy = this.blockedByItems.map((item) => ({ ...item.dependency }));
 
-		this.blockingItems = (this.task.blocking ?? []).map((path) =>
-			this.createDependencyItemFromPath(path)
-		);
+		this.blockingItems = (this.task.blocking ?? []).map((path) => {
+			const item = this.createDependencyItemFromPath(path);
+			const blockingTask = this.plugin.cacheManager.getCachedTaskInfoSync(path);
+			const real = blockingTask
+				? findBlockingEdgeDependency(this.plugin, this.task.path, blockingTask)
+				: null;
+			if (real) {
+				item.dependency = { ...item.dependency, reltype: real.reltype };
+				if (real.gap) {
+					item.dependency.gap = real.gap;
+				}
+			}
+			return item;
+		});
 		this.initialBlockingPaths = this.blockingItems
 			.filter((item) => item.path)
 			.map((item) => item.path!);
-		this.pendingBlockingUpdates = { added: [], removed: [], raw: {} };
+		this.initialBlockingEntries = {};
+		for (const item of this.blockingItems) {
+			if (item.path) {
+				this.initialBlockingEntries[item.path] = { ...item.dependency };
+			}
+		}
+		this.pendingBlockingUpdates = { added: [], removed: [], modified: [], raw: {} };
 		this.unresolvedBlockingEntries = [];
 	}
 
@@ -453,7 +472,8 @@ export class TaskEditModal extends TaskModal {
 			const changes = this.getChanges({ includeConversionWrite: true });
 			const hasBlockingChanges =
 				this.pendingBlockingUpdates.added.length > 0 ||
-				this.pendingBlockingUpdates.removed.length > 0;
+				this.pendingBlockingUpdates.removed.length > 0 ||
+				this.pendingBlockingUpdates.modified.length > 0;
 			const hasTaskChanges = Object.keys(changes).length > 0;
 			const hasSubtaskChanges = this.hasSubtaskChanges();
 
@@ -491,7 +511,8 @@ export class TaskEditModal extends TaskModal {
 					updatedTask,
 					this.pendingBlockingUpdates.added,
 					this.pendingBlockingUpdates.removed,
-					this.pendingBlockingUpdates.raw
+					this.pendingBlockingUpdates.raw,
+					this.pendingBlockingUpdates.modified
 				);
 
 				const refreshed = await this.plugin.cacheManager.getTaskInfo(updatedTask.path);
@@ -525,7 +546,7 @@ export class TaskEditModal extends TaskModal {
 				new Notice(this.t("modals.taskEdit.notices.dependenciesUpdateSuccess"));
 			}
 
-			this.pendingBlockingUpdates = { added: [], removed: [], raw: {} };
+			this.pendingBlockingUpdates = { added: [], removed: [], modified: [], raw: {} };
 			this.unresolvedBlockingEntries = [];
 		} catch (error) {
 			tasknotesLogger.error("Failed to update task:", {
@@ -559,6 +580,7 @@ export class TaskEditModal extends TaskModal {
 			initialBlockedBy: this.initialBlockedBy,
 			blockingItems: this.blockingItems,
 			initialBlockingPaths: this.initialBlockingPaths,
+			initialBlockingEntries: this.initialBlockingEntries,
 			details: this.details,
 			originalDetails: this.originalDetails,
 			completedInstancesChanges: this.completedInstancesChanges,

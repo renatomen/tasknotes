@@ -41,6 +41,10 @@ function createPlugin(): TaskNotesPlugin {
 				const translations: Record<string, string> = {
 					"ui.taskCard.blockedBadge": "Blocked",
 					"ui.taskCard.blockedBadgeTooltip": "This task is blocked",
+					"ui.taskCard.blockedStart": "Blocked · start",
+					"ui.taskCard.blockedStartTooltip": "Cannot start yet",
+					"ui.taskCard.blockedFinish": "Blocked · finish",
+					"ui.taskCard.blockedFinishTooltip": "Cannot finish yet",
 					"ui.taskCard.blockingBadge": "Blocking",
 					"ui.taskCard.blockingBadgeTooltip": "This task is blocking another task",
 					"ui.taskCard.googleCalendarSyncTooltip": "Synced to Google Calendar",
@@ -80,6 +84,7 @@ describe("taskCardMetadata", () => {
 			card,
 			task: createTask({
 				isBlocked: true,
+				startBlocked: true,
 				blockedBy: [{ uid: "Tasks/blocker.md", reltype: "FINISHTOSTART" }],
 			}),
 			plugin,
@@ -91,7 +96,7 @@ describe("taskCardMetadata", () => {
 			".task-card__metadata-pill--blocked"
 		);
 		expect(elements).toEqual([blockedPill]);
-		expect(blockedPill?.textContent).toBe("Blocked (1)");
+		expect(blockedPill?.textContent).toBe("Blocked · start (1)");
 		expect(blockedPill?.getAttribute("role")).toBe("button");
 		expect(blockedPill?.getAttribute("aria-expanded")).toBe("false");
 
@@ -192,6 +197,7 @@ describe("taskCardMetadata", () => {
 			card,
 			task: createTask({
 				isBlocked: true,
+				startBlocked: true,
 				blockedBy: [{ uid: "Tasks/blocker.md", reltype: "FINISHTOSTART" }],
 			}),
 			plugin,

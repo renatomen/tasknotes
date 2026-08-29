@@ -168,7 +168,7 @@ describe("taskEditChangeState", () => {
 			review: "new",
 		});
 		expect(result.changes.dateModified).toEqual(expect.any(String));
-		expect(result.blockingUpdates).toEqual({ added: [], removed: [], raw: {} });
+		expect(result.blockingUpdates).toEqual({ added: [], removed: [], modified: [], raw: {} });
 		expect(result.unresolvedBlockingEntries).toEqual([]);
 	});
 
@@ -192,6 +192,76 @@ describe("taskEditChangeState", () => {
 		});
 
 		expect(result.changes.contexts).toBeUndefined();
+	});
+
+	const blockingSettings = {
+		userFields: [],
+		taskIdentificationMethod: "property" as const,
+		taskTag: "task",
+		maintainDueDateOffsetInRecurring: false,
+	};
+
+	it("classifies a blocking-edge reltype change as a modified edge", () => {
+		const app = createMockApp(MockObsidian.createMockApp());
+		const task = createTask({
+			path: "TaskNotes/Edit task.md",
+			blocking: ["TaskNotes/Successor.md"],
+		});
+
+		const result = buildTaskEditChangesFromModalState({
+			...createState({
+				task,
+				blockingItems: [
+					{
+						path: "TaskNotes/Successor.md",
+						dependency: { uid: "[[TaskNotes/Successor.md]]", reltype: "STARTTOSTART" },
+					},
+				],
+				initialBlockingPaths: ["TaskNotes/Successor.md"],
+				initialBlockingEntries: {
+					"TaskNotes/Successor.md": {
+						uid: "[[TaskNotes/Successor.md]]",
+						reltype: "FINISHTOSTART",
+					},
+				},
+			}),
+			app,
+			settings: blockingSettings,
+			normalizeDetails: (value) => value,
+		});
+
+		expect(result.blockingUpdates.modified).toEqual(["TaskNotes/Successor.md"]);
+		expect(result.blockingUpdates.added).toEqual([]);
+		expect(result.blockingUpdates.removed).toEqual([]);
+		expect(result.blockingUpdates.raw["TaskNotes/Successor.md"]).toEqual({
+			uid: "[[TaskNotes/Successor.md]]",
+			reltype: "STARTTOSTART",
+		});
+	});
+
+	it("excludes a newly-added blocking edge from the modified set", () => {
+		const app = createMockApp(MockObsidian.createMockApp());
+		const task = createTask({ path: "TaskNotes/Edit task.md", blocking: [] });
+
+		const result = buildTaskEditChangesFromModalState({
+			...createState({
+				task,
+				blockingItems: [
+					{
+						path: "TaskNotes/New.md",
+						dependency: { uid: "[[TaskNotes/New.md]]", reltype: "STARTTOSTART" },
+					},
+				],
+				initialBlockingPaths: [],
+				initialBlockingEntries: {},
+			}),
+			app,
+			settings: blockingSettings,
+			normalizeDetails: (value) => value,
+		});
+
+		expect(result.blockingUpdates.added).toEqual(["TaskNotes/New.md"]);
+		expect(result.blockingUpdates.modified).toEqual([]);
 	});
 
 	it("builds skipped recurring instance changes from modal state", () => {

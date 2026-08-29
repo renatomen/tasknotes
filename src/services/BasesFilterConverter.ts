@@ -226,8 +226,9 @@ export class BasesFilterConverter {
 	}
 
 	/**
-	 * Convert dependencies.isBlocked to Bases expression
-	 * A task is blocked if it has any entries in its blockedBy array
+	 * Blocked-by native filter, existence-only: a `.base` filter compiles to a per-note
+	 * formula that can't reach a predecessor's status, so it can't distinguish a released
+	 * edge from a live one — constraint-aware blocking needs a TaskNotes-rendered view.
 	 */
 	private convertIsBlockedCondition(operator: FilterOperator): string {
 		const fm = this.plugin.fieldMapper;

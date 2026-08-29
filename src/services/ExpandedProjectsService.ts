@@ -74,11 +74,10 @@ export class ExpandedProjectsService {
 	 */
 	renamePath(oldPath: string, newPath: string): void {
 		if (oldPath === newPath) return;
-		if (this.expandedProjects.delete(oldPath)) {
-			this.expandedProjects.add(newPath);
-		}
-		if (this.collapsedDefaultExpandedProjects.delete(oldPath)) {
-			this.collapsedDefaultExpandedProjects.add(newPath);
+		for (const set of [this.expandedProjects, this.collapsedDefaultExpandedProjects]) {
+			if (set.delete(oldPath)) {
+				set.add(newPath);
+			}
 		}
 	}
 

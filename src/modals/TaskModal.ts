@@ -16,7 +16,7 @@ import {
 } from "./taskModalDetailsEditor";
 import { splitFrontmatterAndBody } from "../utils/helpers";
 import { ProjectSelectModal } from "./ProjectSelectModal";
-import { TaskDependency, Reminder } from "../types";
+import { TaskDependency, TaskDependencyRelType, Reminder } from "../types";
 import { DEFAULT_DEPENDENCY_RELTYPE, formatDependencyLink } from "../utils/dependencyUtils";
 import { type LinkServices } from "../ui/renderers/linkRenderer";
 import { generateLink } from "../utils/linkUtils";
@@ -35,10 +35,12 @@ import {
 	createDependencyItemFromFile as createDependencyItemFromFileHelper,
 	createDependencyItemFromPath as createDependencyItemFromPathHelper,
 	DependencyItem,
+	type DependencyListSide,
 	getBlockedByDependencyCandidates,
 	getBlockingDependencyCandidates,
 	removeDependencyItemAtIndex,
 	renderDependencyList,
+	updateDependencyItemAtIndex,
 } from "./taskModalDependencies";
 import {
 	createTaskModalContextsField,
@@ -182,23 +184,50 @@ export abstract class TaskModal extends Modal {
 	}
 
 	protected renderBlockedByList(): void {
-		void this.renderDependencyList(this.blockedByList, this.blockedByItems, (index) => {
-			this.blockedByItems = removeDependencyItemAtIndex(this.blockedByItems, index);
-			this.renderBlockedByList();
+		void this.renderDependencyList(this.blockedByList, this.blockedByItems, "blocked-by", {
+			onRemove: (index) => {
+				this.blockedByItems = removeDependencyItemAtIndex(this.blockedByItems, index);
+				this.renderBlockedByList();
+			},
+			onReltypeChange: (index, reltype) => {
+				this.blockedByItems = updateDependencyItemAtIndex(this.blockedByItems, index, {
+					reltype,
+				});
+				this.renderBlockedByList();
+			},
+			onGapChange: (index, gap) => {
+				this.blockedByItems = updateDependencyItemAtIndex(this.blockedByItems, index, { gap });
+			},
 		});
 	}
 
 	protected renderBlockingList(): void {
-		void this.renderDependencyList(this.blockingList, this.blockingItems, (index) => {
-			this.blockingItems = removeDependencyItemAtIndex(this.blockingItems, index);
-			this.renderBlockingList();
+		void this.renderDependencyList(this.blockingList, this.blockingItems, "blocking", {
+			onRemove: (index) => {
+				this.blockingItems = removeDependencyItemAtIndex(this.blockingItems, index);
+				this.renderBlockingList();
+			},
+			onReltypeChange: (index, reltype) => {
+				this.blockingItems = updateDependencyItemAtIndex(this.blockingItems, index, {
+					reltype,
+				});
+				this.renderBlockingList();
+			},
+			onGapChange: (index, gap) => {
+				this.blockingItems = updateDependencyItemAtIndex(this.blockingItems, index, { gap });
+			},
 		});
 	}
 
 	private async renderDependencyList(
 		listEl: HTMLElement | undefined,
 		items: DependencyItem[],
-		onRemove: (index: number) => void
+		side: DependencyListSide,
+		handlers: {
+			onRemove: (index: number) => void;
+			onReltypeChange: (index: number, reltype: TaskDependencyRelType) => void;
+			onGapChange: (index: number, gap: string | undefined) => void;
+		}
 	): Promise<void> {
 		if (!listEl) {
 			return;
@@ -210,7 +239,12 @@ export abstract class TaskModal extends Modal {
 			items,
 			linkServices: this.getLinkServices(),
 			translate: (key, params) => this.t(key, params),
-			onRemove,
+			side,
+			selfName: this.title.trim() || this.t("modals.task.dependencies.thisTask"),
+			showReltypeControls: this.plugin.settings.enableAdvancedDependencyTypes,
+			onRemove: handlers.onRemove,
+			onReltypeChange: handlers.onReltypeChange,
+			onGapChange: handlers.onGapChange,
 		});
 	}
 

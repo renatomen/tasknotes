@@ -18,6 +18,13 @@ import {
 	normalizeThemeColor,
 } from "../../utils/themeColors";
 import { configureThemeColorInput } from "../components/CardComponent";
+import {
+	countStatusCategories,
+	describeMissingStartCategories,
+	findMissingStartCategories,
+	missingStartCategories,
+} from "../defaults";
+import { DependencyReadinessConfirmationModal } from "../../modals/DependencyReadinessConfirmationModal";
 
 async function getInitializedPomodoroService(plugin: TaskNotesPlugin) {
 	if (!plugin.pomodoroService) {
@@ -983,6 +990,60 @@ export function renderFeaturesTab(
 		}
 	);
 
+	// Dependencies Section
+	createSettingGroup(
+		container,
+		{
+			heading: translate("settings.features.dependencies.header"),
+			description: translate("settings.features.dependencies.description"),
+		},
+		(group) => {
+			group.addSetting(
+				(setting) =>
+					void configureToggleSetting(setting, {
+						name: translate("settings.features.dependencies.advancedTypes.name"),
+						desc: translate("settings.features.dependencies.advancedTypes.description"),
+						getValue: () => plugin.settings.enableAdvancedDependencyTypes,
+						setValue: (value: boolean) =>
+							applyAdvancedDependencyTypesToggle(value, plugin, container, save),
+					})
+			);
+
+			if (plugin.settings.enableAdvancedDependencyTypes) {
+				const counts = countStatusCategories(plugin.settings.customStatuses);
+				const missingCategories = missingStartCategories(counts);
+				const countsText = translate("settings.features.dependencies.readiness.counts", {
+					notStarted: counts.planned,
+					started: counts["in-progress"],
+					completed: counts.completed,
+				});
+				group.addSetting((setting) => {
+					setting.setName(translate("settings.features.dependencies.readiness.name"));
+
+					if (missingCategories.length === 0) {
+						setting.setDesc(
+							`${countsText} ${translate("settings.features.dependencies.readiness.ready")}`
+						);
+						return;
+					}
+
+					setting.setDesc(countsText);
+					const warning = setting.descEl.createDiv({ cls: "tn-start-readiness-warning" });
+					warning.createSpan({
+						cls: "tn-start-readiness-warning__glyph",
+						text: "!",
+						attr: { "aria-hidden": "true" },
+					});
+					warning.appendText(
+						translate("settings.features.dependencies.readiness.missing", {
+							categories: describeMissingStartCategories(missingCategories, translate),
+						})
+					);
+				});
+			}
+		}
+	);
+
 	// Debug Logging Section
 	createSettingGroup(
 		container,
@@ -1005,4 +1066,58 @@ export function renderFeaturesTab(
 			);
 		}
 	);
+}
+
+/**
+ * Applies an advanced-dependency-types toggle change, asking for acknowledgement first when a
+ * start category has no status. Re-evaluates the status set on every enable; stores no answer.
+ */
+export async function applyAdvancedDependencyTypesToggle(
+	value: boolean,
+	plugin: TaskNotesPlugin,
+	container: HTMLElement,
+	save: () => void
+): Promise<void> {
+	const missingCategories = value
+		? findMissingStartCategories(plugin.settings.customStatuses)
+		: [];
+
+	if (missingCategories.length === 0) {
+		plugin.settings.enableAdvancedDependencyTypes = value;
+		save();
+		plugin.settingTab?.invalidateTab("task-properties");
+		renderFeaturesTab(container, plugin, save);
+		return;
+	}
+
+	// Obsidian flips the toggle before this runs, so every path — a rejected modal included —
+	// has to rebuild the tab from the stored value.
+	let finish = () => renderFeaturesTab(container, plugin, save);
+	try {
+		const choice = await new DependencyReadinessConfirmationModal(
+			plugin,
+			missingCategories
+		).show();
+		if (choice === "go-back") {
+			return;
+		}
+
+		plugin.settings.enableAdvancedDependencyTypes = true;
+		save();
+		plugin.settingTab?.invalidateTab("task-properties");
+
+		if (choice === "enable-and-open-statuses") {
+			// Discarded only once the destination has taken over, so a refused navigation
+			// cannot leave both panes blank.
+			finish = () => {
+				if (plugin.settingTab?.navigateToTab("task-properties")) {
+					container.empty();
+				} else {
+					renderFeaturesTab(container, plugin, save);
+				}
+			};
+		}
+	} finally {
+		finish();
+	}
 }
