@@ -79,6 +79,7 @@ import {
 	applyGoogleCalendarRecurringExceptionForScheduledChange,
 } from "./task-service/googleCalendarRecurringExceptions";
 import {
+	type BlockingRelationshipAction,
 	buildBlockedByTaskUpdate,
 	buildBlockingRelationshipPathChanges,
 	computeBlockedByUpdate,
@@ -1598,7 +1599,8 @@ export class TaskService {
 		currentTask: TaskInfo,
 		addedBlockedTaskPaths: string[],
 		removedBlockedTaskPaths: string[],
-		rawEntries: Record<string, TaskDependency | string> = {}
+		rawEntries: Record<string, TaskDependency | string> = {},
+		modifiedBlockedTaskPaths: string[] = []
 	): Promise<void> {
 		// This method is called when the current task's "blocking" list is updated in the UI.
 		// The current task is the one blocking other tasks.
@@ -1649,12 +1651,38 @@ export class TaskService {
 
 			await this.updateTask(blockedTask, updates);
 		}
+
+		// Rewrite the reltype/gap on edges that already exist in the blocked task's blockedBy —
+		// the canonical location — without touching the set membership.
+		for (const blockedTaskPath of modifiedBlockedTaskPaths) {
+			if (uniqueAdditions.includes(blockedTaskPath) || uniqueRemovals.includes(blockedTaskPath)) {
+				continue;
+			}
+			const blockedTask = await this.plugin.cacheManager.getTaskInfo(blockedTaskPath);
+			if (!blockedTask) {
+				continue;
+			}
+
+			const updates = buildBlockedByTaskUpdate(
+				this.computeBlockedByUpdate(
+					blockedTask,
+					currentTask.path,
+					"modify",
+					rawEntries[blockedTaskPath]
+				)
+			);
+			if (!updates) {
+				continue;
+			}
+
+			await this.updateTask(blockedTask, updates);
+		}
 	}
 
 	private computeBlockedByUpdate(
 		blockedTask: TaskInfo,
 		blockingTaskPath: string,
-		action: "add" | "remove",
+		action: BlockingRelationshipAction,
 		rawEntry?: TaskDependency | string
 	): TaskDependency[] | null {
 		return computeBlockedByUpdate({

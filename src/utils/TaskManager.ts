@@ -7,6 +7,7 @@ import { TaskNotesSettings } from "../types/settings";
 import type { DependencyCache } from "./DependencyCache";
 import { isPathInExcludedFolder, parseExcludedFolders } from "./pathExclusions";
 import { buildTaskInfoFromMappedTask } from "./taskInfoAssembly";
+import { deriveBlockingState } from "./dependencyUtils";
 import { isTaskFrontmatter } from "./taskIdentification";
 import { createTaskNotesLogger } from "./tasknotesLogger";
 
@@ -336,24 +337,23 @@ export class TaskManager extends Events {
 				this.storeTitleInFilename
 			);
 
-			// Get dependency information from DependencyCache
-			let isBlocked = false;
-			let blockingTasks: string[] = [];
-			if (this._dependencyCache) {
-				// Use DependencyCache for status-aware blocking check
-				isBlocked = this._dependencyCache.isTaskBlocked(path);
-				blockingTasks = this._dependencyCache.getBlockedTaskPaths(path);
-			} else {
-				// Fallback when dependency cache not available: use simple existence check
-				isBlocked = Array.isArray(mappedTask.blockedBy) && mappedTask.blockedBy.length > 0;
-			}
+			const { startBlocked, finishBlocked, blockingTasks, isBlockingStart, isBlockingFinish } =
+				deriveBlockingState(
+					this._dependencyCache,
+					path,
+					Array.isArray(mappedTask.blockedBy) ? mappedTask.blockedBy : []
+				);
 
 			return buildTaskInfoFromMappedTask({
 				path,
 				mappedTask,
 				defaultTaskStatus: this.settings.defaultTaskStatus,
-				isBlocked,
+				isBlocked: startBlocked || finishBlocked,
 				blockingTasks,
+				startBlocked,
+				finishBlocked,
+				isBlockingStart,
+				isBlockingFinish,
 			});
 		} catch (error) {
 			tasknotesLogger.error(`Error extracting task info from native metadata for ${path}:`, {

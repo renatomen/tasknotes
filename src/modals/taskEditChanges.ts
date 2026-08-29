@@ -15,6 +15,7 @@ interface DependencyItem {
 export interface BlockingUpdates {
 	added: string[];
 	removed: string[];
+	modified: string[];
 	raw: Record<string, TaskDependency>;
 }
 
@@ -37,6 +38,7 @@ export interface TaskEditChangeInput {
 	initialBlockedBy: TaskDependency[];
 	blockingItems: DependencyItem[];
 	initialBlockingPaths: string[];
+	initialBlockingEntries?: Record<string, TaskDependency>;
 	details: string;
 	originalDetails: string;
 	completedInstancesChanges: string[];
@@ -227,6 +229,10 @@ function toTaskStringList(value: unknown): string[] {
 	return [];
 }
 
+function isSameReltypeAndGap(a: TaskDependency, b: TaskDependency): boolean {
+	return a.reltype === b.reltype && (a.gap ?? "") === (b.gap ?? "");
+}
+
 function buildBlockingUpdates(input: TaskEditChangeInput): {
 	blockingUpdates: BlockingUpdates;
 	unresolvedBlockingEntries: string[];
@@ -247,9 +253,21 @@ function buildBlockingUpdates(input: TaskEditChangeInput): {
 	const newPathSet = new Set(newBlockingPaths);
 	const added = newBlockingPaths.filter((path) => !originalPaths.has(path));
 	const removed = input.initialBlockingPaths.filter((path) => !newPathSet.has(path));
+	const initialEntries = input.initialBlockingEntries ?? {};
+	const modified = newBlockingPaths.filter((path) => {
+		if (!originalPaths.has(path)) {
+			return false;
+		}
+		const current = resolvedBlocking.get(path);
+		const initial = initialEntries[path];
+		if (!current || !initial) {
+			return false;
+		}
+		return !isSameReltypeAndGap(current, initial);
+	});
 	const raw: Record<string, TaskDependency> = {};
 
-	for (const path of added) {
+	for (const path of [...added, ...modified]) {
 		const dependency = resolvedBlocking.get(path);
 		if (dependency) {
 			raw[path] = { ...dependency };
@@ -257,7 +275,7 @@ function buildBlockingUpdates(input: TaskEditChangeInput): {
 	}
 
 	return {
-		blockingUpdates: { added, removed, raw },
+		blockingUpdates: { added, removed, modified, raw },
 		unresolvedBlockingEntries,
 	};
 }

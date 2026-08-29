@@ -34,6 +34,7 @@ import {
 } from "./renderers/linkRenderer";
 import { renderContextsValue, renderTagsValue, type TagServices } from "./renderers/tagRenderer";
 import { normalizeDependencyEntry, resolveDependencyEntry } from "../utils/dependencyUtils";
+import { resolveBlockedConstraint } from "./taskCardRelationships";
 import { createTaskNotesLogger } from "../utils/tasknotesLogger";
 
 const tasknotesLogger = createTaskNotesLogger({ tag: "Ui/TaskCardProperties" });
@@ -435,13 +436,18 @@ const PROPERTY_RENDERERS: Record<string, PropertyRenderer> = {
 			})}`;
 		}
 	},
-	blocked: (element, value, task, plugin, options) => {
-		if (value === true) {
-			const blockedCount = task.blockedBy?.length ?? 0;
-			const label = getTaskCardPropertyLabel("blocked", plugin, options?.propertyLabels);
-			element.textContent = blockedCount > 0 ? `${label} (${blockedCount})` : label;
-			element.classList.add("task-card__metadata-pill--blocked");
+	blocked: (element, value, task, plugin) => {
+		if (value !== true) {
+			return;
 		}
+		const blocked = resolveBlockedConstraint(task, plugin.app, plugin.dependencyCache);
+		const isFinish = blocked.state === "finish";
+		const label = plugin.i18n.translate(
+			isFinish ? "ui.taskCard.blockedFinish" : "ui.taskCard.blockedStart"
+		);
+		element.textContent = `${label} (${blocked.count})`;
+		element.classList.add("task-card__metadata-pill--blocked");
+		element.classList.add(isFinish ? "is-finish-blocked" : "is-start-blocked");
 	},
 	blocking: (element, value, task, plugin, options) => {
 		if (value === true) {

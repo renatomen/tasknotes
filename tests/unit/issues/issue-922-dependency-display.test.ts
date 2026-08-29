@@ -50,6 +50,8 @@ function createPlugin(
 		const translations: Record<string, string> = {
 			"ui.taskCard.blockedBadge": "Blocked",
 			"ui.taskCard.blockedBadgeTooltip": "This task is blocked",
+			"ui.taskCard.blockedStart": "Blocked · start",
+			"ui.taskCard.blockedFinish": "Blocked · finish",
 			"ui.taskCard.taskOptions": "Task options",
 			"ui.taskCard.priorityAriaLabel": `Priority: ${vars?.label ?? ""}`,
 		};
@@ -75,13 +77,14 @@ describe("Issue #922: dependency display behavior", () => {
 			path: "Tasks/blocked.md",
 			blockedBy: [{ uid: "[[Tasks/blocker.md]]", reltype: "FINISHTOSTART" }],
 			isBlocked: true,
+			startBlocked: true,
 		});
 
 		const card = createTaskCard(task, plugin, ["blocked"]);
 		const blockedPill = card.querySelector<HTMLElement>(".task-card__metadata-pill--blocked");
 
 		expect(blockedPill).not.toBeNull();
-		expect(blockedPill?.textContent).toBe("Blocked (1)");
+		expect(blockedPill?.textContent).toBe("Blocked · start (1)");
 	});
 
 	it("lets the blocked visible property expand blocker task cards", async () => {

@@ -514,6 +514,21 @@ export const en: TranslationTree = {
 			integrations: "Integrations",
 		},
 		features: {
+			dependencies: {
+				header: "Dependencies",
+				description: "Task dependency relationship settings.",
+				advancedTypes: {
+					name: "Advanced dependency types",
+					description:
+						"Choose a relationship type (finish-to-start, start-to-start, finish-to-finish, start-to-finish) and an optional lag for each dependency in the task edit modal. When off, dependencies use finish-to-start.",
+				},
+				readiness: {
+					name: "Status readiness",
+					counts: "Not started: {notStarted}, Started: {started}, Completed: {completed}.",
+					ready: "Start-based dependencies are ready.",
+					missing: "No status is categorized as {categories}.",
+				},
+			},
 			inlineTasks: {
 				header: "Inline tasks",
 				description: "Settings for task links and checkbox-to-task conversion in notes.",
@@ -1219,8 +1234,8 @@ export const en: TranslationTree = {
 					label: 'Label: The display name shown in the interface (e.g., "In Progress")',
 					color: "Color: Visual indicator color for the status dot and badges",
 					icon: 'Icon: Optional Lucide icon name to display instead of colored dot (e.g., "check", "circle", "clock"). Browse icons at lucide.dev',
-					completed:
-						"Completed: When checked, tasks with this status are considered finished and may be filtered differently",
+					category:
+						"Category: Sets the lifecycle stage so dependencies can tell when a task has started or finished. A completed category counts as done, the same as the old completed toggle.",
 					autoArchive:
 						"Auto-archive: When enabled, tasks will be automatically archived after the specified delay (1-1440 minutes)",
 					orderNote:
@@ -1240,7 +1255,7 @@ export const en: TranslationTree = {
 					label: "Label:",
 					color: "Color:",
 					icon: "Icon:",
-					completed: "Completed:",
+					category: "Category:",
 					excludeFromCycle: "Skip when cycling:",
 					nextStatus: "Next status:",
 					autoArchive: "Auto-archive:",
@@ -1254,7 +1269,14 @@ export const en: TranslationTree = {
 				},
 				badges: {
 					completed: "Completed",
+					planned: "Not started",
+					inProgress: "Started",
 				},
+				categoryAdvisory:
+					"Advanced dependency types are on, but no {categories} status exists. Start-based dependencies can't release as authored until every start category has a status.",
+				categoryAdvisoryLink: "Open dependency settings",
+				categoryReady:
+					"Advanced dependency types are on and every start category has a status. Start-based dependencies release as authored.",
 				deleteConfirm: 'Are you sure you want to delete the status "{label}"?',
 			},
 			taskPriorities: {
@@ -2638,6 +2660,38 @@ export const en: TranslationTree = {
 				addTaskButton: "Add task",
 				selectTaskTooltip: "Select a task note using fuzzy search",
 				removeTaskTooltip: "Remove task",
+				thisTask: "This task",
+				reltype: {
+					label: "Relationship",
+					finishToStart: "Finish-to-start",
+					startToStart: "Start-to-start",
+					finishToFinish: "Finish-to-finish",
+					startToFinish: "Start-to-finish",
+				},
+				gap: {
+					label: "Lag",
+					placeholder: "0",
+					exotic: "Custom offset: {gap}",
+					unit: {
+						hours: "Hours",
+						days: "Days",
+						weeks: "Weeks",
+					},
+				},
+				summary: {
+					blockedBy: {
+						finishToStart: "{other} must finish before {self} can start",
+						startToStart: "{other} must start before {self} can start",
+						finishToFinish: "{other} must finish before {self} can finish",
+						startToFinish: "{other} must start before {self} can finish",
+					},
+					blocking: {
+						finishToStart: "{self} must finish before {other} can start",
+						startToStart: "{self} must start before {other} can start",
+						finishToFinish: "{self} must finish before {other} can finish",
+						startToFinish: "{self} must start before {other} can finish",
+					},
+				},
 			},
 			organization: {
 				projects: "Projects",
@@ -2824,6 +2878,22 @@ export const en: TranslationTree = {
 				switch: "Switch storage",
 			},
 		},
+		dependencyReadiness: {
+			title: "Enable advanced dependency types?",
+			missing: "No status is categorized as {categories}.",
+			consequence: {
+				releasesOnCompletion:
+					"Start-to-start and start-to-finish dependencies will release only when the predecessor completes, not when it starts.",
+				releasesImmediately:
+					"Every status already counts as started, so start-to-start and start-to-finish dependencies will release immediately instead of holding the task until the predecessor starts.",
+			},
+			remedy: "To change that, assign the missing category to one of your existing statuses in the task properties settings.",
+			buttons: {
+				goBack: "Go back",
+				justEnable: "Just enable",
+				enableAndOpenStatuses: "Enable and go to statuses...",
+			},
+		},
 		dueDate: {
 			title: "Set due date",
 			taskLabel: "Task: {title}",
@@ -2999,6 +3069,20 @@ export const en: TranslationTree = {
 				removeBlockedBy: "Remove blocked-by…",
 				removeBlocking: "Remove blocking…",
 				unknownDependency: "Unknown",
+				reltype: {
+					blocking: {
+						finishToStart: "Finish → start · they can't start until this finishes",
+						startToStart: "Start → start · they can't start until this starts",
+						finishToFinish: "Finish → finish · they can't finish until this finishes",
+						startToFinish: "Start → finish · they can't finish until this starts",
+					},
+					blockedBy: {
+						finishToStart: "Finish → start · this can't start until that finishes",
+						startToStart: "Start → start · this can't start until that starts",
+						finishToFinish: "Finish → finish · this can't finish until that finishes",
+						startToFinish: "Start → finish · this can't finish until that starts",
+					},
+				},
 				inputPlaceholder: "[[Task Note]]",
 				notices: {
 					noEntries: "Please enter at least one task",
@@ -3275,9 +3359,15 @@ export const en: TranslationTree = {
 			},
 			blockedBadge: "Blocked",
 			blockedBadgeTooltip: "This task is waiting on another task",
+			blockedStart: "Blocked · start",
+			blockedStartTooltip: "Cannot start yet — waiting on a predecessor",
+			blockedFinish: "Blocked · finish",
+			blockedFinishTooltip: "Can start, but cannot finish yet — waiting on a predecessor",
+			dependenciesBadge: "Dependencies",
 			blockingBadge: "Blocking",
 			blockingBadgeTooltip: "This task is blocking another task",
 			blockingToggle: "Blocking {count} tasks",
+			blockingToggleBreakdown: "Blocking {count} tasks:\n{start} to start\n{finish} to finish",
 			priorityAriaLabel: "Priority: {label}",
 			taskOptions: "Task options",
 			recurrenceTooltip: "{label}: {value}",

@@ -1,7 +1,13 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion -- Dependency graph traversal guards resolved task nodes before dereferencing. */
 import { TFile, App, Events, EventRef } from "obsidian";
 import { FieldMapper } from "../core/FieldMapper";
-import { normalizeDependencyList, resolveDependencyEntry } from "./dependencyUtils";
+import {
+	normalizeDependencyList,
+	resolveDependencyEntry,
+	reltypeConstrainsStart,
+	reltypeReleasedByPredecessorFinish,
+} from "./dependencyUtils";
+import type { TaskDependencyRelType } from "../types";
 import { TaskNotesSettings } from "../types/settings";
 import { isPathInExcludedFolder, parseExcludedFolders } from "./pathExclusions";
 import { createTaskNotesLogger } from "./tasknotesLogger";
@@ -12,6 +18,7 @@ export const EVENT_DEPENDENCY_CACHE_CHANGED = "dependency-cache-changed";
 
 interface DependencyStatusClassifier {
 	isCompletedStatus(statusValue: string): boolean;
+	isStarted(statusValue: string): boolean;
 }
 
 /**
@@ -33,14 +40,14 @@ export class DependencyCache extends Events {
 	// Dependency indexes
 	private dependencySources: Map<string, Set<string>> = new Map(); // task path -> blocking task paths
 	private dependencyTargets: Map<string, Set<string>> = new Map(); // task path -> tasks blocked by this task
-	private activeDependencySources: Map<string, Set<string>> = new Map(); // task path -> incomplete blocking task paths
-	private activeDependencyTargets: Map<string, Set<string>> = new Map(); // task path -> tasks actively blocked by this task
+	private edgeReltypes: Map<string, Map<string, TaskDependencyRelType>> = new Map(); // successor path -> (predecessor path -> reltype)
 
 	// Project references index
 	private projectReferences: Map<string, Set<string>> = new Map(); // project path -> Set<task paths that reference it>
 	private projectReferenceSources: Map<string, Set<string>> = new Map(); // task path -> Set<project paths it references>
 	private relationshipFingerprints: Map<string, string> = new Map(); // task path -> normalized dependency/project fields
-	private completedStatusByPath: Map<string, boolean> = new Map(); // file path -> completion state for status-aware dependency lookups
+	private completedStatusByPath: Map<string, boolean> = new Map(); // file path -> "finished" (isCompleted) per path
+	private startedStatusByPath: Map<string, boolean> = new Map(); // file path -> "started" (category in-progress/completed) per path
 
 	// Initialization state
 	private initialized = false;
@@ -147,7 +154,7 @@ export class DependencyCache extends Events {
 		}
 
 		const frontmatter = this.getFrontmatterFromCache(cache) ?? this.getFrontmatterForFile(file);
-		this.updateCompletionState(file.path, frontmatter);
+		this.updateLifecycleState(file.path, frontmatter);
 
 		if (!frontmatter) {
 			if (this.hasForwardRelationships(file.path)) {
@@ -187,12 +194,13 @@ export class DependencyCache extends Events {
 
 	private getFileRelationshipSignature(path: string): string {
 		const blockingTasks = this.sortedSetValues(this.dependencySources.get(path));
-		const blockedTasks = this.sortedSetValues(this.activeDependencyTargets.get(path));
+		const { start, finish } = this.computeBlockedDependents(path);
 		const referencedProjects = this.sortedSetValues(this.projectReferenceSources.get(path));
 		const projectTasks = this.sortedSetValues(this.projectReferences.get(path));
 
 		return JSON.stringify({
-			blockedTasks,
+			blockedStart: this.sortedSetValues(start),
+			blockedFinish: this.sortedSetValues(finish),
 			blockingTasks,
 			projectTasks,
 			referencedProjects,
@@ -274,6 +282,7 @@ export class DependencyCache extends Events {
 
 		this.relationshipFingerprints.set(path, this.buildRelationshipFingerprint(frontmatter));
 		this.completedStatusByPath.set(path, this.isCompletedFrontmatter(frontmatter));
+		this.startedStatusByPath.set(path, this.isStartedFrontmatter(frontmatter));
 
 		const dependenciesField = this.fieldMapper?.toUserField("blockedBy") || "blockedBy";
 		const projectField = this.fieldMapper?.toUserField("projects") || "project";
@@ -288,7 +297,7 @@ export class DependencyCache extends Events {
 				for (const dep of normalized) {
 					const resolved = resolveDependencyEntry(this.app, path, dep);
 					if (resolved?.path && this.isValidFile(resolved.path)) {
-						this.addDependencyLink(path, resolved.path, blockingTasks);
+						this.addDependencyLink(path, resolved.path, dep.reltype, blockingTasks);
 					}
 				}
 
@@ -326,6 +335,7 @@ export class DependencyCache extends Events {
 	private addDependencyLink(
 		dependentPath: string,
 		blockingPath: string,
+		reltype: TaskDependencyRelType,
 		blockingTasks: Set<string>
 	): void {
 		blockingTasks.add(blockingPath);
@@ -335,66 +345,78 @@ export class DependencyCache extends Events {
 		}
 		this.dependencyTargets.get(blockingPath)!.add(dependentPath);
 
-		if (!this.isCompletedPath(blockingPath)) {
-			this.addActiveDependencyLink(dependentPath, blockingPath);
+		let edges = this.edgeReltypes.get(dependentPath);
+		if (!edges) {
+			edges = new Map();
+			this.edgeReltypes.set(dependentPath, edges);
 		}
+		// One reltype per (dependent, predecessor): a hand-authored duplicate edge to the same
+		// predecessor keeps the last reltype. The dependency picker prevents duplicates.
+		edges.set(blockingPath, reltype);
 	}
 
-	private addActiveDependencyLink(dependentPath: string, blockingPath: string): void {
-		if (!this.activeDependencySources.has(dependentPath)) {
-			this.activeDependencySources.set(dependentPath, new Set());
-		}
-		this.activeDependencySources.get(dependentPath)!.add(blockingPath);
-
-		if (!this.activeDependencyTargets.has(blockingPath)) {
-			this.activeDependencyTargets.set(blockingPath, new Set());
-		}
-		this.activeDependencyTargets.get(blockingPath)!.add(dependentPath);
+	// An edge releases when its predecessor reaches the edge's predecessor endpoint:
+	// FINISH* on the predecessor's completion, START* once the predecessor is started.
+	private isEdgeReleased(predecessorPath: string, reltype: TaskDependencyRelType): boolean {
+		return reltypeReleasedByPredecessorFinish(reltype)
+			? (this.completedStatusByPath.get(predecessorPath) ?? false)
+			: (this.startedStatusByPath.get(predecessorPath) ?? false);
 	}
 
-	private removeActiveDependencyLink(dependentPath: string, blockingPath: string): void {
-		const activeSources = this.activeDependencySources.get(dependentPath);
-		if (activeSources) {
-			activeSources.delete(blockingPath);
-			if (activeSources.size === 0) {
-				this.activeDependencySources.delete(dependentPath);
-			}
-		}
-
-		const activeTargets = this.activeDependencyTargets.get(blockingPath);
-		if (activeTargets) {
-			activeTargets.delete(dependentPath);
-			if (activeTargets.size === 0) {
-				this.activeDependencyTargets.delete(blockingPath);
-			}
-		}
-	}
-
-	private rebuildActiveLinksForBlocker(blockingPath: string): void {
-		const blockedTasks = this.dependencyTargets.get(blockingPath);
-		this.activeDependencyTargets.delete(blockingPath);
-
-		if (!blockedTasks) {
-			return;
-		}
-
-		for (const dependentPath of blockedTasks) {
-			const activeSources = this.activeDependencySources.get(dependentPath);
-			if (activeSources) {
-				activeSources.delete(blockingPath);
-				if (activeSources.size === 0) {
-					this.activeDependencySources.delete(dependentPath);
+	// Forward view: the predecessors whose unreleased edges currently constrain this task,
+	// split by the endpoint they gate. A released edge (started-SS, completed FS) is excluded.
+	private computeConstrainingPredecessors(taskPath: string): {
+		start: Set<string>;
+		finish: Set<string>;
+	} {
+		const start = new Set<string>();
+		const finish = new Set<string>();
+		const edges = this.edgeReltypes.get(taskPath);
+		if (edges) {
+			for (const [predecessorPath, reltype] of edges) {
+				if (this.isEdgeReleased(predecessorPath, reltype)) {
+					continue;
+				}
+				if (reltypeConstrainsStart(reltype)) {
+					start.add(predecessorPath);
+				} else {
+					finish.add(predecessorPath);
 				}
 			}
 		}
+		return { start, finish };
+	}
 
-		if (this.isCompletedPath(blockingPath)) {
-			return;
-		}
+	private computeBlockedState(taskPath: string): {
+		startBlocked: boolean;
+		finishBlocked: boolean;
+	} {
+		const { start, finish } = this.computeConstrainingPredecessors(taskPath);
+		return { startBlocked: start.size > 0, finishBlocked: finish.size > 0 };
+	}
 
-		for (const dependentPath of blockedTasks) {
-			this.addActiveDependencyLink(dependentPath, blockingPath);
+	// Reverse view: the successors this task currently blocks, split by the endpoint it gates.
+	private computeBlockedDependents(predecessorPath: string): {
+		start: Set<string>;
+		finish: Set<string>;
+	} {
+		const start = new Set<string>();
+		const finish = new Set<string>();
+		const successors = this.dependencyTargets.get(predecessorPath);
+		if (successors) {
+			for (const successorPath of successors) {
+				const reltype = this.edgeReltypes.get(successorPath)?.get(predecessorPath);
+				if (!reltype || this.isEdgeReleased(predecessorPath, reltype)) {
+					continue;
+				}
+				if (reltypeConstrainsStart(reltype)) {
+					start.add(successorPath);
+				} else {
+					finish.add(successorPath);
+				}
+			}
 		}
+		return { start, finish };
 	}
 
 	private buildRelationshipFingerprint(frontmatter: Record<string, unknown>): string {
@@ -402,8 +424,8 @@ export class DependencyCache extends Events {
 		const projectField = this.fieldMapper?.toUserField("projects") || "project";
 
 		const dependencies = (normalizeDependencyList(frontmatter[dependenciesField]) ?? [])
-			.map((dependency) => dependency.uid)
-			.filter((uid) => uid.length > 0)
+			.filter((dependency) => dependency.uid.length > 0)
+			.map((dependency) => `${dependency.uid}|${dependency.reltype}|${dependency.gap ?? ""}`)
 			.sort();
 		const projects = this.normalizeProjectFingerprintValues(frontmatter[projectField]);
 
@@ -436,39 +458,30 @@ export class DependencyCache extends Events {
 		);
 	}
 
-	private updateCompletionState(path: string, frontmatter: Record<string, unknown> | null): void {
-		const oldCompleted = this.completedStatusByPath.get(path) ?? false;
-		const newCompleted = frontmatter ? this.isCompletedFrontmatter(frontmatter) : false;
-		this.completedStatusByPath.set(path, newCompleted);
-
-		if (oldCompleted !== newCompleted) {
-			this.rebuildActiveLinksForBlocker(path);
-		}
-	}
-
-	private isCompletedPath(path: string): boolean {
-		const cached = this.completedStatusByPath.get(path);
-		if (cached !== undefined) {
-			return cached;
-		}
-
-		const file = this.app.vault.getAbstractFileByPath(path);
-		if (!(file instanceof TFile)) {
-			this.completedStatusByPath.set(path, false);
-			return false;
-		}
-
-		const frontmatter = this.getFrontmatterForFile(file);
-		const completed = frontmatter ? this.isCompletedFrontmatter(frontmatter) : false;
-		this.completedStatusByPath.set(path, completed);
-		return completed;
+	private updateLifecycleState(path: string, frontmatter: Record<string, unknown> | null): void {
+		this.completedStatusByPath.set(
+			path,
+			frontmatter ? this.isCompletedFrontmatter(frontmatter) : false
+		);
+		this.startedStatusByPath.set(
+			path,
+			frontmatter ? this.isStartedFrontmatter(frontmatter) : false
+		);
 	}
 
 	private isCompletedFrontmatter(frontmatter: Record<string, unknown>): boolean {
-		const statusField = this.fieldMapper?.toUserField("status") || "status";
-		const status = frontmatter[statusField];
-		const statusText = this.stringifyStatusValue(status);
+		const statusText = this.readStatusText(frontmatter);
 		return Boolean(statusText && this.statusManager.isCompletedStatus(statusText));
+	}
+
+	private isStartedFrontmatter(frontmatter: Record<string, unknown>): boolean {
+		const statusText = this.readStatusText(frontmatter);
+		return Boolean(statusText && this.statusManager.isStarted(statusText));
+	}
+
+	private readStatusText(frontmatter: Record<string, unknown>): string | null {
+		const statusField = this.fieldMapper?.toUserField("status") || "status";
+		return this.stringifyStatusValue(frontmatter[statusField]);
 	}
 
 	private stringifyStatusValue(status: unknown): string | null {
@@ -501,11 +514,10 @@ export class DependencyCache extends Events {
 						this.dependencyTargets.delete(blockingTask);
 					}
 				}
-				this.removeActiveDependencyLink(path, blockingTask);
 			}
 			this.dependencySources.delete(path);
 		}
-		this.activeDependencySources.delete(path);
+		this.edgeReltypes.delete(path);
 
 		// Also clear project references since those are stored in this task's frontmatter
 		const referencedProjects = this.projectReferenceSources.get(path);
@@ -541,11 +553,10 @@ export class DependencyCache extends Events {
 						this.dependencyTargets.delete(blockingTask);
 					}
 				}
-				this.removeActiveDependencyLink(path, blockingTask);
 			}
 			this.dependencySources.delete(path);
 		}
-		this.activeDependencySources.delete(path);
+		this.edgeReltypes.delete(path);
 
 		// Clear from dependency targets
 		const blockedTasks = this.dependencyTargets.get(path);
@@ -559,11 +570,10 @@ export class DependencyCache extends Events {
 						this.dependencySources.delete(blockedTask);
 					}
 				}
-				this.removeActiveDependencyLink(blockedTask, path);
+				this.edgeReltypes.get(blockedTask)?.delete(path);
 			}
 			this.dependencyTargets.delete(path);
 		}
-		this.activeDependencyTargets.delete(path);
 
 		// Clear project references declared by this file
 		const referencedProjects = this.projectReferenceSources.get(path);
@@ -596,6 +606,7 @@ export class DependencyCache extends Events {
 		}
 		this.relationshipFingerprints.delete(path);
 		this.completedStatusByPath.delete(path);
+		this.startedStatusByPath.delete(path);
 	}
 
 	/**
@@ -634,8 +645,8 @@ export class DependencyCache extends Events {
 			this.buildIndexesSync();
 		}
 
-		const blocked = this.activeDependencyTargets.get(taskPath);
-		return blocked ? Array.from(blocked) : [];
+		const { start, finish } = this.computeBlockedDependents(taskPath);
+		return Array.from(new Set([...start, ...finish]));
 	}
 
 	/**
@@ -646,7 +657,59 @@ export class DependencyCache extends Events {
 		if (!this.indexesBuilt) {
 			this.buildIndexesSync();
 		}
-		return (this.activeDependencySources.get(taskPath)?.size ?? 0) > 0;
+		const { startBlocked, finishBlocked } = this.computeBlockedState(taskPath);
+		return startBlocked || finishBlocked;
+	}
+
+	/**
+	 * Cannot start yet: an FS predecessor unfinished, or an SS predecessor unstarted.
+	 */
+	isTaskStartBlocked(taskPath: string): boolean {
+		if (!this.indexesBuilt) {
+			this.buildIndexesSync();
+		}
+		return this.computeBlockedState(taskPath).startBlocked;
+	}
+
+	/**
+	 * Cannot finish yet: an FF predecessor unfinished, or an SF predecessor unstarted.
+	 */
+	isTaskFinishBlocked(taskPath: string): boolean {
+		if (!this.indexesBuilt) {
+			this.buildIndexesSync();
+		}
+		return this.computeBlockedState(taskPath).finishBlocked;
+	}
+
+	// Forward, release-aware view: FS/SS edges still gating start, FF/SF still gating finish.
+	getStartBlockingPredecessorPaths(taskPath: string): string[] {
+		if (!this.indexesBuilt) {
+			this.buildIndexesSync();
+		}
+		return Array.from(this.computeConstrainingPredecessors(taskPath).start);
+	}
+
+	getFinishBlockingPredecessorPaths(taskPath: string): string[] {
+		if (!this.indexesBuilt) {
+			this.buildIndexesSync();
+		}
+		return Array.from(this.computeConstrainingPredecessors(taskPath).finish);
+	}
+
+	// Reverse: the successors this task currently blocks from starting.
+	getStartBlockedDependentPaths(taskPath: string): string[] {
+		if (!this.indexesBuilt) {
+			this.buildIndexesSync();
+		}
+		return Array.from(this.computeBlockedDependents(taskPath).start);
+	}
+
+	// Reverse: the successors this task currently blocks from finishing.
+	getFinishBlockedDependentPaths(taskPath: string): string[] {
+		if (!this.indexesBuilt) {
+			this.buildIndexesSync();
+		}
+		return Array.from(this.computeBlockedDependents(taskPath).finish);
 	}
 
 	/**
@@ -725,12 +788,12 @@ export class DependencyCache extends Events {
 	private clearIndexes(): void {
 		this.dependencySources.clear();
 		this.dependencyTargets.clear();
-		this.activeDependencySources.clear();
-		this.activeDependencyTargets.clear();
+		this.edgeReltypes.clear();
 		this.projectReferences.clear();
 		this.projectReferenceSources.clear();
 		this.relationshipFingerprints.clear();
 		this.completedStatusByPath.clear();
+		this.startedStatusByPath.clear();
 	}
 
 	/**

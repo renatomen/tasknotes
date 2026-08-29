@@ -10,7 +10,7 @@ import {
 	updateMetadataVisibility,
 	type TaskCardPropertyOptions,
 } from "./taskCardProperties";
-import { getBlockedByTaskPaths } from "./taskCardRelationships";
+import { getBlockedByTaskPaths, resolveBlockedConstraint } from "./taskCardRelationships";
 import { prepareInteractiveControl } from "./taskCardIndicators";
 import {
 	toggleTaskCardBlockedByExpansion,
@@ -55,32 +55,36 @@ function createBlockedMetadataPill(config: RenderTaskCardMetadataConfig): HTMLEl
 		return null;
 	}
 
-	const blockedLabel = plugin.i18n.translate("ui.taskCard.blockedBadge");
-	const blockedByPaths = getBlockedByTaskPaths(task, plugin.app);
-	const blockedCount = task.blockedBy?.length ?? 0;
-	const pillText = blockedCount > 0 ? `${blockedLabel} (${blockedCount})` : blockedLabel;
+	const blocked = resolveBlockedConstraint(task, plugin.app, plugin.dependencyCache);
+	const isFinish = blocked.state === "finish";
+	const blockedLabel = plugin.i18n.translate(
+		isFinish ? "ui.taskCard.blockedFinish" : "ui.taskCard.blockedStart"
+	);
+	const blockedTooltip = plugin.i18n.translate(
+		isFinish ? "ui.taskCard.blockedFinishTooltip" : "ui.taskCard.blockedStartTooltip"
+	);
+	const pillText = `${blockedLabel} (${blocked.count})`;
 	const blockedPill = metadataLine.createSpan({
-		cls: "task-card__metadata-pill task-card__metadata-pill--blocked",
+		cls: `task-card__metadata-pill task-card__metadata-pill--blocked ${
+			isFinish ? "is-finish-blocked" : "is-start-blocked"
+		}`,
 		text: pillText,
 	});
 
-	if (blockedByPaths.length > 0) {
-		const toggleLabel = `${blockedLabel} (${blockedByPaths.length})`;
+	if (getBlockedByTaskPaths(task, plugin.app).length > 0) {
 		prepareInteractiveControl(blockedPill);
-		blockedPill.setAttribute("aria-label", toggleLabel);
+		blockedPill.setAttribute("aria-label", pillText);
 		blockedPill.setAttribute(
 			"aria-expanded",
 			String(Boolean(card.querySelector(".task-card__blocked-by")))
 		);
-		setTooltip(blockedPill, toggleLabel, { placement: "top" });
+		setTooltip(blockedPill, blockedTooltip, { placement: "top" });
 		blockedPill.addEventListener("click", (event) => {
 			event.stopPropagation();
 			onBlockedByToggle();
 		});
 	} else {
-		setTooltip(blockedPill, plugin.i18n.translate("ui.taskCard.blockedBadgeTooltip"), {
-			placement: "top",
-		});
+		setTooltip(blockedPill, blockedTooltip, { placement: "top" });
 	}
 
 	return blockedPill;

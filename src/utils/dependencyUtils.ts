@@ -16,6 +16,101 @@ export function isValidDependencyRelType(value: string): value is TaskDependency
 	return VALID_RELATIONSHIP_TYPES.includes(value as TaskDependencyRelType);
 }
 
+// RFC 9253 per-endpoint reading: FS/SS constrain the successor's start, FF/SF its finish.
+export function reltypeConstrainsStart(reltype: TaskDependencyRelType): boolean {
+	return reltype === "FINISHTOSTART" || reltype === "STARTTOSTART";
+}
+
+export function reltypeConstrainsFinish(reltype: TaskDependencyRelType): boolean {
+	return reltype === "FINISHTOFINISH" || reltype === "STARTTOFINISH";
+}
+
+// The edge releases when the predecessor reaches its own endpoint: FINISH* on completion,
+// START* once started.
+export function reltypeReleasedByPredecessorFinish(reltype: TaskDependencyRelType): boolean {
+	return reltype === "FINISHTOSTART" || reltype === "FINISHTOFINISH";
+}
+
+export interface BlockingStateSource {
+	isTaskStartBlocked(taskPath: string): boolean;
+	isTaskFinishBlocked(taskPath: string): boolean;
+	getBlockedTaskPaths(taskPath: string): string[];
+	getStartBlockedDependentPaths(taskPath: string): string[];
+	getFinishBlockedDependentPaths(taskPath: string): string[];
+}
+
+export interface DerivedBlockingState {
+	startBlocked: boolean;
+	finishBlocked: boolean;
+	blockingTasks: string[];
+	isBlockingStart: boolean;
+	isBlockingFinish: boolean;
+}
+
+// Per-endpoint blocking state for a task: status-aware from the cache when available, else an
+// existence-based fallback from the task's own edge reltypes (the fallback has no reverse view).
+export function deriveBlockingState(
+	cache: BlockingStateSource | undefined,
+	taskPath: string,
+	blockedByEntries: readonly TaskDependency[]
+): DerivedBlockingState {
+	if (cache && taskPath) {
+		return {
+			startBlocked: cache.isTaskStartBlocked(taskPath),
+			finishBlocked: cache.isTaskFinishBlocked(taskPath),
+			blockingTasks: cache.getBlockedTaskPaths(taskPath),
+			isBlockingStart: cache.getStartBlockedDependentPaths(taskPath).length > 0,
+			isBlockingFinish: cache.getFinishBlockedDependentPaths(taskPath).length > 0,
+		};
+	}
+	return {
+		startBlocked: blockedByEntries.some((edge) => reltypeConstrainsStart(edge.reltype)),
+		finishBlocked: blockedByEntries.some((edge) => reltypeConstrainsFinish(edge.reltype)),
+		blockingTasks: [],
+		isBlockingStart: false,
+		isBlockingFinish: false,
+	};
+}
+
+export type DependencyGapUnit = "hours" | "days" | "weeks";
+
+export interface StructuredGap {
+	value: number;
+	unit: DependencyGapUnit;
+}
+
+const GAP_UNIT_TOKEN: Record<DependencyGapUnit, string> = {
+	hours: "PT{n}H",
+	days: "P{n}D",
+	weeks: "P{n}W",
+};
+
+// Compose a whole-number ISO-8601 offset. Floors first (a sub-1 value clears the gap rather
+// than composing a "P0D" no-op) and bounds the size (never a scientific-notation token).
+export function composeDependencyGap(value: number, unit: DependencyGapUnit): string | undefined {
+	const whole = Math.floor(value);
+	if (!Number.isFinite(value) || whole <= 0 || whole > 100000) {
+		return undefined;
+	}
+	return GAP_UNIT_TOKEN[unit].replace("{n}", String(whole));
+}
+
+// Parses only the whole-unit forms this UI composes; an exotic stored gap returns null so
+// the caller surfaces it read-only rather than silently rewriting it.
+export function parseDependencyGap(gap: string | undefined): StructuredGap | null {
+	if (!gap) {
+		return null;
+	}
+	const match = /^P(?:T(\d+)H|(\d+)([DW]))$/.exec(gap.trim().toUpperCase());
+	if (!match) {
+		return null;
+	}
+	if (match[1]) {
+		return { value: Number(match[1]), unit: "hours" };
+	}
+	return { value: Number(match[2]), unit: match[3] === "W" ? "weeks" : "days" };
+}
+
 export function extractDependencyUid(entry: unknown): string {
 	if (typeof entry === "string") {
 		return entry;

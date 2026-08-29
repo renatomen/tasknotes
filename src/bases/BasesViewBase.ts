@@ -2,6 +2,10 @@ import { Component, App, Notice } from "obsidian";
 import type { BasesPropertyId, BasesQueryResult, BasesViewConfig, EventRef } from "obsidian";
 import TaskNotesPlugin from "../main";
 import { BasesDataAdapter } from "./BasesDataAdapter";
+import {
+	buildCalendarDataSignature,
+	buildCalendarDataSignaturePropertyIds,
+} from "./calendarDataSignature";
 import { PropertyMappingService } from "./PropertyMappingService";
 import { TaskInfo } from "../types";
 import { convertInternalToUserProperties } from "../utils/propertyMapping";
@@ -100,6 +104,7 @@ export abstract class BasesViewBase extends Component {
 	protected taskUpdateListener: EventRef[] | null = null;
 	protected updateDebounceTimer: number | null = null;
 	protected dataUpdateDebounceTimer: number | null = null;
+	private lastDataUpdateSignature: string | null = null;
 	private restoreConfigChangeHook: (() => void) | null = null;
 	protected relevantPathsCache: Set<string> = new Set();
 
@@ -188,6 +193,13 @@ export abstract class BasesViewBase extends Component {
 			return;
 		}
 
+		// Skip when data is unchanged (e.g. a leaf activation); re-rendering drops expanded card state.
+		const dataSignature = this.computeDataUpdateSignature();
+		if (dataSignature !== null && dataSignature === this.lastDataUpdateSignature) {
+			return;
+		}
+		this.lastDataUpdateSignature = dataSignature;
+
 		this.dataUpdateDebounceTimer = scheduleBasesDataUpdateRender({
 			currentTimer: this.dataUpdateDebounceTimer,
 			scheduler: this.getTimeoutScheduler(),
@@ -214,6 +226,26 @@ export abstract class BasesViewBase extends Component {
 			},
 			delayMs: 500,
 		});
+	}
+
+	/** Data signature used to gate re-renders; null opts out of gating for this cycle. */
+	protected computeDataUpdateSignature(): string | null {
+		try {
+			let visiblePropertyIds: readonly unknown[] = [];
+			try {
+				visiblePropertyIds = this.dataAdapter.getVisiblePropertyIds();
+			} catch {
+				// visible-property config can be absent during early setup
+			}
+			const propertyIds = buildCalendarDataSignaturePropertyIds({
+				mapField: (field) => this.plugin?.fieldMapper?.toUserField(field),
+				visiblePropertyIds,
+				showPropertyBasedEvents: false,
+			});
+			return buildCalendarDataSignature(this.dataAdapter.extractDataItems(), propertyIds);
+		} catch {
+			return null;
+		}
 	}
 
 	/**

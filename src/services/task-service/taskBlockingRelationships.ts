@@ -4,7 +4,7 @@ import {
 	normalizeDependencyEntry,
 } from "../../utils/dependencyUtils";
 
-export type BlockingRelationshipAction = "add" | "remove";
+export type BlockingRelationshipAction = "add" | "remove" | "modify";
 
 export interface BlockingRelationshipPathChanges {
 	uniqueAdditions: string[];
@@ -68,6 +68,21 @@ export function computeBlockedByUpdate({
 			if (action === "remove") {
 				modified = true;
 				continue;
+			}
+			if (action === "modify") {
+				const normalizedIncoming = rawEntry ? normalizeDependencyEntry(rawEntry) : null;
+				if (normalizedIncoming) {
+					const updated: TaskDependency = {
+						uid: entry.uid,
+						reltype: normalizedIncoming.reltype,
+					};
+					if (normalizedIncoming.gap) {
+						updated.gap = normalizedIncoming.gap;
+					}
+					result.push(updated);
+					modified = true;
+					continue;
+				}
 			}
 		}
 		result.push(entry);
