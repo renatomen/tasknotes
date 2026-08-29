@@ -1,0 +1,98 @@
+name: Fork Quality Gate
+
+# Fork-only pre-submission gate. Lives on tooling/ci (never contributed upstream)
+# and rides into dogfood via the FEATURES merge. Reproduces upstream's checks on
+# ubuntu/node-20/UTC; the SONAR_TOKEN-bearing scan is isolated in its own job so it
+# never runs project-controlled code (GitHub Security Lab pattern).
+on:
+  pull_request:
+    branches: [tooling/ci]
+  push:
+    branches: [dogfood]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Gate + coverage
+    runs-on: ubuntu-latest
+    env:
+      TZ: UTC
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          submodules: true  # docs/spec is a submodule; docs:check needs it
+          persist-credentials: false
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: i18n manifest up to date
+        run: |
+          npm run i18n:sync
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::i18n manifest/state out of date - run 'npm run i18n:sync' and commit."
+            git status --porcelain
+            exit 1
+          fi
+      - name: Docs quality checks
+        run: npm run docs:check
+      - name: Generate release notes import
+        # src/releaseNotes.ts is generated (gitignored); typecheck and tests import it.
+        run: node generate-release-notes-import.mjs
+      - name: Type check
+        run: npm run typecheck
+      - name: Lint
+        # Non-blocking to match upstream test.yml; the blocking eslint gate is the
+        # fork's local pre-commit hook.
+        run: npm run lint || echo "lint completed with warnings"
+      - name: Tests with coverage
+        run: npm run test:ci
+      - name: Build
+        # Fork PRs receive no OAuth secrets; the build runs with empty values, the
+        # same as upstream's own PR CI sees.
+        env:
+          GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+          MICROSOFT_OAUTH_CLIENT_ID: ${{ secrets.MICROSOFT_OAUTH_CLIENT_ID }}
+        run: |
+          cat <<EOF > .env
+          GOOGLE_OAUTH_CLIENT_ID=${GOOGLE_OAUTH_CLIENT_ID}
+          MICROSOFT_OAUTH_CLIENT_ID=${MICROSOFT_OAUTH_CLIENT_ID}
+          EOF
+          npm run build
+      - name: Upload coverage
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage-lcov
+          path: coverage/lcov.info
+          if-no-files-found: error
+
+  sonar:
+    name: SonarCloud
+    needs: test
+    runs-on: ubuntu-latest
+    # Run only where SONAR_TOKEN exists and the code is trusted: dogfood pushes,
+    # manual dispatch, and same-repo (non-fork, non-Dependabot) PRs. A fork PR gets
+    # no secrets, so it is skipped rather than failing.
+    if: >-
+      github.event_name != 'pull_request' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+       github.actor != 'dependabot[bot]')
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Download coverage
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: coverage-lcov
+          path: coverage
+      - name: SonarCloud scan
+        uses: SonarSource/sonarqube-scan-action@713881670b6b3676cda39549040e2d88c70d582e # v8.2.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
