@@ -491,8 +491,12 @@ export interface TaskInfo {
 	basesData?: unknown; // Raw Bases data for formula computation (internal use)
 	blockedBy?: TaskDependency[]; // Dependencies that must be satisfied before this task can start
 	blocking?: string[]; // Task paths that this task is blocking
-	isBlocked?: boolean; // True if any blocking dependency is incomplete
+	isBlocked?: boolean;
 	isBlocking?: boolean; // True if this task blocks at least one other task
+	startBlocked?: boolean; // Cannot start: an FS predecessor unfinished or an SS predecessor unstarted
+	finishBlocked?: boolean; // Cannot finish: an FF predecessor unfinished or an SF predecessor unstarted
+	isBlockingStart?: boolean; // Blocks at least one successor's start
+	isBlockingFinish?: boolean; // Blocks at least one successor's finish
 	hasSubtasks?: boolean; // True if another task references this task as a project
 	details?: string; // Optional task body content
 	sortOrder?: string; // LexoRank string for ordering within column
@@ -732,13 +736,23 @@ export interface FieldMapping {
 	sortOrder: string; // Numeric ordering within column (lower = higher)
 }
 
+/**
+ * Lifecycle stage of a status (labels: Not started / Started / Completed). Always set at
+ * runtime — the settings-load normalizer and the status-write sites default a missing one to
+ * `planned`; optional in the type only to spare the many existing status literals a change.
+ */
+export type StatusCategory = "planned" | "in-progress" | "completed";
+
+export const STATUS_CATEGORIES: readonly StatusCategory[] = ["planned", "in-progress", "completed"];
+
 export interface StatusConfig {
 	id: string; // Unique identifier
 	value: string; // What gets written to YAML
 	label: string; // What displays in UI
 	color: string; // Hex color for UI elements
 	icon?: string; // Optional Lucide icon name (e.g., "circle", "check", "clock")
-	isCompleted: boolean; // Whether this counts as "done"
+	isCompleted: boolean; // Whether this counts as "done"; kept in sync with category === "completed"
+	category?: StatusCategory; // Lifecycle stage; always set at runtime (defaults to "planned")
 	isSkipped?: boolean; // Whether this counts as a skipped occurrence
 	excludeFromCycle?: boolean; // Whether status-dot cycling should skip this status
 	nextStatus?: string; // Optional status value to use when cycling forward from this status

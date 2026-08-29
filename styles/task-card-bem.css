@@ -201,6 +201,16 @@
     border-color: var(--tn-color-error);
 }
 
+.tasknotes-plugin .task-card__metadata-pill--blocked.is-finish-blocked {
+    background: color-mix(in srgb, var(--tn-color-warning) 75%, var(--tn-bg-primary));
+    border-color: color-mix(in srgb, var(--tn-color-warning) 85%, var(--tn-bg-primary));
+}
+
+.tasknotes-plugin .task-card__metadata-pill--blocked.is-finish-blocked:hover {
+    background: var(--tn-color-warning);
+    border-color: var(--tn-color-warning);
+}
+
 .tasknotes-plugin .task-card__metadata-pill--blocking {
     background: transparent;
     color: var(--tn-color-error);
@@ -704,6 +714,20 @@ body.is-mobile .tasknotes-plugin .task-card.task-card--chevron-left .task-card__
 .tasknotes-plugin .task-card__blocking-toggle.is-hidden,
 .tasknotes-plugin .task-card__blocked-toggle.is-hidden {
     display: none;
+}
+
+.tasknotes-plugin .task-card__blocked-toggle.is-start-blocked {
+    color: var(--tn-color-error);
+    opacity: 1;
+}
+
+.tasknotes-plugin .task-card__blocked-toggle.is-finish-blocked {
+    color: var(--tn-color-warning);
+    opacity: 1;
+}
+
+.tasknotes-plugin .task-card__blocked-toggle.is-released {
+    color: var(--tn-text-muted);
 }
 
 /* Left-position variant for subtask chevron */

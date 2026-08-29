@@ -516,7 +516,13 @@ export function createCard(container: HTMLElement, config: CardConfig): HTMLElem
  */
 export function createStatusBadge(
 	text: string,
-	variant: "active" | "inactive" | "completed" | "default" = "default"
+	variant:
+		| "active"
+		| "inactive"
+		| "completed"
+		| "planned"
+		| "in-progress"
+		| "default" = "default"
 ): HTMLElement {
 	const badge = activeWindow.createSpan();
 	badge.addClass("tasknotes-settings__card-status-badge");

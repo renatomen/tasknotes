@@ -19,6 +19,50 @@ import {
 } from "../../components/CardComponent";
 import { createIconInput } from "../../components/IconSuggest";
 import { createNLPTriggerRows, createPropertyDescription, TranslateFn } from "./helpers";
+import { StatusCategory, STATUS_CATEGORIES } from "../../../types";
+import { countStatusCategories } from "../../defaults";
+
+// The badge i18n keys are camelCase, but the stored category value for "Started" is
+// the hyphenated "in-progress" (also the CSS variant); map the one that differs.
+const categoryI18nKey = (category: StatusCategory): string =>
+	category === "in-progress" ? "inProgress" : category;
+
+function createCategoryBadge(
+	category: StatusCategory | undefined,
+	translate: TranslateFn
+): HTMLElement {
+	const variant = category ?? "planned";
+	return createStatusBadge(
+		translate(`settings.taskProperties.taskStatuses.badges.${categoryI18nKey(variant)}`),
+		variant
+	);
+}
+
+// Advisory (not a gate): when advanced dependency types are on, a missing category means
+// start-based edges can't release as authored. Guidance at the point statuses are edited.
+function renderStatusCategoryAdvisory(
+	container: HTMLElement,
+	plugin: TaskNotesPlugin,
+	translate: TranslateFn
+): void {
+	if (!plugin.settings.enableAdvancedDependencyTypes) {
+		return;
+	}
+	const counts = countStatusCategories(plugin.settings.customStatuses ?? []);
+	const missing = STATUS_CATEGORIES.filter((category) => counts[category] === 0);
+	if (missing.length === 0) {
+		return;
+	}
+	const categories = missing
+		.map((category) =>
+			translate(`settings.taskProperties.taskStatuses.badges.${categoryI18nKey(category)}`)
+		)
+		.join(", ");
+	const advisory = container.createDiv({ cls: "tn-status-category-advisory" });
+	advisory.setText(
+		translate("settings.taskProperties.taskStatuses.categoryAdvisory", { categories })
+	);
+}
 
 /**
  * Renders the Status property card with nested status value cards
@@ -103,7 +147,7 @@ export function renderStatusPropertyCard(
 		text: translate("settings.taskProperties.taskStatuses.howTheyWork.icon"),
 	});
 	statusHelpList.createEl("li", {
-		text: translate("settings.taskProperties.taskStatuses.howTheyWork.completed"),
+		text: translate("settings.taskProperties.taskStatuses.howTheyWork.category"),
 	});
 	statusHelpList.createEl("li", {
 		text: translate("settings.taskProperties.taskStatuses.howTheyWork.autoArchive"),
@@ -154,8 +198,8 @@ export function renderStatusPropertyCard(
 			value: "",
 			label: "",
 			color: "#6366f1",
-			completed: false,
 			isCompleted: false,
+			category: "planned" as StatusCategory,
 			excludeFromCycle: false,
 			order: plugin.settings.customStatuses.length,
 			autoArchive: false,
@@ -229,6 +273,8 @@ function renderStatusList(
 ): void {
 	container.empty();
 
+	renderStatusCategoryAdvisory(container, plugin, translate);
+
 	if (!plugin.settings.customStatuses || plugin.settings.customStatuses.length === 0) {
 		showCardEmptyState(container, translate("settings.taskProperties.taskStatuses.emptyState"));
 		return;
@@ -255,19 +301,24 @@ function renderStatusList(
 			status.icon || ""
 		);
 
-		const completedToggle = createCardToggle(status.isCompleted || false, (value) => {
-			status.isCompleted = value;
+		const categorySelect = createCardSelect(
+			STATUS_CATEGORIES.map((category) => ({
+				value: category,
+				label: translate(
+					`settings.taskProperties.taskStatuses.badges.${categoryI18nKey(category)}`
+				),
+			})),
+			status.category ?? "planned"
+		);
+
+		categorySelect.addEventListener("change", () => {
+			const value = categorySelect.value as StatusCategory;
+			status.category = value;
+			status.isCompleted = value === "completed";
 			const metaContainer = statusCard?.querySelector(".tasknotes-settings__card-meta");
 			if (metaContainer) {
 				metaContainer.empty();
-				if (status.isCompleted) {
-					metaContainer.appendChild(
-						createStatusBadge(
-							translate("settings.taskProperties.taskStatuses.badges.completed"),
-							"completed"
-						)
-					);
-				}
+				metaContainer.appendChild(createCategoryBadge(status.category, translate));
 			}
 			save();
 		});
@@ -311,14 +362,7 @@ function renderStatusList(
 			status.autoArchiveDelay || 5
 		);
 
-		const metaElements = status.isCompleted
-			? [
-					createStatusBadge(
-						translate("settings.taskProperties.taskStatuses.badges.completed"),
-						"completed"
-					),
-				]
-			: [];
+		const metaElements = [createCategoryBadge(status.category, translate)];
 
 		let statusCard: HTMLElement;
 
@@ -417,9 +461,9 @@ function renderStatusList(
 							},
 							{
 								label: translate(
-									"settings.taskProperties.taskStatuses.fields.completed"
+									"settings.taskProperties.taskStatuses.fields.category"
 								),
-								input: completedToggle,
+								input: categorySelect,
 							},
 							{
 								label: translate(

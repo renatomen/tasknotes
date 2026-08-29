@@ -153,7 +153,11 @@ Whenever a dependency is added, TaskNotes updates the upstream note’s `blockin
 - The task context menu provides the same selector, enabling dependency management directly from the Task List, Kanban, and calendar views.
 - Task cards show a fork icon whenever a task blocks other work. Clicking it expands an inline list of downstream tasks without triggering the parent card’s modal, so you can inspect dependents in place.
 
-These controls currently create and manage finish-to-start style blockers. Advanced `reltype` values and `gap` data are preserved in frontmatter, but blocking evaluation is currently based on whether unresolved dependencies exist rather than relationship-type-specific scheduling rules.
+By default, dependencies use finish-to-start. Enable **Features → Dependencies → Advanced dependency types** to choose a relationship type and an optional lag per dependency from both the "Blocked by" and "Blocking" lists in the edit modal.
+
+Blocking is evaluated per endpoint: finish-to-start and start-to-start gate a task's *start*, while finish-to-finish and start-to-finish gate its *finish*. An edge releases as soon as the predecessor reaches the point the relationship requires — started for a start-to-\* edge, completed for a finish-to-\* edge — so a task reads "Blocked · start" or "Blocked · finish" only while it is genuinely constrained.
+
+TaskNotes-rendered views (Task List, Kanban, cards) reflect this computed state. A native `.base` filter on "blocked by", however, matches by existence only: a Bases filter formula evaluates a single note's frontmatter and cannot read a predecessor's status, so it cannot distinguish a released edge from a live one. Use a TaskNotes-rendered view when you need constraint-aware blocking.
 
 ![Task context menu](../assets/feature-task-context-menu.png)
 
