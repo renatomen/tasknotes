@@ -120,20 +120,6 @@ export interface DependencyConstraintSource {
 	getFinishBlockingPredecessorPaths(taskPath: string): string[];
 }
 
-function getStartBlockingTaskPaths(
-	task: TaskInfo,
-	cache: DependencyConstraintSource | undefined
-): string[] {
-	return cache ? cache.getStartBlockingPredecessorPaths(task.path) : [];
-}
-
-function getFinishBlockingTaskPaths(
-	task: TaskInfo,
-	cache: DependencyConstraintSource | undefined
-): string[] {
-	return cache ? cache.getFinishBlockingPredecessorPaths(task.path) : [];
-}
-
 export type BlockedConstraintState = "start" | "finish" | "released" | "none";
 
 export interface BlockedConstraintInfo {
@@ -155,11 +141,11 @@ export function resolveBlockedConstraint(
 		return { state: "none", count: 0 };
 	}
 	if (task.startBlocked) {
-		const constraining = getStartBlockingTaskPaths(task, cache).length;
+		const constraining = cache?.getStartBlockingPredecessorPaths(task.path).length;
 		return { state: "start", count: constraining || existence.length };
 	}
 	if (task.finishBlocked) {
-		const constraining = getFinishBlockingTaskPaths(task, cache).length;
+		const constraining = cache?.getFinishBlockingPredecessorPaths(task.path).length;
 		return { state: "finish", count: constraining || existence.length };
 	}
 	// A dependency whose link does not resolve cannot be confirmed released.

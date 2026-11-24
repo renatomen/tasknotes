@@ -123,8 +123,7 @@ describe("recurring Undo with runtime defaults and mappings", () => {
 		};
 		const mapper = new FieldMapper(DEFAULT_FIELD_MAPPING);
 		const manager = new TaskManager(app, settings, mapper);
-		// Finish-blocked only, and blocking only a successor's finish: the two
-		// flags a start-only default would get wrong.
+		// Finish-blocked only, blocking only a successor's finish: what a start-only default gets wrong.
 		manager.setDependencyCache({
 			isTaskStartBlocked: () => false,
 			isTaskFinishBlocked: () => true,

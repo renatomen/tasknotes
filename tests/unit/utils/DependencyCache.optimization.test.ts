@@ -204,4 +204,32 @@ describe("DependencyCache optimized relationship updates", () => {
 		expect(cache.isTaskStartBlocked("Tasks/Dependent.md")).toBe(false);
 		expect(cache.getStartBlockedDependentPaths("Tasks/Blocker.md")).toEqual([]);
 	});
+
+	it("follows a dependency whose relationship type alone is edited", async () => {
+		const app = createMockApp();
+		createFile(app, "Tasks/Blocker.md", {
+			title: "Blocker",
+			status: "in-progress",
+			tags: ["task"],
+		});
+		const dependent = (reltype: string) => ({
+			title: "Dependent",
+			status: "open",
+			tags: ["task"],
+			blockedBy: [{ uid: "[[Tasks/Blocker.md]]", reltype }],
+		});
+		createFile(app, "Tasks/Dependent.md", dependent("FINISHTOSTART"));
+
+		const cache = createDependencyCache(app);
+		cache.initialize();
+		await cache.buildIndexes();
+
+		expect(cache.isTaskStartBlocked("Tasks/Dependent.md")).toBe(true);
+
+		app.__metadata.set("Tasks/Dependent.md", { frontmatter: dependent("STARTTOSTART") });
+		invokeMetadataChanged(app, "Tasks/Dependent.md");
+
+		expect(cache.isTaskStartBlocked("Tasks/Dependent.md")).toBe(false);
+		expect(cache.getStartBlockedDependentPaths("Tasks/Blocker.md")).toEqual([]);
+	});
 });
