@@ -1469,6 +1469,11 @@ msgctxt "views.basesCalendar.settings.groups.advanced"
 msgid "Advanced"
 msgstr "Erweitert"
 
+#: src/settings/native/properties.ts
+msgctxt "settings.taskProperties.dependencies.advancedTypes.name"
+msgid "Advanced dependency types"
+msgstr "Erweiterte Abhängigkeitstypen"
+
 #: src/settings/native/connections.ts
 msgctxt "settings.calendarService.ownApplication.name"
 msgid "Advanced: use your own Google Cloud project"
@@ -2579,6 +2584,11 @@ msgstr "Datei von diesem Gerät auswählen. Sie wird beim Speichern der Aufgabe 
 msgctxt "settings.native.chooseCalendarFile"
 msgid "Choose a local .ics file."
 msgstr "Wähle eine lokale .ics-Datei."
+
+#: src/settings/native/properties.ts
+msgctxt "settings.taskProperties.dependencies.advancedTypes.description"
+msgid "Choose a relationship type (finish-to-start, start-to-start, finish-to-finish, start-to-finish) and an optional lag for each dependency. Relationship types already saved in task notes apply whether this is on or off."
+msgstr "Wähle für jede Abhängigkeit einen Beziehungstyp (Ende-Anfang, Anfang-Anfang, Ende-Ende, Anfang-Ende) und optional einen Zeitabstand. Bereits in Aufgabennotizen gespeicherte Beziehungstypen gelten unabhängig davon, ob diese Option aktiviert ist."
 
 #: src/modals/CheckCollectionModal.ts
 msgctxt "collectionCheck.chooseStatus"
@@ -4228,6 +4238,7 @@ msgid "Delivery status"
 msgstr "Zustellungsstatus"
 
 #: src/components/TaskContextMenu.ts
+#: src/settings/native/properties.ts
 #: src/ui/taskCardSecondaryBadges.ts
 msgctxt "contextMenus.task.dependencies.title"
 msgid "Dependencies"

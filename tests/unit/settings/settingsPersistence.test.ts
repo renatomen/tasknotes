@@ -423,3 +423,32 @@ describe("status category migration on load", () => {
 		);
 	});
 });
+
+describe("advanced dependency types opt-in", () => {
+	it("is off on a fresh install", () => {
+		expect(buildSettingsFromLoadedData(null).settings.enableAdvancedDependencyTypes).toBe(false);
+	});
+
+	it("stays on when the saved settings have it on", () => {
+		expect(
+			buildSettingsFromLoadedData({ enableAdvancedDependencyTypes: true }).settings
+				.enableAdvancedDependencyTypes
+		).toBe(true);
+	});
+
+	it("is off when the saved settings predate it", () => {
+		expect(
+			buildSettingsFromLoadedData({ tasksFolder: "Projects/Tasks" }).settings
+				.enableAdvancedDependencyTypes
+		).toBe(false);
+	});
+
+	it("is written when settings are saved", () => {
+		expect(
+			buildSettingsDataForSave(
+				{ tasksFolder: "Projects/Tasks" },
+				{ ...DEFAULT_SETTINGS, enableAdvancedDependencyTypes: true }
+			)
+		).toEqual(expect.objectContaining({ enableAdvancedDependencyTypes: true }));
+	});
+});

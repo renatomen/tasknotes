@@ -282,3 +282,7 @@ Each custom field can configure filters to control which files appear in wikilin
 A "Filters On" badge appears when filters are configured.
 
 See [User Fields Feature Documentation](../features/user-fields.md#file-suggestion-filtering-advanced) for detailed examples.
+
+## Dependencies
+
+- **Advanced dependency types**: Opt-in for choosing a relationship type (finish-to-start, start-to-start, finish-to-finish, start-to-finish) and an optional lag for each dependency. Off by default. Relationship types already saved in task notes apply whether this is on or off; see [How blocking is evaluated](../features/task-management.md#how-blocking-is-evaluated)

@@ -1468,6 +1468,11 @@ msgctxt "views.basesCalendar.settings.groups.advanced"
 msgid "Advanced"
 msgstr "고급"
 
+#: src/settings/native/properties.ts
+msgctxt "settings.taskProperties.dependencies.advancedTypes.name"
+msgid "Advanced dependency types"
+msgstr "고급 종속성 유형"
+
 #: src/settings/native/connections.ts
 msgctxt "settings.calendarService.ownApplication.name"
 msgid "Advanced: use your own Google Cloud project"
@@ -2578,6 +2583,11 @@ msgstr "이 기기에서 파일을 선택하세요. 작업을 저장할 때 보�
 msgctxt "settings.native.chooseCalendarFile"
 msgid "Choose a local .ics file."
 msgstr "로컬 .ics 파일을 선택하세요."
+
+#: src/settings/native/properties.ts
+msgctxt "settings.taskProperties.dependencies.advancedTypes.description"
+msgid "Choose a relationship type (finish-to-start, start-to-start, finish-to-finish, start-to-finish) and an optional lag for each dependency. Relationship types already saved in task notes apply whether this is on or off."
+msgstr "각 종속성에 관계 유형(완료-시작, 시작-시작, 완료-완료, 시작-완료)과 선택적 지연 시간을 지정합니다. 작업 노트에 이미 저장된 관계 유형은 이 설정을 켜거나 꺼도 그대로 적용됩니다."
 
 #: src/modals/CheckCollectionModal.ts
 msgctxt "collectionCheck.chooseStatus"
@@ -4227,6 +4237,7 @@ msgid "Delivery status"
 msgstr "전달 상태"
 
 #: src/components/TaskContextMenu.ts
+#: src/settings/native/properties.ts
 #: src/ui/taskCardSecondaryBadges.ts
 msgctxt "contextMenus.task.dependencies.title"
 msgid "Dependencies"

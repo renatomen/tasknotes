@@ -768,5 +768,20 @@ export function propertyDefinitions(ctx: SettingsContext): SettingDefinitionItem
 			items: [triggerGroup(ctx, "tags", "#")],
 		},
 		customProperties(ctx),
+		{
+			type: "group",
+			heading: t(msg({ message: "Dependencies", context: "contextMenus.task.dependencies.title" })),
+			items: [
+				ctx.toggle("enableAdvancedDependencyTypes", {
+					name: t(msg({ message: "Advanced dependency types", context: "settings.taskProperties.dependencies.advancedTypes.name" })),
+					desc: t(msg({ message: "Choose a relationship type (finish-to-start, start-to-start, finish-to-finish, start-to-finish) and an optional lag for each dependency. Relationship types already saved in task notes apply whether this is on or off.", context: "settings.taskProperties.dependencies.advancedTypes.description" })),
+					getValue: () => plugin.settings.enableAdvancedDependencyTypes,
+					setValue: (value) => {
+						plugin.settings.enableAdvancedDependencyTypes = value;
+						ctx.save();
+					},
+				}),
+			],
+		},
 	];
 }
