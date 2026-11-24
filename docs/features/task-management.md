@@ -190,6 +190,8 @@ Turn on **Advanced dependency types** in [Task Properties settings](../settings/
 - **Relationship**: finish-to-start, start-to-start, finish-to-finish or start-to-finish. A line under the controls spells out the choice, for example “Order hardware must finish before Install rack can start”.
 - **Lag**: a whole number of days, weeks or hours, stored as the dependency’s `gap`. Clear the field or enter 0 to remove the lag.
 
+In the task context menu, **Add “blocked by”…** and **Add “blocking”…** under Organization → Dependencies then list the four relationship types, and the task selector opens once you pick one. The menu does not set a lag.
+
 A change made on a “Blocking” row is saved to the dependent task’s `blockedBy` entry, because that is where the dependency is stored. A `gap` written in frontmatter in a form these fields cannot express, such as `P1DT2H`, is shown as text and left unchanged.
 
 ### How blocking is evaluated
