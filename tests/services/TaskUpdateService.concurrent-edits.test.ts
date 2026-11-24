@@ -57,4 +57,53 @@ describe("concurrent task edits", () => {
 		expect(result.timeEstimate).toBe(10);
 		expect(stale.scheduled).toBe("2026-09-06");
 	});
+
+	it("keeps the per-endpoint blocking flags of the task it updates", async () => {
+		const file = Object.assign(Object.create(TFile.prototype), { path: "Tasks/example.md" });
+		const fm: any = { status: "ready", priority: "normal", timeEstimate: 5 };
+		const runtime: any = {
+			app: {
+				vault: { getAbstractFileByPath: () => file },
+				fileManager: { processFrontMatter: async (_: unknown, fn: any) => fn(fm) },
+			},
+			settings: {
+				storeTitleInFilename: false,
+				maintainDueDateOffsetInRecurring: false,
+				taskIdentificationMethod: "property",
+				taskPropertyName: "type",
+				taskPropertyValue: "task",
+			},
+			fieldMapper: {
+				mapFromFrontmatter: (value: any) => ({ ...value }),
+				mapToFrontmatter: (value: any) => ({ ...value }),
+				toUserField: (key: string) => key,
+			},
+			cacheManager: { updateTaskInfoInCache: jest.fn() },
+			emitter: { trigger: jest.fn() },
+			statusManager: { isCompletedStatus: () => false },
+		};
+		const service = new TaskUpdateService({
+			runtime,
+			updateCompletedDateInFrontmatter: () => {},
+		});
+		const blockingFlags = {
+			isBlocked: true,
+			startBlocked: false,
+			finishBlocked: true,
+			isBlocking: true,
+			isBlockingStart: true,
+			isBlockingFinish: false,
+		};
+
+		const result = await service.updateTask(
+			{ ...fm, path: file.path, title: "Example", ...blockingFlags },
+			{ timeEstimate: 10 }
+		);
+
+		expect(result).toMatchObject(blockingFlags);
+		expect(runtime.cacheManager.updateTaskInfoInCache).toHaveBeenCalledWith(
+			file.path,
+			expect.objectContaining(blockingFlags)
+		);
+	});
 });

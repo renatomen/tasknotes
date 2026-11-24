@@ -65,7 +65,10 @@ function createDependencyCache(app: MockApp): DependencyCache {
 			taskTag: "task",
 		},
 		new FieldMapper(DEFAULT_FIELD_MAPPING),
-		{ isCompletedStatus: jest.fn((status: string) => status === "done") } as never,
+		{
+			isCompletedStatus: jest.fn((status: string) => status === "done"),
+			isStarted: jest.fn((status: string) => status === "done" || status === "in-progress"),
+		} as never,
 		(frontmatter) => Array.isArray((frontmatter as { tags?: unknown }).tags)
 	);
 }
@@ -163,5 +166,42 @@ describe("DependencyCache optimized relationship updates", () => {
 		expect(changeHandler).toHaveBeenCalledTimes(1);
 		expect(cache.isTaskBlocked("Tasks/Dependent.md")).toBe(false);
 		expect(cache.getBlockedTaskPaths("Tasks/Blocker.md")).toEqual([]);
+	});
+
+	it("signals a change when a predecessor starts and releases a start-to-start dependent", async () => {
+		const app = createMockApp();
+		createFile(app, "Tasks/Blocker.md", {
+			title: "Blocker",
+			status: "open",
+			tags: ["task"],
+		});
+		createFile(app, "Tasks/Dependent.md", {
+			title: "Dependent",
+			status: "open",
+			tags: ["task"],
+			blockedBy: [{ uid: "[[Tasks/Blocker.md]]", reltype: "STARTTOSTART" }],
+		});
+
+		const cache = createDependencyCache(app);
+		const changeHandler = jest.fn();
+		cache.on(EVENT_DEPENDENCY_CACHE_CHANGED, changeHandler);
+		cache.initialize();
+		await cache.buildIndexes();
+		changeHandler.mockClear();
+
+		expect(cache.isTaskStartBlocked("Tasks/Dependent.md")).toBe(true);
+
+		app.__metadata.set("Tasks/Blocker.md", {
+			frontmatter: {
+				title: "Blocker",
+				status: "in-progress",
+				tags: ["task"],
+			},
+		});
+		invokeMetadataChanged(app, "Tasks/Blocker.md");
+
+		expect(changeHandler).toHaveBeenCalledTimes(1);
+		expect(cache.isTaskStartBlocked("Tasks/Dependent.md")).toBe(false);
+		expect(cache.getStartBlockedDependentPaths("Tasks/Blocker.md")).toEqual([]);
 	});
 });

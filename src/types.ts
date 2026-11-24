@@ -483,8 +483,12 @@ export interface TaskInfo {
 	basesData?: unknown; // Raw Bases data for formula computation (internal use)
 	blockedBy?: TaskDependency[]; // Dependencies that must be satisfied before this task can start
 	blocking?: string[]; // Task paths that this task is blocking
-	isBlocked?: boolean; // True if any blocking dependency is incomplete
+	isBlocked?: boolean; // True if the task is start-blocked or finish-blocked
 	isBlocking?: boolean; // True if this task blocks at least one other task
+	startBlocked?: boolean; // Cannot start: a finish-to-start predecessor is unfinished or a start-to-start one is unstarted
+	finishBlocked?: boolean; // Cannot finish: a finish-to-finish predecessor is unfinished or a start-to-finish one is unstarted
+	isBlockingStart?: boolean; // True if this task blocks at least one other task's start
+	isBlockingFinish?: boolean; // True if this task blocks at least one other task's finish
 	hasSubtasks?: boolean; // True if another task references this task as a project
 	details?: string; // Optional task body content
 	sortOrder?: string; // LexoRank string for ordering within column

@@ -179,9 +179,26 @@ Dependencies are separate from project/subtask membership: adding a blocker does
 - The task context menu provides the same selector, enabling dependency management directly from the Task List, Kanban, and calendar views.
 - Task cards show a fork icon whenever a task blocks other work. Clicking it expands an inline list of downstream tasks without triggering the parent card’s modal, so you can inspect dependents in place.
 
-These controls currently create and manage finish-to-start style blockers. Advanced `reltype` values and `gap` data are preserved in frontmatter, but blocking evaluation is currently based on whether unresolved dependencies exist rather than relationship-type-specific scheduling rules.
+These controls currently create and manage finish-to-start style blockers. Other `reltype` values written in frontmatter are preserved and evaluated.
 
 ![Task context menu](../assets/feature-task-context-menu.png)
+
+### How blocking is evaluated
+
+Each dependency holds back either the start or the finish of the dependent task, and is released when the blocking task reaches the point its `reltype` names:
+
+| `reltype` | Holds back | Released when the blocking task |
+| --- | --- | --- |
+| `FINISHTOSTART` | Start | Is completed |
+| `STARTTOSTART` | Start | Has started |
+| `FINISHTOFINISH` | Finish | Is completed |
+| `STARTTOFINISH` | Finish | Has started |
+
+A blocking task counts as started once it has an in-progress status (by default, **In progress**) or a completed one. A blocking task with no status counts as not started.
+
+A task is blocked while any dependency still holds back its start or its finish, and it blocks other work while it holds back at least one dependent task. `gap` data is preserved in frontmatter but does not change when a dependency is released.
+
+The generated **Not Blocked** view filters through Bases rather than through this evaluation: it hides a task until every blocking task is completed, whatever the `reltype`.
 
 ## Attachments
 
