@@ -553,6 +553,18 @@ msgid "{interval, plural, =1 {Yearly} other {Every # years}}"
 msgstr "{interval, plural, =1 {毎年} other {#年ごと}}"
 
 #: src/i18n/messages.ts
+#: src/ui/taskCardMetadata.ts
+msgctxt "ui.taskCard.blockedFinish"
+msgid "{label} · finish"
+msgstr "{label} · 完了"
+
+#: src/i18n/messages.ts
+#: src/ui/taskCardMetadata.ts
+msgctxt "ui.taskCard.blockedStart"
+msgid "{label} · start"
+msgstr "{label} · 開始"
+
+#: src/i18n/messages.ts
 msgctxt "ui.taskCard.dueLabel"
 msgid "{label}: {display}"
 msgstr "{label}: {display}"
@@ -2014,6 +2026,15 @@ msgctxt "ui.taskCard.blockingToggle"
 msgid "Blocking {count} tasks"
 msgstr "{count} 件のタスクをブロック"
 
+#: src/ui/taskCardSecondaryBadges.ts
+msgctxt "ui.taskCard.blockingToggleBreakdown"
+msgid "Blocking {count} tasks:\n"
+"{start} to start\n"
+"{finish} to finish"
+msgstr "{count} 件のタスクをブロック：\n"
+"開始待ち：{start} 件\n"
+"完了待ち：{finish} 件"
+
 #: src/ui/taskCardProperties.ts
 msgctxt "ui/taskCardProperties: blockingTasks text"
 msgid "Blocking: "
@@ -2258,6 +2279,11 @@ msgctxt "settings.calendarService.calendars.heading"
 msgid "Calendars shown"
 msgstr "表示するカレンダー"
 
+#: src/ui/taskCardMetadata.ts
+msgctxt "ui.taskCard.blockedFinishTooltip"
+msgid "Can start, but cannot finish yet — waiting on a predecessor"
+msgstr "開始はできますが、まだ完了できません — 先行タスクを待っています"
+
 #: src/bases/KanbanView.ts
 #: src/bases/TaskListView.ts
 #: src/modals/CalendarEventCreationModal.ts
@@ -2426,6 +2452,11 @@ msgstr "繰り返し回の親タスクを特定できません"
 msgctxt "collectionCheck.unresolvedUserField"
 msgid "Cannot resolve owned user field {field}. Review its schema and retained field type before saving settings. Existing settings and metadata were preserved."
 msgstr "管理対象のカスタムフィールド {field} の型を判定できません。設定を保存する前に、スキーマと保持されたフィールドの型を確認してください。既存の設定とメタデータは保持されています。"
+
+#: src/ui/taskCardMetadata.ts
+msgctxt "ui.taskCard.blockedStartTooltip"
+msgid "Cannot start yet — waiting on a predecessor"
+msgstr "まだ開始できません — 先行タスクを待っています"
 
 #: src/ui/kit/toast.ts
 msgctxt "interaction undo conflict"
@@ -4191,6 +4222,7 @@ msgid "Delivery status"
 msgstr "配信状態"
 
 #: src/components/TaskContextMenu.ts
+#: src/ui/taskCardSecondaryBadges.ts
 msgctxt "contextMenus.task.dependencies.title"
 msgid "Dependencies"
 msgstr "依存関係"
@@ -12277,7 +12309,6 @@ msgid "This task is used as a project (click to show/hide subtasks)"
 msgstr "このタスクはプロジェクトとして使用されています（クリックでサブタスクを表示/非表示）"
 
 #: src/i18n/messages.ts
-#: src/ui/taskCardMetadata.ts
 msgctxt "ui.taskCard.blockedBadgeTooltip"
 msgid "This task is waiting on another task"
 msgstr "先に完了する必要があるタスクがあります"

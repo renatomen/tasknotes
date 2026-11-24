@@ -553,6 +553,18 @@ msgid "{interval, plural, =1 {Yearly} other {Every # years}}"
 msgstr "{interval, plural, one {Раз в # год} =1 {Раз в 1 год} few {Раз в # года} many {Раз в # лет} other {Раз в # года}}"
 
 #: src/i18n/messages.ts
+#: src/ui/taskCardMetadata.ts
+msgctxt "ui.taskCard.blockedFinish"
+msgid "{label} · finish"
+msgstr "{label} · завершение"
+
+#: src/i18n/messages.ts
+#: src/ui/taskCardMetadata.ts
+msgctxt "ui.taskCard.blockedStart"
+msgid "{label} · start"
+msgstr "{label} · начало"
+
+#: src/i18n/messages.ts
 msgctxt "ui.taskCard.dueLabel"
 msgid "{label}: {display}"
 msgstr "{label}: {display}"
@@ -2017,6 +2029,15 @@ msgctxt "ui.taskCard.blockingToggle"
 msgid "Blocking {count} tasks"
 msgstr "Блокируемых задач: {count}"
 
+#: src/ui/taskCardSecondaryBadges.ts
+msgctxt "ui.taskCard.blockingToggleBreakdown"
+msgid "Blocking {count} tasks:\n"
+"{start} to start\n"
+"{finish} to finish"
+msgstr "Блокируемых задач: {count}\n"
+"Начало: {start}\n"
+"Завершение: {finish}"
+
 #: src/ui/taskCardProperties.ts
 msgctxt "ui/taskCardProperties: blockingTasks text"
 msgid "Blocking: "
@@ -2261,6 +2282,11 @@ msgctxt "settings.calendarService.calendars.heading"
 msgid "Calendars shown"
 msgstr "Показываемые календари"
 
+#: src/ui/taskCardMetadata.ts
+msgctxt "ui.taskCard.blockedFinishTooltip"
+msgid "Can start, but cannot finish yet — waiting on a predecessor"
+msgstr "Можно начать, но пока нельзя завершить — ожидается предшествующая задача"
+
 #: src/bases/KanbanView.ts
 #: src/bases/TaskListView.ts
 #: src/modals/CalendarEventCreationModal.ts
@@ -2429,6 +2455,11 @@ msgstr "Не удалось определить родительскую зад
 msgctxt "collectionCheck.unresolvedUserField"
 msgid "Cannot resolve owned user field {field}. Review its schema and retained field type before saving settings. Existing settings and metadata were preserved."
 msgstr "Не удалось определить тип управляемого пользовательского поля {field}. Проверьте его схему и сохранённый тип поля перед сохранением настроек. Существующие настройки и метаданные сохранены."
+
+#: src/ui/taskCardMetadata.ts
+msgctxt "ui.taskCard.blockedStartTooltip"
+msgid "Cannot start yet — waiting on a predecessor"
+msgstr "Пока нельзя начать — ожидается предшествующая задача"
 
 #: src/ui/kit/toast.ts
 msgctxt "interaction undo conflict"
@@ -4194,6 +4225,7 @@ msgid "Delivery status"
 msgstr "Состояние доставки"
 
 #: src/components/TaskContextMenu.ts
+#: src/ui/taskCardSecondaryBadges.ts
 msgctxt "contextMenus.task.dependencies.title"
 msgid "Dependencies"
 msgstr "Зависимости"
@@ -12278,7 +12310,6 @@ msgid "This task is used as a project (click to show/hide subtasks)"
 msgstr "Эта задача используется как проект (нажмите, чтобы показать/скрыть подзадачи)"
 
 #: src/i18n/messages.ts
-#: src/ui/taskCardMetadata.ts
 msgctxt "ui.taskCard.blockedBadgeTooltip"
 msgid "This task is waiting on another task"
 msgstr "Эта задача ожидает другую задачу"

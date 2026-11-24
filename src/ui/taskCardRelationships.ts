@@ -106,3 +106,65 @@ export function getBlockedByTaskPaths(task: TaskInfo, app: App): string[] {
 
 	return Array.from(paths);
 }
+
+export function hasUnresolvedBlockedBy(task: TaskInfo, app: App): boolean {
+	const entries = Array.isArray(task.blockedBy) ? task.blockedBy : [];
+	return entries.some((entry) => {
+		const normalized = normalizeDependencyEntry(entry);
+		return normalized !== null && !resolveDependencyEntry(app, task.path, normalized);
+	});
+}
+
+export interface DependencyConstraintSource {
+	getStartBlockingPredecessorPaths(taskPath: string): string[];
+	getFinishBlockingPredecessorPaths(taskPath: string): string[];
+}
+
+export function getStartBlockingTaskPaths(
+	task: TaskInfo,
+	cache: DependencyConstraintSource | undefined
+): string[] {
+	return cache ? cache.getStartBlockingPredecessorPaths(task.path) : [];
+}
+
+export function getFinishBlockingTaskPaths(
+	task: TaskInfo,
+	cache: DependencyConstraintSource | undefined
+): string[] {
+	return cache ? cache.getFinishBlockingPredecessorPaths(task.path) : [];
+}
+
+export type BlockedConstraintState = "start" | "finish" | "released" | "none";
+
+export interface BlockedConstraintInfo {
+	state: BlockedConstraintState;
+	count: number;
+}
+
+/**
+ * Start-blocked wins over finish-blocked. The count is the predecessors holding that endpoint;
+ * with none identified (released, unresolved link, no cache) it is every listed dependency.
+ */
+export function resolveBlockedConstraint(
+	task: TaskInfo,
+	app: App,
+	cache: DependencyConstraintSource | undefined
+): BlockedConstraintInfo {
+	const existence = getBlockedByTaskPaths(task, app);
+	if (existence.length === 0) {
+		return { state: "none", count: 0 };
+	}
+	if (task.startBlocked) {
+		const constraining = getStartBlockingTaskPaths(task, cache).length;
+		return { state: "start", count: constraining || existence.length };
+	}
+	if (task.finishBlocked) {
+		const constraining = getFinishBlockingTaskPaths(task, cache).length;
+		return { state: "finish", count: constraining || existence.length };
+	}
+	// A dependency whose link does not resolve cannot be confirmed released.
+	if (hasUnresolvedBlockedBy(task, app)) {
+		return { state: "start", count: existence.length };
+	}
+	return { state: "released", count: existence.length };
+}

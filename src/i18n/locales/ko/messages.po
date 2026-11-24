@@ -553,6 +553,18 @@ msgid "{interval, plural, =1 {Yearly} other {Every # years}}"
 msgstr "{interval, plural, =1 {1년마다} other {#년마다}}"
 
 #: src/i18n/messages.ts
+#: src/ui/taskCardMetadata.ts
+msgctxt "ui.taskCard.blockedFinish"
+msgid "{label} · finish"
+msgstr "{label} · 완료"
+
+#: src/i18n/messages.ts
+#: src/ui/taskCardMetadata.ts
+msgctxt "ui.taskCard.blockedStart"
+msgid "{label} · start"
+msgstr "{label} · 시작"
+
+#: src/i18n/messages.ts
 msgctxt "ui.taskCard.dueLabel"
 msgid "{label}: {display}"
 msgstr "{label}: {display}"
@@ -2014,6 +2026,15 @@ msgctxt "ui.taskCard.blockingToggle"
 msgid "Blocking {count} tasks"
 msgstr "{count}개의 작업을 차단 중"
 
+#: src/ui/taskCardSecondaryBadges.ts
+msgctxt "ui.taskCard.blockingToggleBreakdown"
+msgid "Blocking {count} tasks:\n"
+"{start} to start\n"
+"{finish} to finish"
+msgstr "{count}개의 작업을 차단 중:\n"
+"시작 대기: {start}개\n"
+"완료 대기: {finish}개"
+
 #: src/ui/taskCardProperties.ts
 msgctxt "ui/taskCardProperties: blockingTasks text"
 msgid "Blocking: "
@@ -2258,6 +2279,11 @@ msgctxt "settings.calendarService.calendars.heading"
 msgid "Calendars shown"
 msgstr "표시할 캘린더"
 
+#: src/ui/taskCardMetadata.ts
+msgctxt "ui.taskCard.blockedFinishTooltip"
+msgid "Can start, but cannot finish yet — waiting on a predecessor"
+msgstr "시작할 수 있지만 아직 완료할 수 없습니다 — 선행 작업을 기다리는 중"
+
 #: src/bases/KanbanView.ts
 #: src/bases/TaskListView.ts
 #: src/modals/CalendarEventCreationModal.ts
@@ -2426,6 +2452,11 @@ msgstr "회차의 상위 작업을 확인할 수 없습니다"
 msgctxt "collectionCheck.unresolvedUserField"
 msgid "Cannot resolve owned user field {field}. Review its schema and retained field type before saving settings. Existing settings and metadata were preserved."
 msgstr "관리되는 사용자 정의 필드 {field}의 유형을 확인할 수 없습니다. 설정을 저장하기 전에 스키마와 유지된 필드 유형을 검토하세요. 기존 설정과 메타데이터는 유지되었습니다."
+
+#: src/ui/taskCardMetadata.ts
+msgctxt "ui.taskCard.blockedStartTooltip"
+msgid "Cannot start yet — waiting on a predecessor"
+msgstr "아직 시작할 수 없습니다 — 선행 작업을 기다리는 중"
 
 #: src/ui/kit/toast.ts
 msgctxt "interaction undo conflict"
@@ -4191,6 +4222,7 @@ msgid "Delivery status"
 msgstr "전달 상태"
 
 #: src/components/TaskContextMenu.ts
+#: src/ui/taskCardSecondaryBadges.ts
 msgctxt "contextMenus.task.dependencies.title"
 msgid "Dependencies"
 msgstr "종속성"
@@ -12277,7 +12309,6 @@ msgid "This task is used as a project (click to show/hide subtasks)"
 msgstr "이 작업은 프로젝트로 사용됩니다 (클릭하여 하위 작업 표시/숨기기)"
 
 #: src/i18n/messages.ts
-#: src/ui/taskCardMetadata.ts
 msgctxt "ui.taskCard.blockedBadgeTooltip"
 msgid "This task is waiting on another task"
 msgstr "이 작업은 다른 작업을 기다리고 있습니다"

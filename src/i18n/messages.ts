@@ -169,6 +169,8 @@ export const messages = {
 "ui.taskCard.labels.blocking": msg({ message: "Blocking", context: "ui.taskCard.labels.blocking" }),
 "ui.taskCard.blockedBadge": msg({ message: "Blocked", context: "ui.taskCard.blockedBadge" }),
 "ui.taskCard.blockedBadgeTooltip": msg({ message: "This task is waiting on another task", context: "ui.taskCard.blockedBadgeTooltip" }),
+"ui.taskCard.blockedStart": msg({ message: "{label} · start", context: "ui.taskCard.blockedStart" }),
+"ui.taskCard.blockedFinish": msg({ message: "{label} · finish", context: "ui.taskCard.blockedFinish" }),
 "ui.taskCard.blockingBadge": msg({ message: "Blocking", context: "ui.taskCard.blockingBadge" }),
 "ui.taskCard.blockingBadgeTooltip": msg({ message: "This task is blocking another task", context: "ui.taskCard.blockingBadgeTooltip" }),
 "ui.taskCard.blockingToggle": msg({ message: "Blocking {count} tasks", context: "ui.taskCard.blockingToggle" }),
