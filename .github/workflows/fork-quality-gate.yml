@@ -2,7 +2,7 @@ name: Fork Quality Gate
 
 # Fork-only pre-submission gate. Lives on tooling/ci (never contributed upstream)
 # and rides into dogfood via the FEATURES merge. Reproduces upstream's checks on
-# ubuntu/node-20/UTC; the SONAR_TOKEN-bearing scan is isolated in its own job so it
+# ubuntu/node-22/UTC; the SONAR_TOKEN-bearing scan is isolated in its own job so it
 # never runs project-controlled code (GitHub Security Lab pattern).
 on:
   pull_request:
@@ -27,35 +27,35 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
       - name: Install dependencies
         run: npm ci
-      - name: i18n manifest up to date
-        run: |
-          npm run i18n:sync
-          if [ -n "$(git status --porcelain)" ]; then
-            echo "::error::i18n manifest/state out of date - run 'npm run i18n:sync' and commit."
-            git status --porcelain
-            exit 1
-          fi
+      - name: Translation catalogues and UI source
+        run: npm run i18n:check
+      - name: Catalogue and source contract fixtures
+        run: npm run test:i18n-source && npm run test:translation-contracts
       - name: Install docs-builder dependencies
         # docs:check builds docs-builder; its deps are not in the root lockfile.
         run: npm ci
         working-directory: docs-builder
       - name: Docs quality checks
         run: npm run docs:check
+      - name: Lint
+        run: npm run lint
+      - name: Language-pack export, build isolation and local delivery
+        run: npm run test:language-packs
       - name: Generate release notes import
         # src/releaseNotes.ts is generated (gitignored); typecheck and tests import it.
         run: node generate-release-notes-import.mjs
       - name: Type check
         run: npm run typecheck
-      - name: Lint
-        # Non-blocking to match upstream test.yml; the blocking eslint gate is the
-        # fork's local pre-commit hook.
-        run: npm run lint || echo "lint completed with warnings"
       - name: Tests with coverage
         run: npm run test:ci
+      - name: Integration tests
+        run: npm run test:integration
+      - name: Bundle guard, dependency deduplication and security patches
+        run: node --test scripts/check-bundle-size.test.mjs scripts/bundle-dependencies.test.mjs scripts/braces-security.test.mjs scripts/dependency-security.test.mjs scripts/calendar-css.test.mjs scripts/markdown-build.test.mjs scripts/verify-release-source.test.mjs
       - name: Build
         # Fork PRs receive no OAuth secrets; the build runs with empty values, the
         # same as upstream's own PR CI sees.
@@ -68,6 +68,10 @@ jobs:
           MICROSOFT_OAUTH_CLIENT_ID=${MICROSOFT_OAUTH_CLIENT_ID}
           EOF
           npm run build
+      - name: Bundle size budget and generated CSS
+        run: npm run check:bundle-size && npm run lint:css:dist
+      - name: Export versioned language packs
+        run: npm run i18n:export
       - name: Upload coverage
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
