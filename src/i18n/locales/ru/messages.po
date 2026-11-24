@@ -4749,6 +4749,16 @@ msgctxt "services/buildTaskCreationDataFromCli: buildTaskCreationDataFromCli dis
 msgid "Either --text or --title is required"
 msgstr "Необходимо указать --text или --title"
 
+#: src/modals/DependencyReadinessConfirmationModal.ts
+msgctxt "modals.dependencyReadiness.title"
+msgid "Enable advanced dependency types?"
+msgstr "Включить расширенные типы зависимостей?"
+
+#: src/modals/DependencyReadinessConfirmationModal.ts
+msgctxt "modals.dependencyReadiness.buttons.enableAndOpenStatuses"
+msgid "Enable and go to statuses..."
+msgstr "Включить и перейти к статусам..."
+
 #: src/settings/native/integrations.ts
 msgctxt "settings.integrations.autoExport.enable.name"
 msgid "Enable automatic export"
@@ -5111,6 +5121,11 @@ msgstr "Каждые 3 дня (после завершения)"
 msgctxt "settings.calendarService.deleteAccount.confirmMessage"
 msgid "Every device is signed out and the service’s access to Google Calendar is withdrawn. Your events in Google Calendar are not changed. This cannot be undone."
 msgstr "На всех устройствах будет выполнен выход, а доступ службы к Google Календарю будет отозван. Ваши события в Google Календаре не изменятся. Это действие нельзя отменить."
+
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.dependencies.readiness.consequence.releasesImmediately"
+msgid "Every status already counts as started, so start-to-start and start-to-finish dependencies will release immediately instead of holding the task until the predecessor starts."
+msgstr "Каждый статус уже считается начатым, поэтому зависимости «начало-начало» и «начало-окончание» будут сниматься сразу, не удерживая задачу до начала предшествующей."
 
 #: src/components/CustomRecurrenceModal.ts
 msgctxt "components.recurrenceContextMenu.customRecurrenceModal.intervalDesc"
@@ -6251,6 +6266,11 @@ msgctxt "settings.calendarService.connect.description"
 msgid "Give TaskNotes access to your Google Calendar again."
 msgstr "Снова предоставьте TaskNotes доступ к вашему Google Календарю."
 
+#: src/modals/DependencyReadinessConfirmationModal.ts
+msgctxt "modals.dependencyReadiness.buttons.goBack"
+msgid "Go back"
+msgstr "Назад"
+
 #: src/bases/MiniCalendarView.ts
 msgctxt "views.basesCalendar.hints.today"
 msgid "Go to today"
@@ -6804,6 +6824,11 @@ msgstr "элемент1, элемент2, элемент3"
 msgctxt "bases/registration: registerBasesTaskList.attemptRegistration.options placeholder"
 msgid "JSON object keyed by swim lane property"
 msgstr "Объект JSON с ключами по свойству дорожки"
+
+#: src/modals/DependencyReadinessConfirmationModal.ts
+msgctxt "modals.dependencyReadiness.buttons.justEnable"
+msgid "Just enable"
+msgstr "Просто включить"
 
 #: src/settings/native/relativeSyncTime.ts
 msgctxt "settings.integrations.timeFormats.justNow"
@@ -8024,6 +8049,21 @@ msgstr "У этой задачи нет запланированной даты"
 msgctxt "views.pomodoro.recent.empty"
 msgid "No sessions recorded yet"
 msgstr "Сессии еще не записаны"
+
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.dependencies.readiness.missing.both"
+msgid "No status is categorized as Not started or Started."
+msgstr "Ни один статус не отнесён к категории «Не начато» или «Начато»."
+
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.dependencies.readiness.missing.notStarted"
+msgid "No status is categorized as Not started."
+msgstr "Ни один статус не отнесён к категории «Не начато»."
+
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.dependencies.readiness.missing.started"
+msgid "No status is categorized as Started."
+msgstr "Ни один статус не отнесён к категории «Начато»."
 
 #: src/ui/taskPropertyPickers.ts
 msgctxt "interaction picker"
@@ -10987,6 +11027,11 @@ msgctxt "ui.dependencies.reltype.startToStart"
 msgid "Start-to-start"
 msgstr "Начало-начало"
 
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.dependencies.readiness.consequence.releasesOnCompletion"
+msgid "Start-to-start and start-to-finish dependencies will release only when the predecessor completes, not when it starts."
+msgstr "Зависимости «начало-начало» и «начало-окончание» будут сниматься только после завершения предшествующей задачи, а не после её начала."
+
 #: src/modals/ICSNoteCreationModal.ts
 msgctxt "modals.icsNoteCreation.startLabel"
 msgid "Start: "
@@ -12828,6 +12873,11 @@ msgstr "название: {title}"
 msgctxt "modals.taskSelector.instructions.dismiss"
 msgid "to cancel"
 msgstr "для отмены"
+
+#: src/modals/DependencyReadinessConfirmationModal.ts
+msgctxt "modals.dependencyReadiness.remedy"
+msgid "To change that, assign the missing category to one of your existing statuses in the task properties settings."
+msgstr "Чтобы это изменить, назначьте недостающую категорию одному из существующих статусов в настройках свойств задач."
 
 #: src/modals/DeviceCodeModal.ts
 msgctxt "modals.deviceCode.instructions.intro"

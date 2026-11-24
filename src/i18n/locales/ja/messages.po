@@ -4746,6 +4746,16 @@ msgctxt "services/buildTaskCreationDataFromCli: buildTaskCreationDataFromCli dis
 msgid "Either --text or --title is required"
 msgstr "--text または --title が必要です"
 
+#: src/modals/DependencyReadinessConfirmationModal.ts
+msgctxt "modals.dependencyReadiness.title"
+msgid "Enable advanced dependency types?"
+msgstr "高度な依存関係タイプを有効にしますか？"
+
+#: src/modals/DependencyReadinessConfirmationModal.ts
+msgctxt "modals.dependencyReadiness.buttons.enableAndOpenStatuses"
+msgid "Enable and go to statuses..."
+msgstr "有効にしてステータスへ移動..."
+
 #: src/settings/native/integrations.ts
 msgctxt "settings.integrations.autoExport.enable.name"
 msgid "Enable automatic export"
@@ -5108,6 +5118,11 @@ msgstr "3日ごと（完了後）"
 msgctxt "settings.calendarService.deleteAccount.confirmMessage"
 msgid "Every device is signed out and the service’s access to Google Calendar is withdrawn. Your events in Google Calendar are not changed. This cannot be undone."
 msgstr "すべての端末でログアウトされ、サービスのGoogleカレンダーへのアクセス権が取り消されます。Googleカレンダー上の予定は変更されません。この操作は元に戻せません。"
+
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.dependencies.readiness.consequence.releasesImmediately"
+msgid "Every status already counts as started, so start-to-start and start-to-finish dependencies will release immediately instead of holding the task until the predecessor starts."
+msgstr "すべてのステータスがすでに開始済みと見なされるため、開始-開始および開始-終了の依存関係は、先行タスクが開始するまでタスクを保留せず、すぐに解除されます。"
 
 #: src/components/CustomRecurrenceModal.ts
 msgctxt "components.recurrenceContextMenu.customRecurrenceModal.intervalDesc"
@@ -6250,6 +6265,11 @@ msgctxt "settings.calendarService.connect.description"
 msgid "Give TaskNotes access to your Google Calendar again."
 msgstr "TaskNotes にGoogleカレンダーへのアクセスをもう一度許可します。"
 
+#: src/modals/DependencyReadinessConfirmationModal.ts
+msgctxt "modals.dependencyReadiness.buttons.goBack"
+msgid "Go back"
+msgstr "戻る"
+
 #: src/bases/MiniCalendarView.ts
 msgctxt "views.basesCalendar.hints.today"
 msgid "Go to today"
@@ -6803,6 +6823,11 @@ msgstr "項目1, 項目2, 項目3"
 msgctxt "bases/registration: registerBasesTaskList.attemptRegistration.options placeholder"
 msgid "JSON object keyed by swim lane property"
 msgstr "スイムレーンのプロパティをキーとする JSON オブジェクト"
+
+#: src/modals/DependencyReadinessConfirmationModal.ts
+msgctxt "modals.dependencyReadiness.buttons.justEnable"
+msgid "Just enable"
+msgstr "有効にするだけ"
 
 #: src/settings/native/relativeSyncTime.ts
 msgctxt "settings.integrations.timeFormats.justNow"
@@ -8023,6 +8048,21 @@ msgstr "このタスクには予定日が設定されていません"
 msgctxt "views.pomodoro.recent.empty"
 msgid "No sessions recorded yet"
 msgstr "まだセッションが記録されていません"
+
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.dependencies.readiness.missing.both"
+msgid "No status is categorized as Not started or Started."
+msgstr "「未開始」にも「開始済み」にも分類されたステータスがありません。"
+
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.dependencies.readiness.missing.notStarted"
+msgid "No status is categorized as Not started."
+msgstr "「未開始」に分類されたステータスがありません。"
+
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.dependencies.readiness.missing.started"
+msgid "No status is categorized as Started."
+msgstr "「開始済み」に分類されたステータスがありません。"
 
 #: src/ui/taskPropertyPickers.ts
 msgctxt "interaction picker"
@@ -10986,6 +11026,11 @@ msgctxt "ui.dependencies.reltype.startToStart"
 msgid "Start-to-start"
 msgstr "開始-開始"
 
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.dependencies.readiness.consequence.releasesOnCompletion"
+msgid "Start-to-start and start-to-finish dependencies will release only when the predecessor completes, not when it starts."
+msgstr "開始-開始および開始-終了の依存関係は、先行タスクの開始時ではなく、完了時にのみ解除されます。"
+
 #: src/modals/ICSNoteCreationModal.ts
 msgctxt "modals.icsNoteCreation.startLabel"
 msgid "Start: "
@@ -12827,6 +12872,11 @@ msgstr "タイトル: {title}"
 msgctxt "modals.taskSelector.instructions.dismiss"
 msgid "to cancel"
 msgstr "キャンセル"
+
+#: src/modals/DependencyReadinessConfirmationModal.ts
+msgctxt "modals.dependencyReadiness.remedy"
+msgid "To change that, assign the missing category to one of your existing statuses in the task properties settings."
+msgstr "これを変更するには、タスクプロパティの設定で、既存のステータスのいずれかに不足しているカテゴリを割り当ててください。"
 
 #: src/modals/DeviceCodeModal.ts
 msgctxt "modals.deviceCode.instructions.intro"

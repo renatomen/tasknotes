@@ -4747,6 +4747,16 @@ msgctxt "services/buildTaskCreationDataFromCli: buildTaskCreationDataFromCli dis
 msgid "Either --text or --title is required"
 msgstr "Devi specificare --text oppure --title"
 
+#: src/modals/DependencyReadinessConfirmationModal.ts
+msgctxt "modals.dependencyReadiness.title"
+msgid "Enable advanced dependency types?"
+msgstr "Attivare i tipi di dipendenza avanzati?"
+
+#: src/modals/DependencyReadinessConfirmationModal.ts
+msgctxt "modals.dependencyReadiness.buttons.enableAndOpenStatuses"
+msgid "Enable and go to statuses..."
+msgstr "Attiva e vai agli stati..."
+
 #: src/settings/native/integrations.ts
 msgctxt "settings.integrations.autoExport.enable.name"
 msgid "Enable automatic export"
@@ -5109,6 +5119,11 @@ msgstr "Ogni 3 giorni (dopo il completamento)"
 msgctxt "settings.calendarService.deleteAccount.confirmMessage"
 msgid "Every device is signed out and the service’s access to Google Calendar is withdrawn. Your events in Google Calendar are not changed. This cannot be undone."
 msgstr "Tutti i dispositivi vengono disconnessi e l’accesso del servizio a Google Calendar viene revocato. I tuoi eventi in Google Calendar non vengono modificati. L’operazione non può essere annullata."
+
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.dependencies.readiness.consequence.releasesImmediately"
+msgid "Every status already counts as started, so start-to-start and start-to-finish dependencies will release immediately instead of holding the task until the predecessor starts."
+msgstr "Ogni stato conta già come iniziato, quindi le dipendenze inizio-inizio e inizio-fine verranno rilasciate subito invece di trattenere l’attività finché il predecessore non inizia."
 
 #: src/components/CustomRecurrenceModal.ts
 msgctxt "components.recurrenceContextMenu.customRecurrenceModal.intervalDesc"
@@ -6251,6 +6266,11 @@ msgctxt "settings.calendarService.connect.description"
 msgid "Give TaskNotes access to your Google Calendar again."
 msgstr "Concedi di nuovo a TaskNotes l’accesso al tuo Google Calendar."
 
+#: src/modals/DependencyReadinessConfirmationModal.ts
+msgctxt "modals.dependencyReadiness.buttons.goBack"
+msgid "Go back"
+msgstr "Indietro"
+
 #: src/bases/MiniCalendarView.ts
 msgctxt "views.basesCalendar.hints.today"
 msgid "Go to today"
@@ -6804,6 +6824,11 @@ msgstr "elemento1, elemento2, elemento3"
 msgctxt "bases/registration: registerBasesTaskList.attemptRegistration.options placeholder"
 msgid "JSON object keyed by swim lane property"
 msgstr "Oggetto JSON indicizzato per proprietà di raggruppamento delle righe"
+
+#: src/modals/DependencyReadinessConfirmationModal.ts
+msgctxt "modals.dependencyReadiness.buttons.justEnable"
+msgid "Just enable"
+msgstr "Attiva soltanto"
 
 #: src/settings/native/relativeSyncTime.ts
 msgctxt "settings.integrations.timeFormats.justNow"
@@ -8024,6 +8049,21 @@ msgstr "Nessuna data pianificata per questa attività"
 msgctxt "views.pomodoro.recent.empty"
 msgid "No sessions recorded yet"
 msgstr "Nessuna sessione ancora registrata"
+
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.dependencies.readiness.missing.both"
+msgid "No status is categorized as Not started or Started."
+msgstr "Nessuno stato appartiene alla categoria «Non iniziato» o «Iniziato»."
+
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.dependencies.readiness.missing.notStarted"
+msgid "No status is categorized as Not started."
+msgstr "Nessuno stato appartiene alla categoria «Non iniziato»."
+
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.dependencies.readiness.missing.started"
+msgid "No status is categorized as Started."
+msgstr "Nessuno stato appartiene alla categoria «Iniziato»."
 
 #: src/ui/taskPropertyPickers.ts
 msgctxt "interaction picker"
@@ -10987,6 +11027,11 @@ msgctxt "ui.dependencies.reltype.startToStart"
 msgid "Start-to-start"
 msgstr "Inizio-inizio"
 
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.dependencies.readiness.consequence.releasesOnCompletion"
+msgid "Start-to-start and start-to-finish dependencies will release only when the predecessor completes, not when it starts."
+msgstr "Le dipendenze inizio-inizio e inizio-fine verranno rilasciate solo quando il predecessore sarà completato, non quando inizia."
+
 #: src/modals/ICSNoteCreationModal.ts
 msgctxt "modals.icsNoteCreation.startLabel"
 msgid "Start: "
@@ -12828,6 +12873,11 @@ msgstr "titolo: {title}"
 msgctxt "modals.taskSelector.instructions.dismiss"
 msgid "to cancel"
 msgstr "per annullare"
+
+#: src/modals/DependencyReadinessConfirmationModal.ts
+msgctxt "modals.dependencyReadiness.remedy"
+msgid "To change that, assign the missing category to one of your existing statuses in the task properties settings."
+msgstr "Per cambiare questa situazione, assegna la categoria mancante a uno degli stati esistenti nelle impostazioni delle proprietà delle attività."
 
 #: src/modals/DeviceCodeModal.ts
 msgctxt "modals.deviceCode.instructions.intro"

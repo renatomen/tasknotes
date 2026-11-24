@@ -4746,6 +4746,16 @@ msgctxt "services/buildTaskCreationDataFromCli: buildTaskCreationDataFromCli dis
 msgid "Either --text or --title is required"
 msgstr "--text 또는 --title이 필요합니다"
 
+#: src/modals/DependencyReadinessConfirmationModal.ts
+msgctxt "modals.dependencyReadiness.title"
+msgid "Enable advanced dependency types?"
+msgstr "고급 종속성 유형을 활성화할까요?"
+
+#: src/modals/DependencyReadinessConfirmationModal.ts
+msgctxt "modals.dependencyReadiness.buttons.enableAndOpenStatuses"
+msgid "Enable and go to statuses..."
+msgstr "활성화하고 상태로 이동..."
+
 #: src/settings/native/integrations.ts
 msgctxt "settings.integrations.autoExport.enable.name"
 msgid "Enable automatic export"
@@ -5108,6 +5118,11 @@ msgstr "3일마다 (완료 후)"
 msgctxt "settings.calendarService.deleteAccount.confirmMessage"
 msgid "Every device is signed out and the service’s access to Google Calendar is withdrawn. Your events in Google Calendar are not changed. This cannot be undone."
 msgstr "모든 기기에서 로그아웃되고 서비스의 Google 캘린더 액세스 권한이 철회됩니다. Google 캘린더의 일정은 변경되지 않습니다. 이 작업은 되돌릴 수 없습니다."
+
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.dependencies.readiness.consequence.releasesImmediately"
+msgid "Every status already counts as started, so start-to-start and start-to-finish dependencies will release immediately instead of holding the task until the predecessor starts."
+msgstr "모든 상태가 이미 시작된 것으로 간주되므로, 시작-시작 및 시작-완료 종속성은 선행 작업이 시작될 때까지 작업을 붙잡아 두지 않고 즉시 해제됩니다."
 
 #: src/components/CustomRecurrenceModal.ts
 msgctxt "components.recurrenceContextMenu.customRecurrenceModal.intervalDesc"
@@ -6250,6 +6265,11 @@ msgctxt "settings.calendarService.connect.description"
 msgid "Give TaskNotes access to your Google Calendar again."
 msgstr "TaskNotes에 Google 캘린더 액세스 권한을 다시 부여합니다."
 
+#: src/modals/DependencyReadinessConfirmationModal.ts
+msgctxt "modals.dependencyReadiness.buttons.goBack"
+msgid "Go back"
+msgstr "돌아가기"
+
 #: src/bases/MiniCalendarView.ts
 msgctxt "views.basesCalendar.hints.today"
 msgid "Go to today"
@@ -6803,6 +6823,11 @@ msgstr "항목1, 항목2, 항목3"
 msgctxt "bases/registration: registerBasesTaskList.attemptRegistration.options placeholder"
 msgid "JSON object keyed by swim lane property"
 msgstr "스윔레인 속성을 키로 사용하는 JSON 객체"
+
+#: src/modals/DependencyReadinessConfirmationModal.ts
+msgctxt "modals.dependencyReadiness.buttons.justEnable"
+msgid "Just enable"
+msgstr "활성화만 하기"
 
 #: src/settings/native/relativeSyncTime.ts
 msgctxt "settings.integrations.timeFormats.justNow"
@@ -8023,6 +8048,21 @@ msgstr "이 작업에 예정일이 없습니다"
 msgctxt "views.pomodoro.recent.empty"
 msgid "No sessions recorded yet"
 msgstr "아직 기록된 세션이 없습니다"
+
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.dependencies.readiness.missing.both"
+msgid "No status is categorized as Not started or Started."
+msgstr "\"시작 전\" 또는 \"시작됨\"으로 분류된 상태가 없습니다."
+
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.dependencies.readiness.missing.notStarted"
+msgid "No status is categorized as Not started."
+msgstr "\"시작 전\"으로 분류된 상태가 없습니다."
+
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.dependencies.readiness.missing.started"
+msgid "No status is categorized as Started."
+msgstr "\"시작됨\"으로 분류된 상태가 없습니다."
 
 #: src/ui/taskPropertyPickers.ts
 msgctxt "interaction picker"
@@ -10986,6 +11026,11 @@ msgctxt "ui.dependencies.reltype.startToStart"
 msgid "Start-to-start"
 msgstr "시작-시작"
 
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.dependencies.readiness.consequence.releasesOnCompletion"
+msgid "Start-to-start and start-to-finish dependencies will release only when the predecessor completes, not when it starts."
+msgstr "시작-시작 및 시작-완료 종속성은 선행 작업이 시작될 때가 아니라 완료될 때에만 해제됩니다."
+
 #: src/modals/ICSNoteCreationModal.ts
 msgctxt "modals.icsNoteCreation.startLabel"
 msgid "Start: "
@@ -12827,6 +12872,11 @@ msgstr "제목: {title}"
 msgctxt "modals.taskSelector.instructions.dismiss"
 msgid "to cancel"
 msgstr "취소"
+
+#: src/modals/DependencyReadinessConfirmationModal.ts
+msgctxt "modals.dependencyReadiness.remedy"
+msgid "To change that, assign the missing category to one of your existing statuses in the task properties settings."
+msgstr "이를 바꾸려면 작업 속성 설정에서 기존 상태 중 하나에 누락된 카테고리를 지정하세요."
 
 #: src/modals/DeviceCodeModal.ts
 msgctxt "modals.deviceCode.instructions.intro"

@@ -115,6 +115,30 @@ export const STATUS_CATEGORY_LABELS: Record<StatusCategory, MessageDescriptor> =
 	completed: msg({ message: "Completed", context: "settings.taskProperties.taskStatuses.categories.completed" }),
 };
 
+const START_CATEGORIES: readonly StatusCategory[] = ["planned", "in-progress"];
+
+/** The start categories (Not started, Started) that no status carries, in that order. */
+export function findMissingStartCategories(statuses: StatusConfig[]): StatusCategory[] {
+	const counts = countStatusCategories(statuses);
+	return START_CATEGORIES.filter((category) => counts[category] === 0);
+}
+
+/** One whole sentence per case, so no translation has to join category names. `missing` must be non-empty. */
+export function describeMissingStartCategories(missing: StatusCategory[]): MessageDescriptor {
+	if (!missing.includes("planned"))
+		return msg({ message: "No status is categorized as Started.", context: "settings.taskProperties.dependencies.readiness.missing.started" });
+	if (!missing.includes("in-progress"))
+		return msg({ message: "No status is categorized as Not started.", context: "settings.taskProperties.dependencies.readiness.missing.notStarted" });
+	return msg({ message: "No status is categorized as Not started or Started.", context: "settings.taskProperties.dependencies.readiness.missing.both" });
+}
+
+/** Without a Not started status every remaining status counts as started, so the gap releases early, not late. */
+export function describeMissingStartConsequence(missing: StatusCategory[]): MessageDescriptor {
+	return missing.includes("planned")
+		? msg({ message: "Every status already counts as started, so start-to-start and start-to-finish dependencies will release immediately instead of holding the task until the predecessor starts.", context: "settings.taskProperties.dependencies.readiness.consequence.releasesImmediately" })
+		: msg({ message: "Start-to-start and start-to-finish dependencies will release only when the predecessor completes, not when it starts.", context: "settings.taskProperties.dependencies.readiness.consequence.releasesOnCompletion" });
+}
+
 // Default priority configuration matches current hardcoded behavior
 export const DEFAULT_PRIORITIES: PriorityConfig[] = [
 	{

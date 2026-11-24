@@ -2,6 +2,7 @@ import { msg } from "@lingui/core/macro";
 import { configLabel } from "../../i18n/configLabels";
 import {
 	Notice,
+	type SettingDefinition,
 	type SettingDefinitionItem,
 	type SettingDefinitionList,
 	type SettingDefinitionGroup,
@@ -16,8 +17,18 @@ import {
 import type { UserMappedField } from "../../types/settings";
 import type { FileFilterConfig } from "../../suggest/FileSuggestHelper";
 import { showConfirmationModal } from "../../modals/ConfirmationModal";
+import {
+	DependencyReadinessConfirmationModal,
+	type DependencyReadinessChoice,
+} from "../../modals/DependencyReadinessConfirmationModal";
 import { initializeFieldConfig } from "../../utils/fieldConfigDefaults";
-import { STATUS_CATEGORY_LABELS } from "../defaults";
+import {
+	STATUS_CATEGORY_LABELS,
+	describeMissingStartCategories,
+	describeMissingStartConsequence,
+	findMissingStartCategories,
+} from "../defaults";
+import { openTaskPropertySettings } from "../TaskNotesSettingTab";
 import { SettingsContext } from "./SettingsContext";
 
 export function reorder<T>(items: readonly T[], from: number, to: number): T[] {
@@ -146,6 +157,32 @@ export function filterPage(
 			}),
 		],
 	};
+}
+
+/** Obsidian leaves a focused control as drawn on rebuild, so release it first to show the saved value. */
+function redrawFocusedControl(ctx: SettingsContext): void {
+	const focused = activeDocument.activeElement;
+	if (focused?.instanceOf(HTMLElement)) focused.blur();
+	ctx.rebuild();
+}
+
+/** Present only while a start category has no status, so a status edit has to rebuild to clear it. */
+function startReadinessWarning(ctx: SettingsContext): SettingDefinition[] {
+	const { plugin } = ctx;
+	const missing = findMissingStartCategories(plugin.settings.customStatuses);
+	if (!missing.length) return [];
+	return [
+		{
+			name: "",
+			visible: () => plugin.settings.enableAdvancedDependencyTypes,
+			render: (setting) => {
+				setting.settingEl.addClass("tn-start-readiness-warning");
+				setting.setDesc(ctx.t(describeMissingStartCategories(missing)));
+				setting.descEl.createDiv({ text: ctx.t(describeMissingStartConsequence(missing)) });
+				setting.descEl.setAttribute("role", "status");
+			},
+		},
+	];
 }
 
 function configuredValues(
@@ -701,6 +738,7 @@ export function propertyDefinitions(ctx: SettingsContext): SettingDefinitionItem
 			),
 		];
 		if (property in triggers) items.push(triggerGroup(ctx, property, triggers[property]));
+		if (property === "status") items.push(...startReadinessWarning(ctx));
 		if (property === "status" || property === "priority")
 		items.push(...configuredValues(ctx, property));
 		if (property === "projects") {
@@ -776,11 +814,33 @@ export function propertyDefinitions(ctx: SettingsContext): SettingDefinitionItem
 					name: t(msg({ message: "Advanced dependency types", context: "settings.taskProperties.dependencies.advancedTypes.name" })),
 					desc: t(msg({ message: "Choose a relationship type (finish-to-start, start-to-start, finish-to-finish, start-to-finish) and an optional lag for each dependency. Relationship types already saved in task notes apply whether this is on or off.", context: "settings.taskProperties.dependencies.advancedTypes.description" })),
 					getValue: () => plugin.settings.enableAdvancedDependencyTypes,
-					setValue: (value) => {
+					setValue: async (value) => {
+						const missing = value
+							? findMissingStartCategories(plugin.settings.customStatuses)
+							: [];
+						let choice: DependencyReadinessChoice = "enable";
+						if (missing.length) {
+							try {
+								choice = await new DependencyReadinessConfirmationModal(
+									plugin,
+									missing
+								).show();
+							} catch (error) {
+								redrawFocusedControl(ctx);
+								throw error;
+							}
+						}
+						if (choice === "go-back") {
+							redrawFocusedControl(ctx);
+							return;
+						}
 						plugin.settings.enableAdvancedDependencyTypes = value;
 						ctx.save();
+						if (choice === "enable-and-open-statuses")
+							openTaskPropertySettings(plugin, "status");
 					},
 				}),
+				...startReadinessWarning(ctx),
 			],
 		},
 	];
