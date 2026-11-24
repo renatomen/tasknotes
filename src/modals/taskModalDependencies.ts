@@ -46,6 +46,7 @@ export interface DependencyReltypeControls {
 	side: DependencyListSide;
 	/** How the summary line names the task being edited. */
 	selfName: string;
+	/** Like `onGapChange`, must not re-render the list: the row rewords its own summary. */
 	onReltypeChange: (index: number, reltype: TaskDependencyRelType) => void;
 	/**
 	 * Called on each keystroke, so re-rendering the list from it would take focus from the field.
@@ -323,21 +324,24 @@ function renderReltypeControls(itemEl: HTMLElement, options: ReltypeControlsOpti
 		reltypeSelect.createEl("option", { value: reltype, text: translate(label) });
 	}
 	reltypeSelect.value = item.dependency.reltype;
-	reltypeSelect.addEventListener("change", () => {
-		if (!isCurrent()) return;
-		controls.onReltypeChange(index, reltypeSelect.value as TaskDependencyRelType);
-	});
 
 	renderGapField(controlsEl, options);
 
-	controlsEl.createDiv({
-		cls: "task-dependency-summary",
-		text: translate(
-			DEPENDENCY_SUMMARIES[item.dependency.reltype],
+	const summaryEl = controlsEl.createDiv({ cls: "task-dependency-summary" });
+	const showSummary = (reltype: TaskDependencyRelType) => {
+		summaryEl.textContent = translate(
+			DEPENDENCY_SUMMARIES[reltype],
 			controls.side === "blocked-by"
 				? { predecessor: item.name, successor: controls.selfName }
 				: { predecessor: controls.selfName, successor: item.name }
-		),
+		);
+	};
+	showSummary(item.dependency.reltype);
+	reltypeSelect.addEventListener("change", () => {
+		if (!isCurrent()) return;
+		const reltype = reltypeSelect.value as TaskDependencyRelType;
+		showSummary(reltype);
+		controls.onReltypeChange(index, reltype);
 	});
 }
 

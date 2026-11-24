@@ -185,6 +185,19 @@ describe("dependency row reltype and gap controls", () => {
 		expect(onReltypeChange).toHaveBeenCalledWith(1, "STARTTOFINISH");
 	});
 
+	it.each([
+		["blocked-by", "Design must start before Write report can finish"],
+		["blocking", "Write report must start before Design can finish"],
+	] as const)("rewords a %s row's summary in place for the reltype picked", async (side, summary) => {
+		const listEl = await renderRows([unresolvedRow("Design", "FINISHTOSTART")], side);
+		const summaryEl = listEl.querySelector(".task-dependency-summary");
+
+		choose(reltypeSelect(listEl), "STARTTOFINISH");
+
+		expect(listEl.querySelector(".task-dependency-summary")).toBe(summaryEl);
+		expect(summaryEl?.textContent).toBe(summary);
+	});
+
 	it("reports a typed gap as a duration in the chosen unit", async () => {
 		const onGapChange = jest.fn();
 		const listEl = await renderRows([unresolvedRow("Design", "FINISHTOSTART")], "blocked-by", {
@@ -452,6 +465,69 @@ describe("task edit dialog reltype and gap", () => {
 		await undo[0]();
 
 		expect(storedNote("Tasks/Publish.md").blockedBy).toEqual(stored);
+	});
+
+	async function openWithOneRowPerList() {
+		note("Tasks/Design.md");
+		note("Tasks/Publish.md", [{ uid: "[[Write report]]", reltype: "FINISHTOSTART" }]);
+		const task = note(editedPath, [{ uid: "[[Design]]", reltype: "FINISHTOSTART" }]);
+		task.blocking = ["Tasks/Publish.md"];
+		return (await openDialog(task)).internals;
+	}
+
+	it.each(["blockedBy", "blocking"] as const)(
+		"keeps the %s reltype select in place and focused when its type is changed",
+		async (side) => {
+			const internals = await openWithOneRowPerList();
+			const select = reltypeSelect(internals[`${side}List`]);
+			select.focus();
+
+			choose(select, "STARTTOSTART");
+			await flush();
+
+			expect(reltypeSelect(internals[`${side}List`])).toBe(select);
+			expect(document.activeElement).toBe(select);
+		}
+	);
+
+	it.each([
+		["blockedBy", "Design must start before Write report can finish"],
+		["blocking", "Write report must start before Publish can finish"],
+	] as const)(
+		"shows the new type's summary and stores the type as soon as a %s row's type is changed",
+		async (side, summary) => {
+			const internals = await openWithOneRowPerList();
+			const listEl = internals[`${side}List`];
+
+			choose(reltypeSelect(listEl), "STARTTOFINISH");
+
+			expect(listEl.querySelector(".task-dependency-summary")?.textContent).toBe(summary);
+			expect(internals[`${side}Items`][0].dependency.reltype).toBe("STARTTOFINISH");
+		}
+	);
+
+	it("keeps a lag being typed on another row when a row's type is changed", async () => {
+		note("Tasks/Design.md");
+		note("Tasks/Review.md");
+		const task = note(editedPath, [
+			{ uid: "[[Design]]", reltype: "FINISHTOSTART" },
+			{ uid: "[[Review]]", reltype: "FINISHTOSTART" },
+		]);
+		const { internals } = await openDialog(task);
+		const otherRowLag = internals.blockedByList.querySelectorAll<HTMLInputElement>(
+			"input.task-dependency-gap-value"
+		)[1];
+
+		choose(reltypeSelect(internals.blockedByList), "STARTTOSTART");
+		typeGap(otherRowLag, "4");
+		await flush();
+
+		expect(internals.blockedByList.contains(otherRowLag)).toBe(true);
+		expect(otherRowLag.value).toBe("4");
+		expect(internals.blockedByItems.map((item) => item.dependency)).toEqual([
+			{ uid: "Design", reltype: "STARTTOSTART" },
+			{ uid: "Review", reltype: "FINISHTOSTART", gap: "P4D" },
+		]);
 	});
 
 	it("counts a gap change alone as an unsaved change, without moving focus off the field", async () => {

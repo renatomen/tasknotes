@@ -48,7 +48,7 @@ import {
 	createDependencyItemFromFile as createDependencyItemFromFileHelper,
 	createDependencyItemFromPath as createDependencyItemFromPathHelper,
 	DependencyItem,
-	type DependencyReltypeControls,
+	type DependencyListSide,
 	getBlockedByDependencyCandidates,
 	getBlockingDependencyCandidates,
 	removeDependencyItemAtIndex,
@@ -256,19 +256,9 @@ export abstract class TaskModal extends Modal {
 				this.blockedByItems = removeDependencyItemAtIndex(this.blockedByItems, index);
 				this.renderBlockedByList();
 			},
-			{
-				side: "blocked-by",
-				onReltypeChange: (index, reltype) => {
-					this.blockedByItems = updateDependencyItemAtIndex(this.blockedByItems, index, {
-						reltype,
-					});
-					this.renderBlockedByList();
-				},
-				onGapChange: (index, gap) => {
-					this.blockedByItems = updateDependencyItemAtIndex(this.blockedByItems, index, {
-						gap,
-					});
-				},
+			"blocked-by",
+			(index, patch) => {
+				this.blockedByItems = updateDependencyItemAtIndex(this.blockedByItems, index, patch);
 			}
 		);
 	}
@@ -281,19 +271,9 @@ export abstract class TaskModal extends Modal {
 				this.blockingItems = removeDependencyItemAtIndex(this.blockingItems, index);
 				this.renderBlockingList();
 			},
-			{
-				side: "blocking",
-				onReltypeChange: (index, reltype) => {
-					this.blockingItems = updateDependencyItemAtIndex(this.blockingItems, index, {
-						reltype,
-					});
-					this.renderBlockingList();
-				},
-				onGapChange: (index, gap) => {
-					this.blockingItems = updateDependencyItemAtIndex(this.blockingItems, index, {
-						gap,
-					});
-				},
+			"blocking",
+			(index, patch) => {
+				this.blockingItems = updateDependencyItemAtIndex(this.blockingItems, index, patch);
 			}
 		);
 	}
@@ -302,7 +282,8 @@ export abstract class TaskModal extends Modal {
 		listEl: HTMLElement | undefined,
 		items: DependencyItem[],
 		onRemove: (index: number) => void,
-		controls: Omit<DependencyReltypeControls, "selfName">
+		side: DependencyListSide,
+		onUpdate: (index: number, patch: Partial<TaskDependency>) => void
 	): Promise<void> {
 		if (!listEl) {
 			return;
@@ -317,10 +298,12 @@ export abstract class TaskModal extends Modal {
 			onRemove,
 			reltypeControls: this.plugin.settings.enableAdvancedDependencyTypes
 				? {
-						...controls,
+						side,
 						selfName:
 							this.form.values.title.trim() ||
 							this.t(msg({ message: "This task", context: "modals.task.dependencies.thisTask" })),
+						onReltypeChange: (index, reltype) => onUpdate(index, { reltype }),
+						onGapChange: (index, gap) => onUpdate(index, { gap }),
 					}
 				: undefined,
 		});
