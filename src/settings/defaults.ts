@@ -1,5 +1,7 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
 import { uiData } from "../i18n/dataText";
-import { FieldMapping, StatusConfig, PriorityConfig } from "../types";
+import { FieldMapping, StatusCategory, StatusConfig, PriorityConfig } from "../types";
 import {
 	TaskNotesSettings,
 	TaskCreationDefaults,
@@ -33,6 +35,7 @@ export const DEFAULT_STATUSES: StatusConfig[] = [
 		label: uiData("None", "Writable persisted default label; localized only by configLabel at display boundaries"),
 		color: "#cccccc",
 		isCompleted: false,
+		category: "planned",
 		excludeFromCycle: false,
 		order: 0,
 		autoArchive: false,
@@ -44,6 +47,7 @@ export const DEFAULT_STATUSES: StatusConfig[] = [
 		label: uiData("Open", "Writable persisted default label; localized only by configLabel at display boundaries"),
 		color: "#808080",
 		isCompleted: false,
+		category: "planned",
 		excludeFromCycle: false,
 		order: 1,
 		autoArchive: false,
@@ -55,6 +59,7 @@ export const DEFAULT_STATUSES: StatusConfig[] = [
 		label: uiData("In progress", "Writable persisted default label; localized only by configLabel at display boundaries"),
 		color: "#0066cc",
 		isCompleted: false,
+		category: "in-progress",
 		excludeFromCycle: false,
 		order: 2,
 		autoArchive: false,
@@ -66,6 +71,7 @@ export const DEFAULT_STATUSES: StatusConfig[] = [
 		label: uiData("Done", "Writable persisted default label; localized only by configLabel at display boundaries"),
 		color: "#00aa00",
 		isCompleted: true,
+		category: "completed",
 		excludeFromCycle: false,
 		// Reopening a task, or finishing a recurring occurrence, starts again at Open.
 		nextStatus: "open",
@@ -74,6 +80,40 @@ export const DEFAULT_STATUSES: StatusConfig[] = [
 		autoArchiveDelay: 5,
 	},
 ];
+
+/**
+ * Keeps `isCompleted` and `category === "completed"` in step: completed by either signal becomes
+ * `completed`; any other status keeps a valid `planned`/`in-progress` category or defaults to
+ * `planned`. Idempotent; an already-normalized status is returned as the same object.
+ */
+export function normalizeStatusCategories(statuses: StatusConfig[]): StatusConfig[] {
+	return statuses.map((status) => {
+		if (status.isCompleted || status.category === "completed") {
+			if (status.isCompleted && status.category === "completed") {
+				return status;
+			}
+			return { ...status, isCompleted: true, category: "completed" };
+		}
+		if (status.category === "planned" || status.category === "in-progress") {
+			return status;
+		}
+		return { ...status, category: "planned" };
+	});
+}
+
+export function countStatusCategories(statuses: StatusConfig[]): Record<StatusCategory, number> {
+	const counts: Record<StatusCategory, number> = { planned: 0, "in-progress": 0, completed: 0 };
+	for (const status of normalizeStatusCategories(statuses)) {
+		counts[status.category ?? "planned"]++;
+	}
+	return counts;
+}
+
+export const STATUS_CATEGORY_LABELS: Record<StatusCategory, MessageDescriptor> = {
+	planned: msg({ message: "Not started", context: "settings.taskProperties.taskStatuses.categories.planned" }),
+	"in-progress": msg({ message: "Started", context: "settings.taskProperties.taskStatuses.categories.inProgress" }),
+	completed: msg({ message: "Completed", context: "settings.taskProperties.taskStatuses.categories.completed" }),
+};
 
 // Default priority configuration matches current hardcoded behavior
 export const DEFAULT_PRIORITIES: PriorityConfig[] = [

@@ -1,6 +1,6 @@
 import { uiData } from "../i18n/dataText";
 
-import { StatusConfig } from "../types";
+import { StatusConfig, StatusCategory } from "../types";
 import { normalizeStatusConfigValue } from "../core/fieldMapping";
 import { isSupportedColorValue, normalizeThemeColor } from "../utils/themeColors";
 
@@ -150,6 +150,29 @@ export class StatusManager {
 		return status?.isCompleted || false;
 	}
 
+	getCategory(statusValue: string): StatusCategory | undefined {
+		return this.getStatusConfig(statusValue)?.category;
+	}
+
+	/**
+	 * Whether the status counts as started — the constraint anchor for STARTTOSTART /
+	 * STARTTOFINISH edges. A Not-started (planned) status is not started.
+	 */
+	isStarted(statusValue: string): boolean {
+		if (this.isCompletedStatus(statusValue)) {
+			return true;
+		}
+		return this.getCategory(statusValue) === "in-progress";
+	}
+
+	/**
+	 * Whether the status counts as finished — the certain anchor for FINISHTOSTART /
+	 * FINISHTOFINISH edges. Equivalent to isCompleted.
+	 */
+	isFinished(statusValue: string): boolean {
+		return this.isCompletedStatus(statusValue);
+	}
+
 	/**
 	 * Get status order for sorting
 	 */
@@ -271,6 +294,7 @@ export class StatusManager {
 			label: uiData("New status", "Writable persisted seed for a new user-configured label; not a display getter"),
 			color: "#808080",
 			isCompleted: false,
+			category: "planned",
 			excludeFromCycle: false,
 			order,
 			autoArchive: false,

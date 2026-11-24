@@ -2844,6 +2844,11 @@ msgctxt "generated Bases column name"
 msgid "Completed"
 msgstr "Completed"
 
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.taskStatuses.categories.completed"
+msgid "Completed"
+msgstr "Completed"
+
 #: src/i18n/messages.ts
 msgctxt "ui.taskCard.labels.completed"
 msgid "Completed"
@@ -8084,6 +8089,11 @@ msgctxt "generated Bases grouping label"
 msgid "Not started"
 msgstr "Not started"
 
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.taskStatuses.categories.planned"
+msgid "Not started"
+msgstr "Not started"
+
 #: src/settings/native/connections.ts
 msgctxt "settings.native.notSyncedYet"
 msgid "Not synced yet"
@@ -10831,6 +10841,11 @@ msgstr "Start tracking time for this task"
 msgctxt "modals.icsNoteCreation.startLabel"
 msgid "Start: "
 msgstr "Start: "
+
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.taskStatuses.categories.inProgress"
+msgid "Started"
+msgstr "Started"
 
 #: src/components/BatchContextMenu.ts
 #: src/components/TaskContextMenu.ts

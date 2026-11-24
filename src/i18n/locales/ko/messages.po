@@ -2843,6 +2843,11 @@ msgctxt "generated Bases column name"
 msgid "Completed"
 msgstr "완료됨"
 
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.taskStatuses.categories.completed"
+msgid "Completed"
+msgstr "완료됨"
+
 #: src/i18n/messages.ts
 msgctxt "ui.taskCard.labels.completed"
 msgid "Completed"
@@ -8083,6 +8088,11 @@ msgctxt "generated Bases grouping label"
 msgid "Not started"
 msgstr "시작되지 않음"
 
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.taskStatuses.categories.planned"
+msgid "Not started"
+msgstr "시작 전"
+
 #: src/settings/native/connections.ts
 msgctxt "settings.native.notSyncedYet"
 msgid "Not synced yet"
@@ -10830,6 +10840,11 @@ msgstr "이 작업의 시간 추적 시작"
 msgctxt "modals.icsNoteCreation.startLabel"
 msgid "Start: "
 msgstr "시작: "
+
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.taskStatuses.categories.inProgress"
+msgid "Started"
+msgstr "시작됨"
 
 #: src/components/BatchContextMenu.ts
 #: src/components/TaskContextMenu.ts

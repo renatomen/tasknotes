@@ -1,6 +1,6 @@
 import { SettingsContext } from "../../../src/settings/native/SettingsContext";
 import { propertyDefinitions } from "../../../src/settings/native/properties";
-import { settingsFixture } from "../../helpers/native-settings";
+import { list, settingsFixture } from "../../helpers/native-settings";
 
 it("updates native status workflow references and retains the next label binding", async () => {
 	const { plugin } = settingsFixture();
@@ -24,4 +24,22 @@ it("updates native status workflow references and retains the next label binding
 	} finally {
 		jest.useRealTimers();
 	}
+});
+
+it("gives a status added in settings a category before the first save", () => {
+	const { plugin, ctx } = settingsFixture();
+	const savedCategories: unknown[] = [];
+	(plugin.saveSettings as jest.Mock).mockImplementation(() => {
+		savedCategories.push(plugin.settings.customStatuses.at(-1)?.category);
+		return Promise.resolve();
+	});
+
+	list(propertyDefinitions(ctx), "Statuses").addItem!.action(document.createElement("button"));
+
+	expect(plugin.settings.customStatuses.at(-1)).toMatchObject({
+		value: "new-status",
+		isCompleted: false,
+		category: "planned",
+	});
+	expect(savedCategories).toEqual(["planned"]);
 });

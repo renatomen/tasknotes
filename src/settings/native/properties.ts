@@ -212,6 +212,7 @@ function configuredValues(
 						label: value,
 						color: "var(--text-muted)",
 						isCompleted: false,
+						category: "planned",
 						order: values.length,
 						autoArchive: false,
 						autoArchiveDelay: 5,
