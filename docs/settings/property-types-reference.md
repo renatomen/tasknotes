@@ -313,7 +313,7 @@ For these fields, copy known-good examples before editing manually. Minor schema
   ```
 
 - **Relationship types accepted in stored data:** `FINISHTOSTART`, `STARTTOSTART`, `FINISHTOFINISH`, `STARTTOFINISH`
-- **Current behavior:** Dependencies created from the UI use `FINISHTOSTART`. Blocking evaluation follows `reltype`: each dependency holds back the start or the finish of the task until the blocking task has started or is completed (see [Dependencies](../features/task-management.md#dependencies)). `gap` does not affect it.
+- **Current behavior:** Dependencies created from the UI use `FINISHTOSTART` unless **Advanced dependency types** is on. Blocking evaluation follows `reltype`: each dependency holds back the start or the finish of the task until the blocking task has started or is completed (see [Dependencies](../features/task-management.md#dependencies)). `gap` does not affect it.
 
 #### Reminders
 

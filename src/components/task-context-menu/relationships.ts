@@ -8,11 +8,13 @@ import { TaskDependency, TaskDependencyRelType, TaskInfo } from "../../types";
 import { addTaskToProject, assignTaskAsSubtask } from "../../services/taskRelationshipActions";
 import { openTaskSelector } from "../../modals/TaskSelectorWithCreateModal";
 import { ProjectSelectModal } from "../../modals/ProjectSelectModal";
+import { findBlockingEdgeDependency } from "../../modals/taskModalDependencies";
 import {
 	DEFAULT_DEPENDENCY_RELTYPE,
 	extractDependencyUid,
 	formatDependencyLink,
 	normalizeDependencyEntry,
+	resolveDependencyEntry,
 } from "../../utils/dependencyUtils";
 import { generateLink } from "../../utils/linkUtils";
 import { createTaskNotesLogger } from "../../utils/tasknotesLogger";
@@ -364,6 +366,15 @@ export class TaskRelationshipMenu {
 		}
 
 		try {
+			const existing = Array.isArray(task.blockedBy) ? task.blockedBy : [];
+			const linked = existing.find(
+				(entry) =>
+					resolveDependencyEntry(plugin.app, task.path, entry)?.path === selectedTask.path
+			);
+			if (linked && !this.isRetype(plugin, linked, reltype)) {
+				return;
+			}
+
 			const dependency: TaskDependency = {
 				uid: formatDependencyLink(
 					plugin.app,
@@ -373,9 +384,10 @@ export class TaskRelationshipMenu {
 				),
 				reltype,
 			};
-			const existing = Array.isArray(task.blockedBy) ? task.blockedBy : [];
-			const combined = this.dedupeDependencyEntries([...existing, dependency]);
-			if (combined.length === existing.length) {
+			const combined = linked
+				? existing.map((entry) => (entry === linked ? { ...entry, reltype } : entry))
+				: this.dedupeDependencyEntries([...existing, dependency]);
+			if (!linked && combined.length === existing.length) {
 				return;
 			}
 
@@ -409,30 +421,46 @@ export class TaskRelationshipMenu {
 		if (blockedPath === task.path) {
 			return;
 		}
-		if (task.blocking?.includes(blockedPath)) {
-			return;
-		}
 
 		try {
-			const rawEntry: TaskDependency = {
-				uid: formatDependencyLink(
-					plugin.app,
-					blockedPath,
-					task.path,
-					plugin.settings.useFrontmatterMarkdownLinks
-				),
-				reltype,
-			};
-			await plugin.taskService.updateBlockingRelationships(
-				task,
-				[blockedPath],
-				[],
-				{
-					[blockedPath]: rawEntry,
-				},
-				async (blockedTask, updates) =>
-					changeTaskProperty(plugin, [blockedTask], "blockedBy", updates.blockedBy)
-			);
+			const linked = findBlockingEdgeDependency(plugin, task.path, selectedTask);
+			if (linked && !this.isRetype(plugin, linked, reltype)) {
+				return;
+			}
+
+			const updateBlockedTask = async (blockedTask: TaskInfo, updates: Partial<TaskInfo>) =>
+				changeTaskProperty(plugin, [blockedTask], "blockedBy", updates.blockedBy);
+			if (linked) {
+				await plugin.taskService.updateBlockingRelationships(
+					task,
+					[],
+					[],
+					{
+						[blockedPath]: { ...linked, reltype },
+					},
+					updateBlockedTask,
+					[blockedPath]
+				);
+			} else {
+				const rawEntry: TaskDependency = {
+					uid: formatDependencyLink(
+						plugin.app,
+						blockedPath,
+						task.path,
+						plugin.settings.useFrontmatterMarkdownLinks
+					),
+					reltype,
+				};
+				await plugin.taskService.updateBlockingRelationships(
+					task,
+					[blockedPath],
+					[],
+					{
+						[blockedPath]: rawEntry,
+					},
+					updateBlockedTask
+				);
+			}
 
 			const refreshed = await plugin.cacheManager.getTaskInfo(task.path);
 			if (refreshed) {
@@ -455,6 +483,14 @@ export class TaskRelationshipMenu {
 				),
 			});
 		}
+	}
+
+	private isRetype(
+		plugin: TaskNotesPlugin,
+		linked: TaskDependency,
+		reltype: TaskDependencyRelType
+	): boolean {
+		return plugin.settings.enableAdvancedDependencyTypes && linked.reltype !== reltype;
 	}
 
 	getDependencyKey(entry: TaskDependency): string {

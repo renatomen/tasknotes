@@ -3,7 +3,7 @@ import { TaskContextMenu } from "../../../src/components/TaskContextMenu";
 import { createI18nService } from "../../../src/i18n";
 import type TaskNotesPlugin from "../../../src/main";
 import { openTaskSelector } from "../../../src/modals/TaskSelectorWithCreateModal";
-import type { TaskInfo } from "../../../src/types";
+import type { TaskDependencyRelType, TaskInfo } from "../../../src/types";
 import { changeTaskProperty } from "../../../src/ui/taskPropertyPickers";
 
 jest.mock("../../../src/ui/taskPropertyPickers", () => ({
@@ -39,10 +39,11 @@ const BLOCKING_RELTYPES = [
 	"Finish → finish · they can't finish until this finishes",
 	"Start → finish · they can't finish until this starts",
 ];
-const [, BLOCKED_BY_START_TO_START] = BLOCKED_BY_RELTYPES;
-const [, BLOCKING_START_TO_START, BLOCKING_FINISH_TO_FINISH] = BLOCKING_RELTYPES;
+const [BLOCKED_BY_FINISH_TO_START, BLOCKED_BY_START_TO_START] = BLOCKED_BY_RELTYPES;
+const [BLOCKING_FINISH_TO_START, BLOCKING_START_TO_START, BLOCKING_FINISH_TO_FINISH] =
+	BLOCKING_RELTYPES;
 
-function task(path: string): TaskInfo {
+function task(path: string, overrides: Partial<TaskInfo> = {}): TaskInfo {
 	return {
 		id: path,
 		path,
@@ -51,6 +52,7 @@ function task(path: string): TaskInfo {
 		priority: "normal",
 		complete_instances: [],
 		skipped_instances: [],
+		...overrides,
 	} as TaskInfo;
 }
 
@@ -59,9 +61,10 @@ const otherTask = task("Tasks/other.md");
 function createPlugin(options: {
 	advancedDependencyTypes: boolean;
 	locale?: string;
+	notes?: string[];
 }): TaskNotesPlugin {
 	return {
-		app: new App(),
+		app: new App(Object.fromEntries((options.notes ?? []).map((path) => [path, ""]))),
 		i18n: createI18nService({ initialLocale: options.locale ?? "en" }),
 		settings: {
 			defaultTaskStatus: "open",
@@ -142,8 +145,8 @@ function reltypeItem(addTitle: string, reltypeTitle: string): Record<string, jes
 	);
 }
 
-function openMenu(plugin: TaskNotesPlugin): TaskInfo {
-	const menuTask = task("Tasks/this.md");
+function openMenu(plugin: TaskNotesPlugin, overrides: Partial<TaskInfo> = {}): TaskInfo {
+	const menuTask = task("Tasks/this.md", overrides);
 	new TaskContextMenu({ task: menuTask, plugin, targetDate: new Date("2026-06-15T12:00:00") });
 	return menuTask;
 }
@@ -294,6 +297,104 @@ describe("adding a dependency from the task menu", () => {
 			openMenu(createPlugin({ advancedDependencyTypes: true, locale: "de" }));
 
 			expect(submenuOf(findItem(title))?.items.map(titleOf)).toEqual(reltypeTitles);
+		});
+	});
+
+	describe("when the two tasks are already linked", () => {
+		const NOTES = ["Tasks/this.md", "Tasks/other.md"];
+
+		describe("on the blocked-by side", () => {
+			it("changes the stored type in place when another type is picked", async () => {
+				openMenu(createPlugin({ advancedDependencyTypes: true, notes: NOTES }), {
+					blockedBy: [{ uid: "Tasks/other", reltype: "FINISHTOSTART", gap: "P2D" }],
+				});
+
+				await click(reltypeItem(ADD_BLOCKED_BY, BLOCKED_BY_START_TO_START));
+				await chooseInTaskSelector(otherTask);
+
+				expect(propertyWrites()).toEqual([
+					{
+						path: "Tasks/this.md",
+						property: "blockedBy",
+						value: [{ uid: "Tasks/other", reltype: "STARTTOSTART", gap: "P2D" }],
+					},
+				]);
+			});
+
+			it("writes nothing when the stored type is picked again", async () => {
+				openMenu(createPlugin({ advancedDependencyTypes: true, notes: NOTES }), {
+					blockedBy: [{ uid: "Tasks/other", reltype: "FINISHTOSTART", gap: "P2D" }],
+				});
+
+				await click(reltypeItem(ADD_BLOCKED_BY, BLOCKED_BY_FINISH_TO_START));
+				await chooseInTaskSelector(otherTask);
+
+				expect(propertyWrites()).toEqual([]);
+			});
+
+			it("keeps a stored non-default type with advanced dependency types off", async () => {
+				openMenu(createPlugin({ advancedDependencyTypes: false, notes: NOTES }), {
+					blockedBy: [{ uid: "Tasks/other", reltype: "STARTTOSTART" }],
+				});
+
+				await click(findItem(ADD_BLOCKED_BY));
+				await chooseInTaskSelector(otherTask);
+
+				expect(propertyWrites()).toEqual([]);
+			});
+		});
+
+		describe("on the blocking side", () => {
+			const releasedDependent = (reltype: TaskDependencyRelType) =>
+				task("Tasks/other.md", {
+					blockedBy: [{ uid: "Tasks/this", reltype, gap: "P2D" }],
+				});
+
+			it("changes the type stored on a released dependent when another type is picked", async () => {
+				const plugin = createPlugin({ advancedDependencyTypes: true, notes: NOTES });
+				const menuTask = openMenu(plugin);
+
+				await click(reltypeItem(ADD_BLOCKING, BLOCKING_START_TO_START));
+				await chooseInTaskSelector(releasedDependent("FINISHTOSTART"));
+
+				expect(plugin.taskService.updateBlockingRelationships).toHaveBeenCalledTimes(1);
+				expect(plugin.taskService.updateBlockingRelationships).toHaveBeenCalledWith(
+					menuTask,
+					[],
+					[],
+					{
+						"Tasks/other.md": {
+							uid: "Tasks/this",
+							reltype: "STARTTOSTART",
+							gap: "P2D",
+						},
+					},
+					expect.any(Function),
+					["Tasks/other.md"]
+				);
+			});
+
+			it("writes nothing when the stored type is picked again", async () => {
+				const plugin = createPlugin({ advancedDependencyTypes: true, notes: NOTES });
+				openMenu(plugin);
+
+				await click(reltypeItem(ADD_BLOCKING, BLOCKING_FINISH_TO_START));
+				await chooseInTaskSelector(releasedDependent("FINISHTOSTART"));
+
+				expect(plugin.taskService.updateBlockingRelationships).not.toHaveBeenCalled();
+				expect(propertyWrites()).toEqual([]);
+			});
+
+			it("keeps a stored non-default type with advanced dependency types off", async () => {
+				const plugin = createPlugin({ advancedDependencyTypes: false, notes: NOTES });
+				openMenu(plugin);
+
+				await click(findItem(ADD_BLOCKING));
+				await chooseInTaskSelector(releasedDependent("STARTTOSTART"));
+
+				expect(plugin.taskService.updateBlockingRelationships).not.toHaveBeenCalled();
+				expect(propertyWrites()).toEqual([]);
+			});
 		});
 	});
 });
