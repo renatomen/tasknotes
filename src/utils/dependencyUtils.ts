@@ -25,7 +25,6 @@ export function reltypeConstrainsFinish(reltype: TaskDependencyRelType): boolean
 	return reltype === "FINISHTOFINISH" || reltype === "STARTTOFINISH";
 }
 
-/** False for the start-anchored types, which release once the predecessor has started. */
 export function reltypeReleasedByPredecessorFinish(reltype: TaskDependencyRelType): boolean {
 	return reltype === "FINISHTOSTART" || reltype === "FINISHTOFINISH";
 }

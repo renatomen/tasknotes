@@ -12,7 +12,7 @@ import {
 	updateMetadataVisibility,
 	type TaskCardPropertyOptions,
 } from "./taskCardProperties";
-import { getBlockedByTaskPaths, resolveBlockedConstraint } from "./taskCardRelationships";
+import { resolveBlockedConstraint } from "./taskCardRelationships";
 import { prepareInteractiveControl } from "./taskCardIndicators";
 import { openPopover } from "./kit/popover";
 import {
@@ -252,7 +252,7 @@ function createBlockedMetadataPill(config: RenderTaskCardMetadataConfig): HTMLEl
 		}
 	);
 
-	if (getBlockedByTaskPaths(task, plugin.app).length > 0) {
+	if (blocked.state !== "none") {
 		prepareInteractiveControl(blockedPill);
 		blockedPill.setAttribute("aria-label", pillText);
 		blockedPill.setAttribute(

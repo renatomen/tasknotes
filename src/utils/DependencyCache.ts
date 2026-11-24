@@ -281,8 +281,7 @@ export class DependencyCache extends Events {
 		}
 
 		this.relationshipFingerprints.set(path, this.buildRelationshipFingerprint(frontmatter));
-		this.completedStatusByPath.set(path, this.isCompletedFrontmatter(frontmatter));
-		this.startedStatusByPath.set(path, this.isStartedFrontmatter(frontmatter));
+		this.updateLifecycleState(path, frontmatter);
 
 		const dependenciesField = this.fieldMapper?.toUserField("blockedBy") || "blockedBy";
 		const projectField = this.fieldMapper?.toUserField("projects") || "project";

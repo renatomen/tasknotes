@@ -154,23 +154,11 @@ export class StatusManager {
 		return this.getStatusConfig(statusValue)?.category;
 	}
 
-	/**
-	 * Whether the status counts as started — the constraint anchor for STARTTOSTART /
-	 * STARTTOFINISH edges. A Not-started (planned) status is not started.
-	 */
 	isStarted(statusValue: string): boolean {
 		if (this.isCompletedStatus(statusValue)) {
 			return true;
 		}
 		return this.getCategory(statusValue) === "in-progress";
-	}
-
-	/**
-	 * Whether the status counts as finished — the certain anchor for FINISHTOSTART /
-	 * FINISHTOFINISH edges. Equivalent to isCompleted.
-	 */
-	isFinished(statusValue: string): boolean {
-		return this.isCompletedStatus(statusValue);
 	}
 
 	/**

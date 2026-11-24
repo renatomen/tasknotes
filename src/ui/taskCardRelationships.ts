@@ -107,7 +107,7 @@ export function getBlockedByTaskPaths(task: TaskInfo, app: App): string[] {
 	return Array.from(paths);
 }
 
-export function hasUnresolvedBlockedBy(task: TaskInfo, app: App): boolean {
+function hasUnresolvedBlockedBy(task: TaskInfo, app: App): boolean {
 	const entries = Array.isArray(task.blockedBy) ? task.blockedBy : [];
 	return entries.some((entry) => {
 		const normalized = normalizeDependencyEntry(entry);
@@ -120,14 +120,14 @@ export interface DependencyConstraintSource {
 	getFinishBlockingPredecessorPaths(taskPath: string): string[];
 }
 
-export function getStartBlockingTaskPaths(
+function getStartBlockingTaskPaths(
 	task: TaskInfo,
 	cache: DependencyConstraintSource | undefined
 ): string[] {
 	return cache ? cache.getStartBlockingPredecessorPaths(task.path) : [];
 }
 
-export function getFinishBlockingTaskPaths(
+function getFinishBlockingTaskPaths(
 	task: TaskInfo,
 	cache: DependencyConstraintSource | undefined
 ): string[] {

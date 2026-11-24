@@ -95,7 +95,7 @@ describe("StatusManager status lifecycle", () => {
 		});
 	});
 
-	describe("isStarted / isFinished predicates", () => {
+	describe("isStarted predicate", () => {
 		const buildManager = () =>
 			new StatusManager([
 				createStatus("planned", { category: "planned", isCompleted: false }),
@@ -112,25 +112,15 @@ describe("StatusManager status lifecycle", () => {
 			expect(manager.isStarted("nocat")).toBe(false);
 		});
 
-		it("isFinished is true only for completed and equals isCompleted for every status", () => {
-			const manager = buildManager();
-			for (const value of ["planned", "nocat", "doing", "done"]) {
-				expect(manager.isFinished(value)).toBe(manager.isCompletedStatus(value));
-			}
-			expect(manager.isFinished("done")).toBe(true);
-			expect(manager.isFinished("doing")).toBe(false);
-		});
-
 		it("getCategory returns the configured category", () => {
 			const manager = buildManager();
 			expect(manager.getCategory("doing")).toBe<StatusCategory>("in-progress");
 			expect(manager.getCategory("planned")).toBe<StatusCategory>("planned");
 		});
 
-		it("treats an unknown status as neither started nor finished", () => {
+		it("treats an unknown status as not started", () => {
 			const manager = buildManager();
 			expect(manager.isStarted("missing")).toBe(false);
-			expect(manager.isFinished("missing")).toBe(false);
 		});
 	});
 

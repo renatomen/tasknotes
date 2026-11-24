@@ -748,11 +748,7 @@ export interface RecurringCompletionOptions {
 	onlyIf?: (task: TaskInfo) => boolean;
 }
 
-/**
- * Lifecycle stage of a status (labels: Not started / Started / Completed). Always set at
- * runtime — the settings-load normalizer and the status-write sites default a missing one to
- * `planned`; optional in the type only to spare the many existing status literals a change.
- */
+/** Lifecycle stage of a status (labels: Not started / Started / Completed). */
 export type StatusCategory = "planned" | "in-progress" | "completed";
 
 export const STATUS_CATEGORIES: readonly StatusCategory[] = ["planned", "in-progress", "completed"];
