@@ -1,3 +1,5 @@
+import { uiText } from "../i18n/runtime";
+import { msg } from "@lingui/core/macro";
 import { Extension, RangeSetBuilder } from "@codemirror/state";
 import {
 	Decoration,
@@ -12,6 +14,7 @@ import { setIcon, MarkdownView, Editor, setTooltip } from "obsidian";
 import TaskNotesPlugin from "../main";
 import { TasksPluginParser } from "../utils/TasksPluginParser";
 import { createTaskNotesLogger } from "../utils/tasknotesLogger";
+import { shouldSkipMarkdownWidgetEditor } from "./MarkdownWidgetContext";
 
 const tasknotesLogger = createTaskNotesLogger({ tag: "Editor/InstantConvertButtons" });
 
@@ -27,22 +30,30 @@ class ConvertButtonWidget extends WidgetType {
 
 	toDOM(view: EditorView): HTMLElement {
 		// Create container with proper class structure
-		const container = activeDocument.createElement("span");
+		const container = activeWindow.createSpan();
 		container.className = "tasknotes-plugin";
 
 		const button = container.createEl("button", {
 			cls: "instant-convert-button",
-			attr: { "aria-label": "Convert to tasknote" },
+			attr: { "aria-label": uiText(msg({ message: "Convert to tasknote", context: "editor/InstantConvertButtons: ConvertButtonWidget.toDOM aria-label" })) },
 		});
-		setTooltip(button, "Convert to TaskNote", { placement: "top" });
+		setTooltip(button, uiText(msg({ message: "Convert to TaskNote", context: "editor/InstantConvertButtons: ConvertButtonWidget.toDOM display" })), { placement: "top" });
 
 		// Add the convert icon
-		const iconSpan = button.createEl("span", { cls: "instant-convert-button__icon" });
+		const iconSpan = button.createSpan({ cls: "instant-convert-button__icon" });
 		setIcon(iconSpan, "file-plus");
 
+		let activationInProgress = false;
 		const handleActivation = (e: Event) => {
 			e.preventDefault();
 			e.stopPropagation();
+			if (activationInProgress) {
+				return;
+			}
+
+			activationInProgress = true;
+			button.disabled = true;
+			button.setAttribute("aria-busy", "true");
 			void (async () => {
 				try {
 					// Validate button state before proceeding
@@ -83,6 +94,10 @@ class ConvertButtonWidget extends WidgetType {
 						operation: "convert-button-click-handler",
 						error: error,
 					});
+				} finally {
+					activationInProgress = false;
+					button.disabled = false;
+					button.removeAttribute("aria-busy");
 				}
 			})();
 		};
@@ -239,15 +254,30 @@ type ConvertButtonDocument = {
 };
 
 type ConvertButtonView = {
+	dom?: HTMLElement;
 	state: { doc: ConvertButtonDocument };
 	visibleRanges: readonly { from: number; to: number }[];
 };
+
+function shouldSkipConvertButtonDecorations(view: ConvertButtonView): boolean {
+	const stateWithField = view.state as { field?: unknown };
+	if (!view.dom?.instanceOf(HTMLElement) || typeof stateWithField.field !== "function") {
+		return false;
+	}
+
+	return shouldSkipMarkdownWidgetEditor(view as unknown as EditorView);
+}
 
 export function buildConvertButtonDecorations(
 	view: ConvertButtonView,
 	plugin: TaskNotesPlugin
 ): DecorationSet {
 	const builder = new RangeSetBuilder<Decoration>();
+
+	if (shouldSkipConvertButtonDecorations(view)) {
+		return builder.finish();
+	}
+
 	const doc = view.state?.doc;
 
 	// Validate inputs

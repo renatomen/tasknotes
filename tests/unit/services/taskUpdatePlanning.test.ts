@@ -1,4 +1,7 @@
 import type { FieldMappingKey, TaskInfo } from "../../../src/types";
+
+// Exercise the real recurrence engine, not the global simplified RRULE mock.
+jest.mock("rrule", () => jest.requireActual("rrule/dist/es5/rrule.js"));
 import {
 	applyTaskUpdateFrontmatterChange,
 	buildTaskUpdateRecurrenceUpdates,
@@ -34,12 +37,14 @@ function createFieldMapper(): TaskUpdateFieldMapper {
 			completedDate: "completedDate",
 			dateModified: "dateModified",
 			recurrence: "recurrence",
+			skippedInstances: "skipHistory",
 			blockedBy: "blockedBy",
 		};
 		return fields[field] ?? field;
 	};
 
 	return {
+		mapFromFrontmatter: (frontmatter) => frontmatter as Partial<TaskInfo>,
 		mapToFrontmatter: (taskData, taskTag, storeTitleInFilename) => {
 			const frontmatter: Record<string, unknown> = {
 				title: taskData.title,
@@ -68,6 +73,12 @@ function createFieldMapper(): TaskUpdateFieldMapper {
 }
 
 describe("taskUpdatePlanning", () => {
+	beforeEach(() => {
+		jest.useFakeTimers();
+		jest.setSystemTime(new Date("2026-04-13T12:00:00Z"));
+	});
+	afterEach(() => jest.useRealTimers());
+
 	it("sanitizes time entries without mutating the caller's update object", () => {
 		const updates = {
 			timeEntries: [
@@ -137,8 +148,131 @@ describe("taskUpdatePlanning", () => {
 		});
 	});
 
+	it("does not flag a moved-occurrence exception when scheduled advances from completing an instance", () => {
+		const result = buildTaskUpdateRecurrenceUpdates({
+			originalTask: createTask({
+				recurrence: "DTSTART:20260316;FREQ=WEEKLY;INTERVAL=4;BYDAY=MO",
+				recurrence_anchor: "scheduled",
+				scheduled: "2026-04-13",
+				complete_instances: [],
+				skipped_instances: [],
+				googleCalendarEventId: "master-event-id",
+			}),
+			updates: {
+				scheduled: "2026-05-11",
+				complete_instances: ["2026-04-13"],
+			},
+			maintainDueDateOffsetInRecurring: false,
+		});
+
+		expect(result.googleCalendarExceptionOriginalScheduled).toBeUndefined();
+	});
+
+	it("resolves a pending moved-occurrence exception when the moved instance is completed", () => {
+		jest.setSystemTime(new Date("2026-04-15T12:00:00Z"));
+		const result = buildTaskUpdateRecurrenceUpdates({
+			originalTask: createTask({
+				recurrence: "DTSTART:20260316;FREQ=WEEKLY;INTERVAL=4;BYDAY=MO",
+				recurrence_anchor: "scheduled",
+				scheduled: "2026-04-15",
+				complete_instances: [],
+				skipped_instances: [],
+				googleCalendarEventId: "master-event-id",
+				googleCalendarExceptionOriginalScheduled: "2026-04-13",
+			}),
+			updates: {
+				scheduled: "2026-05-11",
+				complete_instances: ["2026-04-15"],
+			},
+			maintainDueDateOffsetInRecurring: false,
+		});
+
+		expect(result.googleCalendarExceptionOriginalScheduled).toBeUndefined();
+		expect(result.googleCalendarMovedOriginalDates).toEqual(["2026-04-13"]);
+	});
+
+	it("still flags a moved-occurrence exception for a genuine manual reschedule alongside instance edits", () => {
+		const result = buildTaskUpdateRecurrenceUpdates({
+			originalTask: createTask({
+				recurrence: "DTSTART:20260316;FREQ=WEEKLY;INTERVAL=4;BYDAY=MO",
+				recurrence_anchor: "scheduled",
+				scheduled: "2026-04-13",
+				complete_instances: ["2026-03-16"],
+				skipped_instances: [],
+				googleCalendarEventId: "master-event-id",
+			}),
+			updates: {
+				scheduled: "2026-04-14",
+				complete_instances: ["2026-03-16"],
+			},
+			maintainDueDateOffsetInRecurring: false,
+		});
+
+		expect(result.googleCalendarExceptionOriginalScheduled).toBe("2026-04-13");
+	});
+
+	it.each(["complete_instances", "skipped_instances"] as const)(
+		"distinguishes automatic advancement from manual moves with new %s (#2203)", (field) => {
+			const originalTask = createTask({
+				recurrence: "DTSTART:20260413;FREQ=DAILY",
+				recurrence_anchor: "scheduled",
+				scheduled: "2026-04-13",
+				googleCalendarEventId: "master-event-id",
+			});
+			for (const [scheduled, expected] of [
+				["2026-04-14", undefined],
+				["2026-04-20", "2026-04-13"],
+			] as const) {
+				const result = buildTaskUpdateRecurrenceUpdates({
+					originalTask,
+					updates: { scheduled, [field]: ["2026-04-13"] },
+					maintainDueDateOffsetInRecurring: false,
+				});
+				expect(result.googleCalendarExceptionOriginalScheduled).toBe(expected);
+			}
+		}
+	);
+
+	it.each([
+		["2026-04-13", undefined],
+		["2026-04-20", "2026-04-14"],
+	])("distinguishes a reopened schedule of %s from a manual move", (scheduled, movedOriginal) => {
+		const result = buildTaskUpdateRecurrenceUpdates({
+			originalTask: createTask({
+				recurrence: "DTSTART:20260413;FREQ=DAILY",
+				scheduled: "2026-04-14",
+				skipped_instances: ["2026-04-13"],
+				googleCalendarEventId: "master-event-id",
+			}),
+			updates: { scheduled, skipped_instances: [] },
+			maintainDueDateOffsetInRecurring: false,
+		});
+
+		expect(result.googleCalendarExceptionOriginalScheduled).toBe(movedOriginal);
+	});
+
+	it("preserves a pending moved occurrence when reopening a different date", () => {
+		const result = buildTaskUpdateRecurrenceUpdates({
+			originalTask: createTask({
+				recurrence: "DTSTART:20260413;FREQ=DAILY",
+				scheduled: "2026-04-15",
+				due: "2026-04-16",
+				recurrence_original_date: "2026-04-14",
+				skipped_instances: ["2026-04-13"],
+			}),
+			updates: { scheduled: "2026-04-13", due: "2026-04-14", skipped_instances: [] },
+			maintainDueDateOffsetInRecurring: true,
+		});
+
+		expect(result).toMatchObject({
+			scheduled: "2026-04-15",
+			due: "2026-04-16",
+			recurrence_original_date: "2026-04-14",
+		});
+	});
+
 	it("adds DTSTART when a scheduled recurring task moves and the rule lacks DTSTART", () => {
-		const addDTSTARTToRecurrenceRuleFn = jest.fn(() => "DTSTART:20260521;FREQ=DAILY");
+		const addDTSTARTToRecurrenceRuleFn = jest.fn(() => "DTSTART:20260519;FREQ=DAILY");
 
 		const result = buildTaskUpdateRecurrenceUpdates({
 			originalTask: createTask({
@@ -154,14 +288,18 @@ describe("taskUpdatePlanning", () => {
 		expect(addDTSTARTToRecurrenceRuleFn).toHaveBeenCalledWith(
 			expect.objectContaining({
 				recurrence: "FREQ=DAILY",
-				scheduled: "2026-05-21",
+				scheduled: "2026-05-19",
 			})
 		);
-		expect(result).toEqual({ recurrence: "DTSTART:20260521;FREQ=DAILY" });
+		expect(result).toEqual({
+			recurrence: "DTSTART:20260519;FREQ=DAILY",
+			recurrence_original_date: "2026-05-19",
+		});
 	});
 
 	it("applies mapped updates, custom frontmatter, removals, and task identification", () => {
 		const frontmatter: Record<string, unknown> = {
+			priority: "normal",
 			title: "Old",
 			status: "open",
 			due: "2026-05-19",
@@ -206,6 +344,7 @@ describe("taskUpdatePlanning", () => {
 				propertyValue: "true",
 			},
 			storeTitleInFilename: true,
+			titleIsRepresentedByFilename: true,
 			updateCompletedDateInFrontmatter: jest.fn((target) => {
 				target.completedDate = "should-not-survive-explicit-removal";
 			}),
@@ -232,10 +371,132 @@ describe("taskUpdatePlanning", () => {
 		expect(result.finalTags).toEqual([]);
 	});
 
+	it("persists and protects the task's stable ID during frontmatter updates", () => {
+		const frontmatter: Record<string, unknown> = {};
+
+		applyTaskUpdateFrontmatterChange({
+			frontmatter,
+			originalTask: createTask({ id: "stable-task-id" }),
+			updates: {
+				id: "replacement-id",
+				customFrontmatter: { id: "custom-replacement-id" },
+			},
+			recurrenceUpdates: {},
+			dateModified: "2026-05-19T09:00:00.000Z",
+			fieldMapper: createFieldMapper(),
+			taskIdentification: { method: "tag", tag: "task" },
+			storeTitleInFilename: false,
+			updateCompletedDateInFrontmatter: jest.fn(),
+		});
+
+		expect(frontmatter.id).toBe("stable-task-id");
+	});
+
+	it("clears contexts and blockedBy when an update explicitly sets them to empty arrays", () => {
+		const frontmatter: Record<string, unknown> = {
+			title: "Old",
+			status: "open",
+			contexts: ["old"],
+			blockedBy: [{ uid: "[[Other]]", reltype: "FINISHTOSTART" }],
+			tags: ["task"],
+		};
+
+		applyTaskUpdateFrontmatterChange({
+			frontmatter,
+			originalTask: createTask(),
+			updates: { contexts: [], blockedBy: [] },
+			recurrenceUpdates: {},
+			dateModified: "2026-05-19T09:00:00.000Z",
+			fieldMapper: createFieldMapper(),
+			taskIdentification: {
+				method: "tag",
+				tag: "task",
+				propertyName: "",
+				propertyValue: "",
+			},
+			storeTitleInFilename: false,
+			updateCompletedDateInFrontmatter: jest.fn(),
+		});
+
+		expect(frontmatter).not.toHaveProperty("contexts");
+		expect(frontmatter).not.toHaveProperty("blockedBy");
+	});
+
+	it("writes an explicit empty skip history to its configured frontmatter field", () => {
+		const frontmatter = { skipHistory: ["2026-04-13"] };
+		applyTaskUpdateFrontmatterChange({
+			frontmatter,
+			originalTask: createTask({ skipped_instances: ["2026-04-13"] }),
+			updates: { skipped_instances: [] },
+			recurrenceUpdates: {},
+			dateModified: "2026-04-13T12:00:00.000Z",
+			fieldMapper: createFieldMapper(),
+			taskIdentification: {
+				method: "tag",
+				tag: "task",
+				propertyName: "",
+				propertyValue: "",
+			},
+			storeTitleInFilename: false,
+			updateCompletedDateInFrontmatter: jest.fn(),
+		});
+
+		expect(frontmatter.skipHistory).toEqual([]);
+	});
+
+	it("leaves contexts and blockedBy alone when the update omits them or keeps values", () => {
+		const frontmatter: Record<string, unknown> = {
+			title: "Old",
+			status: "open",
+			contexts: ["old"],
+			blockedBy: [{ uid: "[[Other]]", reltype: "FINISHTOSTART" }],
+			tags: ["task"],
+		};
+
+		applyTaskUpdateFrontmatterChange({
+			frontmatter,
+			originalTask: createTask(),
+			updates: { title: "Renamed" },
+			recurrenceUpdates: {},
+			dateModified: "2026-05-19T09:00:00.000Z",
+			fieldMapper: createFieldMapper(),
+			taskIdentification: {
+				method: "tag",
+				tag: "task",
+				propertyName: "",
+				propertyValue: "",
+			},
+			storeTitleInFilename: false,
+			updateCompletedDateInFrontmatter: jest.fn(),
+		});
+
+		expect(frontmatter.contexts).toEqual(["old"]);
+		expect(frontmatter.blockedBy).toEqual([{ uid: "[[Other]]", reltype: "FINISHTOSTART" }]);
+
+		applyTaskUpdateFrontmatterChange({
+			frontmatter,
+			originalTask: createTask(),
+			updates: { contexts: ["new"] },
+			recurrenceUpdates: {},
+			dateModified: "2026-05-19T09:00:00.000Z",
+			fieldMapper: createFieldMapper(),
+			taskIdentification: {
+				method: "tag",
+				tag: "task",
+				propertyName: "",
+				propertyValue: "",
+			},
+			storeTitleInFilename: false,
+			updateCompletedDateInFrontmatter: jest.fn(),
+		});
+
+		expect(frontmatter.contexts).toEqual(["new"]);
+	});
+
 	it("builds the returned task state from the same planned mutation", () => {
 		const updated = buildUpdatedTaskFromPlan({
-			originalTask: createTask({ completedDate: undefined }),
-			updates: { status: "done", details: "A\r\nB" },
+			originalTask: createTask({ id: "stable-task-id", completedDate: undefined }),
+			updates: { id: "replacement-id", status: "done", details: "A\r\nB" },
 			recurrenceUpdates: { scheduled: "2026-05-20" },
 			newPath: "Tasks/renamed.md",
 			dateModified: "2026-05-19T09:00:00.000Z",
@@ -246,6 +507,7 @@ describe("taskUpdatePlanning", () => {
 		});
 
 		expect(updated).toMatchObject({
+			id: "stable-task-id",
 			status: "done",
 			scheduled: "2026-05-20",
 			path: "Tasks/renamed.md",

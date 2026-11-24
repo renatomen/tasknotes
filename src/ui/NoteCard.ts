@@ -1,7 +1,9 @@
+import { uiText } from "../i18n/runtime";
+import { msg } from "@lingui/core/macro";
 import { TFile, setIcon } from "obsidian";
 import { NoteInfo } from "../types";
 import TaskNotesPlugin from "../main";
-import { formatDateForDisplay } from "../utils/dateUtils";
+import { formatDateTimeForDisplay, formatDateForDisplay } from "../utils/dateUtils";
 import { getAllDailyNotes } from "obsidian-daily-notes-interface";
 
 export interface NoteCardOptions {
@@ -30,7 +32,7 @@ export function createNoteCard(
 ): HTMLElement {
 	const opts = { ...DEFAULT_NOTE_CARD_OPTIONS, ...options };
 
-	const item = activeDocument.createElement("div");
+	const item = activeWindow.createDiv();
 	// Check if this is a daily note using the core plugin
 	let isDailyNote = false;
 	try {
@@ -55,8 +57,7 @@ export function createNoteCard(
 	if (opts.showDailyNoteBadge && isDailyNote) {
 		item.createSpan({
 			cls: "note-card__badge",
-			text: plugin.i18n.translate("ui.noteCard.dailyBadge"),
-			attr: { title: plugin.i18n.translate("ui.noteCard.dailyTooltip") },
+			text: plugin.i18n.translate(msg({ message: "Daily", context: "ui.noteCard.dailyBadge" })),
 		});
 	}
 
@@ -64,8 +65,8 @@ export function createNoteCard(
 	const mainRow = item.createDiv({ cls: "note-card__main-row" });
 
 	// Left indicator area: note icon
-	const leftIconWrap = mainRow.createEl("span", { cls: "note-card__icon" });
-	const leftIcon = leftIconWrap.createEl("span");
+	const leftIconWrap = mainRow.createSpan({ cls: "note-card__icon" });
+	const leftIcon = leftIconWrap.createSpan();
 	setIcon(leftIcon, "file-text");
 
 	// Content container
@@ -80,7 +81,7 @@ export function createNoteCard(
 	// Tags section (separate from other metadata)
 	if (opts.showTags && note.tags && note.tags.length > 0) {
 		// Divider line
-		contentContainer.createEl("div", { cls: "note-card__divider" });
+		contentContainer.createDiv({ cls: "note-card__divider" });
 
 		// Tags line
 		const tagsToShow = note.tags.slice(0, opts.maxTags);
@@ -91,7 +92,7 @@ export function createNoteCard(
 			tagsText += ` +${note.tags.length - opts.maxTags}`;
 		}
 
-		contentContainer.createEl("div", {
+		contentContainer.createDiv({
 			cls: "note-card__tags-text",
 			text: tagsText,
 		});
@@ -99,16 +100,15 @@ export function createNoteCard(
 
 	// Other metadata (date, path) if needed
 	if (opts.showCreatedDate && note.createdDate) {
-		const timeFormat = plugin.settings.calendarViewSettings.timeFormat;
-		const dateFormat = timeFormat === "12" ? "MMM d, yyyy h:mm a" : "MMM d, yyyy HH:mm";
-		const dateStr =
-			note.createdDate.indexOf("T") > 0
-				? formatDateForDisplay(note.createdDate, dateFormat)
-				: note.createdDate;
+		const dateStr = note.createdDate.includes("T")
+			? formatDateTimeForDisplay(note.createdDate, {
+				dateDisplayFormat: plugin.settings.dateDisplayFormat,
+				userTimeFormat: plugin.settings.calendarViewSettings.timeFormat,
+			})
+			: note.createdDate;
 		contentContainer.createDiv({
 			cls: "note-card__metadata",
-			text: `${plugin.i18n.translate("ui.noteCard.createdLabel")} ${dateStr}`,
-			attr: { title: `${plugin.i18n.translate("ui.noteCard.createdLabel")} ${dateStr}` },
+			text: uiText(msg({ message: "Created: {date}", context: "note created date" }), { date: dateStr }),
 		});
 	}
 
@@ -116,7 +116,6 @@ export function createNoteCard(
 		contentContainer.createDiv({
 			cls: "note-card__metadata",
 			text: note.path,
-			attr: { title: `Path: ${note.path}` },
 		});
 	}
 
@@ -199,8 +198,8 @@ export function updateNoteCard(
 		const mainRow =
 			element.querySelector(".note-card__main-row") ||
 			element.createDiv({ cls: "note-card__main-row" });
-		iconWrap = mainRow.createEl("span", { cls: "note-card__icon" });
-		const leftIcon = iconWrap.createEl("span");
+		iconWrap = mainRow.createSpan({ cls: "note-card__icon" });
+		const leftIcon = iconWrap.createSpan();
 		setIcon(leftIcon, "file-text");
 
 		// Move existing content into the main row structure if needed
@@ -226,9 +225,9 @@ export function updateNoteCard(
 		const dateFormat = timeFormat === "12" ? "MMM d, yyyy h:mm a" : "MMM d, yyyy HH:mm";
 		const dateStr =
 			note.createdDate.indexOf("T") > 0
-				? formatDateForDisplay(note.createdDate, dateFormat)
+				? formatDateForDisplay(note.createdDate, dateFormat, plugin.settings.dateDisplayFormat)
 				: note.createdDate;
-		dateEl.textContent = `${plugin.i18n.translate("ui.noteCard.createdLabel")} ${dateStr}`;
+		dateEl.textContent = uiText(msg({ message: "Created: {date}", context: "note created date" }), { date: dateStr });
 	}
 
 	// Update path

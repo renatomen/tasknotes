@@ -1,3 +1,6 @@
+import { configLabel } from "../i18n/configLabels";
+import { uiText } from "../i18n/runtime";
+import { msg } from "@lingui/core/macro";
 import {
 	autocompletion,
 	CompletionContext,
@@ -15,6 +18,7 @@ import { FileSuggestHelper } from "../suggest/FileSuggestHelper";
 import { ProjectMetadataResolver, ProjectEntry } from "../utils/projectMetadataResolver";
 import { parseDisplayFieldsRow } from "../utils/projectAutosuggestDisplayFieldsParser";
 import { createTaskNotesLogger } from "../utils/tasknotesLogger";
+import { createElementInDocument } from "../utils/documentDom";
 
 const tasknotesLogger = createTaskNotesLogger({ tag: "Editor/NLPCodeMirrorAutocomplete" });
 
@@ -27,6 +31,7 @@ type CompletionSourceResult = {
 	to?: number;
 	options: Completion[];
 	validFor?: RegExp;
+	filter?: boolean;
 };
 
 type ProjectCompletionMetadataPart = {
@@ -171,7 +176,11 @@ export function createNLPCompletionSource(
 			from: line.from + active.index + active.triggerLength,
 			to,
 			options,
-			validFor: /^[\w\s-]*$/,
+			// Status suggestions are already filtered using the text before the cursor.
+			// When consuming an auto-paired closing trigger, CodeMirror would otherwise
+			// filter against that trigger too (e.g. "op*") and hide every suggestion.
+			// Unfiltered results cannot use validFor; re-query after each edit instead.
+			...(to > context.pos ? { filter: false } : { validFor: /^[\w\s-]*$/ }),
 		};
 	};
 }
@@ -183,11 +192,11 @@ export function renderProjectCompletionMetadata(
 	const projectCompletion = completion as unknown as ProjectCompletion;
 	if (!projectCompletion.projectMetadata) return null;
 
-	const container = doc.createElement("div");
+	const container = createElementInDocument(doc, "div");
 	container.className = "cm-project-suggestion__metadata";
 
 	for (const row of projectCompletion.projectMetadata) {
-		const metaRow = doc.createElement("div");
+		const metaRow = createElementInDocument(doc, "div");
 		metaRow.className = "cm-project-suggestion__meta";
 
 		row.forEach((part, index) => {
@@ -195,7 +204,7 @@ export function renderProjectCompletionMetadata(
 				metaRow.appendChild(doc.createTextNode(" "));
 			}
 
-			const span = doc.createElement("span");
+			const span = createElementInDocument(doc, "span");
 			span.className =
 				part.kind === "value"
 					? "cm-project-suggestion__meta-value"
@@ -271,12 +280,12 @@ function getListSuggestions(
 	switch (propertyId) {
 		case "tags":
 			items = plugin.cacheManager.getAllTags();
-			label = "Tag";
+			label = uiText(msg({ message: "Tag", context: "editor/NLPCodeMirrorAutocomplete: getListSuggestions display" }));
 			break;
 
 		case "contexts":
 			items = plugin.cacheManager.getAllContexts();
-			label = "Context";
+			label = uiText(msg({ message: "Context", context: "editor/NLPCodeMirrorAutocomplete: getListSuggestions display" }));
 			break;
 
 		default:
@@ -370,7 +379,7 @@ async function getFileSuggestions(
 					label: displayText,
 					apply: `[[${insertText}]] `,
 					type: "text",
-					info: "Project",
+					info: uiText(msg({ message: "Project", context: "editor/NLPCodeMirrorAutocomplete: getFileSuggestions info" })),
 					// Add metadata as a custom property for the render function
 					projectMetadata: metadataRows.length > 0 ? metadataRows : undefined,
 					projectQuery: query,
@@ -387,7 +396,7 @@ async function getFileSuggestions(
 				label: displayText,
 				apply: `[[${insertText}]] `,
 				type: "text",
-				info: propertyId === "projects" ? "Project" : propertyId,
+				info: propertyId === "projects" ? uiText(msg({ message: "Project", context: "editor/NLPCodeMirrorAutocomplete: getFileSuggestions info" })) : propertyId,
 			};
 		});
 	} catch (error) {
@@ -494,7 +503,7 @@ function appendHighlightedText(container: HTMLElement, text: string, query: stri
 			container.appendChild(doc.createTextNode(text.slice(lastIndex, match.start)));
 		}
 
-		const mark = doc.createElement("mark");
+		const mark = createElementInDocument(doc, "mark");
 		mark.textContent = text.slice(match.start, match.end);
 		container.appendChild(mark);
 		lastIndex = match.end;
@@ -516,7 +525,7 @@ function getStatusSuggestions(query: string, plugin: TaskNotesPlugin): Completio
 		label: s.display,
 		apply: s.value + " ",
 		type: "text",
-		info: "Status",
+		info: uiText(msg({ message: "Status", context: "editor/NLPCodeMirrorAutocomplete: getStatusSuggestions info" })),
 	}));
 }
 
@@ -527,13 +536,13 @@ function getPrioritySuggestions(query: string, plugin: TaskNotesPlugin): Complet
 	const priorities = plugin.settings.customPriorities || [];
 
 	return priorities
-		.filter((p) => p.label.toLowerCase().includes(query.toLowerCase()))
+		.filter((p) => [p.value, p.label, configLabel(p)].some(label => label.toLowerCase().includes(query.toLowerCase())))
 		.slice(0, 10)
 		.map((p) => ({
-			label: p.label,
+			label: configLabel(p),
 			apply: p.value + " ",
 			type: "text",
-			info: "Priority",
+			info: uiText(msg({ message: "Priority", context: "editor/NLPCodeMirrorAutocomplete: getPrioritySuggestions info" })),
 		}));
 }
 
@@ -549,6 +558,6 @@ function getBooleanSuggestions(query: string): Completion[] {
 			label: opt,
 			apply: opt + " ",
 			type: "text",
-			info: "Boolean",
+			info: uiText(msg({ message: "Boolean", context: "editor/NLPCodeMirrorAutocomplete: getBooleanSuggestions info" })),
 		}));
 }

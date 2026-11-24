@@ -29,7 +29,7 @@ export function prepareInteractiveControl(element: HTMLElement): void {
 	element.dataset.tnNoDrag = "true";
 	element.setAttribute("draggable", "false");
 	element.addEventListener("mousedown", (e) => {
-		e.preventDefault();
+		if (!element.closest(".kanban-view__card-wrapper")) e.preventDefault();
 		e.stopPropagation();
 	});
 	element.addEventListener("keydown", (e) => {
@@ -49,7 +49,7 @@ export function createBadgeIndicator(config: BadgeIndicatorConfig): HTMLElement 
 
 	if (!visible) return null;
 
-	const indicator = container.createEl("div", {
+	const indicator = container.createDiv({
 		cls: className,
 		attr: { "aria-label": ariaLabel || tooltip },
 	});

@@ -7,15 +7,17 @@ import {
 	TaskInfo,
 } from "../../types";
 import type { TaskNotesSettings } from "../../types/settings";
-import { addDTSTARTToRecurrenceRule } from "../../core/recurrence";
+import { addDTSTARTToRecurrenceRule, updateToNextScheduledOccurrence } from "../../core/recurrence";
 import {
 	FilenameContext,
 	type TaskFilenameSettings,
 	generateTaskFilename,
 	generateUniqueFilename,
+	generateOccurrenceFilename,
+	isTitleRepresentedByFilename,
 } from "../../utils/filenameGenerator";
 import { ensureFolderExists } from "../../utils/helpers";
-import { getCurrentTimestamp } from "../../utils/dateUtils";
+import { getCurrentDateString, getCurrentTimestamp } from "../../utils/dateUtils";
 import { stringifyUnknown } from "../../utils/stringUtils";
 import { mergeTemplateFrontmatter } from "../../utils/templateProcessor";
 import {
@@ -24,6 +26,7 @@ import {
 } from "../../utils/taskIdentificationFrontmatter";
 import type { UserMappedField } from "../../types/settings";
 import { createTaskNotesLogger } from "../../utils/tasknotesLogger";
+import { generateUuidV4 } from "../../utils/uuid";
 
 const tasknotesLogger = createTaskNotesLogger({ tag: "Services/TaskService/TaskCreationService" });
 
@@ -65,6 +68,10 @@ interface TaskCreationCalendarSyncService {
 	syncTaskToCalendar(task: TaskInfo): Promise<unknown>;
 }
 
+interface TaskCreationStatusManager {
+	isCompletedStatus(status: string): boolean;
+}
+
 type TaskCreationSettings = Pick<
 	TaskNotesSettings,
 	| "storeTitleInFilename"
@@ -87,6 +94,7 @@ export interface TaskCreationRuntime {
 	};
 	settings: TaskCreationSettings;
 	fieldMapper: TaskCreationFieldMapper;
+	statusManager?: TaskCreationStatusManager;
 	cacheManager: TaskCreationCacheManager;
 	emitter: TaskCreationEmitter;
 	taskCalendarSyncService?: TaskCreationCalendarSyncService;
@@ -105,6 +113,7 @@ export interface TaskCreationServiceDependencies {
 export interface TaskCreationOptions {
 	applyDefaults?: boolean;
 	applyTemplate?: boolean;
+	targetFolder?: string;
 }
 
 export class TaskCreationService {
@@ -137,8 +146,16 @@ export class TaskCreationService {
 				: title;
 			const priority = taskData.priority || runtime.settings.defaultTaskPriority;
 			const status = taskData.status || runtime.settings.defaultTaskStatus;
+			const id = generateUuidV4();
 			const dateCreated = taskData.dateCreated || getCurrentTimestamp();
 			const dateModified = taskData.dateModified || getCurrentTimestamp();
+			const recurrence = taskData.recurrence || undefined;
+			const completedDate = !recurrence
+				? taskData.completedDate ||
+					(runtime.statusManager?.isCompletedStatus(status)
+						? getCurrentDateString()
+						: undefined)
+				: undefined;
 
 			const contextsArray = taskData.contexts || [];
 			const projectsArray = taskData.projects || [];
@@ -167,8 +184,16 @@ export class TaskCreationService {
 				parentNote: taskData.parentNote,
 			};
 
-			const baseFilename = generateTaskFilename(filenameContext, runtime.settings);
-			const folder = await this.resolveTargetFolder(taskData);
+			const occurrenceFilenameTemplate = taskData.occurrenceFilenameTemplate?.trim();
+			const baseFilename =
+				occurrenceFilenameTemplate && taskData.occurrence_date
+					? generateOccurrenceFilename(
+							filenameContext,
+							occurrenceFilenameTemplate,
+							taskData.occurrence_date
+						)
+					: generateTaskFilename(filenameContext, runtime.settings);
+			const folder = options.targetFolder ?? await this.resolveTargetFolder(taskData);
 
 			if (folder) {
 				await ensureFolderExists(runtime.app.vault, folder);
@@ -180,8 +205,20 @@ export class TaskCreationService {
 				runtime.app.vault
 			);
 			const fullPath = folder ? `${folder}/${uniqueFilename}.md` : `${uniqueFilename}.md`;
+			// A templated occurrence filename intentionally differs from the
+			// title, but still represents it as long as the generated name was
+			// used as-is (no collision suffix) and nothing was lost to
+			// filename sanitization.
+			const expectedFilename =
+				occurrenceFilenameTemplate && taskData.occurrence_date
+					? baseFilename
+					: filenameTitle;
+			const titleIsRepresentedByFilename =
+				runtime.settings.storeTitleInFilename &&
+				isTitleRepresentedByFilename(title, filenameTitle, uniqueFilename, expectedFilename);
 
 			const completeTaskData: Partial<TaskInfo> = {
+				id,
 				title,
 				status,
 				priority,
@@ -189,14 +226,20 @@ export class TaskCreationService {
 				scheduled: taskData.scheduled || undefined,
 				contexts: contextsArray.length > 0 ? contextsArray : undefined,
 				projects: projectsArray.length > 0 ? projectsArray : undefined,
+				attachments:
+					taskData.attachments && taskData.attachments.length > 0
+						? taskData.attachments
+						: undefined,
 				timeEstimate:
 					taskData.timeEstimate && taskData.timeEstimate > 0
 						? taskData.timeEstimate
 						: undefined,
 				dateCreated,
 				dateModified,
-				recurrence: taskData.recurrence || undefined,
+				recurrence,
+				completedDate,
 				recurrence_anchor: taskData.recurrence_anchor || undefined,
+				recurrence_original_date: taskData.recurrence_original_date || undefined,
 				recurrence_parent: taskData.recurrence_parent || undefined,
 				occurrence_date: taskData.occurrence_date || undefined,
 				occurrence_materialization: taskData.occurrence_materialization || undefined,
@@ -236,6 +279,17 @@ export class TaskCreationService {
 			if (
 				completeTaskData.recurrence &&
 				typeof completeTaskData.recurrence === "string" &&
+				!completeTaskData.scheduled
+			) {
+				const scheduled = getFirstScheduledOccurrence(completeTaskData);
+				if (scheduled) {
+					completeTaskData.scheduled = scheduled;
+				}
+			}
+
+			if (
+				completeTaskData.recurrence &&
+				typeof completeTaskData.recurrence === "string" &&
 				!completeTaskData.recurrence.includes("DTSTART:")
 			) {
 				const tempTaskInfo: TaskInfo = {
@@ -258,15 +312,13 @@ export class TaskCreationService {
 			const frontmatter = runtime.fieldMapper.mapToFrontmatter(
 				completeTaskData,
 				taskTagForFrontmatter,
-				runtime.settings.storeTitleInFilename
+				titleIsRepresentedByFilename
 			);
 
 			if (runtime.settings.taskIdentificationMethod === "property") {
 				const propName = runtime.settings.taskPropertyName;
 				const propValue = runtime.settings.taskPropertyValue;
-				if (propName && propValue) {
-					applyPropertyTaskIdentifier(frontmatter, propName, propValue);
-				}
+				applyPropertyTaskIdentifier(frontmatter, propName, propValue);
 				if (tagsArray.length > 0) {
 					frontmatter.tags = tagsArray;
 				}
@@ -290,7 +342,7 @@ export class TaskCreationService {
 			if (taskData.customFrontmatter) {
 				finalFrontmatter = { ...finalFrontmatter, ...taskData.customFrontmatter };
 			}
-			if (runtime.settings.storeTitleInFilename) {
+			if (titleIsRepresentedByFilename) {
 				delete finalFrontmatter[runtime.fieldMapper.toUserField("title")];
 			}
 			if (runtime.settings.taskIdentificationMethod === "property") {
@@ -300,6 +352,9 @@ export class TaskCreationService {
 					runtime.settings.taskPropertyValue
 				);
 			}
+			// Identity is assigned by the creation boundary. Templates and ordinary
+			// custom frontmatter must never copy or replace another task's ID.
+			finalFrontmatter[runtime.fieldMapper.toUserField("id")] = id;
 			tagsArray = getFrontmatterTags(finalFrontmatter.tags);
 
 			const yamlHeader = stringifyYaml(finalFrontmatter);
@@ -313,6 +368,7 @@ export class TaskCreationService {
 			const taskInfo: TaskInfo = {
 				...completeTaskData,
 				...finalFrontmatter,
+				id,
 				title: stringifyUnknown(finalFrontmatter.title || completeTaskData.title || title),
 				status: stringifyUnknown(
 					finalFrontmatter.status || completeTaskData.status || status
@@ -327,9 +383,6 @@ export class TaskCreationService {
 			};
 
 			try {
-				if (runtime.cacheManager.waitForFreshTaskData) {
-					await runtime.cacheManager.waitForFreshTaskData(file);
-				}
 				runtime.cacheManager.updateTaskInfoInCache(file.path, taskInfo);
 			} catch (cacheError) {
 				tasknotesLogger.error("Error updating cache for new task:", {
@@ -360,6 +413,7 @@ export class TaskCreationService {
 
 			if (
 				runtime.taskCalendarSyncService &&
+				runtime.settings.googleCalendarExport.enabled &&
 				runtime.settings.googleCalendarExport.syncOnTaskCreate
 			) {
 				runtime.taskCalendarSyncService.syncTaskToCalendar(taskInfo).catch((error) => {
@@ -384,43 +438,49 @@ export class TaskCreationService {
 		}
 	}
 
-	private resolveCurrentNoteFolderVariables(folderTemplate: string): string {
-		if (
-			!folderTemplate.includes("{{currentNotePath}}") &&
-			!folderTemplate.includes("{{currentNoteTitle}}")
-		) {
-			return folderTemplate;
-		}
-
-		const currentFile = this.deps.runtime.app.workspace.getActiveFile();
-		return folderTemplate
-			.replace(/\{\{currentNotePath\}\}/g, currentFile?.parent?.path || "")
-			.replace(/\{\{currentNoteTitle\}\}/g, currentFile?.basename || "");
-	}
-
 	private async resolveTargetFolder(taskData: TaskCreationData): Promise<string> {
 		const { runtime } = this.deps;
-		let folder = "";
-
 		if (
 			taskData.creationContext === "inline-conversion" ||
 			taskData.creationContext === "modal-inline-creation"
 		) {
 			const inlineFolder = runtime.settings.inlineTaskConvertFolder || "";
 			if (inlineFolder.trim()) {
-				folder = this.resolveCurrentNoteFolderVariables(inlineFolder);
-				return this.deps.processFolderTemplate(folder, taskData);
+				return this.deps.processFolderTemplate(inlineFolder, taskData);
 			}
 
-			const tasksFolder = this.resolveCurrentNoteFolderVariables(
-				runtime.settings.tasksFolder || ""
-			);
+			const tasksFolder = runtime.settings.tasksFolder || "";
 			return this.deps.processFolderTemplate(tasksFolder, taskData);
 		}
 
-		const tasksFolder = this.resolveCurrentNoteFolderVariables(
-			runtime.settings.tasksFolder || ""
-		);
+		const tasksFolder = runtime.settings.tasksFolder || "";
 		return this.deps.processFolderTemplate(tasksFolder, taskData);
 	}
+}
+
+/**
+ * A recurring task created without a scheduled date gets its first occurrence on or after
+ * today, so it behaves like a task whose recurrence was added later (for example, it can
+ * be exported to Google Calendar). The time comes from a timed DTSTART. Ended or invalid
+ * rules have no next occurrence and are left unscheduled.
+ */
+function getFirstScheduledOccurrence(task: Partial<TaskInfo>): string | undefined {
+	if (typeof task.recurrence !== "string") return undefined;
+
+	// The first occurrence of a new task is the same for both anchors. Completion-based
+	// lookup skips DTSTART itself, so it would schedule one interval late.
+	const input = { recurrence: task.recurrence, dateCreated: task.dateCreated };
+	let next = updateToNextScheduledOccurrence(input).scheduled;
+
+	// The lookup only searches a window after today, so start a future series at its start.
+	const dtstart = task.recurrence.match(/DTSTART(?:;[^:;]+)*:(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2}))?/);
+	const dtstartDate = dtstart ? `${dtstart[1]}-${dtstart[2]}-${dtstart[3]}` : undefined;
+	if (!next && dtstartDate && dtstartDate > getCurrentDateString()) {
+		next = updateToNextScheduledOccurrence(input, true, {
+			minOccurrenceDate: dtstartDate,
+		}).scheduled;
+	}
+	if (!next) return undefined;
+
+	return dtstart?.[4] ? `${next}T${dtstart[4]}:${dtstart[5]}` : next;
 }

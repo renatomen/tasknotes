@@ -2,7 +2,10 @@ import { EditorView } from "@codemirror/view";
 import { WorkspaceLeaf, editorInfoField } from "obsidian";
 import { createTaskNotesLogger, type TaskNotesLogger } from "../utils/tasknotesLogger";
 
+export const EMBEDDED_MARKDOWN_EDITOR_CLASS = "tn-embedded-markdown-editor";
+
 const EMBEDDED_MARKDOWN_CONTEXT_SELECTOR = [
+	`.${EMBEDDED_MARKDOWN_EDITOR_CLASS}`,
 	".blp-inline-edit-root",
 	".internal-embed.markdown-embed",
 	".markdown-embed",
@@ -45,10 +48,17 @@ export function shouldSkipMarkdownWidgetEditor(
 	try {
 		const editorInfo = view.state.field(editorInfoField, false) as
 			| {
-					leaf?: WorkspaceLeaf;
+					leaf?: {
+						parent?: unknown;
+						view?: { getMode?: () => string };
+					};
 					containerEl?: HTMLElement;
 			  }
 			| undefined;
+
+		if (editorInfo?.leaf?.view?.getMode?.() === "preview") {
+			return true;
+		}
 
 		if (isDetachedLeaf(editorInfo?.leaf)) {
 			return true;

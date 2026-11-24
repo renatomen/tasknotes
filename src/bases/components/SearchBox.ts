@@ -1,5 +1,8 @@
+import { uiText } from "../../i18n/runtime";
+import { msg } from "@lingui/core/macro";
 import { setIcon } from 'obsidian';
 import { debounce } from '../../settings/components/settingHelpers';
+import { createElementInDocument } from '../../utils/documentDom';
 
 /**
  * SearchBox - UI component for task search functionality
@@ -9,14 +12,15 @@ import { debounce } from '../../settings/components/settingHelpers';
  */
 export class SearchBox {
 	private container: HTMLElement;
-	private onSearch: (term: string) => void;
+	private onSearch: (term: string) => void | Promise<void>;
+	private searchSettled: Promise<void> = Promise.resolve();
 	private debounceMs: number;
 	
 	private searchBoxEl: HTMLElement | null = null;
 	private inputEl: HTMLInputElement | null = null;
 	private clearBtnEl: HTMLElement | null = null;
 
-	private debouncedSearch: ((term: string) => void) | null = null;
+	private debouncedSearch: (((term: string) => void) & { flush: () => void }) | null = null;
 	private destroyed = false;
 
 	/**
@@ -26,7 +30,7 @@ export class SearchBox {
 	 */
 	constructor(
 		container: HTMLElement,
-		onSearch: (term: string) => void,
+		onSearch: (term: string) => void | Promise<void>,
 		debounceMs = 300
 	) {
 		this.container = container;
@@ -38,7 +42,7 @@ export class SearchBox {
 			(term: string) => {
 				// Don't execute if component has been destroyed
 				if (!this.destroyed) {
-					this.onSearch(term);
+					this.searchSettled = Promise.resolve(this.onSearch(term));
 				}
 			},
 			this.debounceMs,
@@ -54,31 +58,31 @@ export class SearchBox {
 		const doc = this.container.ownerDocument;
 
 		// Create main container
-		this.searchBoxEl = doc.createElement('div');
+		this.searchBoxEl = createElementInDocument(doc, 'div');
 		this.searchBoxEl.className = 'tn-search-box';
 
 		// Create input wrapper
-		const inputWrapper = doc.createElement('div');
+		const inputWrapper = createElementInDocument(doc, 'div');
 		inputWrapper.className = 'tn-search-box__input-wrapper';
 
 		// Create search icon using Lucide icon (like Obsidian)
-		const icon = doc.createElement('div');
+		const icon = createElementInDocument(doc, 'div');
 		icon.className = 'tn-search-box__icon';
 		setIcon(icon, 'search');
 
 		// Create input element
-		this.inputEl = doc.createElement('input');
+		this.inputEl = createElementInDocument(doc, 'input');
 		this.inputEl.type = 'text';
 		this.inputEl.className = 'tn-search-box__input';
-		this.inputEl.placeholder = 'Search tasks...';
-		this.inputEl.setAttribute('aria-label', 'Search tasks');
+		this.inputEl.placeholder = uiText(msg({ message: "Search tasks...", context: "bases/components/SearchBox: SearchBox.render display" }));
+		this.inputEl.setAttribute('aria-label', uiText(msg({ message: "Search tasks", context: "bases/components/SearchBox: SearchBox.render display" })));
 
 		// Create clear button
-		const clearBtn = doc.createElement('button');
+		const clearBtn = createElementInDocument(doc, 'button');
 		clearBtn.type = 'button';
 		clearBtn.className = 'tn-search-box__clear';
 		clearBtn.textContent = '×';
-		clearBtn.setAttribute('aria-label', 'Clear search');
+		clearBtn.setAttribute('aria-label', uiText(msg({ message: "Clear search", context: "bases/components/SearchBox: SearchBox.render display" })));
 		this.clearBtnEl = clearBtn;
 
 		// Assemble elements
@@ -131,14 +135,33 @@ export class SearchBox {
 	 * Handle keydown event
 	 */
 	private handleKeydown = (e: KeyboardEvent): void => {
+		if (e.isComposing || e.ctrlKey || e.metaKey || e.altKey) return;
 		if (e.key === 'Escape') {
-			this.clear();
-			// Trigger search with empty term
-			if (this.debouncedSearch) {
-				this.debouncedSearch('');
+			e.preventDefault();
+			e.stopPropagation();
+			if (!this.getValue()) {
+				this.exitSearch(false);
+				return;
 			}
+			this.clear();
+			this.debouncedSearch?.('');
+			this.debouncedSearch?.flush();
+		} else if (e.key === 'ArrowDown' || e.key === 'Enter') {
+			e.preventDefault();
+			e.stopPropagation();
+			this.debouncedSearch?.flush();
+			this.exitSearch(true);
 		}
 	};
+
+	private exitSearch(firstResult: boolean): void {
+		void this.searchSettled.then(() => {
+			if (!this.destroyed && this.inputEl === this.inputEl?.ownerDocument.activeElement) {
+				this.searchBoxEl?.dispatchEvent(new CustomEvent('tn-search-exit', { bubbles: true, detail: firstResult }));
+				if (!firstResult) this.searchBoxEl?.dispatchEvent(new CustomEvent('tn-search-close', { bubbles: true }));
+			}
+		});
+	}
 
 	/**
 	 * Handle clear button click

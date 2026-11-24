@@ -1,3 +1,6 @@
+import { applyModalShell } from "../ui/kit/modal";
+import { uiText } from "../i18n/runtime";
+import { msg } from "@lingui/core/macro";
 import { App, Modal, Setting } from "obsidian";
 
 export interface TextInputModalOptions {
@@ -19,9 +22,10 @@ export class TextInputModal extends Modal {
 
 	constructor(app: App, options: TextInputModalOptions) {
 		super(app);
+		applyModalShell(this);
 		this.options = {
-			confirmText: "Confirm",
-			cancelText: "Cancel",
+			confirmText: uiText(msg({ message: "Confirm", context: "modals/TextInputModal: TextInputModal confirmText" })),
+			cancelText: uiText(msg({ message: "Cancel", context: "modals/TextInputModal: TextInputModal cancelText" })),
 			...options,
 		};
 	}
@@ -56,7 +60,7 @@ export class TextInputModal extends Modal {
 			this.options.onInputReady?.(this.inputEl);
 		});
 
-		const buttonContainer = contentEl.createEl("div", { cls: "modal-button-container" });
+		const buttonContainer = contentEl.createDiv({ cls: "modal-button-container" });
 		buttonContainer.classList.remove(
 			"tn-static-display-block-2a1b75c9",
 			"tn-static-display-flex-4d51fc62",

@@ -1,4 +1,5 @@
 import type { FieldMappingKey } from "../types";
+import { formatProjectEntryLinkExpression } from "../templates/defaultBasesFiles";
 import type { UserMappedField } from "../types/settings";
 import type {
 	BasesCreateFileFrontmatter,
@@ -51,7 +52,15 @@ function collectFilterDefaults(
 	defaults: BasesCreateFileFrontmatter,
 	options: BasesFilterDefaultOptions
 ): void {
+	if (typeof filter === "string") {
+		applyFilterRuleDefault(filter, defaults, options);
+		return;
+	}
 	if (!isRecord(filter)) return;
+	if (Array.isArray(filter.and)) {
+		for (const child of filter.and) collectFilterDefaults(child, defaults, options);
+		return;
+	}
 
 	const filterGroup = filter as BasesFilterLike;
 	const children = Array.isArray(filterGroup.filters) ? filterGroup.filters : [];
@@ -70,6 +79,28 @@ function collectFilterDefaults(
 	if (typeof ruleText === "string") {
 		applyFilterRuleDefault(ruleText, defaults, options);
 	}
+}
+
+export function inferBasesCreationFolder(config: unknown): string | undefined {
+	const folders: string[] = [];
+	const visit = (filter: unknown): void => {
+		if (typeof filter === "string") {
+			const match = filter.trim().match(/^file\.inFolder\("((?:\\.|[^"\\])*)"\)$/);
+			if (match) folders.push(decodeQuotedValue(match[1]).replace(/^\/+|\/+$/g, ""));
+			return;
+		}
+		if (!isRecord(filter)) return;
+		if (Array.isArray(filter.and)) { filter.and.forEach(visit); return; }
+		if (filter.conjunction !== undefined && filter.conjunction !== "and") return;
+		if (Array.isArray(filter.filters)) filter.filters.forEach(visit);
+		if (isRecord(filter.rule)) visit(filter.rule.text);
+	};
+	if (!isRecord(config)) return undefined;
+	if (isRecord(config.query)) visit(config.query.filters);
+	visit(config.filters);
+	const deepest = folders.sort((first, second) => second.length - first.length)[0];
+	if (deepest === undefined || deepest.split("/").some((part) => part === "." || part === "..")) return undefined;
+	return folders.every((folder) => !folder || deepest === folder || deepest.startsWith(`${folder}/`)) ? deepest : undefined;
 }
 
 function applyFilterRuleDefault(
@@ -120,7 +151,15 @@ function applyFilterRuleDefault(
 		/^(.+?)\.contains\(this\.file\.asLink\(\)\)$/
 	);
 	if (currentFileContainsMatch) {
-		const property = normalizeFilterProperty(currentFileContainsMatch[1], options);
+		let expression = currentFileContainsMatch[1].trim();
+		// Only unwrap the link normalization we generate ourselves. Arbitrary
+		// map/filter transformations do not imply a writable source default.
+		const normalization = `.map(${formatProjectEntryLinkExpression("value")})`;
+		if (expression.endsWith(normalization)) {
+			expression = expression.slice(0, -normalization.length)
+				.replace(/^file\.hasLink\(this\.file\)\s*&&\s*/, "");
+		}
+		const property = normalizeFilterProperty(expression, options);
 		const currentFileLink = resolveCurrentFileLink(options.currentFileLink);
 		if (property && currentFileLink) {
 			addFrontmatterDefault(defaults, property, currentFileLink, options.fieldMapper);
@@ -139,6 +178,8 @@ function normalizeFilterProperty(
 	options: BasesFilterDefaultOptions
 ): string | null {
 	let property = propertyExpression.trim();
+
+
 	const listMatch = property.match(/^list\((.+)\)$/);
 	if (listMatch) {
 		property = listMatch[1].trim();

@@ -1,3 +1,5 @@
+import { uiData } from "../i18n/dataText";
+
 import { PriorityConfig } from "../types";
 import { normalizePriorityConfigValue } from "../core/fieldMapping";
 import { isSupportedColorValue, normalizeThemeColor } from "../utils/themeColors";
@@ -68,17 +70,13 @@ export class PriorityManager {
 	}
 
 	/**
-	 * Get CSS variables for priority colors
+	 * Get CSS variables for priority colors.
 	 */
-	getPriorityStyles(): string {
-		const cssRules: string[] = [];
-
-		for (const priority of this.priorities) {
-			const cssClass = `--priority-${priority.value.replace(/[^a-zA-Z0-9-]/g, "-")}-color`;
-			cssRules.push(`${cssClass}: ${normalizeThemeColor(priority.color)};`);
-		}
-
-		return `:root { ${cssRules.join(" ")} }`;
+	getPriorityColorVariables(): ReadonlyArray<readonly [string, string]> {
+		return this.priorities.map((priority) => [
+			`--priority-${priority.value.replace(/[^a-zA-Z0-9-]/g, "-")}-color`,
+			normalizeThemeColor(priority.color),
+		]);
 	}
 
 	/**
@@ -220,7 +218,7 @@ export class PriorityManager {
 		return {
 			id,
 			value: "new-priority",
-			label: "New priority",
+			label: uiData("New priority", "Writable persisted seed for a new user-configured label; not a display getter"),
 			color: "#808080",
 			weight,
 		};

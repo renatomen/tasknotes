@@ -44,6 +44,7 @@ export const TASKNOTES_RUNTIME_API_CAPABILITIES = [
 	"extensions.read",
 	"extensions.register",
 	"tasks.read",
+	"tasks.lookup-id",
 	"tasks.write",
 	"tasks.delete",
 	"tasks.move",
@@ -93,6 +94,7 @@ export type TaskNotesTaskEventName =
 	| "task.tags.changed"
 	| "task.contexts.changed"
 	| "task.projects.changed"
+	| "task.attachments.changed"
 	| "task.reminders.changed"
 	| "task.dependencies.changed"
 	| "task.recurrence.changed";
@@ -197,6 +199,12 @@ export const TASKNOTES_RUNTIME_EVENT_DEFINITIONS: readonly TaskNotesRuntimeEvent
 		name: "task.projects.changed",
 		label: "Task projects changed",
 		description: "A TaskNotes task project list changed.",
+		category: "task",
+	},
+	{
+		name: "task.attachments.changed",
+		label: "Task attachments changed",
+		description: "A TaskNotes task attachment list changed.",
 		category: "task",
 	},
 	{
@@ -352,6 +360,7 @@ export interface TaskNotesMutationContext {
 export const TASKNOTES_API_ERROR_CODES = [
 	"invalid_input",
 	"invalid_task_path",
+	"duplicate_task_id",
 	"invalid_status",
 	"task_not_found",
 	"task_file_not_found",
@@ -671,6 +680,7 @@ export type TaskNotesApiChanges = Record<string, TaskNotesApiChange>;
 export interface TaskNotesRuntimeEventPayload {
 	event: TaskNotesRuntimeEventName;
 	timestamp: string;
+	taskId?: string;
 	taskPath?: string;
 	task?: TaskInfo;
 	before?: TaskInfo;
@@ -696,7 +706,10 @@ export type TaskNotesRuntimeEventHandler<EventName extends TaskNotesRuntimeEvent
 ) => void;
 
 export interface TaskNotesRuntimeTasksApi {
+	/** @deprecated Use getByPath() to make the locator explicit. */
 	get(path: string): Promise<Nullable<TaskInfo>>;
+	getByPath(path: string): Promise<Nullable<TaskInfo>>;
+	getById(id: string): Promise<Nullable<TaskInfo>>;
 	list(query?: TaskNotesRuntimeTaskQuery): Promise<TaskInfo[]>;
 	create(taskData: TaskCreationData, context?: TaskNotesMutationContext): Promise<TaskInfo>;
 	update(
@@ -1128,7 +1141,6 @@ export interface TaskNotesRuntimeApiV1 {
 	readonly lifecycle: TaskNotesRuntimeLifecycleApi;
 	readonly errors: TaskNotesRuntimeErrorsApi;
 	readonly extensions: TaskNotesRuntimeExtensionsApi;
-
 	parseNaturalLanguage(text: string): ParsedTaskData;
 
 	getTask(path: string): Promise<Nullable<TaskInfo>>;

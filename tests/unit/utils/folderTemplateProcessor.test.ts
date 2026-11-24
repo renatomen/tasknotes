@@ -1,6 +1,18 @@
 import { processFolderTemplate, TaskTemplateData, ICSTemplateData } from '../../../src/utils/folderTemplateProcessor';
 
 describe('processFolderTemplate', () => {
+  it('treats current-note values as literal data while expanding template dates (#2335)', () => {
+    expect(processFolderTemplate('{{currentNotePath}}/YYYY/MM/{{currentNoteTitle}}', {
+      date: new Date(2026, 8, 14),
+      currentNote: { path: 'AMM-01/YYYY', title: '$&-{{month}}-{{currentNotePath}}-DD' }
+    })).toBe('AMM-01/YYYY/2026/09/$&-{{month}}-{{currentNotePath}}-DD');
+  });
+
+  it('normalizes relative templates only after inserting literal note paths (#2335)', () => {
+    expect(processFolderTemplate('{{currentNotePath}}/../Tasks/{{currentNoteTitle}}', {
+      currentNote: { path: 'AMM-01/Meetings', title: 'AMM-01' }
+    })).toBe('AMM-01/Tasks/AMM-01');
+  });
 	const testDate = new Date('2025-10-05T14:30:00');
 
 	describe('date variables', () => {
@@ -141,6 +153,55 @@ describe('processFolderTemplate', () => {
 				extractProjectBasename: extractBasename,
 			});
 			expect(result).toBe('MyProject/OtherProject');
+		});
+
+		describe('{{projectFolder}} and {{projectFolders}}', () => {
+			// Resolve a wikilink to its full file path, mirroring how the plugin
+			// wires extractProjectFilePath in production.
+			const extractFilePath = (project: string) => {
+				const match = project.match(/^\[\[([^\]]+)\]\]$/);
+				return match ? match[1] : project;
+			};
+
+			it('should return the folder containing a nested project note', () => {
+				const result = processFolderTemplate('{{projectFolder}}', {
+					taskData: { projects: ['[[Areas/EFC/EFC]]'] },
+					extractProjectFilePath: extractFilePath,
+				});
+				expect(result).toBe('Areas/EFC');
+			});
+
+			it('should return an empty string for a top-level project note', () => {
+				const result = processFolderTemplate('{{projectFolder}}', {
+					taskData: { projects: ['[[EFC]]'] },
+					extractProjectFilePath: extractFilePath,
+				});
+				expect(result).toBe('');
+			});
+
+			it('should place a task beside its project note', () => {
+				const result = processFolderTemplate('{{projectFolder}}/{{title}}', {
+					taskData: { title: 'Practice plan', projects: ['[[EFC/EFC]]'] },
+					extractProjectFilePath: extractFilePath,
+				});
+				expect(result).toBe('EFC/Practice plan');
+			});
+
+			it('should join folders and drop empties for {{projectFolders}}', () => {
+				const result = processFolderTemplate('{{projectFolders}}', {
+					taskData: { projects: ['[[EFC/EFC]]', '[[TopLevel]]', '[[a/b/c]]'] },
+					extractProjectFilePath: extractFilePath,
+				});
+				expect(result).toBe('EFC/a/b');
+			});
+
+			it('should return an empty string when no projects are set', () => {
+				const result = processFolderTemplate('{{projectFolder}}', {
+					taskData: { projects: [] },
+					extractProjectFilePath: extractFilePath,
+				});
+				expect(result).toBe('');
+			});
 		});
 
 		it('should handle empty task arrays gracefully', () => {

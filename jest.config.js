@@ -1,25 +1,28 @@
+// Pin the test timezone to UTC so local runs match CI (GitHub Actions runs in
+// UTC). Set here — before Jest spawns its worker processes — so each worker
+// inherits TZ and reads it at startup, before any Date is constructed (V8 caches
+// the zone on first use). Overridable with an explicit `TZ=... jest` for
+// timezone-specific testing.
+process.env.TZ = process.env.TZ || 'UTC';
+
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'jsdom',
+  globalSetup: '<rootDir>/scripts/jest-catalogues.cjs',
   roots: ['<rootDir>/tests'],
   testMatch: [
     '**/__tests__/**/*.ts',
     '**/?(*.)+(spec|test).ts'
   ],
   transform: {
-    '^.+\\.ts$': ['ts-jest', {
-      tsconfig: {
-        paths: {
-          obsidian: ['node_modules/obsidian-test-mocks/dist/lib/cjs/obsidian/index.cjs']
-        }
-      }
-    }],
+    '^.+\\.ts$': '<rootDir>/scripts/jest-lingui.cjs',
+    '^.+\\.m?js$': ['babel-jest', { configFile: false, babelrc: false, plugins: ['@babel/plugin-transform-modules-commonjs'] }],
   },
+  transformIgnorePatterns: ['/node_modules/(?!.*(?:@lingui|@messageformat)/)'],
   setupFiles: ['obsidian-test-mocks/jest-setup'],
   setupFilesAfterEnv: ['<rootDir>/tests/test-setup.ts'],
   moduleNameMapper: {
     '^obsidian$': '<rootDir>/tests/helpers/obsidian-bridge.ts',
-    '^@fullcalendar/(.*)$': '<rootDir>/tests/__mocks__/fullcalendar.ts',
     // Keep mocks for complex/large libraries that benefit from controlled testing
     '^chrono-node$': '<rootDir>/tests/__mocks__/chrono-node.ts',
     '^ical.js$': '<rootDir>/tests/__mocks__/ical.ts',

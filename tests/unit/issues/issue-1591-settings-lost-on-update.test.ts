@@ -1,4 +1,5 @@
 import { describe, expect, it, jest, afterEach } from "@jest/globals";
+import { Notice } from "obsidian";
 import TaskNotesPlugin from "../../../src/main";
 
 function createPlugin(options: { dataFileExists: boolean; version?: string }) {
@@ -9,6 +10,12 @@ function createPlugin(options: { dataFileExists: boolean; version?: string }) {
 				exists: jest.fn().mockResolvedValue(options.dataFileExists),
 			},
 		},
+		secretStorage: {
+			getSecret: jest.fn(() => null),
+			setSecret: jest.fn(),
+		},
+		loadLocalStorage: jest.fn(() => null),
+		saveLocalStorage: jest.fn(),
 	} as any;
 
 	const plugin = new TaskNotesPlugin(app);
@@ -20,6 +27,7 @@ function createPlugin(options: { dataFileExists: boolean; version?: string }) {
 	(plugin as any).settingsLifecycleService = {
 		saveSettings: jest.fn(() => plugin.saveSettingsDataOnly()),
 	};
+	(plugin as any).oauthSecretStore = {};
 	plugin.saveData = jest.fn().mockResolvedValue(undefined);
 
 	return plugin;
@@ -28,6 +36,7 @@ function createPlugin(options: { dataFileExists: boolean; version?: string }) {
 describe("issue #1591 settings reset on update", () => {
 	afterEach(() => {
 		jest.restoreAllMocks();
+		(Notice as unknown as jest.Mock).mockClear?.();
 	});
 
 	it("does not persist defaults when an existing settings file temporarily reads as null", async () => {
@@ -37,23 +46,48 @@ describe("issue #1591 settings reset on update", () => {
 		const plugin = createPlugin({ dataFileExists: true });
 		plugin.loadData = jest.fn().mockResolvedValue(null);
 
-		await plugin.loadSettings();
-		await plugin.checkForVersionUpdate();
+		await expect(plugin.loadSettings()).rejects.toThrow("settings are unreadable");
+		await plugin.saveSettingsDataOnly();
 
-		expect(plugin.loadData).toHaveBeenCalledTimes(4);
+		expect(plugin.loadData).toHaveBeenCalledTimes(21);
+		// Obsidian only says "Failed to load"; the notice says why, and warns
+		// against reinstalling, which deletes the settings file (#2559).
+		expect(Notice).toHaveBeenCalledWith(
+			expect.stringContaining("Reinstalling TaskNotes deletes its settings"),
+			0
+		);
 		expect(plugin.saveData).not.toHaveBeenCalled();
 		expect(console.error).toHaveBeenCalledWith(
 			expect.stringContaining(
 				"[TaskNotes][Main][internal][load-settings-data] Settings data could not be read safely"
 			),
 			expect.objectContaining({
-				reason: expect.stringContaining("Settings data file exists"),
+				reason: "no-settings-data",
 				settingsSavesBlocked: true,
 			})
 		);
 		expect(console.warn).toHaveBeenCalledWith(
 			expect.stringContaining("Skipping settings save")
 		);
+	});
+
+	it("waits for a settings file that the outgoing version is still writing (#2559)", async () => {
+		jest.spyOn(console, "warn").mockImplementation(() => undefined);
+		const plugin = createPlugin({ dataFileExists: true });
+		const saved = { taskIdentificationMethod: "property", taskPropertyName: "type" };
+		plugin.loadData = jest.fn<() => Promise<unknown>>();
+		(plugin.loadData as jest.Mock<() => Promise<unknown>>)
+			.mockResolvedValueOnce(null)
+			.mockResolvedValueOnce(null)
+			.mockResolvedValueOnce(null)
+			.mockResolvedValueOnce(null)
+			.mockResolvedValue(saved);
+
+		await plugin.loadSettings();
+
+		expect(plugin.settings.taskIdentificationMethod).toBe("property");
+		expect(plugin.settings.taskPropertyName).toBe("type");
+		expect(Notice).not.toHaveBeenCalled();
 	});
 
 	it("still writes lastSeenVersion for a new install with no settings file", async () => {

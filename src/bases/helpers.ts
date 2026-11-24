@@ -1,9 +1,10 @@
+import { uiText } from "../i18n/runtime";
+import { msg } from "@lingui/core/macro";
 import TaskNotesPlugin from "../main";
 import { Reminder, TaskDependency, TaskInfo, TimeEntry } from "../types";
 import type { OccurrenceMaterializationMode, OccurrenceNextTrigger } from "@tasknotes/model";
-import { setIcon } from "obsidian";
 import { calculateTotalTimeSpent } from "../utils/helpers";
-import { format } from "date-fns";
+import { normalizeRecurrenceOriginalDate } from "../core/fieldMapping";
 import { convertInternalToUserProperties } from "../utils/propertyMapping";
 import { DEFAULT_INTERNAL_VISIBLE_PROPERTIES } from "../settings/defaults";
 import type { TaskCardOptions } from "../ui/TaskCard";
@@ -11,6 +12,7 @@ import { PropertyMappingService } from "./PropertyMappingService";
 import { normalizeDependencyList } from "../utils/dependencyUtils";
 import { stringifyUnknown, stringifyUnknownArray } from "../utils/stringUtils";
 import { createTaskNotesLogger } from "../utils/tasknotesLogger";
+import { createElementInDocument } from "../utils/documentDom";
 
 const tasknotesLogger = createTaskNotesLogger({ tag: "Bases/Helpers" });
 
@@ -89,13 +91,9 @@ function toOptionalNumber(value: unknown): number | undefined {
 	return undefined;
 }
 
-function toOccurrenceMaterializationMode(
-	value: unknown
-): Optional<OccurrenceMaterializationMode> {
+function toOccurrenceMaterializationMode(value: unknown): Optional<OccurrenceMaterializationMode> {
 	const mode = toOptionalString(value);
-	return mode === "manual" || mode === "on_completion" || mode === "rolling"
-		? mode
-		: undefined;
+	return mode === "manual" || mode === "on_completion" || mode === "rolling" ? mode : undefined;
 }
 
 function toOccurrenceNextTrigger(value: unknown): Optional<OccurrenceNextTrigger> {
@@ -137,7 +135,7 @@ export function mapBasesPropertyToTaskCardProperty(
 ): string {
 	// Delegate to PropertyMappingService if available (preferred path)
 	if (plugin) {
-		const mapper = new PropertyMappingService(plugin, plugin.fieldMapper);
+		const mapper = new PropertyMappingService(plugin.fieldMapper);
 		return mapper.basesToTaskCardProperty(propId);
 	}
 
@@ -185,6 +183,7 @@ function createTaskInfoFromProperties(
 		"recurrence",
 		"recurrence_parent",
 		"occurrence_date",
+		"recurrence_original_date",
 		"occurrence_materialization",
 		"occurrence_next_trigger",
 		"occurrence_template",
@@ -197,6 +196,10 @@ function createTaskInfoFromProperties(
 		"icsEventId",
 		"complete_instances",
 		"skipped_instances",
+		"googleCalendarEventId",
+		"googleCalendarExceptionEventId",
+		"googleCalendarExceptionOriginalScheduled",
+		"googleCalendarMovedOriginalDates",
 		"blockedBy",
 		"blocking",
 		"sortOrder",
@@ -235,21 +238,23 @@ function createTaskInfoFromProperties(
 			toOptionalString(props.title) ||
 			basesItem.name ||
 			basesItem.path?.split("/").pop()?.replace(".md", "") ||
-			"Untitled",
+			uiText(msg({ message: "Untitled", context: "bases/helpers: createTaskInfoFromProperties title" })),
 		status: toOptionalString(props.status) || plugin?.settings?.defaultTaskStatus || "open",
-		priority: toOptionalString(props.priority) || "normal",
+		priority: toOptionalString(props.priority) || "",
 		path: basesItem.path || "",
 		archived: props.archived === true,
 		due: toOptionalString(props.due),
 		scheduled: toOptionalString(props.scheduled),
 		contexts: toStringArray(props.contexts),
 		projects: toStringArray(props.projects),
+		attachments: toStringArray(props.attachments),
 		tags: toStringArray(props.tags),
 		timeEstimate: toOptionalNumber(props.timeEstimate),
 		completedDate: toOptionalString(props.completedDate),
 		recurrence: toOptionalString(props.recurrence),
 		recurrence_parent: toOptionalString(props.recurrence_parent),
 		occurrence_date: toOptionalString(props.occurrence_date),
+		recurrence_original_date: normalizeRecurrenceOriginalDate(props.recurrence_original_date),
 		occurrence_materialization: toOccurrenceMaterializationMode(
 			props.occurrence_materialization
 		),
@@ -265,6 +270,12 @@ function createTaskInfoFromProperties(
 		icsEventId: toStringArray(props.icsEventId),
 		complete_instances: toStringArray(props.complete_instances),
 		skipped_instances: toStringArray(props.skipped_instances),
+		googleCalendarEventId: toOptionalString(props.googleCalendarEventId),
+		googleCalendarExceptionEventId: toOptionalString(props.googleCalendarExceptionEventId),
+		googleCalendarExceptionOriginalScheduled: toOptionalString(
+			props.googleCalendarExceptionOriginalScheduled
+		),
+		googleCalendarMovedOriginalDates: toStringArray(props.googleCalendarMovedOriginalDates),
 		blockedBy: toDependencies(props.blockedBy),
 		blocking: blockingTasks.length > 0 ? blockingTasks : undefined,
 		isBlocked: isBlocked,
@@ -327,16 +338,22 @@ export function createTaskInfoFromBasesData(
 		});
 
 		// Merge file properties with existing custom properties
-		return enrichTaskInfoFromCache({
-			...taskInfo,
-			customProperties: {
-				...mappedTaskInfo.customProperties,
-				...taskInfo.customProperties,
-				...fileProperties,
+		return enrichTaskInfoFromCache(
+			{
+				...taskInfo,
+				customProperties: {
+					...mappedTaskInfo.customProperties,
+					...taskInfo.customProperties,
+					...fileProperties,
+				},
 			},
-		}, plugin);
+			plugin
+		);
 	} else {
-		return enrichTaskInfoFromCache(createTaskInfoFromProperties(props, basesItem, plugin), plugin);
+		return enrichTaskInfoFromCache(
+			createTaskInfoFromProperties(props, basesItem, plugin),
+			plugin
+		);
 	}
 }
 
@@ -483,7 +500,7 @@ export async function renderTaskNotesInBasesView(
 
 	// Use container's document for pop-out window support
 	const doc = container.ownerDocument;
-	const taskListEl = doc.createElement("div");
+	const taskListEl = createElementInDocument(doc, "div");
 	taskListEl.className = "tn-bases-tasknotes-list";
 	taskListEl.classList.remove(
 		"tn-static-display-block-2a1b75c9",
@@ -587,292 +604,6 @@ export async function renderTaskNotesInBasesView(
 }
 
 /**
- * Render grouped TaskNotes in Bases list view
- * Uses grouped data from Bases API (public API 1.10.0+)
- */
-export async function renderGroupedTasksInBasesView(
-	container: HTMLElement,
-	taskNotes: TaskInfo[],
-	plugin: TaskNotesPlugin,
-	viewContext: unknown,
-	pathToProps: Map<string, Record<string, unknown>>,
-	taskElementsMap?: Map<string, HTMLElement>
-): Promise<void> {
-	const { createTaskCard } = await import("../ui/TaskCard");
-
-	// Clear container and tracking map
-	container.innerHTML = "";
-	if (taskElementsMap) {
-		taskElementsMap.clear();
-	}
-
-	// Get visible properties from Bases FIRST (needed for both grouped and ungrouped rendering)
-	const basesVisibleProperties = getBasesVisibleProperties(viewContext);
-	let visibleProperties: string[] | undefined;
-	let cardOptions: Partial<TaskCardOptions> = {
-		targetDate: new Date(),
-	};
-
-	if (basesVisibleProperties.length > 0) {
-		cardOptions = {
-			...cardOptions,
-			propertyLabels: buildTaskCardPropertyLabels(basesVisibleProperties, plugin),
-		};
-
-		visibleProperties = basesVisibleProperties.map((p) => p.id);
-
-		// Map Bases property IDs to TaskCard-compatible property names
-		const hasBlockedByRequested = basesVisibleProperties.some(
-			(p) => p.id === "blockedBy" || p.id === "note.blockedBy" || p.id === "task.blockedBy"
-		);
-
-		visibleProperties = visibleProperties
-			.map((propId) => {
-				const mapped = mapBasesPropertyToTaskCardProperty(propId, plugin);
-				return mapped;
-			})
-			// Filter out computed dependency properties unless explicitly requested via blockedBy
-			.filter((propId) => {
-				if (propId === "blocked" || propId === "blocking") {
-					const keep = hasBlockedByRequested;
-					return keep;
-				}
-				return true;
-			});
-	}
-
-	// Use plugin default properties if no Bases properties available
-	if (!visibleProperties || visibleProperties.length === 0) {
-		const internalDefaults = plugin.settings.defaultVisibleProperties || [
-			...DEFAULT_INTERNAL_VISIBLE_PROPERTIES,
-			"tags",
-		];
-		// Convert internal field names to user-configured property names
-		visibleProperties = convertInternalToUserProperties(internalDefaults, plugin);
-
-		// Filter out blocked/blocking from defaults since they're computed properties
-		// that should only show when explicitly requested via blockedBy
-		visibleProperties = visibleProperties.filter((p) => p !== "blocked" && p !== "blocking");
-	}
-
-	// Get groupedData from public API
-	const groupedData = (viewContext as BasesContainerLike | undefined)?.data?.groupedData;
-	if (!Array.isArray(groupedData) || groupedData.length === 0) {
-		// No groups, fall back to flat rendering (pass precomputed properties)
-		await renderTaskNotesInBasesView(
-			container,
-			taskNotes,
-			plugin,
-			viewContext,
-			taskElementsMap,
-			visibleProperties,
-			cardOptions
-		);
-		return;
-	}
-
-	// Check if this is actually ungrouped (single group with null/undefined/empty key)
-	if (groupedData.length === 1) {
-		const singleGroup = groupedData[0];
-		const groupKey = singleGroup.key?.data;
-		const groupKeyStr = String(groupKey);
-		// If the key is null, undefined, empty string, or "Unknown", treat as ungrouped
-		if (
-			groupKey === null ||
-			groupKey === undefined ||
-			groupKey === "" ||
-			groupKeyStr === "null" ||
-			groupKeyStr === "undefined" ||
-			groupKeyStr === "Unknown"
-		) {
-			// Render as flat list without group headers (pass precomputed properties)
-			await renderTaskNotesInBasesView(
-				container,
-				taskNotes,
-				plugin,
-				viewContext,
-				taskElementsMap,
-				visibleProperties,
-				cardOptions
-			);
-			return;
-		}
-	}
-
-	// Use container's document for pop-out window support
-	const doc = container.ownerDocument;
-
-	// Create wrapper with proper class for CSS styling
-	const listWrapper = doc.createElement("div");
-	listWrapper.className = "tn-bases-tasknotes-list";
-	container.appendChild(listWrapper);
-
-	// Create a map from file path to TaskInfo for quick lookup
-	const tasksByPath = new Map<string, TaskInfo>();
-	taskNotes.forEach((task) => {
-		if (task.path) {
-			tasksByPath.set(task.path, task);
-		}
-	});
-
-	// Render each group
-	for (const group of groupedData) {
-		// Extract value from Bases Value object
-		// Bases returns different structures: { date: Date } for date properties, { data: value } for others
-		const keyObj = group.key;
-		let groupKey: unknown;
-
-		// Try to extract the actual value from the Bases Value object
-		if (keyObj?.date instanceof Date) {
-			// Date property - use the date field
-			groupKey = keyObj.date;
-		} else if (keyObj?.data !== undefined) {
-			// Other properties - use the data field
-			groupKey = keyObj.data;
-		} else {
-			// Fallback for unknown structures
-			groupKey = keyObj || "Unknown";
-		}
-
-		// Format group name properly - handle Date objects for date-based grouping
-		let groupName: string;
-		if (groupKey instanceof Date) {
-			// Format dates as YYYY-MM-DD for consistency with TaskNotes date handling
-			// Note: Bases returns local Date objects, but we format to YYYY-MM-DD which represents
-			// the calendar date the user sees. This is intentional - group headers should show
-			// the date as the user perceives it (e.g., "2025-06-10" for June 10th in their timezone)
-			groupName = format(groupKey, "yyyy-MM-dd");
-		} else if (groupKey === null || groupKey === undefined || groupKey === "") {
-			groupName = "None";
-		} else {
-			groupName = stringifyUnknown(groupKey) || "None";
-		}
-		const groupEntries = group.entries || [];
-
-		if (groupEntries.length === 0) continue;
-
-		// Create group section
-		const groupSection = doc.createElement("div");
-		groupSection.className = "task-section task-group";
-		groupSection.setAttribute("data-group", groupName);
-		listWrapper.appendChild(groupSection);
-
-		// Create group header
-		const headerElement = doc.createElement("h3");
-		headerElement.className = "task-group-header task-list-view__group-header";
-		groupSection.appendChild(headerElement);
-
-		// Add toggle button (chevron)
-		const toggleBtn = doc.createElement("button");
-		toggleBtn.className = "task-group-toggle";
-		toggleBtn.type = "button";
-		toggleBtn.setAttribute("aria-label", "Toggle group");
-		toggleBtn.setAttribute("aria-expanded", "true");
-		headerElement.appendChild(toggleBtn);
-
-		// Add chevron icon
-		setIcon(toggleBtn, "chevron-right");
-
-		const svg = toggleBtn.querySelector("svg");
-		if (svg) {
-			svg.classList.add("chevron");
-			svg.setAttribute("width", "16");
-			svg.setAttribute("height", "16");
-		}
-
-		// Format group name and add count
-		const displayName = groupName === "null" || groupName === "undefined" ? "None" : groupName;
-		headerElement.createSpan({ text: displayName });
-
-		// Add count
-		headerElement.createSpan({
-			text: ` (${groupEntries.length})`,
-			cls: "agenda-view__item-count",
-		});
-
-		// Create task cards container BEFORE adding click handler
-		const taskCardsContainer = doc.createElement("div");
-		taskCardsContainer.className = "tasks-container task-cards";
-		groupSection.appendChild(taskCardsContainer);
-
-		// Add click handler for toggle
-		headerElement.addEventListener("click", (e: MouseEvent) => {
-			const target = e.target as HTMLElement;
-			// Don't toggle if clicking on a link
-			if (target.closest("a")) return;
-
-			e.preventDefault();
-			e.stopPropagation();
-
-			const isCollapsed = groupSection.classList.toggle("is-collapsed");
-			toggleBtn.setAttribute("aria-expanded", String(!isCollapsed));
-
-			// Toggle task cards visibility
-			if (isCollapsed) {
-				taskCardsContainer.classList.remove(
-					"tn-static-display-block-2a1b75c9",
-					"tn-static-display-flex-4d51fc62",
-					"tn-static-display-flex-75816cae",
-					"tn-static-display-flex-8bb39979",
-					"tn-static-display-inline-block-60e32dcb",
-					"tn-static-display-inline-cccfa456",
-					"tn-static-display-inline-flex-f984c520",
-					"tn-static-min-height-800px-997b4c8c"
-				);
-				taskCardsContainer.classList.add("tn-static-display-none-6b99de8b");
-			} else {
-				taskCardsContainer.classList.remove(
-					"tn-static-display-block-2a1b75c9",
-					"tn-static-display-flex-4d51fc62",
-					"tn-static-display-flex-75816cae",
-					"tn-static-display-flex-8bb39979",
-					"tn-static-display-inline-block-60e32dcb",
-					"tn-static-display-inline-cccfa456",
-					"tn-static-display-inline-flex-f984c520",
-					"tn-static-display-none-6b99de8b",
-					"tn-static-min-height-800px-997b4c8c"
-				);
-				taskCardsContainer.style.removeProperty("display");
-			}
-		});
-
-		// Collect TaskInfo for this group
-		const groupTasks: TaskInfo[] = [];
-		for (const entry of groupEntries) {
-			const filePath = entry.file?.path;
-			if (filePath) {
-				const task = tasksByPath.get(filePath);
-				if (task) {
-					groupTasks.push(task);
-				}
-			}
-		}
-
-		// Note: groupTasks preserve order from Bases grouped data
-		// No manual sorting needed - Bases provides pre-sorted data within groups
-
-		// Render tasks in this group
-		for (const task of groupTasks) {
-			try {
-				const taskCard = createTaskCard(task, plugin, visibleProperties, cardOptions);
-				taskCardsContainer.appendChild(taskCard);
-
-				// Track task elements for selective updates
-				if (taskElementsMap && task.path) {
-					taskElementsMap.set(task.path, taskCard);
-				}
-			} catch (error) {
-				tasknotesLogger.warn("[TaskNotes][Bases] Error creating task card:", {
-					category: "persistence",
-					operation: "creating-task-card",
-					error: error,
-				});
-			}
-		}
-	}
-}
-
-/**
  * Render a raw Bases data item for debugging/inspection
  */
 export function renderBasesDataItem(
@@ -882,7 +613,7 @@ export function renderBasesDataItem(
 ): void {
 	// Use container's document for pop-out window support
 	const doc = container.ownerDocument;
-	const itemEl = doc.createElement("div");
+	const itemEl = createElementInDocument(doc, "div");
 	itemEl.className = "tn-bases-data-item";
 	itemEl.classList.remove(
 		"tn-static-border-1px-solid-var-background-mo-b65b5121",
@@ -906,7 +637,7 @@ export function renderBasesDataItem(
 	);
 	itemEl.classList.add("tn-static-padding-12px-43bef435");
 
-	const header = doc.createElement("div");
+	const header = createElementInDocument(doc, "div");
 	header.classList.remove(
 		"tn-static-color-var-color-accent-d2cad743",
 		"tn-static-color-var-text-accent-65b47ee3",
@@ -928,11 +659,11 @@ export function renderBasesDataItem(
 		"tn-static-padding-20px-ebe8e48c"
 	);
 	header.classList.add("tn-static-font-weight-bold-e0b452bd");
-	header.textContent = `Item ${index + 1}`;
+	header.textContent = uiText(msg({ message: "Item {value1, number}", context: "Bases data inspector" }), { value1: index + 1 });
 	itemEl.appendChild(header);
 
 	if (item.path) {
-		const pathEl = doc.createElement("div");
+		const pathEl = createElementInDocument(doc, "div");
 		pathEl.classList.remove(
 			"tn-static-color-var-color-accent-d2cad743",
 			"tn-static-color-var-text-accent-65b47ee3",
@@ -960,13 +691,13 @@ export function renderBasesDataItem(
 			"tn-static-padding-20px-ebe8e48c"
 		);
 		pathEl.classList.add("tn-static-font-size-12px-65574819");
-		pathEl.textContent = `Path: ${item.path}`;
+		pathEl.textContent = uiText(msg({ message: "Path: {path}", context: "Bases data inspector" }), { path: item.path });
 		itemEl.appendChild(pathEl);
 	}
 
 	const props = item.properties;
 	if (props && typeof props === "object") {
-		const propsEl = doc.createElement("div");
+		const propsEl = createElementInDocument(doc, "div");
 		propsEl.classList.remove(
 			"tn-static-font-size-0-75em-948e16e5",
 			"tn-static-font-size-0-8em-19dc7c13",
@@ -988,7 +719,7 @@ export function renderBasesDataItem(
 		);
 		propsEl.classList.add("tn-static-font-size-12px-b0cc7e05");
 
-		const propsHeader = doc.createElement("div");
+		const propsHeader = createElementInDocument(doc, "div");
 		propsHeader.classList.remove(
 			"tn-static-color-var-color-accent-d2cad743",
 			"tn-static-color-var-text-accent-65b47ee3",
@@ -1010,10 +741,10 @@ export function renderBasesDataItem(
 			"tn-static-padding-20px-ebe8e48c"
 		);
 		propsHeader.classList.add("tn-static-font-weight-bold-0fe8c30d");
-		propsHeader.textContent = "Properties:";
+		propsHeader.textContent = uiText(msg({ message: "Properties:", context: "Bases data inspector" }));
 		propsEl.appendChild(propsHeader);
 
-		const propsList = doc.createElement("ul");
+		const propsList = createElementInDocument(doc, "ul");
 		propsList.classList.remove(
 			"tn-static-margin-0-11696618",
 			"tn-static-margin-0-auto-266e9b04",
@@ -1026,7 +757,7 @@ export function renderBasesDataItem(
 		propsList.classList.add("tn-static-margin-0-db0d5f36");
 
 		Object.entries(props).forEach(([key, value]) => {
-			const li = doc.createElement("li");
+			const li = createElementInDocument(doc, "li");
 			li.classList.remove(
 				"tn-static-color-var-color-accent-d2cad743",
 				"tn-static-color-var-text-accent-65b47ee3",
@@ -1057,7 +788,7 @@ export function renderBasesDataItem(
 		itemEl.appendChild(propsEl);
 	}
 
-	const rawDataEl = doc.createElement("details");
+	const rawDataEl = createElementInDocument(doc, "details");
 	rawDataEl.classList.remove(
 		"tn-static-font-size-0-75em-948e16e5",
 		"tn-static-font-size-0-8em-19dc7c13",
@@ -1079,7 +810,7 @@ export function renderBasesDataItem(
 	);
 	rawDataEl.classList.add("tn-static-margin-top-8px-f4f01e68");
 
-	const summary = doc.createElement("summary");
+	const summary = createElementInDocument(doc, "summary");
 	summary.classList.remove(
 		"tn-static-color-var-color-accent-d2cad743",
 		"tn-static-color-var-text-accent-65b47ee3",
@@ -1100,10 +831,10 @@ export function renderBasesDataItem(
 		"tn-static-padding-20px-ebe8e48c"
 	);
 	summary.classList.add("tn-static-cursor-pointer-2723efcc");
-	summary.textContent = "Raw data structure";
+	summary.textContent = uiText(msg({ message: "Raw data structure", context: "Bases data inspector" }));
 	rawDataEl.appendChild(summary);
 
-	const pre = doc.createElement("pre");
+	const pre = createElementInDocument(doc, "pre");
 	pre.classList.remove(
 		"tn-static-border-radius-4px-c290c56e",
 		"tn-static-border-radius-6px-0dc8408c",

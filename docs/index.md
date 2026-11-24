@@ -1,4 +1,5 @@
 ---
+description: Install TaskNotes, create a first task, and open the default Obsidian Base views.
 hide:
   - toc
 ---
@@ -11,7 +12,7 @@ TaskNotes is a task and note management plugin for Obsidian that follows the "on
 
 ## Requirements
 
-TaskNotes requires **Obsidian 1.10.1** or later and depends on the **Bases** core plugin. Before you begin, open Obsidian Settings and confirm Bases is enabled under Core Plugins.
+TaskNotes ${tasknotes.version} requires **Obsidian ${tasknotes.minAppVersion}** or later and depends on the **Bases** core plugin. Before you begin, open Obsidian Settings and confirm Bases is enabled under Core Plugins.
 
 ## Getting Started
 
@@ -31,7 +32,7 @@ Open your first view from the TaskNotes ribbon icon or by running **TaskNotes: O
 
 ### 4. Explore
 
-Use [Core Concepts](core-concepts.md) to understand the data model, [Features](features.md) for workflow capabilities, [Views](views.md) for interface behaviour, and [Settings](settings.md) to tune TaskNotes for your vault.
+Use [Core Concepts](core-concepts.md) to understand the data model, [Features](features.md) for workflow capabilities, [Views](views.md) for interface behaviour, and [Settings](settings.md) to tune TaskNotes for your vault. If you already have task-like notes, start with [Adopt TaskNotes in an existing vault](getting-started/existing-vault.md). To use your tasks on the web, iPhone and Android, see [Use TaskNotes App with your vault](guides/tasknotes-app.md).
 
 ## Quick Links
 
@@ -39,6 +40,10 @@ Use [Core Concepts](core-concepts.md) to understand the data model, [Features](f
   <a class="card" href="https://github.com/callumalpass/tasknotes" target="_blank" rel="noopener noreferrer">
     <span class="card__title">GitHub Repository</span>
     <span class="card__desc">Source code, issues, releases, and contribution discussions</span>
+  </a>
+  <a class="card" href="/guides/tasknotes-app/">
+    <span class="card__title">TaskNotes App</span>
+    <span class="card__desc">Your tasks on the web, iPhone and Android, synced with your vault through mdbase Connect</span>
   </a>
   <a class="card" href="/features/task-management/">
     <span class="card__title">Task Management</span>
@@ -64,6 +69,10 @@ Use [Core Concepts](core-concepts.md) to understand the data model, [Features](f
     <span class="card__title">Companion Plugins</span>
     <span class="card__desc">Optional plugins such as Canvas Bases and TaskNotes Workflows that build on TaskNotes</span>
   </a>
+  <a class="card" href="/migration-v4-to-v5/">
+    <span class="card__title">Upgrade Guide</span>
+    <span class="card__desc">Upgrading from TaskNotes v4 to v5</span>
+  </a>
   <a class="card" href="/migration-v3-to-v4/">
     <span class="card__title">Migration Guide</span>
     <span class="card__desc">Upgrading from TaskNotes v3 to v4</span>
@@ -71,6 +80,14 @@ Use [Core Concepts](core-concepts.md) to understand the data model, [Features](f
   <a class="card" href="/troubleshooting/">
     <span class="card__title">Troubleshooting</span>
     <span class="card__desc">Common issues and how to resolve them</span>
+  </a>
+  <a class="card" href="/reference/commands/">
+    <span class="card__title">Command Reference</span>
+    <span class="card__desc">Every registered command, generated from the plugin source</span>
+  </a>
+  <a class="card" href="/guides/backup-recovery/">
+    <span class="card__title">Backup & Recovery</span>
+    <span class="card__desc">Protect task notes, Base files, settings, and integration data</span>
   </a>
   <a class="card" href="/spec/">
     <span class="card__title">Specification</span>

@@ -1,3 +1,4 @@
+import { observeTranslation as mockObserveTranslation, englishText as mockEnglishText, conceptDescriptor as mockConceptDescriptor } from "../../helpers/real-i18n";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { TFile } from "obsidian";
 
@@ -59,26 +60,14 @@ function createPlugin(pluginData: Record<string, unknown> = {}) {
 			isCompletedStatus: jest.fn((status?: string) => status === "done"),
 		},
 		i18n: {
-			translate: jest.fn((key: string, params?: Record<string, string | number>) => {
-				const translations: Record<string, string> = {
-					"settings.integrations.googleCalendarExport.eventDescription.untitledTask":
-						"Untitled Task",
-					"settings.integrations.googleCalendarExport.eventDescription.status":
-						"Status: {value}",
-					"settings.integrations.googleCalendarExport.eventDescription.scheduled":
-						"Scheduled: {value}",
-				};
-				const translation = translations[key] || key;
-				return translation.replace(/\{(\w+)\}/g, (_match, name) =>
-					String(params?.[name] ?? "")
-				);
-			}),
+			translate: mockObserveTranslation(),
 		},
 		cacheManager: {
 			getTaskInfo: jest.fn().mockResolvedValue(null),
 			getAllTasks: jest.fn().mockResolvedValue([]),
 		},
 		loadData: jest.fn().mockImplementation(async () => pluginData),
+		loadPluginDataForSafeWrite: jest.fn().mockImplementation(async () => pluginData),
 		saveData: jest.fn().mockImplementation(async (data: Record<string, unknown>) => {
 			for (const key of Object.keys(pluginData)) {
 				delete pluginData[key];
@@ -126,7 +115,8 @@ describe("Issue #1956: recurring Google Calendar completion title", () => {
 				summary: "✓ Weekly review",
 				description: expect.stringContaining("Status: Done"),
 				recurrence: expect.arrayContaining(["EXDATE;VALUE=DATE:20260528"]),
-			})
+			}),
+			expect.any(Number)
 		);
 	});
 });

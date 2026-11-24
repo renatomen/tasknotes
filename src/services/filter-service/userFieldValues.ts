@@ -120,9 +120,29 @@ export function findUserFieldByIdOrKey(
 	userFields: readonly UserFieldDefinition[] | undefined,
 	fieldIdOrKey: string
 ): UserFieldDefinition | undefined {
-	return userFields?.find(
-		(field) => getPrimaryUserFieldId(field) === fieldIdOrKey || field.key === fieldIdOrKey
+	// Prefer canonical IDs over key aliases, regardless of settings order.
+	return (
+		findUserFieldById(userFields, fieldIdOrKey) ??
+		userFields?.find((field) => field.key === fieldIdOrKey)
 	);
+}
+
+export function resolveUserFieldProperty(
+	userFields: readonly UserFieldDefinition[] | undefined,
+	property: string
+): UserFieldDefinition | undefined {
+	if (!property.startsWith("user:") && !property.startsWith("user.")) return undefined;
+	return findUserFieldByIdOrKey(userFields, property.slice(5));
+}
+
+export function getUserFieldPropertyAliases(field: UserFieldDefinition): string[] {
+	return [
+		...new Set([
+			`user.${getPrimaryUserFieldId(field)}`,
+			`user:${field.key}`,
+			`user.${field.key}`,
+		]),
+	].filter((alias) => alias !== `user:${getPrimaryUserFieldId(field)}`);
 }
 
 export function coerceUserFieldTaskValue(
@@ -250,36 +270,6 @@ export function getUserFieldGroupValue(
 		}
 	} catch {
 		return labels.error;
-	}
-}
-
-export function getHierarchicalUserFieldGroupValues(
-	field: UserFieldDefinition | undefined,
-	rawValue: unknown,
-	missingLabel: string
-): string[] {
-	if (!field) return [missingLabel];
-
-	switch (field.type) {
-		case "boolean": {
-			const boolValue = parseBooleanLike(rawValue);
-			return boolValue == null ? [missingLabel] : [boolValue ? "true" : "false"];
-		}
-		case "number": {
-			const numberToken = parseLeadingNumber(rawValue);
-			return numberToken ? [numberToken] : [missingLabel];
-		}
-		case "date":
-			return rawValue ? [stringifyUnknown(rawValue)] : [missingLabel];
-		case "list": {
-			const tokens = normalizeUserListValue(rawValue).filter((token) => !/^\[\[/.test(token));
-			return tokens.length > 0 ? tokens : [missingLabel];
-		}
-		case "text":
-		default: {
-			const textValue = stringifyUnknown(rawValue).trim();
-			return textValue ? [textValue] : [missingLabel];
-		}
 	}
 }
 

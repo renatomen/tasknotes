@@ -3,6 +3,8 @@
  * These factories help create consistent test data across the test suite
  */
 
+import { createI18nService } from "../../src/i18n";
+
 import { 
   TaskInfo, 
   TimeEntry, 
@@ -222,6 +224,7 @@ export const SettingsFactory = {
     scheduled: 'scheduled',
     contexts: 'contexts',
     projects: 'projects',
+	attachments: 'attachments',
     timeEstimate: 'timeEstimate',
     completedDate: 'completedDate',
     dateCreated: 'dateCreated',
@@ -329,6 +332,7 @@ export const FileSystemFactory = {
       scheduled: task.scheduled,
       tags: task.tags,
       contexts: task.contexts,
+	  attachments: task.attachments,
       dateCreated: task.dateCreated,
       dateModified: task.dateModified,
       recurrence: task.recurrence,
@@ -409,6 +413,7 @@ export const PluginFactory = {
       // Core TaskManager methods
       initialize: jest.fn(),
       getAllTasks: jest.fn().mockResolvedValue([]),
+      getAllCachedTasks: jest.fn().mockReturnValue([]),
       getAllTaskPaths: jest.fn().mockReturnValue(new Set()),
       getTaskInfo: jest.fn().mockResolvedValue(null),
       getCachedTaskInfo: jest.fn().mockResolvedValue(null),
@@ -527,6 +532,7 @@ export const PluginFactory = {
       statusManager: {
         isCompletedStatus: jest.fn((status) => status === 'done' || status === 'completed'),
         getCompletedStatuses: jest.fn(() => ['done', 'completed']),
+        getConfiguredStatusAfterCompletion: jest.fn(),
         getNextStatus: jest.fn((currentStatus) => {
           const statusMap: Record<string, string> = {
             'open': 'in-progress',
@@ -540,31 +546,11 @@ export const PluginFactory = {
       getActiveTimeSession: jest.fn().mockReturnValue(null),
       selectedDate: new Date(),
 
-      i18n: {
-        translate: jest.fn((key: string, params?: Record<string, string | number>) => {
-          // Mock translations for specific keys used in tests
-          const translations: Record<string, string> = {
-            'modals.taskCreation.notices.success': 'Task "{title}" created successfully',
-            'modals.taskCreation.notices.failure': 'Failed to create task: {message}',
-            'modals.taskCreation.notices.titleRequired': 'Please enter a task title',
-            'modals.migration.title': 'Migrate Tasks',
-            'modals.migration.description': 'Migration description',
-            'modals.migration.buttons.migrate': 'Migrate',
-            'modals.migration.buttons.cancel': 'Cancel'
-          };
+      loadData: jest.fn().mockResolvedValue({}),
+      loadPluginDataForSafeWrite: jest.fn().mockResolvedValue({}),
+      saveData: jest.fn().mockResolvedValue(undefined),
 
-          let result = translations[key] || key;
-
-          // Handle parameter substitution
-          if (params) {
-            Object.entries(params).forEach(([param, value]) => {
-              result = result.replace(`{${param}}`, String(value));
-            });
-          }
-
-          return result;
-        })
-      },
+      i18n: createI18nService(),
 
       // Calendar integration methods that are missing from test failures
       toggleRecurringTaskComplete: jest.fn().mockImplementation(async (_task, _targetDate) => {

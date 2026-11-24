@@ -1,3 +1,4 @@
+import { createI18nService } from "../../../src/i18n";
 /**
  * Issues #648 and #1605: render links in task-card context values.
  *
@@ -21,6 +22,7 @@ import { makeContainer } from "../../helpers/dom-helpers";
 describe("Issues #648 and #1605: context entries clickable links", () => {
 	let container: HTMLElement;
 	const linkServices: LinkServices = {
+		translate: (key, params) => createI18nService().translate(key, params),
 		metadataCache: {
 			getFirstLinkpathDest: jest.fn().mockReturnValue(null),
 		} as unknown as LinkServices["metadataCache"],
@@ -50,8 +52,8 @@ describe("Issues #648 and #1605: context entries clickable links", () => {
 		expect(internalLink?.getAttribute("data-href")).toBe("Joe Smith");
 	});
 
-	it("leaves plain context normalization unchanged", () => {
-		expect(normalizeContext("[[Joe Smith]]")).toBe("@JoeSmith");
+	it("preserves spaces while removing wiki-link punctuation from plain normalization", () => {
+		expect(normalizeContext("[[Joe Smith]]")).toBe("@Joe Smith");
 	});
 
 	it("does not call the plain-context tag handler for link contexts", () => {

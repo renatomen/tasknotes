@@ -12,7 +12,7 @@ import * as path from 'path';
 import { launchObsidian, closeObsidian, ObsidianApp } from '../obsidian';
 
 const PROJECT_ROOT = path.resolve(__dirname, '../..');
-const E2E_VAULT_DIR = path.join(PROJECT_ROOT, 'tasknotes-e2e-vault');
+const E2E_VAULT_DIR = path.resolve(process.env.TASKNOTES_E2E_VAULT_DIR ?? path.join(PROJECT_ROOT, 'tasknotes-e2e-vault'));
 const DEFAULT_CALENDAR_BASE = path.join(E2E_VAULT_DIR, 'TaskNotes/Views/calendar-default.base');
 const SPAN_BASE_RELATIVE_PATH = 'TaskNotes/Views/span-drag-e2e.base';
 const NO_SPAN_BASE_RELATIVE_PATH = 'TaskNotes/Views/span-drag-no-span-e2e.base';
@@ -36,10 +36,11 @@ function formatLocalDate(date: Date): string {
 
 function initialTaskDates(): TaskDates {
   const today = new Date();
-  const scheduled = new Date(today);
-  scheduled.setDate(today.getDate() - 1);
-  const due = new Date(today);
-  due.setDate(today.getDate() + 2);
+  // Keep both individual events in the visible month, including on its first
+  // day (when yesterday is not in a month grid that starts on Sunday).
+  const scheduled = new Date(today.getFullYear(), today.getMonth(), 15);
+  const due = new Date(scheduled);
+  due.setDate(scheduled.getDate() + 3);
   return {
     scheduled: formatLocalDate(scheduled),
     due: formatLocalDate(due),
@@ -128,11 +129,14 @@ async function openBaseFile(page: Page, relativePath: string): Promise<void> {
     throw new Error(`Could not open ${relativePath}`);
   }
 
-  await expect(page.locator(`${ACTIVE_LEAF_SELECTOR} .fc`).first()).toBeVisible({ timeout: 10000 });
-  const monthButton = page.locator(`${ACTIVE_LEAF_SELECTOR} .fc-dayGridMonth-button`).first();
+  await expect(page.locator(`${ACTIVE_LEAF_SELECTOR} .tnc`).first()).toBeVisible({ timeout: 10000 });
+  const monthButton = page.locator(`${ACTIVE_LEAF_SELECTOR} .tnc-toolbar-view-select`).first();
   if (await monthButton.isVisible({ timeout: 2000 }).catch(() => false)) {
-    await monthButton.click();
+    await monthButton.selectOption('month');
   }
+  // Restore the fixture's current month if a preceding view navigated away.
+  const todayButton = page.locator(`${ACTIVE_LEAF_SELECTOR} .tnc-btn-today`).first();
+  if (await todayButton.isEnabled()) await todayButton.click();
   await page.waitForTimeout(500);
 }
 
@@ -155,7 +159,7 @@ async function readTaskDates(page: Page): Promise<TaskDates> {
 
 function eventsForTask(page: Page, eventType: string): Locator {
   return page
-    .locator(`${ACTIVE_LEAF_SELECTOR} .fc-event[data-event-type="${eventType}"]`)
+    .locator(`${ACTIVE_LEAF_SELECTOR} .tnc-item[data-event-type="${eventType}"]`)
     .filter({ hasText: SPAN_TASK_TITLE });
 }
 
@@ -173,20 +177,35 @@ function daysBetween(start: string, end: string): number {
 async function dragEventByOneDay(page: Page, event: Locator): Promise<void> {
   const eventBox = await event.boundingBox();
   expect(eventBox).not.toBeNull();
-  const firstDayBox = await page
-    .locator(`${ACTIVE_LEAF_SELECTOR} .fc-daygrid-day`)
-    .first()
-    .boundingBox();
-  expect(firstDayBox).not.toBeNull();
-
   const startX = eventBox!.x + eventBox!.width / 2;
   const startY = eventBox!.y + eventBox!.height / 2;
-  const targetX = startX + firstDayBox!.width;
+  const sourceDay = await page.locator(`${ACTIVE_LEAF_SELECTOR} .tnc-dg-day`).evaluateAll(
+    (cells, point) => {
+      const cell = cells.find(candidate => {
+        const box = candidate.getBoundingClientRect();
+        return point.x >= box.left && point.x < box.right && point.y >= box.top && point.y < box.bottom;
+      });
+      if (!cell) return null;
+      const box = cell.getBoundingClientRect();
+      return { date: cell.getAttribute('data-date'), x: box.x, y: box.y };
+    },
+    { x: startX, y: startY }
+  );
+  expect(sourceDay?.date).toBeTruthy();
+  const nextDay = new Date(`${sourceDay!.date}T12:00:00`);
+  nextDay.setDate(nextDay.getDate() + 1);
+  const targetBox = await page.locator(
+    `${ACTIVE_LEAF_SELECTOR} .tnc-dg-day[data-date="${formatLocalDate(nextDay)}"]`
+  ).boundingBox();
+  expect(targetBox).not.toBeNull();
+  // Saturday -> Sunday changes rows; a horizontal-only drag leaves the calendar.
+  const targetX = targetBox!.x + startX - sourceDay!.x;
+  const targetY = targetBox!.y + startY - sourceDay!.y;
 
   await page.mouse.move(startX, startY);
   await page.mouse.down();
   await page.waitForTimeout(150);
-  await page.mouse.move(targetX, startY, { steps: 12 });
+  await page.mouse.move(targetX, targetY, { steps: 12 });
   await page.waitForTimeout(150);
   await page.mouse.up();
   await page.waitForTimeout(1200);
@@ -280,7 +299,7 @@ test.describe('Issue #1441: Span task drag with scheduled-to-due span enabled', 
     await page.mouse.down();
     await page.mouse.move(startX + 50, startY, { steps: 3 });
 
-    const dragMirror = page.locator('.fc-event-mirror, .fc-event-dragging');
+    const dragMirror = page.locator('.tnc-item.is-mirror, .tnc-item.is-dragging');
     await expect(dragMirror.first()).toBeVisible({ timeout: 1000 });
 
     await page.mouse.up();

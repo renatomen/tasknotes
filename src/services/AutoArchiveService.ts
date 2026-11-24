@@ -1,6 +1,8 @@
+import { withPluginDataWriteLock } from "../utils/pluginDataWriteLock";
 import { PendingAutoArchive, TaskInfo, StatusConfig } from "../types";
 import TaskNotesPlugin from "../main";
 import { createTaskNotesLogger } from "../utils/tasknotesLogger";
+import { hasRecurringSeriesEnded } from "../core/recurrence";
 
 const tasknotesLogger = createTaskNotesLogger({ tag: "Services/AutoArchiveService" });
 
@@ -95,7 +97,9 @@ export class AutoArchiveService {
 			return;
 		}
 
-		if (task.recurrence) {
+		// A running series is a live template; only a COUNT or UNTIL series that
+		// has ended is finished like a regular task.
+		if (task.recurrence && !hasRecurringSeriesEnded(task)) {
 			await this.cancelAutoArchive(task.path);
 			return;
 		}
@@ -204,6 +208,11 @@ export class AutoArchiveService {
 			return true;
 		}
 
+		if (currentTask.recurrence && !hasRecurringSeriesEnded(currentTask)) {
+			// The series was extended or reopened since scheduling
+			return true;
+		}
+
 		if (currentTask.archived) {
 			if (this.hasGoogleCalendarLink(currentTask)) {
 				const calendarCleanupState = this.getCalendarCleanupState();
@@ -278,7 +287,9 @@ export class AutoArchiveService {
 	 * Get the current auto-archive queue from plugin data
 	 */
 	private async getQueue(): Promise<PendingAutoArchive[]> {
-		const data = await this.plugin.loadData();
+		const data = (await this.plugin.loadData()) as {
+			autoArchiveQueue?: PendingAutoArchive[];
+		} | null;
 		return data?.autoArchiveQueue || [];
 	}
 
@@ -286,9 +297,12 @@ export class AutoArchiveService {
 	 * Save the auto-archive queue to plugin data
 	 */
 	private async saveQueue(queue: PendingAutoArchive[]): Promise<void> {
-		const data = (await this.plugin.loadData()) || {};
-		data.autoArchiveQueue = queue;
-		await this.plugin.saveData(data);
+		await withPluginDataWriteLock(this.plugin, async () => {
+			const data = await this.plugin.loadPluginDataForSafeWrite("save-auto-archive-queue");
+			if (!data) return;
+			data.autoArchiveQueue = queue;
+			await this.plugin.saveData(data);
+		});
 	}
 
 	/**

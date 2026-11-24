@@ -6,6 +6,7 @@
  */
 
 import { CalendarView } from "../../../src/bases/CalendarView";
+import { DEFAULT_SETTINGS } from "../../../src/settings/defaults";
 
 type SignatureItem = {
 	path: string;
@@ -52,6 +53,7 @@ function createCalendarViewFixture(
 		},
 		dataUpdateDebounceTimer: null,
 		plugin: {
+			settings: { ...DEFAULT_SETTINGS },
 			fieldMapper: {
 				toUserField: jest.fn((field: string) => FIELD_MAPPING[field] ?? field),
 			},
@@ -105,6 +107,34 @@ describe("Issue #1179: Calendar unchanged data updates", () => {
 		jest.clearAllTimers();
 		jest.useRealTimers();
 		document.body.innerHTML = "";
+	});
+
+	it("records the first loaded configuration instead of treating it as a later change", () => {
+		const { view, setConfigValues } = createCalendarViewFixture([]);
+		view._isFirstDataUpdate = true;
+		setConfigValues({ calendarView: "timeGridDay", slotHeight: 24 });
+
+		view.onDataUpdated();
+
+		expect(view.render).toHaveBeenCalledTimes(1);
+		expect(view._previousConfigSnapshot).toBe(view.getConfigSnapshot());
+		view.onDataUpdated();
+		jest.advanceTimersByTime(6000);
+		expect(view._configChangedNeedsRecreate).not.toBe(true);
+		expect(view.renderPreservingEphemeralState).not.toHaveBeenCalled();
+	});
+
+	it("still applies a genuine configuration change after the first load", () => {
+		const { view, setConfigValues } = createCalendarViewFixture([]);
+		view._isFirstDataUpdate = true;
+		setConfigValues({ slotHeight: 24 });
+		view.onDataUpdated();
+		setConfigValues({ slotHeight: 48 });
+
+		view.onDataUpdated();
+
+		expect(view._configChangedNeedsRecreate).toBe(true);
+		expect(view.renderPreservingEphemeralState).toHaveBeenCalledTimes(1);
 	});
 
 	it("does not repaint after the debounce when calendar data is unchanged", () => {

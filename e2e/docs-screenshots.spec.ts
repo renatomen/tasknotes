@@ -17,8 +17,13 @@ import { test, expect, Page } from '@playwright/test';
 import {
   launchObsidian,
   closeObsidian,
+  dismissObsidianModals,
   ObsidianApp,
   runCommand,
+  setObsidianViewport,
+  openObsidianSettings,
+  closeObsidianSettings,
+  selectTaskNotesSettingsTab,
 } from './obsidian';
 
 const DOCS_SCREENSHOT_DIR = 'test-results/docs';
@@ -35,7 +40,9 @@ test.describe.configure({ retries: 1 });
 test.beforeAll(async () => {
   app = await launchObsidian();
   // Set viewport for consistent screenshots
-  await app.page.setViewportSize(DOC_VIEWPORT);
+  await setObsidianViewport(app.page, DOC_VIEWPORT);
+  const notice = app.page.locator('.notice').filter({ hasText: 'Secrets are stored without encryption' });
+  if (await notice.count()) await notice.click({ position: { x: 8, y: 8 } });
 });
 
 test.afterAll(async () => {
@@ -53,12 +60,9 @@ function getPage(): Page {
 
 // Helper to ensure clean state before each screenshot
 async function ensureCleanState(page: Page): Promise<void> {
-  // Close any open modals
-  for (let i = 0; i < 3; i++) {
-    await page.keyboard.press('Escape');
-    await page.waitForTimeout(100);
-  }
-  await page.waitForTimeout(300);
+  // A filled composer now asks before discarding. Repeated Escape only reopens
+  // that confirmation, leaving it in front of the next documentation capture.
+  await dismissObsidianModals(page);
 }
 
 // Helper to expand Views folder in sidebar
@@ -157,14 +161,14 @@ test.describe('Main Views', () => {
     await page.waitForTimeout(1500);
 
     // Ensure we're on month view
-    const monthButton = page.locator('button.fc-dayGridMonth-button');
+    const monthButton = page.locator('.workspace-leaf.mod-active .tnc-toolbar-view-select').first();
     if (await monthButton.isVisible()) {
-      await monthButton.click();
+      await monthButton.selectOption('month');
       await page.waitForTimeout(500);
     }
 
     // Click Today to ensure we're viewing current month
-    const todayButton = page.locator('.fc-today-button');
+    const todayButton = page.locator('.workspace-leaf.mod-active .tnc-btn-today').first();
     if (await todayButton.isVisible() && await todayButton.isEnabled()) {
       await todayButton.click();
       await page.waitForTimeout(500);
@@ -176,9 +180,9 @@ test.describe('Main Views', () => {
   test('calendar-week-view', async () => {
     const page = getPage();
 
-    const weekButton = page.locator('button.fc-timeGridWeek-button');
+    const weekButton = page.locator('.workspace-leaf.mod-active .tnc-toolbar-view-select').first();
     if (await weekButton.isVisible()) {
-      await weekButton.click();
+      await weekButton.selectOption('week');
       await page.waitForTimeout(800);
     }
 
@@ -188,9 +192,9 @@ test.describe('Main Views', () => {
   test('calendar-day-view', async () => {
     const page = getPage();
 
-    const dayButton = page.locator('button.fc-timeGridDay-button');
+    const dayButton = page.locator('.workspace-leaf.mod-active .tnc-toolbar-view-select').first();
     if (await dayButton.isVisible()) {
-      await dayButton.click();
+      await dayButton.selectOption('day');
       await page.waitForTimeout(800);
     }
 
@@ -200,9 +204,9 @@ test.describe('Main Views', () => {
   test('calendar-year-view', async () => {
     const page = getPage();
 
-    const yearButton = page.locator('button.fc-multiMonthYear-button');
+    const yearButton = page.locator('.workspace-leaf.mod-active .tnc-toolbar-view-select').first();
     if (await yearButton.isVisible()) {
-      await yearButton.click();
+      await yearButton.selectOption('year');
       await page.waitForTimeout(800);
     }
 
@@ -311,21 +315,29 @@ test.describe('Task Modal', () => {
     const page = getPage();
     await ensureCleanState(page);
 
-    // Open calendar view and click on a task event to open edit modal
-    await runCommand(page, 'Open calendar view');
-    await page.waitForTimeout(1500);
-
-    // Click on a task event in the calendar
-    const taskEvent = page.locator('.fc-event').first();
-    if (await taskEvent.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await taskEvent.click();
-      await page.waitForTimeout(800);
-
-      const modal = page.locator('.modal');
-      if (await modal.isVisible({ timeout: 5000 }).catch(() => false)) {
-        await docScreenshot(page, 'modal-task-edit');
-        await page.keyboard.press('Escape');
-      }
+    const taskPath = await page.evaluate(async () => {
+      const plugin = (window as any).app.plugins.plugins.tasknotes;
+      const { file, taskInfo } = await plugin.taskService.createTask({
+        title: 'Review project documentation', status: 'open', priority: 'high',
+        timeEstimate: 30, details: 'Check the examples and share the updated draft.',
+      });
+      await plugin.openTaskEditModal(taskInfo);
+      return file.path;
+    });
+    try {
+      const modal = page.locator('.modal.mod-tasknotes');
+      await expect(modal.locator('.tn-task-modal__markdown-editor--title .cm-content')).toHaveText('Review project documentation');
+      await expect(modal.locator('.details-container')).toHaveCSS('opacity', '1');
+      await modal.locator('.modal-title').click();
+      await docScreenshot(page, 'modal-task-edit');
+      await modal.getByRole('button', { name: 'Cancel', exact: true }).click();
+      await expect(modal).toHaveCount(0);
+    } finally {
+      await page.evaluate(async taskPath => {
+        const app = (window as any).app;
+        const file = app.vault.getAbstractFileByPath(taskPath);
+        if (file) await app.vault.delete(file);
+      }, taskPath);
     }
   });
 
@@ -336,22 +348,23 @@ test.describe('Task Modal', () => {
     await runCommand(page, 'Create new task');
     await page.waitForTimeout(500);
 
-    // Fill in some sample content
-    const titleInput = page.locator('.modal input[type="text"]').first();
-    if (await titleInput.isVisible()) {
-      await titleInput.fill('Complete project documentation');
-    }
-
-    await page.waitForTimeout(300);
+    const modal = page.locator('.modal.mod-tasknotes');
+    const editor = modal.locator('.tn-task-modal__markdown-editor--title .cm-content, .tn-task-modal__markdown-editor--nlp .cm-content').first();
+    await expect(editor).toBeVisible();
+    await editor.fill('Complete project documentation');
+    await expect(editor).toHaveText('Complete project documentation');
     await docScreenshot(page, 'modal-task-filled');
-
-    await page.keyboard.press('Escape');
+    await modal.getByRole('button', { name: 'Cancel', exact: true }).click();
+    const confirmation = page.locator('.modal').filter({ hasText: 'Unsaved changes' });
+    await expect(confirmation).toBeVisible();
+    await confirmation.getByRole('button', { name: 'Discard changes', exact: true }).click();
+    await expect(modal).toHaveCount(0);
   });
 });
 
 // ============================================================================
 // POMODORO SCREENSHOTS
-// Timer and statistics views
+// Timer view
 // ============================================================================
 
 test.describe('Pomodoro Timer', () => {
@@ -363,33 +376,6 @@ test.describe('Pomodoro Timer', () => {
     await page.waitForTimeout(1000);
 
     await docScreenshot(page, 'feature-pomodoro-timer');
-  });
-
-  test('pomodoro-statistics', async () => {
-    const page = getPage();
-    await ensureCleanState(page);
-
-    await runCommand(page, 'Open pomodoro statistics');
-    await page.waitForTimeout(1000);
-
-    await docScreenshot(page, 'feature-pomodoro-stats');
-  });
-});
-
-// ============================================================================
-// STATISTICS SCREENSHOTS
-// Task and project analytics
-// ============================================================================
-
-test.describe('Statistics', () => {
-  test('task-statistics', async () => {
-    const page = getPage();
-    await ensureCleanState(page);
-
-    await runCommand(page, 'Open task & project statistics');
-    await page.waitForTimeout(1000);
-
-    await docScreenshot(page, 'feature-task-statistics');
   });
 });
 
@@ -444,7 +430,7 @@ test.describe('UI Elements', () => {
     await page.waitForTimeout(1000);
 
     // Keep this capture simple and robust: verify toolbar visibility, then screenshot the view.
-    const toolbar = page.locator('.tn-view-toolbar, .fc-header-toolbar').first();
+    const toolbar = page.locator('.tn-view-toolbar, .tnc-toolbar').first();
     if (await toolbar.isVisible({ timeout: 5000 }).catch(() => false)) {
       await docScreenshot(page, 'ui-calendar-toolbar');
     }
@@ -457,122 +443,41 @@ test.describe('UI Elements', () => {
 // ============================================================================
 
 test.describe('Settings', () => {
-  // Helper to open TaskNotes settings
-  async function openTaskNotesSettings(page: Page): Promise<void> {
-    await page.keyboard.press('Control+,');
-    await page.waitForTimeout(500);
+  const cases = [
+    { name: 'settings-general', tab: 'Task files', shots: ['settings-general'] },
+    { name: 'settings-task-properties', tab: 'Properties', shots: ['settings-task-properties', 'settings-task-properties-2'] },
+    { name: 'settings-modal-fields', tab: 'Task creation', shots: ['settings-modal-fields'] },
+    { name: 'settings-appearance', tab: 'Appearance & interaction', shots: ['settings-appearance', 'settings-appearance-calendar'] },
+    { name: 'settings-features', tab: 'Time & reminders', shots: ['settings-features', 'settings-features-2'] },
+    { name: 'settings-integrations', tab: 'Calendars & integrations', shots: ['settings-integrations', 'settings-integrations-calendar', 'settings-integrations-api'] },
+  ];
 
-    const settingsModal = page.locator('.modal.mod-settings');
-    await expect(settingsModal).toBeVisible({ timeout: 5000 });
+  for (const scenario of cases) {
+    test(scenario.name, async () => {
+      const workspacePage = getPage();
+      await ensureCleanState(workspacePage);
+      const settingsPage = await openObsidianSettings(workspacePage);
+      try {
+        await setObsidianViewport(settingsPage, DOC_VIEWPORT);
+        const tasknotesTab = settingsPage.locator('.vertical-tab-nav-item').filter({ hasText: /^\s*TaskNotes\s*$/ });
+        await expect(tasknotesTab).toBeVisible();
+        await tasknotesTab.click();
+        await expect(settingsPage.locator('.vertical-tab-content:visible .setting-group:visible').first()).toBeVisible();
 
-    const tasknotesTab = page.locator('.vertical-tab-nav-item:has-text("TaskNotes")');
-    if (await tasknotesTab.isVisible()) {
-      await tasknotesTab.click();
-      await page.waitForTimeout(500);
-    }
+        await selectTaskNotesSettingsTab(settingsPage, scenario.tab);
+        await expect(settingsPage.locator('.setting-page-title:visible').last()).toHaveText(scenario.tab);
+
+        for (const [index, shot] of scenario.shots.entries()) {
+          if (index > 0) {
+            await settingsPage.locator('.vertical-tab-content').last().evaluate(el => { el.scrollTop += 400; });
+          }
+          await docScreenshot(settingsPage, shot);
+        }
+      } finally {
+        await closeObsidianSettings(workspacePage, settingsPage);
+      }
+    });
   }
-
-  // Helper to click a settings tab
-  async function clickSettingsTab(page: Page, tabName: string): Promise<void> {
-    const tab = page.locator(`.mod-settings button:has-text("${tabName}")`).first();
-    if (await tab.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await tab.click();
-      await page.waitForTimeout(400);
-    }
-  }
-
-  // Helper to scroll settings content
-  async function scrollSettingsContent(page: Page, pixels: number): Promise<void> {
-    const settingsContent = page.locator('.mod-settings .vertical-tab-content');
-    await settingsContent.evaluate((el, px) => el.scrollTop += px, pixels);
-    await page.waitForTimeout(200);
-  }
-
-  test('settings-general', async () => {
-    const page = getPage();
-    await ensureCleanState(page);
-    await openTaskNotesSettings(page);
-
-    // General tab should be selected by default
-    await docScreenshot(page, 'settings-general');
-
-    await page.keyboard.press('Escape');
-  });
-
-  test('settings-task-properties', async () => {
-    const page = getPage();
-    await ensureCleanState(page);
-    await openTaskNotesSettings(page);
-
-    await clickSettingsTab(page, 'Task Properties');
-    await docScreenshot(page, 'settings-task-properties');
-
-    // Scroll down to show more properties
-    await scrollSettingsContent(page, 400);
-    await docScreenshot(page, 'settings-task-properties-2');
-
-    await page.keyboard.press('Escape');
-  });
-
-  test('settings-modal-fields', async () => {
-    const page = getPage();
-    await ensureCleanState(page);
-    await openTaskNotesSettings(page);
-
-    await clickSettingsTab(page, 'Modal Fields');
-    await docScreenshot(page, 'settings-modal-fields');
-
-    await page.keyboard.press('Escape');
-  });
-
-  test('settings-appearance', async () => {
-    const page = getPage();
-    await ensureCleanState(page);
-    await openTaskNotesSettings(page);
-
-    await clickSettingsTab(page, 'Appearance');
-    await docScreenshot(page, 'settings-appearance');
-
-    // Scroll to show calendar settings
-    await scrollSettingsContent(page, 400);
-    await docScreenshot(page, 'settings-appearance-calendar');
-
-    await page.keyboard.press('Escape');
-  });
-
-  test('settings-features', async () => {
-    const page = getPage();
-    await ensureCleanState(page);
-    await openTaskNotesSettings(page);
-
-    await clickSettingsTab(page, 'Features');
-    await docScreenshot(page, 'settings-features');
-
-    // Scroll to show more features (NLP, Pomodoro, etc.)
-    await scrollSettingsContent(page, 400);
-    await docScreenshot(page, 'settings-features-2');
-
-    await page.keyboard.press('Escape');
-  });
-
-  test('settings-integrations', async () => {
-    const page = getPage();
-    await ensureCleanState(page);
-    await openTaskNotesSettings(page);
-
-    await clickSettingsTab(page, 'Integrations');
-    await docScreenshot(page, 'settings-integrations');
-
-    // Scroll to show OAuth calendar settings
-    await scrollSettingsContent(page, 400);
-    await docScreenshot(page, 'settings-integrations-calendar');
-
-    // Scroll more to show ICS/HTTP API
-    await scrollSettingsContent(page, 400);
-    await docScreenshot(page, 'settings-integrations-api');
-
-    await page.keyboard.press('Escape');
-  });
 });
 
 // ============================================================================
@@ -588,10 +493,10 @@ test.describe('Time Tracking', () => {
     await runCommand(page, 'Open calendar view');
     await page.waitForTimeout(1000);
 
-    // Switch to week view to show timeblocks
-    const weekButton = page.locator('button.fc-timeGridWeek-button');
+    // Other leaves can contain calendars too; operate on the active calendar.
+    const weekButton = page.locator('.workspace-leaf.mod-active .tnc-toolbar-view-select').first();
     if (await weekButton.isVisible()) {
-      await weekButton.click();
+      await weekButton.selectOption('week');
       await page.waitForTimeout(800);
     }
 
@@ -602,9 +507,9 @@ test.describe('Time Tracking', () => {
     const page = getPage();
 
     // Switch to day view
-    const dayButton = page.locator('button.fc-timeGridDay-button');
+    const dayButton = page.locator('.workspace-leaf.mod-active .tnc-toolbar-view-select').first();
     if (await dayButton.isVisible()) {
-      await dayButton.click();
+      await dayButton.selectOption('day');
       await page.waitForTimeout(800);
     }
 
@@ -669,22 +574,26 @@ test.describe('Workflows', () => {
     await page.waitForTimeout(1000);
 
     // Ensure month view
-    const monthButton = page.locator('button.fc-dayGridMonth-button');
+    const monthButton = page.locator('.workspace-leaf.mod-active .tnc-toolbar-view-select').first();
     if (await monthButton.isVisible()) {
-      await monthButton.click();
+      await monthButton.selectOption('month');
       await page.waitForTimeout(500);
     }
 
-    // Double-click a day to open quick add
-    const dayCell = page.locator('.fc-daygrid-day').nth(15); // Middle of month
-    if (await dayCell.isVisible()) {
-      await dayCell.dblclick();
-      await page.waitForTimeout(500);
+    await expect.poll(() => page.evaluate(() =>
+      (window as any).app.workspace.getMostRecentLeaf().view.controller.view.viewOptions.showMonthDayPanel
+    )).toBe(false);
 
-      await docScreenshot(page, 'workflow-quick-add-calendar');
+    const dayCell = page.locator('.workspace-leaf.mod-active .tnc-dg-day').nth(15); // Middle of month
+    await expect(dayCell).toBeVisible();
+    // Items are drawn over the cells; click the empty bottom edge of the day.
+    const cellBox = await dayCell.boundingBox();
+    await dayCell.dblclick({ position: { x: 8, y: Math.max(4, (cellBox?.height ?? 8) - 4) } });
+    await expect(page.locator('.menu-item-title:visible').filter({ hasText: /^Create task$/ }).last()).toBeVisible();
 
-      await page.keyboard.press('Escape');
-    }
+    await docScreenshot(page, 'workflow-quick-add-calendar');
+
+    await page.keyboard.press('Escape');
   });
 
   test('task-context-menu', async () => {
@@ -695,7 +604,7 @@ test.describe('Workflows', () => {
     await page.waitForTimeout(1000);
 
     // Right-click on a task event
-    const taskEvent = page.locator('.fc-event').first();
+    const taskEvent = page.locator('.tnc-item').first();
     if (await taskEvent.isVisible({ timeout: 3000 }).catch(() => false)) {
       await taskEvent.click({ button: 'right' });
       await page.waitForTimeout(500);
@@ -714,7 +623,7 @@ test.describe('Workflows', () => {
     await page.waitForTimeout(1000);
 
     // Hover over a task event
-    const taskEvent = page.locator('.fc-event').first();
+    const taskEvent = page.locator('.tnc-item').first();
     if (await taskEvent.isVisible({ timeout: 3000 }).catch(() => false)) {
       await taskEvent.hover();
       await page.waitForTimeout(800);
@@ -853,7 +762,7 @@ test.describe('Recurring Tasks', () => {
     await page.waitForTimeout(1500);
 
     // Look for recurring task event and click to open edit modal
-    const recurringEvent = page.locator('.fc-event:has-text("Daily standup")').first();
+    const recurringEvent = page.locator('.tnc-item:has-text("Daily standup")').first();
     if (await recurringEvent.isVisible({ timeout: 5000 }).catch(() => false)) {
       await recurringEvent.click();
       await page.waitForTimeout(800);
@@ -874,9 +783,9 @@ test.describe('Recurring Tasks', () => {
     await page.waitForTimeout(1500);
 
     // Switch to week view to see recurring events across days
-    const weekButton = page.locator('button.fc-timeGridWeek-button');
+    const weekButton = page.locator('.workspace-leaf.mod-active .tnc-toolbar-view-select').first();
     if (await weekButton.isVisible()) {
-      await weekButton.click();
+      await weekButton.selectOption('week');
       await page.waitForTimeout(800);
     }
 
@@ -898,7 +807,7 @@ test.describe('Recurring Tasks', () => {
     await runCommand(page, 'Open calendar view');
     await page.waitForTimeout(1500);
 
-    const weeklyEvent = page.locator('.fc-event:has-text("Weekly team")').first();
+    const weeklyEvent = page.locator('.tnc-item:has-text("Weekly team")').first();
     if (await weeklyEvent.isVisible({ timeout: 5000 }).catch(() => false)) {
       await weeklyEvent.click();
       await page.waitForTimeout(800);

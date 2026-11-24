@@ -1,17 +1,18 @@
+import type { MessageSuffix } from "../i18n/concepts";
+import { messageForKey } from "../i18n/messages";
+import { msg } from "@lingui/core/macro";
 import { Notice, setTooltip } from "obsidian";
 import type TaskNotesPlugin from "../main";
 import type { TaskInfo } from "../types";
 import { createTaskNotesLogger } from "../utils/tasknotesLogger";
+import { createRecurrenceClickHandler, createReminderClickHandler } from "./taskCardActions";
 import {
-	createProjectClickHandler,
-	createRecurrenceClickHandler,
-	createReminderClickHandler,
-} from "./taskCardActions";
-import { getChevronTooltip, getRecurrenceTooltip, getReminderTooltip } from "./taskCardHelpers";
-import {
-	createBadgeIndicator,
-	updateBadgeIndicator,
-} from "./taskCardIndicators";
+	getAttachmentCountLabel,
+	getChevronTooltip,
+	getRecurrenceTooltip,
+	getReminderTooltip,
+} from "./taskCardHelpers";
+import { createBadgeIndicator, updateBadgeIndicator } from "./taskCardIndicators";
 import { removeRelationshipContainer } from "./taskCardRelationshipExpansion";
 import { getBlockedByTaskPaths } from "./taskCardRelationships";
 import { type TaskCardPresentationOptions } from "./taskCardPresentation";
@@ -58,6 +59,7 @@ const SECONDARY_BADGE_SELECTORS = [
 	".task-card__recurring-indicator",
 	".task-card__reminder-indicator",
 	".task-card__details-indicator",
+	".task-card__attachment-indicator",
 	".task-card__project-indicator",
 	".task-card__chevron",
 	".task-card__blocking-toggle",
@@ -73,23 +75,40 @@ function getTaskCardBadgeLogger(plugin: TaskNotesPlugin) {
 
 function tTaskCard(
 	plugin: TaskNotesPlugin,
-	key: string,
+	key: MessageSuffix<"ui.taskCard.">,
 	vars?: Record<string, string | number>
 ): string {
-	return plugin.i18n.translate(`ui.taskCard.${key}`, vars);
+	return plugin.i18n.translate(messageForKey(`ui.taskCard.${key}`), vars);
+}
+
+function canToggleProjectSubtasks(plugin: TaskNotesPlugin): boolean {
+	return plugin.settings?.showExpandableSubtasks === true;
 }
 
 function shouldExpandSubtasksByDefault(plugin: TaskNotesPlugin): boolean {
-	return plugin.settings?.expandSubtasksByDefault === true;
+	// Only auto-expand by default when expandable subtasks are enabled.
+	return plugin.settings?.expandSubtasksByDefault === true && canToggleProjectSubtasks(plugin);
 }
 
 export function isTaskCardSubtasksExpanded(task: TaskInfo, plugin: TaskNotesPlugin): boolean {
+	if (!canToggleProjectSubtasks(plugin)) {
+		return false;
+	}
+
 	return (
 		plugin.expandedProjectsService?.isExpanded(
 			task.path,
 			shouldExpandSubtasksByDefault(plugin)
 		) || false
 	);
+}
+
+function syncBadgeInteractionLayout(card: HTMLElement): void {
+	const badges = card.querySelector<HTMLElement>(".task-card__badges");
+	const interactive = Boolean(badges?.querySelector('[role="button"]'));
+	badges?.classList.toggle("task-card__badges--interactive", interactive);
+	card.classList.toggle("task-card--has-interactive-badges", interactive);
+	card.classList.toggle("task-card--has-decorative-badges", Boolean(badges?.childElementCount) && !interactive);
 }
 
 function removeSecondaryBadges(card: HTMLElement): void {
@@ -101,6 +120,7 @@ function removeSecondaryBadges(card: HTMLElement): void {
 	removeRelationshipContainer(card, ".task-card__subtasks");
 	removeRelationshipContainer(card, ".task-card__blocking");
 	removeRelationshipContainer(card, ".task-card__blocked-by");
+	syncBadgeInteractionLayout(card);
 }
 
 function updateChevronElement(
@@ -125,7 +145,7 @@ function createChevronClickHandler(
 			const logger = getTaskCardBadgeLogger(plugin);
 			try {
 				if (!plugin.expandedProjectsService) {
-					new Notice("Service not available. Please try reloading the plugin.");
+					new Notice(plugin.i18n.translate(msg({ message: "Service not available. Please try reloading the plugin.", context: "notices.interface.serviceUnavailable" })));
 					return;
 				}
 
@@ -147,7 +167,52 @@ function createChevronClickHandler(
 					details: { taskPath: task.path },
 					error,
 				});
-				new Notice("Failed to toggle subtasks");
+				new Notice(plugin.i18n.translate(msg({ message: "Failed to toggle subtasks", context: "notices.interface.subtasksFailed" })));
+			}
+		})();
+	};
+}
+
+/**
+ * Toggles the inline subtask list for a project task card. Used by the folder
+ * (project) badge so it works whether or not the expand chevron is rendered,
+ * keeping the chevron visual in sync when it is present. Shares expansion state
+ * with the chevron via expandedProjectsService, so the two never diverge.
+ */
+function createProjectSubtasksToggleHandler(
+	task: TaskInfo,
+	plugin: TaskNotesPlugin,
+	card: HTMLElement,
+	handlers: TaskCardSecondaryBadgeHandlers
+): () => void {
+	return () => {
+		void (async () => {
+			const logger = getTaskCardBadgeLogger(plugin);
+			try {
+				if (!plugin.expandedProjectsService) {
+					new Notice(plugin.i18n.translate(msg({ message: "Service not available. Please try reloading the plugin.", context: "notices.interface.serviceUnavailable" })));
+					return;
+				}
+
+				const newExpanded = plugin.expandedProjectsService.toggle(
+					task.path,
+					shouldExpandSubtasksByDefault(plugin)
+				);
+
+				const chevron = card.querySelector<HTMLElement>(".task-card__chevron");
+				if (chevron) {
+					updateChevronElement(chevron, plugin, newExpanded);
+				}
+
+				await handlers.toggleSubtasks(card, task, newExpanded);
+			} catch (error) {
+				logger.error("Error toggling project subtasks", {
+					category: "internal",
+					operation: "toggle-project-subtasks",
+					details: { taskPath: task.path },
+					error,
+				});
+				new Notice(plugin.i18n.translate(msg({ message: "Failed to toggle subtasks", context: "notices.interface.subtasksFailed" })));
 			}
 		})();
 	};
@@ -181,10 +246,7 @@ function createBlockedByToggleClickHandler(
 	};
 }
 
-export function syncTaskCardBlockedByExpansionControls(
-	card: HTMLElement,
-	expanded: boolean
-): void {
+export function syncTaskCardBlockedByExpansionControls(card: HTMLElement, expanded: boolean): void {
 	const toggle = card.querySelector<HTMLElement>(".task-card__blocked-toggle");
 	if (toggle) {
 		toggle.classList.toggle("task-card__blocked-toggle--expanded", expanded);
@@ -207,6 +269,18 @@ export async function toggleTaskCardBlockedByExpansion(
 	await handlers.toggleBlockedByTasks(card, task, expanded);
 }
 
+function setAttachmentCount(indicator: HTMLElement, count: number): void {
+	indicator.dataset.count = String(count);
+	let countEl = indicator.querySelector<HTMLElement>(".task-card__attachment-count");
+	if (!countEl) {
+		countEl = indicator.createSpan({
+			cls: "task-card__attachment-count",
+			attr: { "aria-hidden": "true" },
+		});
+	}
+	countEl.textContent = String(count);
+}
+
 function renderProjectBadges(
 	options: RenderTaskCardSecondaryBadgesOptions,
 	badgesContainer: HTMLElement
@@ -217,27 +291,36 @@ function renderProjectBadges(
 		return;
 	}
 
+	const isExpanded = isTaskCardSubtasksExpanded(task, plugin);
+
+	const canToggleSubtasks = canToggleProjectSubtasks(plugin);
+
+	// The folder badge always identifies project tasks. It only acts as an
+	// expansion control when expandable subtasks are enabled.
 	createBadgeIndicator({
 		container: badgesContainer,
 		className: "task-card__project-indicator",
 		icon: "folder",
-		tooltip: tTaskCard(plugin, "projectTooltip"),
-		onClick: createProjectClickHandler(task, plugin),
+		tooltip: tTaskCard(
+			plugin,
+			canToggleSubtasks ? "projectTooltip" : "projectIndicatorTooltip"
+		),
+		onClick: canToggleSubtasks
+			? createProjectSubtasksToggleHandler(task, plugin, card, handlers)
+			: undefined,
 	});
 
-	if (!plugin.settings?.showExpandableSubtasks) {
-		return;
+	if (canToggleSubtasks) {
+		createBadgeIndicator({
+			container: badgesContainer,
+			className: `task-card__chevron${isExpanded ? " task-card__chevron--expanded" : ""}`,
+			icon: "chevron-right",
+			tooltip: getChevronTooltip(plugin, isExpanded),
+			onClick: createChevronClickHandler(task, plugin, card, handlers),
+		});
 	}
 
-	const isExpanded = isTaskCardSubtasksExpanded(task, plugin);
-	createBadgeIndicator({
-		container: badgesContainer,
-		className: `task-card__chevron${isExpanded ? " task-card__chevron--expanded" : ""}`,
-		icon: "chevron-right",
-		tooltip: getChevronTooltip(plugin, isExpanded),
-		onClick: createChevronClickHandler(task, plugin, card, handlers),
-	});
-
+	// Render the subtask list immediately when expanded.
 	if (isExpanded) {
 		handlers.toggleSubtasks(card, task, true).catch((error: unknown) => {
 			getTaskCardBadgeLogger(plugin).error("Error showing initial subtasks", {
@@ -258,7 +341,7 @@ function renderDependencyToggles(
 
 	if (task.blocking && task.blocking.length > 0) {
 		const blockingCount = task.blocking.length;
-		const toggleLabel = plugin.i18n.translate("ui.taskCard.blockingToggle", {
+		const toggleLabel = plugin.i18n.translate(msg({ message: "Blocking {count} tasks", context: "ui.taskCard.blockingToggle" }), {
 			count: blockingCount,
 		});
 		const toggle = createBadgeIndicator({
@@ -289,9 +372,7 @@ function renderDependencyToggles(
 	}
 }
 
-export function renderTaskCardSecondaryBadges(
-	options: RenderTaskCardSecondaryBadgesOptions
-): void {
+export function renderTaskCardSecondaryBadges(options: RenderTaskCardSecondaryBadgesOptions): void {
 	const { badgesContainer, task, plugin, hasDetails, propertyOptions } = options;
 	if (!badgesContainer || propertyOptions.showSecondaryBadges === false) {
 		return;
@@ -327,8 +408,22 @@ export function renderTaskCardSecondaryBadges(
 		});
 	}
 
+	const attachmentCount = task.attachments?.length ?? 0;
+	if (attachmentCount > 0) {
+		const indicator = createBadgeIndicator({
+			container: badgesContainer,
+			className: "task-card__attachment-indicator",
+			icon: "paperclip",
+			tooltip: getAttachmentCountLabel(plugin, attachmentCount),
+		});
+		if (indicator) {
+			setAttachmentCount(indicator, attachmentCount);
+		}
+	}
+
 	renderProjectBadges(options, badgesContainer);
 	renderDependencyToggles(options, badgesContainer);
+	syncBadgeInteractionLayout(options.card);
 }
 
 function updateProjectBadges(options: UpdateTaskCardSecondaryBadgesOptions): void {
@@ -340,20 +435,42 @@ function updateProjectBadges(options: UpdateTaskCardSecondaryBadgesOptions): voi
 		.then((isProject: boolean) => {
 			card.querySelector(".task-card__project-indicator-placeholder")?.remove();
 			card.querySelector(".task-card__chevron-placeholder")?.remove();
+			const canToggleSubtasks = canToggleProjectSubtasks(plugin);
+			const existingProjectBadge = card.querySelector<HTMLElement>(
+				".task-card__project-indicator"
+			);
+			const projectBadgeIsInteractive =
+				existingProjectBadge?.getAttribute("role") === "button";
+
+			// updateBadgeIndicator cannot remove existing interaction listeners, so
+			// recreate the badge if this setting changed while the card was mounted.
+			if (
+				isProject &&
+				existingProjectBadge &&
+				projectBadgeIsInteractive !== canToggleSubtasks
+			) {
+				existingProjectBadge.remove();
+			}
 
 			updateBadgeIndicator(card, ".task-card__project-indicator", {
 				shouldExist: isProject,
 				className: "task-card__project-indicator",
 				icon: "folder",
-				tooltip: tTaskCard(plugin, "projectTooltip"),
-				onClick: createProjectClickHandler(task, plugin),
+				tooltip: tTaskCard(
+					plugin,
+					canToggleSubtasks ? "projectTooltip" : "projectIndicatorTooltip"
+				),
+				onClick: canToggleSubtasks
+					? createProjectSubtasksToggleHandler(task, plugin, card, handlers)
+					: undefined,
 			});
 
-			const showChevron = isProject && plugin.settings?.showExpandableSubtasks;
+			const showChevron = isProject && canToggleSubtasks;
 			const existingChevron = card.querySelector<HTMLElement>(".task-card__chevron");
+			const isExpanded = isProject && isTaskCardSubtasksExpanded(task, plugin);
 
+			// Keep the chevron in sync with the setting (create / update / remove).
 			if (showChevron && !existingChevron) {
-				const isExpanded = isTaskCardSubtasksExpanded(task, plugin);
 				createBadgeIndicator({
 					container:
 						card.querySelector<HTMLElement>(".task-card__badges") ?? mainRow ?? card,
@@ -362,37 +479,26 @@ function updateProjectBadges(options: UpdateTaskCardSecondaryBadgesOptions): voi
 					tooltip: getChevronTooltip(plugin, isExpanded),
 					onClick: createChevronClickHandler(task, plugin, card, handlers),
 				});
-
-				if (isExpanded) {
-					handlers.toggleSubtasks(card, task, true).catch((error: unknown) => {
-						logger.error("Error showing initial subtasks in update", {
-							category: "internal",
-							operation: "show-initial-subtasks-update",
-							details: { taskPath: task.path },
-							error,
-						});
-					});
-				}
 			} else if (showChevron && existingChevron) {
-				const isExpanded = isTaskCardSubtasksExpanded(task, plugin);
 				updateChevronElement(existingChevron, plugin, isExpanded);
-
-				if (isExpanded) {
-					handlers.toggleSubtasks(card, task, true).catch((error: unknown) => {
-						logger.error("Error refreshing default-expanded subtasks", {
-							category: "internal",
-							operation: "refresh-default-expanded-subtasks",
-							details: { taskPath: task.path },
-							error,
-						});
-					});
-				} else {
-					removeRelationshipContainer(card, ".task-card__subtasks");
-				}
 			} else if (!showChevron && existingChevron) {
 				existingChevron.remove();
+			}
+
+			// Sync the inline subtask list with the saved expansion state.
+			if (isExpanded) {
+				handlers.toggleSubtasks(card, task, true).catch((error: unknown) => {
+					logger.error("Error showing subtasks in update", {
+						category: "internal",
+						operation: "show-subtasks-update",
+						details: { taskPath: task.path },
+						error,
+					});
+				});
+			} else {
 				removeRelationshipContainer(card, ".task-card__subtasks");
 			}
+			syncBadgeInteractionLayout(card);
 		})
 		.catch((error: unknown) => {
 			logger.error("Error checking if task is used as project in update", {
@@ -408,7 +514,7 @@ function updateBlockingToggle(options: UpdateTaskCardSecondaryBadgesOptions): vo
 	const { card, task, plugin, handlers } = options;
 	const blockingCount = task.blocking?.length ?? 0;
 	const shouldExist = blockingCount > 0;
-	const toggleLabel = plugin.i18n.translate("ui.taskCard.blockingToggle", {
+	const toggleLabel = plugin.i18n.translate(msg({ message: "Blocking {count} tasks", context: "ui.taskCard.blockingToggle" }), {
 		count: blockingCount,
 	});
 
@@ -484,9 +590,7 @@ function updateBlockedByToggle(options: UpdateTaskCardSecondaryBadgesOptions): v
 	}
 }
 
-export function updateTaskCardSecondaryBadges(
-	options: UpdateTaskCardSecondaryBadgesOptions
-): void {
+export function updateTaskCardSecondaryBadges(options: UpdateTaskCardSecondaryBadgesOptions): void {
 	const { card, mainRow, task, plugin, hasDetails, propertyOptions } = options;
 	const badgesContainer = card.querySelector<HTMLElement>(".task-card__badges");
 
@@ -521,7 +625,19 @@ export function updateTaskCardSecondaryBadges(
 		tooltip: tTaskCard(plugin, "detailsTooltip"),
 	});
 
+	const attachmentCount = task.attachments?.length ?? 0;
+	const attachmentIndicator = updateBadgeIndicator(card, ".task-card__attachment-indicator", {
+		shouldExist: attachmentCount > 0,
+		className: "task-card__attachment-indicator",
+		icon: "paperclip",
+		tooltip: getAttachmentCountLabel(plugin, attachmentCount),
+	});
+	if (attachmentIndicator) {
+		setAttachmentCount(attachmentIndicator, attachmentCount);
+	}
+
 	updateProjectBadges({ ...options, mainRow: mainRow ?? badgesContainer });
 	updateBlockingToggle(options);
 	updateBlockedByToggle(options);
+	syncBadgeInteractionLayout(card);
 }

@@ -1,3 +1,5 @@
+import { uiText } from "../i18n/runtime";
+import { msg } from "@lingui/core/macro";
 import {
 	EVENT_POMODORO_COMPLETE,
 	EVENT_POMODORO_INTERRUPT,
@@ -24,6 +26,7 @@ export class StatusBarService {
 	private pomodoroUpdateTimeout: number | null = null;
 	private elapsedUpdateInterval: number | null = null;
 	private currentTrackedTasks: TaskInfo[] = [];
+	private stopTrackingPending = false;
 	private pomodoroEventRefs: EventRef[] = [];
 
 	constructor(plugin: import("../main").default) {
@@ -154,8 +157,9 @@ export class StatusBarService {
 	 * Get all currently tracked tasks (tasks with active time sessions)
 	 */
 	private async getTrackedTasks(): Promise<TaskInfo[]> {
-		// Force a fresh lookup of all tasks to avoid stale data
-		const allTasks = await this.plugin.cacheManager.getAllTasks();
+		// Status-bar refreshes are frequent, so keep this scan in memory. File events
+		// schedule another refresh after Obsidian updates its metadata cache.
+		const allTasks = this.plugin.cacheManager.getAllCachedTasks();
 
 		return allTasks.filter((task) => {
 			// Skip archived tasks
@@ -208,31 +212,41 @@ export class StatusBarService {
 		);
 		this.statusBarElement.style.removeProperty("display");
 
-		// Clear previous content
-		this.statusBarElement.empty();
-
-		// Create icon
-		const iconEl = this.statusBarElement.createEl("span", {
-			cls: "tasknotes-status-icon",
-		});
+		// Keep controls mounted during elapsed-time refreshes so keyboard focus survives.
+		const iconEl = this.statusBarElement.querySelector<HTMLElement>(".tasknotes-status-icon")
+			?? this.statusBarElement.createSpan({ cls: "tasknotes-status-icon" });
 		setIcon(iconEl, "timer");
 
 		// Create text content
-		const textEl = this.statusBarElement.createEl("span", {
-			cls: "tasknotes-status-text",
-		});
+		const textEl = this.statusBarElement.querySelector<HTMLElement>(".tasknotes-status-text")
+			?? this.statusBarElement.createSpan({ cls: "tasknotes-status-text" });
+
+		let stopButton = this.statusBarElement.querySelector<HTMLButtonElement>(".tasknotes-status-stop");
+		if (!stopButton) {
+			stopButton = this.statusBarElement.createEl("button", { cls: "tasknotes-status-stop" });
+			stopButton.type = "button";
+			const label = this.plugin.i18n.translate(msg({ message: "Stop active time tracking", context: "commands.stopActiveTimeTracking" }));
+			stopButton.setAttribute("aria-label", label);
+			setTooltip(stopButton, label);
+			setIcon(stopButton, "square");
+			stopButton.addEventListener("click", (event) => {
+				event.stopPropagation();
+				void this.handleStopTrackingClick();
+			});
+		}
+		stopButton.disabled = this.stopTrackingPending;
 
 		if (count === 1) {
 			const task = trackedTasks[0];
 			const truncatedTitle =
 				task.title.length > 30 ? task.title.substring(0, 30) + "..." : task.title;
 			const elapsed = this.formatElapsedDuration(this.getActiveElapsedMs(task));
-			textEl.setText(`Tracking: ${truncatedTitle} (${elapsed})`);
+			textEl.setText(uiText(msg({ message: "Tracking: {truncatedTitle} ({elapsed})", context: "ui/StatusBarService: StatusBarService.renderStatusBar display" }), { truncatedTitle: truncatedTitle, elapsed: elapsed }));
 
 			// Add tooltip with full title
 			setTooltip(
 				this.statusBarElement,
-				`Currently tracking: ${task.title}\nElapsed: ${elapsed}`,
+				uiText(msg({ message: "Currently tracking: {title}\nElapsed: {elapsed}", context: "ui/StatusBarService: StatusBarService.renderStatusBar display" }), { title: task.title, elapsed: elapsed }),
 				{
 					placement: "top",
 				}
@@ -241,7 +255,7 @@ export class StatusBarService {
 			const totalElapsed = this.formatElapsedDuration(
 				trackedTasks.reduce((sum, task) => sum + this.getActiveElapsedMs(task), 0)
 			);
-			textEl.setText(`Tracking ${count} tasks (${totalElapsed} total)`);
+			textEl.setText(uiText(msg({ message: "{count, plural, one {Tracking # task ({totalElapsed} total)} other {Tracking # tasks ({totalElapsed} total)}}", context: "ui/StatusBarService: StatusBarService.renderStatusBar display" }), { count: count, totalElapsed: totalElapsed }));
 
 			// Add tooltip with task titles
 			const taskTitles = trackedTasks
@@ -251,8 +265,8 @@ export class StatusBarService {
 						`${task.title} - ${this.formatElapsedDuration(this.getActiveElapsedMs(task))}`
 				)
 				.join("\n");
-			const tooltipText = count > 5 ? `${taskTitles}\n... and ${count - 5} more` : taskTitles;
-			setTooltip(this.statusBarElement, `Currently tracking:\n${tooltipText}`, {
+			const tooltipText = count > 5 ? uiText(msg({ message: "{value2, plural, one {{taskTitles}\n... and {value2, number} more} other {{taskTitles}\n... and {value2, number} more}}", context: "ui/StatusBarService: StatusBarService.renderStatusBar display" }), { taskTitles: taskTitles, value2: count - 5 }) : taskTitles;
+			setTooltip(this.statusBarElement, uiText(msg({ message: "Currently tracking:\n{tooltipText}", context: "ui/StatusBarService: StatusBarService.renderStatusBar display" }), { tooltipText: tooltipText }), {
 				placement: "top",
 			});
 		}
@@ -265,22 +279,22 @@ export class StatusBarService {
 
 		this.pomodoroStatusBarElement.empty();
 
-		const iconEl = this.pomodoroStatusBarElement.createEl("span", {
+		const iconEl = this.pomodoroStatusBarElement.createSpan({
 			cls: "tasknotes-status-icon",
 		});
 		setIcon(iconEl, state.currentSession.type === "work" ? "timer" : "coffee");
 
-		const textEl = this.pomodoroStatusBarElement.createEl("span", {
+		const textEl = this.pomodoroStatusBarElement.createSpan({
 			cls: "tasknotes-status-text",
 		});
 		const timeRemaining = formatPomodoroTime(state.timeRemaining);
 		const sessionLabel = this.getPomodoroSessionLabel(state.currentSession.type);
-		const stateLabel = state.isRunning ? sessionLabel : `${sessionLabel} paused`;
-		textEl.setText(`${stateLabel}: ${timeRemaining}`);
+		const stateLabel = state.isRunning ? sessionLabel : uiText(msg({ message: "{sessionLabel} paused", context: "ui/StatusBarService: StatusBarService.renderPomodoroStatusBar display" }), { sessionLabel: sessionLabel });
+		textEl.setText(uiText(msg({ message: "{stateLabel}: {timeRemaining}", context: "ui/StatusBarService: StatusBarService.renderPomodoroStatusBar display" }), { stateLabel: stateLabel, timeRemaining: timeRemaining }));
 
 		setTooltip(
 			this.pomodoroStatusBarElement,
-			`${stateLabel}\nRemaining: ${timeRemaining}\nClick to open Pomodoro`,
+			uiText(msg({ message: "{stateLabel}\nRemaining: {timeRemaining}\nClick to open Pomodoro", context: "ui/StatusBarService: StatusBarService.renderPomodoroStatusBar display" }), { stateLabel: stateLabel, timeRemaining: timeRemaining }),
 			{
 				placement: "top",
 			}
@@ -289,14 +303,14 @@ export class StatusBarService {
 
 	private getPomodoroSessionLabel(type: PomodoroSession["type"]): string {
 		if (type === "work") {
-			return "Focus";
+			return uiText(msg({ message: "Focus", context: "ui/StatusBarService: StatusBarService.getPomodoroSessionLabel display" }));
 		}
 
 		if (type === "short-break") {
-			return "Short break";
+			return uiText(msg({ message: "Short break", context: "ui/StatusBarService: StatusBarService.getPomodoroSessionLabel display" }));
 		}
 
-		return "Long break";
+		return uiText(msg({ message: "Long break", context: "ui/StatusBarService: StatusBarService.getPomodoroSessionLabel display" }));
 	}
 
 	private showElement(element: HTMLElement): void {
@@ -370,6 +384,26 @@ export class StatusBarService {
 	/**
 	 * Handle click on status bar - open task note(s)
 	 */
+	private async handleStopTrackingClick(): Promise<void> {
+		if (this.stopTrackingPending) return;
+		this.stopTrackingPending = true;
+		const button = this.statusBarElement?.querySelector<HTMLButtonElement>(".tasknotes-status-stop");
+		if (button) button.disabled = true;
+		try {
+			await this.plugin.stopActiveTimeTracking();
+		} catch (error) {
+			tasknotesLogger.error("Failed to stop active time tracking:", {
+				category: "persistence",
+				operation: "status-bar-stop-tracking",
+				error,
+			});
+		} finally {
+			this.stopTrackingPending = false;
+			if (button) button.disabled = false;
+			this.requestUpdate();
+		}
+	}
+
 	private async handleStatusBarClick(): Promise<void> {
 		try {
 			// Get tracked tasks

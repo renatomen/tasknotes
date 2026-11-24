@@ -1,9 +1,11 @@
-/* eslint-disable @microsoft/sdl/no-inner-html -- This modal renders controlled plugin-owned HTML fragments. */
-import { App, Modal, Notice, Setting } from "obsidian";
+import { applyModalShell } from "../ui/kit/modal";
+import { uiLocale } from "../i18n/runtime";
+import { msg } from "@lingui/core/macro";
+import { App, Modal, Notice, Setting, setIcon } from "obsidian";
 import type { EmbeddableMarkdownEditor } from "../editor/EmbeddableMarkdownEditor";
 import { TimeEntry, TaskInfo } from "../types";
 import type TaskNotesPlugin from "../main";
-import { TranslationKey } from "../i18n";
+import { MessageDescriptor } from "../i18n";
 import { createTaskModalMarkdownEditor } from "./taskModalEditorAdapter";
 
 export class TimeEntryEditorModal extends Modal {
@@ -11,7 +13,7 @@ export class TimeEntryEditorModal extends Modal {
 	private task: TaskInfo;
 	private timeEntries: TimeEntry[];
 	private onSave: (timeEntries: TimeEntry[]) => void;
-	private translate: (key: TranslationKey, variables?: Record<string, unknown>) => string;
+	private translate: (key: MessageDescriptor, variables?: Record<string, unknown>) => string;
 	private entriesContainerEl: HTMLElement;
 	private keyboardHandler: ((e: KeyboardEvent) => void) | null = null;
 	private totalEl: HTMLElement | null = null;
@@ -24,6 +26,7 @@ export class TimeEntryEditorModal extends Modal {
 		onSave: (timeEntries: TimeEntry[]) => void
 	) {
 		super(app);
+		applyModalShell(this);
 		this.plugin = plugin;
 		this.task = task;
 		// Create a working copy of time entries
@@ -40,7 +43,7 @@ export class TimeEntryEditorModal extends Modal {
 
 		// Modal title
 		this.titleEl.setText(
-			this.translate("modals.timeEntryEditor.title", { taskTitle: this.task.title })
+			this.translate(msg({ message: "Time Entries - {taskTitle}", context: "modals.timeEntryEditor.title" }), { taskTitle: this.task.title })
 		);
 
 		// Add global keyboard shortcut handler for CMD/Ctrl+Enter
@@ -63,10 +66,10 @@ export class TimeEntryEditorModal extends Modal {
 
 		// Add new entry button
 		const addButtonContainer = contentEl.createDiv({
-			cls: "time-entry-editor-modal__add-button-container"
+			cls: "time-entry-editor-modal__add-button-container",
 		});
 		const addButton = addButtonContainer.createEl("button", {
-			text: this.translate("modals.timeEntryEditor.addEntry"),
+			text: this.translate(msg({ message: "Add time entry", context: "modals.timeEntryEditor.addEntry" })),
 			cls: "mod-cta",
 		});
 		addButton.addEventListener("click", () => this.addNewEntry());
@@ -82,12 +85,12 @@ export class TimeEntryEditorModal extends Modal {
 		const buttonContainer = footer.createDiv({ cls: "time-entry-editor-modal__buttons" });
 
 		const cancelButton = buttonContainer.createEl("button", {
-			text: this.translate("common.cancel"),
+			text: this.translate(msg({ message: "Cancel", context: "common.cancel" })),
 		});
 		cancelButton.addEventListener("click", () => this.close());
 
 		const saveButton = buttonContainer.createEl("button", {
-			text: this.translate("common.save"),
+			text: this.translate(msg({ message: "Save", context: "common.save" })),
 			cls: "mod-cta",
 		});
 		saveButton.addEventListener("click", () => this.save());
@@ -100,7 +103,7 @@ export class TimeEntryEditorModal extends Modal {
 		if (this.timeEntries.length === 0) {
 			this.entriesContainerEl.createDiv({
 				cls: "time-entry-editor-modal__empty",
-				text: this.translate("modals.timeEntryEditor.noEntries"),
+				text: this.translate(msg({ message: "No time entries yet", context: "modals.timeEntryEditor.noEntries" })),
 			});
 			return;
 		}
@@ -118,30 +121,33 @@ export class TimeEntryEditorModal extends Modal {
 	}
 
 	private renderEntry(entry: TimeEntry, index: number) {
-		const entryEl = this.entriesContainerEl.createDiv({ cls: "time-entry-editor-modal__entry" });
+		const entryEl = this.entriesContainerEl.createDiv({
+			cls: "time-entry-editor-modal__entry",
+		});
 
 		// Entry header with delete button
 		const headerEl = entryEl.createDiv({ cls: "time-entry-editor-modal__entry-header" });
 
-		const dateStr = new Date(entry.startTime).toLocaleDateString();
+		const dateStr = new Date(entry.startTime).toLocaleDateString(uiLocale());
 		headerEl.createSpan({
 			cls: "time-entry-editor-modal__entry-date",
-			text: dateStr
+			text: dateStr,
 		});
 
 		const deleteButton = headerEl.createEl("button", {
 			cls: "time-entry-editor-modal__delete-button",
-			attr: { "aria-label": this.translate("modals.timeEntryEditor.deleteEntry") },
+			attr: { "aria-label": this.translate(msg({ message: "Delete entry", context: "modals.timeEntryEditor.deleteEntry" })) },
 		});
-		deleteButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
+		setIcon(deleteButton, "trash-2");
 		deleteButton.addEventListener("click", () => this.deleteEntry(index));
 
 		// Time inputs
 		const timeContainer = entryEl.createDiv({ cls: "time-entry-editor-modal__time-container" });
 
 		// Start time input
-		const startSetting = new Setting(timeContainer)
-			.setName(this.translate("modals.timeEntryEditor.startTime"));
+		const startSetting = new Setting(timeContainer).setName(
+			this.translate(msg({ message: "Start time", context: "modals.timeEntryEditor.startTime" }))
+		);
 
 		const startInput = startSetting.controlEl.createEl("input", {
 			type: "datetime-local",
@@ -157,8 +163,9 @@ export class TimeEntryEditorModal extends Modal {
 		});
 
 		// End time input
-		const endSetting = new Setting(timeContainer)
-			.setName(this.translate("modals.timeEntryEditor.endTime"));
+		const endSetting = new Setting(timeContainer).setName(
+			this.translate(msg({ message: "End time (leave empty if still running)", context: "modals.timeEntryEditor.endTime" }))
+		);
 
 		const endInput = endSetting.controlEl.createEl("input", {
 			type: "datetime-local",
@@ -181,17 +188,66 @@ export class TimeEntryEditorModal extends Modal {
 		});
 
 		// Description
-		const descriptionSetting = new Setting(timeContainer)
-			.setName(this.translate("modals.timeEntryEditor.description"));
+		const descriptionSetting = new Setting(timeContainer).setName(
+			this.translate(msg({ message: "Description", context: "modals.timeEntryEditor.description" }))
+		);
 		descriptionSetting.settingEl.addClass("time-entry-editor-modal__description-setting");
 
 		const editorContainer = descriptionSetting.controlEl.createDiv({
 			cls: "time-entry-editor-modal__description-editor-container",
 		});
 
+		this.renderLazyDescriptionEditor(entry, editorContainer);
+	}
+
+	private renderLazyDescriptionEditor(entry: TimeEntry, editorContainer: HTMLElement): void {
+		const textarea = editorContainer.createEl("textarea", {
+			cls: "time-entry-editor-modal__description-editor-fallback",
+			placeholder: this.translate(msg({ message: "What did you work on?", context: "modals.timeEntryEditor.descriptionPlaceholder" })),
+		});
+		textarea.value = entry.description || "";
+
+		textarea.addEventListener("input", () => {
+			entry.description = textarea.value || undefined;
+		});
+
+		textarea.addEventListener("keydown", (e) => {
+			if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+				e.preventDefault();
+				this.save();
+			} else if (e.key === "Escape") {
+				e.preventDefault();
+				this.close();
+			}
+		});
+
+		let hydrated = false;
+		const hydrateMarkdownEditor = () => {
+			if (hydrated) {
+				return;
+			}
+			hydrated = true;
+
+			entry.description = textarea.value || undefined;
+			editorContainer.empty();
+
+			const editor = this.createDescriptionMarkdownEditor(entry, editorContainer);
+			if (editor) {
+				this.descriptionEditors.push(editor);
+			}
+			this.focusDescriptionEditor(editorContainer);
+		};
+
+		textarea.addEventListener("focus", hydrateMarkdownEditor, { once: true });
+	}
+
+	private createDescriptionMarkdownEditor(
+		entry: TimeEntry,
+		editorContainer: HTMLElement
+	): EmbeddableMarkdownEditor | null {
 		const editor = createTaskModalMarkdownEditor(this.app, editorContainer, {
 			value: entry.description || "",
-			placeholder: this.translate("modals.timeEntryEditor.descriptionPlaceholder"),
+			placeholder: this.translate(msg({ message: "What did you work on?", context: "modals.timeEntryEditor.descriptionPlaceholder" })),
 			cls: "time-entry-editor-modal__description-editor",
 			onChange: (value) => {
 				entry.description = value || undefined;
@@ -201,9 +257,14 @@ export class TimeEntryEditorModal extends Modal {
 			onTab: () => false,
 		});
 
-		if (editor) {
-			this.descriptionEditors.push(editor);
-		}
+		return editor;
+	}
+
+	private focusDescriptionEditor(editorContainer: HTMLElement): void {
+		window.setTimeout(() => {
+			const focusTarget = editorContainer.querySelector<HTMLElement>(".cm-content, textarea");
+			focusTarget?.focus();
+		}, 0);
 	}
 
 	private cleanupDescriptionEditors(): void {
@@ -219,14 +280,15 @@ export class TimeEntryEditorModal extends Modal {
 		const totalMinutes = this.calculateTotalMinutes();
 		const totalHours = Math.floor(totalMinutes / 60);
 		const remainingMinutes = totalMinutes % 60;
-		const totalText = totalHours > 0
-			? this.translate("modals.timeEntryEditor.totalTime", {
-				hours: totalHours.toString(),
-				minutes: remainingMinutes.toString()
-			})
-			: this.translate("modals.timeEntryEditor.totalMinutes", {
-				minutes: totalMinutes.toString()
-			});
+		const totalText =
+			totalHours > 0
+				? this.translate(msg({ message: "{hours}h {minutes}m total", context: "modals.timeEntryEditor.totalTime" }), {
+						hours: totalHours.toString(),
+						minutes: remainingMinutes.toString(),
+					})
+				: this.translate(msg({ message: "{minutes}m total", context: "modals.timeEntryEditor.totalMinutes" }), {
+						minutes: totalMinutes.toString(),
+					});
 
 		this.totalEl.setText(totalText);
 	}
@@ -274,10 +336,10 @@ export class TimeEntryEditorModal extends Modal {
 	private formatDateTimeForInput(date: Date): string {
 		// Format for datetime-local input: YYYY-MM-DDTHH:mm
 		const year = date.getFullYear();
-		const month = String(date.getMonth() + 1).padStart(2, '0');
-		const day = String(date.getDate()).padStart(2, '0');
-		const hours = String(date.getHours()).padStart(2, '0');
-		const minutes = String(date.getMinutes()).padStart(2, '0');
+		const month = String(date.getMonth() + 1).padStart(2, "0");
+		const day = String(date.getDate()).padStart(2, "0");
+		const hours = String(date.getHours()).padStart(2, "0");
+		const minutes = String(date.getMinutes()).padStart(2, "0");
 		return `${year}-${month}-${day}T${hours}:${minutes}`;
 	}
 
@@ -285,7 +347,7 @@ export class TimeEntryEditorModal extends Modal {
 		// Validate entries
 		for (const entry of this.timeEntries) {
 			if (!entry.startTime) {
-				new Notice(this.translate("modals.timeEntryEditor.validation.missingStartTime"));
+				new Notice(this.translate(msg({ message: "Start time is required", context: "modals.timeEntryEditor.validation.missingStartTime" })));
 				return;
 			}
 
@@ -293,7 +355,7 @@ export class TimeEntryEditorModal extends Modal {
 				const start = new Date(entry.startTime);
 				const end = new Date(entry.endTime);
 				if (end <= start) {
-					new Notice(this.translate("modals.timeEntryEditor.validation.endBeforeStart"));
+					new Notice(this.translate(msg({ message: "End time must be after start time", context: "modals.timeEntryEditor.validation.endBeforeStart" })));
 					return;
 				}
 			}

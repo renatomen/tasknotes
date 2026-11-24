@@ -1,4 +1,5 @@
-import type { App } from "obsidian";
+import type { App, BasesPropertyId } from "obsidian";
+import { convertBasesValueToNative } from "./basesValueConversion";
 import type { BasesDataItem } from "./helpers";
 
 type MetadataTypeManagerSource = {
@@ -97,6 +98,14 @@ export function appendCachedFormulaOutputs(
 	}
 }
 
+function ensureCachedFormulaOutputs(
+	baseData: BasesFormulaData
+): Record<string, unknown> {
+	baseData.formulaResults ??= {};
+	baseData.formulaResults.cachedFormulaOutputs ??= {};
+	return baseData.formulaResults.cachedFormulaOutputs;
+}
+
 export function buildBasesPathProperties(
 	dataItems: readonly BasesDataItem[]
 ): Map<string, Record<string, unknown>> {
@@ -113,6 +122,30 @@ export function buildBasesPathProperties(
 	return map;
 }
 
+// A formula used only as a custom view option may not be evaluated by Bases.
+// Read it through the public entry API rather than depending on internal caches.
+export function populateBasesFormulaProperty(
+	dataItems: readonly BasesDataItem[],
+	pathToProps: Map<string, Record<string, unknown>>,
+	propertyId: string
+): void {
+	if (!propertyId.startsWith("formula.")) return;
+
+	for (const item of dataItems) {
+		if (!item.path || !item.data || typeof item.data !== "object") continue;
+		const getValue = (item.data as { getValue?: (id: BasesPropertyId) => unknown }).getValue;
+		if (typeof getValue !== "function") continue;
+
+		try {
+			const value = getValue.call(item.data, propertyId);
+			const props = pathToProps.get(item.path);
+			if (props) props[propertyId] = convertBasesValueToNative(value);
+		} catch {
+			// A failed formula should not prevent the other swimlanes from rendering.
+		}
+	}
+}
+
 export function computeBasesFormulas(
 	data: unknown,
 	dataItems: readonly BasesDataItem[]
@@ -124,8 +157,9 @@ export function computeBasesFormulas(
 
 	for (const item of dataItems) {
 		const baseData = getBasesFormulaData(item);
-		const itemFormulaResults = baseData?.formulaResults;
-		if (!baseData || !itemFormulaResults?.cachedFormulaOutputs) continue;
+		if (!baseData) continue;
+
+		const cachedFormulaOutputs = ensureCachedFormulaOutputs(baseData);
 
 		for (const formulaName of Object.keys(ctxFormulas)) {
 			const formula = ctxFormulas[formulaName];
@@ -138,7 +172,7 @@ export function computeBasesFormulas(
 				const result = evaluateBasesFormula(formula, baseData, taskProperties);
 
 				if (result !== undefined) {
-					itemFormulaResults.cachedFormulaOutputs[formulaName] = result;
+					cachedFormulaOutputs[formulaName] = result;
 				}
 			} catch {
 				// Bases formulas can fail independently; one bad formula should not block view rendering.

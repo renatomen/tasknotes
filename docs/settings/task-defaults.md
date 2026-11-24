@@ -1,15 +1,15 @@
 # Task Defaults
 
-This page documents folder management, filename templates, archive settings, and the template system. These settings are found in the **General** tab.
+This page documents folder management, filename templates, archive settings, and the template system. Folder settings are under **Task files**; templates are under **Task creation → Templates**.
 
 !!! note "Default Property Values"
-    Default values for task properties (status, priority, dates, etc.) are now configured in the [Task Properties](task-properties.md) tab within each property's card.
+    Default values for new tasks are configured under **Task creation → Defaults**.
 
 ## Folder and File Management
 
 You can specify a **Default Tasks Folder** where new tasks will be created. You can also configure the **Task Tag** that identifies notes as TaskNotes, and you can specify a list of **Excluded Folders** that will be ignored by the plugin.
 
-Filename generation settings are configured in the **Task Properties** tab within the Title property card. You can choose from title-based, timestamp-based, Zettelkasten-style patterns, or create a custom filename template. These filename settings also apply to inline task conversion and instant-created task notes.
+Filename generation settings are under **Task files → Filenames**. You can choose from title-based, timestamp-based, Zettelkasten-style patterns, or create a custom filename template. These filename settings also apply to inline task conversion and instant-created task notes.
 These settings define folder paths and filename behavior for new tasks, which affects long-term vault structure.
 
 ### Folder Template Variables
@@ -26,6 +26,8 @@ The **Default Tasks Folder** setting supports dynamic folder creation using temp
 - `{{projects}}` - All projects from the task's projects array, joined by `/`
 - `{{projectFilePath}}` - Full path of the first project, without `.md`
 - `{{projectFilePaths}}` - Full paths of all projects, without `.md`, joined by `/`
+- `{{projectFolder}}` - Folder containing the first project note (the project file path without the note's own name); empty when the project note is at the top level. Use this to store tasks beside their project note, e.g. `{{projectFolder}}` stores a task for `[[Areas/EFC/EFC]]` in `Areas/EFC/`
+- `{{projectFolders}}` - Folders of all projects, joined by `/`
 - `{{priority}}` - Task priority (e.g., "high", "medium", "low")
 - `{{status}}` - Task status (e.g., "todo", "in-progress", "done")
 - `{{title}}` - Task title (sanitized for folder names)
@@ -209,6 +211,10 @@ Date/time components provide uniqueness without relying only on title text.
 - `{{uuid}}` - UUID v4 (e.g., "550e8400-e29b-41d4-a716-446655440000")
 - `{{nano}}` - Nano ID with timestamp and random string
 
+### Materialized Occurrence Filename Variables
+
+Materialized recurring occurrence notes can use a separate, optional filename template. It supports all variables above plus explicit occurrence date, ISO week, month, year, and month-name variables. See [Recurring Tasks](../features/recurring-tasks.md#occurrence-filenames) for configuration, per-parent overrides, and examples.
+
 ### Filename Template Examples
 
 **Date-based with title:**
@@ -254,20 +260,20 @@ For ICS event notes, additional variables are available:
 
 ### Store Title in Filename
 
-This setting is configured in the **Task Properties** tab within the Title property card.
+This setting is under **Task files → Filenames**.
 
-When enabled, the task's title is stored in the filename instead of frontmatter. The `title` property is removed from frontmatter, and the filename updates when the title changes. This disables other filename templating options.
+When enabled, the task's title is stored in the filename when it can represent the title exactly. Sanitized characters, links, long filenames and collision suffixes require a frontmatter title to preserve the full text. The filename updates when the title changes; a failed rename leaves the old title and properties unchanged. This disables other filename templating options.
 
 **Important Considerations:**
 
 - **Backward Compatibility:** This feature is designed to be backward-compatible. Existing tasks with the `title` property in their frontmatter will continue to work as expected. The plugin will always prioritize reading the title from the frontmatter if it exists.
-- **New Tasks:** New tasks created with this setting enabled will have their title stored exclusively in the filename.
+- **New Tasks:** Titles are stored exclusively in the filename only when it represents the full title exactly.
 - **Migration:** To migrate an existing task to this system, rename the file to match the task's title and remove the `title` property from frontmatter.
 Storing title in filename favors path-readable tasks and external tooling that keys off filenames. Keeping title in frontmatter avoids path changes when titles are edited.
 
 ## Default Reminders
 
-Configure default reminders in `Settings -> TaskNotes -> Task Properties` (Reminders card). These reminders automatically apply to new tasks.
+Configure default reminders in `Settings -> TaskNotes -> Task creation -> Defaults` (Reminders card). These reminders automatically apply to new tasks.
 Default reminders apply to all new tasks and can be supplemented with per-task reminders.
 
 ### Reminder Types
@@ -281,7 +287,7 @@ Default reminders apply to all new tasks and can be supplemented with per-task r
 
 ### Configuration
 
-1. Navigate to `Settings -> TaskNotes -> Task Properties`
+1. Navigate to `Settings -> TaskNotes -> Task creation -> Defaults`
 2. Expand the Reminders card
 3. In the Default Reminders section, select type (Relative or Absolute)
 4. Configure timing and optional description
@@ -295,7 +301,7 @@ For detailed reminder documentation, see [Task Reminders](../features/task-manag
 
 TaskNotes supports **Templates** for both the YAML frontmatter and the body of your task notes. You can use templates to pre-fill common values, add boilerplate text, and create a consistent structure for your tasks. Templates can also include variables, such as `{{title}}`, `{{date}}`, and `{{parentNote}}`, which will be automatically replaced with the appropriate values when a new task is created.
 
-Materialized occurrence notes can use a separate template from regular new tasks. Configure a global fallback in **Settings → Features → Body template**, or set `occurrence_template` on a recurring parent task to use a template for that series.
+Materialized occurrence notes can use a separate template from regular new tasks. Configure a global fallback in **Settings → TaskNotes → Task creation → Templates**, or set `occurrence_template` on a recurring parent task to use a template for that series.
 
 ### Unified Template Variables
 

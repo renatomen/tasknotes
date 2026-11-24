@@ -16,11 +16,12 @@ This reference documents the expected data types for each frontmatter property t
 | dateCreated | text (datetime) | `"2025-01-01T08:00:00Z"` |
 | dateModified | text (datetime) | `"2025-01-15T10:30:00Z"` |
 | tags | list | `["work", "urgent"]` |
-| contexts | list | `["@office", "@home"]` |
+| contexts | list | `["office", "home"]` |
 | projects | list | `["[[Project A]]"]` |
 | timeEstimate | number | `120` (minutes) |
 | recurrence | text | `"FREQ=WEEKLY;BYDAY=MO"` |
 | recurrence_anchor | text | `"scheduled"` or `"completion"` |
+| recurrence_original_date | date (optional system property) | `"2026-10-18"` |
 | timeEntries | list (objects) | See [Time Entries](#time-entries) |
 | blockedBy | list (objects) | See [Dependencies](#dependencies-blockedby) |
 | reminders | list (objects) | See [Reminders](#reminders) |
@@ -195,6 +196,14 @@ Single-item arrays may look verbose, but they prevent edge cases when filters an
 - **Description:** Determines whether the next occurrence is calculated from the scheduled date or when the task was completed
 - **Example:** `recurrence_anchor: "scheduled"`
 
+#### recurrence_original_date
+
+- **Type:** date string (optional, system-managed)
+- **Format:** `YYYY-MM-DD`
+- **Description:** Original rule date of a native scheduled-anchored virtual occurrence whose next `scheduled` placement was moved. The calendar shows the moved placement once; completion/skip history uses this original date. Repeated moves retain it; moving back, advancing the schedule, or editing the series clears it. Undo restores it with the moved schedule. Existing notes do not require migration, and legacy Google Calendar exception metadata is preserved.
+- **Example:** `scheduled: "2026-10-12"` with `recurrence_original_date: "2026-10-18"` still represents the 18 October occurrence.
+- **Direct YAML edits:** set this only when the original rule date is known; do not infer it from the nearest date. See [Recurring Tasks](../features/recurring-tasks.md#rescheduling-a-virtual-occurrence).
+
 #### complete_instances
 
 - **Type:** list (array of date strings)
@@ -361,7 +370,7 @@ tags:
   - work
   - reports
 contexts:
-  - "@office"
+  - office
 projects:
   - "[[Q1 Planning]]"
 timeEstimate: 240
@@ -386,7 +395,7 @@ reminders:
 
 ## Field Mapping
 
-All property names can be customized via **Settings → Task Properties → Field Mapping**. If you change a field mapping, TaskNotes will read and write using your custom property name.
+All property names can be customized via **Settings → TaskNotes → Properties**. If you change a field mapping, TaskNotes will read and write using your custom property name.
 
 Custom property names are frontmatter keys, so names with spaces or punctuation are valid in task files. When you write your own Bases filters or formulas for those keys, use bracket notation such as `note["TN-status"]` or `note["Task Type"]` instead of dot notation. Dot notation only works reliably for simple identifier-style names.
 

@@ -60,6 +60,12 @@ This prevents invalid reminder states and keeps the quick menu focused on option
 
 ![Task context menu](../assets/feature-task-context-menu.png)
 
+## Editing Reminders
+
+In the reminders dialog, select the pencil button next to a reminder to load it into the form, change its timing or description, then select **Update reminder**. Select **Save changes** to write the edit to the task. The **Cancel** button beside **Update reminder** leaves the reminder unchanged.
+
+An edited reminder keeps its identity, so it is rescheduled for its new time rather than treated as a new reminder.
+
 ## Reminder Data Format
 
 Reminders are stored in YAML frontmatter arrays.
@@ -112,7 +118,7 @@ These indicators are intended to make reminders discoverable in list-heavy views
 
 Default reminders can be configured in:
 
-`Settings -> TaskNotes -> Task Properties -> Reminders`
+`Settings -> TaskNotes -> Task creation -> Defaults` (Default reminders)
 
 Defaults are applied to:
 
@@ -124,9 +130,21 @@ Default reminders are useful for recurring habits, such as pre-deadline checks o
 
 ![Task properties settings](../assets/settings-task-properties.png)
 
+## Delivery and Sleep
+
+Reminders are delivered while Obsidian is running with notifications enabled. This is not background push delivery when Obsidian is closed.
+
+When Obsidian starts, wakes from sleep, or runs a delayed scan, TaskNotes catches up reminders that came due since its last scan on this device, up to 24 hours back. Each device keeps its own record, so a reminder delivered on desktop is still caught up on mobile. Reminders from before notifications were enabled, or from before TaskNotes was first set up on the device, are not caught up.
+
+Caught-up reminders are labelled with the time they were missed, for example `Missed reminder (9:00 AM): Weekly review is due at 10:00 AM`. Only the latest missed reminder for each task is shown. When more than three tasks have missed reminders, they are combined into one summary that lists each task; click a task to open it.
+
+A reminder is delivered once per task, reminder ID, and effective reminder time; changing its time allows a new delivery.
+
+Archived tasks and completed tasks do not deliver reminders. For recurring tasks, completion is checked for the reminder's occurrence (the due/scheduled anchor for relative reminders).
+
 ## Technical Notes
 
 - Reminders follow iCalendar `VALARM` concepts with ISO 8601 offsets
 - The reminder property name can be customized through field mapping
 
-For settings-level behavior (notification channels, enable/disable state), see [Features Settings](../settings/features.md).
+For settings-level behavior (notification channels, enable/disable state), see [Time and workflow features](../settings/features.md).

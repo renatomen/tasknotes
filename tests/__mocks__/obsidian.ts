@@ -671,6 +671,11 @@ export class Modal extends Component {
     this.containerEl.appendText = this.contentEl.appendText;
   }
 
+  setTitle(title: string): this {
+    this.titleEl.textContent = title;
+    return this;
+  }
+
   open(): void {
     this.onOpen();
   }
@@ -984,6 +989,7 @@ export const Menu = jest.fn().mockImplementation(() => {
         setIcon: jest.fn().mockReturnThis(),
         onClick: jest.fn().mockReturnThis(),
         setSection: jest.fn().mockReturnThis(),
+        setWarning: jest.fn().mockReturnThis(),
         setDisabled: jest.fn().mockReturnThis(),
         setChecked: jest.fn().mockReturnThis(),
         setSubmenu: jest.fn().mockImplementation(() => Menu()),
@@ -1084,6 +1090,12 @@ export function setTooltip(element: HTMLElement, tooltip: string, options?: { pl
   element.classList.add('has-tooltip');
 }
 
+export function sanitizeHTMLToDom(html: string): DocumentFragment {
+  const template = document.createElement('template');
+  template.innerHTML = html;
+  return template.content;
+}
+
 // API version check utilities (added in Obsidian 1.11.0)
 export function requireApiVersion(version: string): boolean {
   // Mock implementation - returns true for testing purposes
@@ -1181,6 +1193,7 @@ export const MockObsidian = {
   Notice,
   setIcon,
   setTooltip,
+  sanitizeHTMLToDom,
 };
 
 // Simple debounce mock: return the original function for test determinism
@@ -1232,6 +1245,7 @@ export default {
   Events,
   setIcon,
   setTooltip,
+  sanitizeHTMLToDom,
   parseFrontMatterAliases,
   parseFrontMatterTags,
   parseLinktext,

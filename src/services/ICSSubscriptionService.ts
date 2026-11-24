@@ -1,20 +1,28 @@
+import { withPluginDataWriteLock } from "../utils/pluginDataWriteLock";
+import { uiData } from "../i18n/dataText";
+import { displayError } from "../i18n/runtime";
+import { msg } from "@lingui/core/macro";
 /* eslint-disable @typescript-eslint/no-non-null-assertion -- ICS parsing normalizes optional event fields before use. */
 import { requestUrl, TFile } from "obsidian";
 import ICAL from "ical.js";
+import { getICSCalendarOwnerEmail, getICSOwnerDeclined } from "../utils/icsAttendeeFiltering";
 import { ICSSubscription, ICSEvent, ICSCache } from "../types";
 import { EventEmitter } from "../utils/EventEmitter";
 import TaskNotesPlugin from "../main";
-import type { InterpolationValues, TranslationKey } from "../i18n";
-import { stringifyUnknown } from "../utils/stringUtils";
+import type { InterpolationValues, MessageDescriptor } from "../i18n";
 import { createTaskNotesLogger } from "../utils/tasknotesLogger";
 import { publishUserNotice } from "../core/userNotices";
 import { resolveTzidToIANA, wallTimeInZoneToUtcIso } from "../utils/icsTimezoneFallback";
+import { ICSSecretStore } from "./ICSSecretStore";
 
 const tasknotesLogger = createTaskNotesLogger({ tag: "Services/ICSSubscriptionService" });
 
 const ICS_RECURRENCE_EXPANSION_WINDOW_MS = 365 * 24 * 60 * 60 * 1000;
+const ICS_RECURRENCE_LOOKBACK_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_RECURRING_ICS_VISIBLE_INSTANCES = 3000;
 const MAX_RECURRING_ICS_ITERATIONS = 10000;
+const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/u;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 type VaultAdapterWithBasePath = {
 	getBasePath?: () => string;
@@ -75,6 +83,114 @@ function registerCalendarVTimezones(calendar: ICAL.Component): void {
 	});
 }
 
+const ICS_REQUEST_HEADERS: Readonly<Record<string, string>> = {
+	Accept: "text/calendar,*/*;q=0.1",
+	"Accept-Language": "en-US,en;q=0.9",
+	"User-Agent":
+		"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+};
+
+/** Raised before any request is made, so credentials are never sent over plain HTTP. */
+export class ICSInsecureAuthError extends Error {
+	constructor() {
+		super("Authenticated calendar subscriptions require an https:// URL");
+		this.name = "ICSInsecureAuthError";
+	}
+}
+
+export class ICSMissingPasswordError extends Error {
+	constructor() {
+		super("No password is saved for this authenticated calendar subscription");
+		this.name = "ICSMissingPasswordError";
+	}
+}
+
+/** Base64-encodes `username:password` as UTF-8, which `btoa` alone cannot do. */
+export function encodeBasicAuthCredentials(username: string, password: string): string {
+	const bytes = new TextEncoder().encode(`${username}:${password}`);
+	let binary = "";
+	bytes.forEach((byte) => {
+		binary += String.fromCharCode(byte);
+	});
+	return btoa(binary);
+}
+
+export function isHttpsUrl(url: string): boolean {
+	try {
+		return new URL(url).protocol === "https:";
+	} catch {
+		return false;
+	}
+}
+
+/**
+ * Builds request headers for a remote subscription. With Basic auth the URL
+ * must be HTTPS and a password must be supplied.
+ */
+export function buildICSRequestHeaders(
+	subscription: Pick<ICSSubscription, "url" | "authType" | "username">,
+	password: string | null
+): Record<string, string> {
+	const headers: Record<string, string> = { ...ICS_REQUEST_HEADERS };
+	if (subscription.authType !== "basic") {
+		return headers;
+	}
+	if (!subscription.url || !isHttpsUrl(subscription.url)) {
+		throw new ICSInsecureAuthError();
+	}
+	if (!password) {
+		throw new ICSMissingPasswordError();
+	}
+	headers.Authorization = `Basic ${encodeBasicAuthCredentials(subscription.username ?? "", password)}`;
+	return headers;
+}
+
+function getRequestErrorStatus(error: unknown): number | undefined {
+	if (typeof error === "object" && error !== null && "status" in error) {
+		const status = (error as { status?: unknown }).status;
+		if (typeof status === "number") return status;
+	}
+	const match = error instanceof Error ? /\bstatus (\d{3})\b/.exec(error.message) : null;
+	return match ? Number(match[1]) : undefined;
+}
+
+function dateOnlyToUtcMs(dateString: string): number | null {
+	if (!DATE_ONLY_PATTERN.test(dateString)) {
+		return null;
+	}
+
+	const [year, month, day] = dateString.split("-").map(Number);
+	return Date.UTC(year, month - 1, day);
+}
+
+function formatUtcDateOnly(date: Date): string {
+	const year = date.getUTCFullYear().toString().padStart(4, "0");
+	const month = (date.getUTCMonth() + 1).toString().padStart(2, "0");
+	const day = date.getUTCDate().toString().padStart(2, "0");
+	return `${year}-${month}-${day}`;
+}
+
+function getDateOnlyDurationDays(startDate: string, endDate: string): number | null {
+	const startMs = dateOnlyToUtcMs(startDate);
+	const endMs = dateOnlyToUtcMs(endDate);
+
+	if (startMs === null || endMs === null || endMs <= startMs) {
+		return null;
+	}
+
+	return Math.round((endMs - startMs) / MS_PER_DAY);
+}
+
+function addDaysToDateOnly(dateString: string, days: number): string {
+	const dateMs = dateOnlyToUtcMs(dateString);
+
+	if (dateMs === null) {
+		return dateString;
+	}
+
+	return formatUtcDateOnly(new Date(dateMs + days * MS_PER_DAY));
+}
+
 export class ICSSubscriptionService extends EventEmitter {
 	private plugin: TaskNotesPlugin;
 	private subscriptions: ICSSubscription[] = [];
@@ -85,11 +201,12 @@ export class ICSSubscriptionService extends EventEmitter {
 	private lastFetched: Map<string, string> = new Map(); // In-memory storage for last fetch timestamps (ISO strings)
 	private lastError: Map<string, string> = new Map(); // In-memory storage for last error messages
 	private destroyed = false;
+	private readonly secretStore: ICSSecretStore;
 
 	// Grace period after cache expiration to show stale data while refreshing (5 minutes)
 	private readonly CACHE_GRACE_PERIOD = 5 * 60 * 1000;
 
-	private translate(key: TranslationKey, variables?: InterpolationValues): string {
+	private translate(key: MessageDescriptor, variables?: InterpolationValues): string {
 		return this.plugin.i18n.translate(key, variables);
 	}
 
@@ -105,12 +222,15 @@ export class ICSSubscriptionService extends EventEmitter {
 	 * the caller can pass the raw TZID parameter from the source property; if
 	 * it maps to a known IANA zone (directly or via the Windows TZID alias
 	 * table), Intl.DateTimeFormat is used to compute the correct UTC instant.
+	 * Timed values with no TZID are floating wall times, so they are resolved
+	 * against the user's local runtime timezone before storing as UTC.
 	 *
 	 * This fixes issues with:
 	 * - Outlook/Exchange feeds that reference Windows TZIDs without
 	 *   inlining a VTIMEZONE block for every referenced zone.
 	 * - Events with IANA TZIDs that have no accompanying VTIMEZONE.
 	 * - Non-IANA timezones (e.g., TZID=Zurich without VTIMEZONE).
+	 * - Floating timed events with no TZID.
 	 * - All-day events (date-only output, no zone math).
 	 */
 	private icalTimeToISOString(icalTime: ICAL.Time, rawTzid?: string | null): string {
@@ -133,6 +253,14 @@ export class ICSSubscriptionService extends EventEmitter {
 			if (iana) {
 				return wallTimeInZoneToUtcIso(icalTime, iana);
 			}
+
+			const hasExplicitTzid = typeof rawTzid === "string" && rawTzid.trim().length > 0;
+			if (!hasExplicitTzid) {
+				const localTimeZone = this.getLocalTimeZoneForFloatingTime();
+				if (localTimeZone) {
+					return wallTimeInZoneToUtcIso(icalTime, localTimeZone);
+				}
+			}
 		}
 
 		// Normal path: ical.js has a registered timezone for this Time
@@ -142,10 +270,18 @@ export class ICSSubscriptionService extends EventEmitter {
 		return new Date(unixTime * 1000).toISOString();
 	}
 
+	private getLocalTimeZoneForFloatingTime(): string | null {
+		try {
+			return resolveTzidToIANA(Intl.DateTimeFormat().resolvedOptions().timeZone);
+		} catch {
+			return null;
+		}
+	}
+
 	/**
 	 * Extract the raw TZID parameter from a property (e.g. DTSTART, DTEND).
 	 * Returns null when the property is missing or has no TZID parameter
-	 * (which means the value is either UTC, date-only, or floating by intent).
+	 * (which means the value is either UTC, date-only, or a floating wall time).
 	 */
 	private rawTzidOf(vevent: ICAL.Component, propName: string): string | null {
 		const prop = vevent.getFirstProperty(propName);
@@ -154,9 +290,62 @@ export class ICSSubscriptionService extends EventEmitter {
 		return typeof tzid === "string" ? tzid : null;
 	}
 
-	constructor(plugin: TaskNotesPlugin) {
+	private getRecurringInstanceEnd(
+		instanceStart: string,
+		startISO: string,
+		endISO: string | undefined,
+		isAllDay: boolean
+	): string | undefined {
+		if (!endISO) {
+			return undefined;
+		}
+
+		if (isAllDay) {
+			const durationDays = getDateOnlyDurationDays(startISO, endISO);
+			return durationDays === null ? endISO : addDaysToDateOnly(instanceStart, durationDays);
+		}
+
+		const durationMs = new Date(endISO).getTime() - new Date(startISO).getTime();
+		return new Date(new Date(instanceStart).getTime() + durationMs).toISOString();
+	}
+
+	constructor(plugin: TaskNotesPlugin, secretStore?: ICSSecretStore) {
 		super();
 		this.plugin = plugin;
+		this.secretStore = secretStore ?? new ICSSecretStore(plugin.app?.secretStorage);
+	}
+
+	isPasswordStorageAvailable(): boolean {
+		return this.secretStore.isAvailable();
+	}
+
+	hasPassword(id: string): boolean {
+		return this.secretStore.getPassword(id) !== null;
+	}
+
+	/**
+	 * Saves a subscription's password in SecretStorage. Throws
+	 * ICSSecretStorageUnavailableError rather than falling back to data.json.
+	 */
+	async setPassword(id: string, password: string): Promise<void> {
+		if (!this.subscriptions.some((sub) => sub.id === id)) {
+			throw new Error("Subscription not found");
+		}
+		this.secretStore.setPassword(id, password);
+		this.cache.delete(id);
+		await this.fetchSubscription(id);
+	}
+
+	private clearPasswordSafely(id: string): void {
+		try {
+			this.secretStore.clearPassword(id);
+		} catch (error) {
+			tasknotesLogger.warn("Failed to clear ICS subscription password", {
+				category: "configuration",
+				operation: "clear-ics-subscription-password",
+				error: error,
+			});
+		}
 	}
 
 	async initialize(): Promise<void> {
@@ -192,7 +381,9 @@ export class ICSSubscriptionService extends EventEmitter {
 
 	private async loadSubscriptions(): Promise<void> {
 		try {
-			const data = await this.plugin.loadData();
+			const data = (await this.plugin.loadData()) as {
+				icsSubscriptions?: ICSSubscription[];
+			} | null;
 			this.subscriptions = data?.icsSubscriptions || [];
 		} catch (error) {
 			tasknotesLogger.error("Failed to load ICS subscriptions:", {
@@ -206,9 +397,12 @@ export class ICSSubscriptionService extends EventEmitter {
 
 	private async saveSubscriptions(): Promise<void> {
 		try {
-			const data = (await this.plugin.loadData()) || {};
-			data.icsSubscriptions = this.subscriptions;
-			await this.plugin.saveData(data);
+			await withPluginDataWriteLock(this.plugin, async () => {
+				const data = await this.plugin.loadPluginDataForSafeWrite("save-ics-subscriptions");
+				if (!data) return;
+				data.icsSubscriptions = this.subscriptions;
+				await this.plugin.saveData(data);
+			});
 		} catch (error) {
 			tasknotesLogger.error("Failed to save ICS subscriptions:", {
 				category: "provider",
@@ -277,6 +471,10 @@ export class ICSSubscriptionService extends EventEmitter {
 
 		await this.saveSubscriptions();
 
+		if (updates.authType === "none" && oldSubscription.authType === "basic") {
+			this.clearPasswordSafely(id);
+		}
+
 		// Update refresh timer or file watcher
 		this.stopRefreshTimer(id);
 		this.stopFileWatcher(id);
@@ -291,7 +489,9 @@ export class ICSSubscriptionService extends EventEmitter {
 		// Clear cache if URL or file path changed
 		if (
 			(updates.url && updates.url !== oldSubscription.url) ||
-			(updates.filePath && updates.filePath !== oldSubscription.filePath)
+			(updates.filePath && updates.filePath !== oldSubscription.filePath) ||
+			(updates.authType !== undefined && updates.authType !== oldSubscription.authType) ||
+			(updates.username !== undefined && updates.username !== oldSubscription.username)
 		) {
 			this.cache.delete(id);
 		}
@@ -314,6 +514,7 @@ export class ICSSubscriptionService extends EventEmitter {
 		this.cache.delete(id);
 		this.lastFetched.delete(id);
 		this.lastError.delete(id);
+		this.clearPasswordSafely(id);
 
 		this.emit("data-changed");
 	}
@@ -332,15 +533,16 @@ export class ICSSubscriptionService extends EventEmitter {
 					throw new Error("Remote subscription missing URL");
 				}
 
+				const headers = buildICSRequestHeaders(
+					subscription,
+					subscription.authType === "basic"
+						? this.secretStore.getPassword(subscription.id)
+						: null
+				);
 				const response = await requestUrl({
 					url: subscription.url,
 					method: "GET",
-					headers: {
-						Accept: "text/calendar,*/*;q=0.1",
-						"Accept-Language": "en-US,en;q=0.9",
-						"User-Agent":
-							"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-					},
+					headers,
 				});
 
 				icsData = response.text;
@@ -384,10 +586,29 @@ export class ICSSubscriptionService extends EventEmitter {
 			this.lastError.set(id, errorMessage);
 
 			// Show user notification for errors with more helpful message
+			const status = getRequestErrorStatus(error);
 			if (subscription.type === "remote") {
-				if (errorMessage.includes("404")) {
+				if (error instanceof ICSInsecureAuthError) {
 					publishUserNotice(this.plugin.emitter,
-						this.translate("services.icsSubscription.notices.calendarNotFound", {
+						this.translate(msg({ message: "Calendar \"{name}\" uses a username and password, so its URL must start with https://. The credentials were not sent.", context: "services.icsSubscription.notices.authRequiresHttps" }), {
+							name: subscription.name,
+						})
+					);
+				} else if (error instanceof ICSMissingPasswordError) {
+					publishUserNotice(this.plugin.emitter,
+						this.translate(msg({ message: "Calendar \"{name}\" needs a password. Enter it in the calendar subscription settings.", context: "services.icsSubscription.notices.authPasswordMissing" }), {
+							name: subscription.name,
+						})
+					);
+				} else if (subscription.authType === "basic" && (status === 401 || status === 403)) {
+					publishUserNotice(this.plugin.emitter,
+						this.translate(msg({ message: "Authentication failed for calendar \"{name}\". Check the username and password.", context: "services.icsSubscription.notices.authenticationFailed" }), {
+							name: subscription.name,
+						})
+					);
+				} else if (errorMessage.includes("404")) {
+					publishUserNotice(this.plugin.emitter,
+						this.translate(msg({ message: "Calendar \"{name}\" not found (404). Please check the ICS URL is correct and the calendar is publicly accessible.", context: "services.icsSubscription.notices.calendarNotFound" }), {
 							name: subscription.name,
 						})
 					);
@@ -396,23 +617,23 @@ export class ICSSubscriptionService extends EventEmitter {
 					errorMessage.includes("OwaBasicUnsupportedException")
 				) {
 					publishUserNotice(this.plugin.emitter,
-						this.translate("services.icsSubscription.notices.calendarAccessDenied", {
+						this.translate(msg({ message: "Calendar \"{name}\" access denied (500). This may be due to Microsoft Outlook server restrictions. Try regenerating the ICS URL from your calendar settings.", context: "services.icsSubscription.notices.calendarAccessDenied" }), {
 							name: subscription.name,
 						})
 					);
 				} else {
 					publishUserNotice(this.plugin.emitter,
-						this.translate("services.icsSubscription.notices.fetchRemoteFailed", {
+						this.translate(msg({ message: "Failed to fetch remote calendar \"{name}\": {error}", context: "services.icsSubscription.notices.fetchRemoteFailed" }), {
 							name: subscription.name,
-							error: errorMessage,
+							error: displayError(errorMessage),
 						})
 					);
 				}
 			} else {
 				publishUserNotice(this.plugin.emitter,
-					this.translate("services.icsSubscription.notices.readLocalFailed", {
+					this.translate(msg({ message: "Failed to read local calendar \"{name}\": {error}", context: "services.icsSubscription.notices.readLocalFailed" }), {
 						name: subscription.name,
-						error: errorMessage,
+						error: displayError(errorMessage),
 					})
 				);
 			}
@@ -427,6 +648,7 @@ export class ICSSubscriptionService extends EventEmitter {
 			// Register VTIMEZONE components before processing events.
 			registerCalendarVTimezones(comp);
 
+			const ownerEmail = getICSCalendarOwnerEmail(comp);
 			const vevents = comp.getAllSubcomponents("vevent");
 			const events: ICSEvent[] = [];
 
@@ -442,11 +664,13 @@ export class ICSSubscriptionService extends EventEmitter {
 
 				// Check if this is a modified instance (has RECURRENCE-ID)
 				const recurrenceId = vevent.getFirstPropertyValue("recurrence-id");
-				if (recurrenceId) {
+				if (recurrenceId instanceof ICAL.Time) {
 					if (!modifiedInstances.has(uid)) {
 						modifiedInstances.set(uid, new Map());
 					}
-					const recurrenceIdStr = stringifyUnknown(recurrenceId);
+					// Use the same ICAL.Time representation as iterator occurrences,
+					// not JSON serialization of the time's internal fields.
+					const recurrenceIdStr = recurrenceId.toString();
 					modifiedInstances.get(uid)!.set(recurrenceIdStr, event);
 				}
 			});
@@ -468,27 +692,15 @@ export class ICSSubscriptionService extends EventEmitter {
 						return;
 					}
 
-					// Skip events the user has declined.
-					// In a personal calendar's ICS feed the owner's ATTENDEE
-					// entry carries their own PARTSTAT, so if any attendee is
-					// marked DECLINED the event was almost certainly declined
-					// by the calendar owner.
-					const attendees = vevent.getAllProperties("attendee");
-					if (attendees && attendees.length > 0) {
-						const hasDeclined = attendees.some((a) => {
-							const partstat = a.getParameter("partstat");
-							return (
-								typeof partstat === "string" &&
-								partstat.toUpperCase() === "DECLINED"
-							);
-						});
-						if (hasDeclined) {
-							return;
-						}
+					// Another guest declining is not evidence that the owner declined.
+					// Keep events visible when the feed does not identify the owner.
+					const ownerDeclined = getICSOwnerDeclined(vevent, ownerEmail) ?? false;
+					if (ownerDeclined && !event.isRecurring()) {
+						return;
 					}
 
 					// Extract basic properties
-					const summary = event.summary || "Untitled Event";
+					const summary = event.summary || uiData("Untitled Event", "Persisted/cache provider fallback title; preserve English data seed");
 					const description = event.description || undefined;
 					const location = event.location || undefined;
 
@@ -552,8 +764,12 @@ export class ICSSubscriptionService extends EventEmitter {
 						// Get modified instances for this UID
 						const modifiedForThisEvent = modifiedInstances.get(uid) || new Map();
 
-						// Generate instances for the next year
-						const iterator = event.iterator(startDate);
+						// Retain only the display window. Plain fixed-step rules can be
+						// advanced without traversing years of discarded history.
+						const minDate = new Date(Date.now() - ICS_RECURRENCE_LOOKBACK_MS);
+						const iterator = modifiedForThisEvent.size > 0
+							? event.iterator(startDate)
+							: this.createWindowedIterator(event, vevent, startDate, minDate);
 						const maxDate = new ICAL.Time();
 						maxDate.fromJSDate(
 							new Date(Date.now() + ICS_RECURRENCE_EXPANSION_WINDOW_MS)
@@ -581,11 +797,23 @@ export class ICSSubscriptionService extends EventEmitter {
 								continue;
 							}
 
-							const instanceId = `${eventId}-${visibleInstanceCount}`;
+							const modifiedStartInWindow = modifiedForThisEvent.get(occurrenceStr)?.startDate;
+							const effectiveStart = modifiedStartInWindow || occurrence;
+							const effectiveDate = new Date(this.icalTimeToISOString(effectiveStart, startTzidRaw));
+							if (effectiveDate < minDate || effectiveDate.getTime() > Date.now() + ICS_RECURRENCE_EXPANSION_WINDOW_MS) continue;
+
+							const instanceId = `${eventId}-${occurrenceStr}`;
 
 							// Check if this instance has been modified
 							const modifiedEvent = modifiedForThisEvent.get(occurrenceStr);
 							if (modifiedEvent) {
+								const modifiedStatus = modifiedEvent.component.getFirstPropertyValue("status");
+								if (typeof modifiedStatus === "string" && modifiedStatus.toUpperCase() === "CANCELLED") {
+									continue;
+								}
+								if (getICSOwnerDeclined(modifiedEvent.component, ownerEmail) ?? ownerDeclined) {
+									continue;
+								}
 								// Use the modified event instead
 								const modifiedStart = modifiedEvent.startDate;
 								const modifiedEnd = modifiedEvent.endDate;
@@ -622,6 +850,7 @@ export class ICSSubscriptionService extends EventEmitter {
 									visibleInstanceCount++;
 								}
 							} else {
+								if (ownerDeclined) continue;
 								// Use the original recurring event instance.
 								// The iterator emits ICAL.Time values that share the
 								// startDate's TZID, so pass startTzidRaw for fallback.
@@ -629,19 +858,15 @@ export class ICSSubscriptionService extends EventEmitter {
 									occurrence,
 									startTzidRaw
 								);
-								let instanceEnd = endISO;
-
-								if (endISO && startISO && !isAllDay) {
-									// Derive duration from the already-resolved ISO
-									// strings so the fallback path stays consistent
-									// across the start and end of an instance.
-									const durationMs =
-										new Date(endISO).getTime() -
-										new Date(startISO).getTime();
-									instanceEnd = new Date(
-										new Date(instanceStart).getTime() + durationMs
-									).toISOString();
-								}
+								// Derive duration from the already-resolved ISO
+								// strings so the fallback path stays consistent
+								// across the start and end of an instance.
+								const instanceEnd = this.getRecurringInstanceEnd(
+									instanceStart,
+									startISO,
+									endISO,
+									isAllDay
+								);
 
 								events.push({
 									...icsEvent,
@@ -676,6 +901,44 @@ export class ICSSubscriptionService extends EventEmitter {
 		}
 	}
 
+	private createWindowedIterator(
+		event: ICAL.Event, component: ICAL.Component, start: ICAL.Time, minimum: Date
+	): ICAL.EventIterator {
+		const rules = component.getAllProperties("rrule");
+		const rule = component.getFirstPropertyValue("rrule") as {
+			freq: string; interval: number; count?: number; parts: Record<string, unknown>;
+		} | null;
+		const stepDays = rule?.freq === "DAILY" ? 1 : rule?.freq === "WEEKLY" ? 7 : 0;
+		// Changing DTSTART for BY* rules can change their phase/defaults. Leave
+		// those to ical.js, as well as RDATE and detached override series.
+		if (!rule || rules.length !== 1 || !stepDays || Object.keys(rule.parts).length > 0 ||
+			component.getAllProperties("rdate").length > 0 ||
+			component.getAllProperties("exrule").length > 0) return event.iterator(start);
+		const startWall = Date.UTC(start.year, start.month - 1, start.day);
+		const minWall = Date.UTC(minimum.getUTCFullYear(), minimum.getUTCMonth(), minimum.getUTCDate());
+		const step = stepDays * (rule.interval || 1) * 86400000;
+		// Keep one preceding occurrence to accommodate timezone offsets.
+		const skipped = Math.max(0, Math.floor((minWall - startWall) / step) - 1);
+		if (!skipped) return event.iterator(start);
+		if (rule.count && skipped >= rule.count) return { next: () => null };
+		const copy = new ICAL.Component(JSON.parse(JSON.stringify(component.toJSON())));
+		const advanced = new ICAL.Time();
+		const date = new Date(startWall + skipped * step);
+		advanced.fromJSDate(date);
+		advanced.year = date.getUTCFullYear();
+		advanced.month = date.getUTCMonth() + 1;
+		advanced.day = date.getUTCDate();
+		advanced.hour = start.hour;
+		advanced.minute = start.minute;
+		advanced.second = start.second;
+		advanced.isDate = start.isDate;
+		advanced.zone = start.zone;
+		copy.updatePropertyWithValue("dtstart", advanced);
+		const copiedRule = copy.getFirstPropertyValue("rrule") as typeof rule;
+		if (copiedRule.count) copiedRule.count -= skipped;
+		return new ICAL.Event(copy).iterator(advanced);
+	}
+
 	getAllEvents(): ICSEvent[] {
 		const allEvents: ICSEvent[] = [];
 		const now = new Date();
@@ -704,7 +967,7 @@ export class ICSSubscriptionService extends EventEmitter {
 
 			// Return events if within grace period
 			if (now < gracePeriodEnd) {
-				allEvents.push(...cache.events);
+				allEvents.push(...this.filterEvents(cache.events, subscription.filter));
 
 				// Trigger refresh if cache expired but within grace period
 				const isStale = now > expiryDate;
@@ -771,7 +1034,15 @@ export class ICSSubscriptionService extends EventEmitter {
 			);
 		}
 
-		return [...cache.events];
+		const subscription = this.subscriptions.find((sub) => sub.id === subscriptionId);
+		return this.filterEvents(cache.events, subscription?.filter);
+	}
+
+	private filterEvents(events: ICSEvent[], filter = ""): ICSEvent[] {
+		// Filter normalized occurrences, not source VEVENTs: exceptions can have
+		// their own titles, and the complete cache must survive edits/clearing.
+		const titleContains = filter.trim().toLowerCase();
+		return events.filter((event) => event.title.toLowerCase().includes(titleContains));
 	}
 
 	async refreshAllSubscriptions(): Promise<void> {
@@ -986,3 +1257,5 @@ export class ICSSubscriptionService extends EventEmitter {
 			.sort((a, b) => a.path.localeCompare(b.path));
 	}
 }
+
+/* eslint-enable @typescript-eslint/no-non-null-assertion -- Re-enable after the subscription service implementation. */
