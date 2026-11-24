@@ -1,11 +1,40 @@
-import { TFile, EventRef } from "obsidian";
+import { uiData } from "../i18n/dataText";
+import type { MessageSuffix } from "../i18n/concepts";
+import { uiLocale } from "../i18n/runtime";
+import { uiNumber } from "../i18n/formatters";
+import { reminderDescriptionLabel } from "../i18n/dataSeedLabels";
+import { uiText } from "../i18n/runtime";
+import { msg } from "@lingui/core/macro";
+import { messageForKey } from "../i18n/messages";
+import { TFile, EventRef, Events } from "obsidian";
 import TaskNotesPlugin from "../main";
 import { TaskInfo, Reminder, EVENT_TASK_UPDATED } from "../types";
 import { parseDateToLocal } from "../utils/dateUtils";
+import type { InterpolationValues } from "../i18n/types";
 import { createTaskNotesLogger } from "../utils/tasknotesLogger";
 import { showNotice } from "../ui/notifications";
+import { isTaskInstanceCompleted } from "../utils/taskInstanceStatus";
 
 const tasknotesLogger = createTaskNotesLogger({ tag: "Services/NotificationService" });
+
+/**
+ * Windows silently drops system notifications whose tag is longer than about
+ * 44 characters (#2061), so a reminder's tag is a short hash of its task path
+ * and reminder id rather than the raw values.
+ */
+export function reminderNotificationTag(taskPath: string, reminderId: string): string {
+	const key = `${taskPath}\u0000${reminderId}`;
+	// Two independent 32-bit hashes (djb2 and FNV-1a) keep collisions negligible.
+	let djb2 = 5381;
+	let fnv = 0x811c9dc5;
+	for (let i = 0; i < key.length; i++) {
+		const code = key.charCodeAt(i);
+		djb2 = Math.imul(djb2, 33) ^ code;
+		fnv = Math.imul(fnv ^ code, 0x01000193);
+	}
+	const hex = (value: number) => (value >>> 0).toString(16).padStart(8, "0");
+	return `tasknotes-${hex(djb2)}${hex(fnv)}`;
+}
 
 interface NotificationQueueItem {
 	taskPath: string;
@@ -21,10 +50,24 @@ export class NotificationService {
 	private processedReminders: Set<string> = new Set(); // Track processed reminders to avoid duplicates
 	private taskUpdateListener?: EventRef;
 	private fileUpdateListener?: EventRef;
+	// Files Obsidian had not indexed at startup; catch-up waits for them.
+	private unindexedAtStartup = new Set<string>();
+	private indexWaitStartedAt = 0;
+	private startupCatchUpBoundary: number | null = null;
+	private indexListeners: { events: Events; ref: EventRef }[] = [];
 	private activeAudioContexts: Set<AudioContext> = new Set();
 	private audioCleanupTimeouts: Set<number> = new Set();
 	private lastBroadScanTime: number = Date.now();
 	private lastQuickCheckTime: number = Date.now();
+	private lastSuccessfulCheck: number = Date.now();
+	private queueCoveredUntil = 0;
+	private readonly CATCH_UP_WINDOW = 24 * 60 * 60 * 1000;
+	// Device- and vault-local, so each device catches up on what it missed.
+	private readonly CURSOR_STORAGE_KEY = "tasknotes-reminder-scan-cursor";
+	// Reminders delivered later than this are worded as missed.
+	private readonly LATE_THRESHOLD = 2 * 60 * 1000;
+	// More missed tasks than this are combined into one summary.
+	private readonly MISSED_SUMMARY_THRESHOLD = 3;
 
 	// Configuration constants
 	private readonly BROAD_SCAN_INTERVAL = 5 * 60 * 1000; // 5 minutes
@@ -37,8 +80,13 @@ export class NotificationService {
 
 	async initialize(): Promise<void> {
 		if (!this.plugin.settings.enableNotifications) {
+			// Re-enabling should not replay reminders from while notifications were off.
+			this.saveCursor(null);
 			return;
 		}
+
+		// Catch up reminders missed while Obsidian was closed (bounded by the scan window).
+		this.lastSuccessfulCheck = this.loadCursor() ?? Date.now();
 
 		// Request notification permission if using system notifications
 		if (
@@ -58,8 +106,62 @@ export class NotificationService {
 		this.startBroadScan();
 		this.startQuickCheck();
 
-		// Do an initial scan
+		// Scans are cache-only, so a scan before Obsidian indexes files changed while closed
+		// would skip their reminders and advance the cursor past them. Track those files
+		// rather than waiting for "resolved", which can fire before indexing finishes.
+		const { vault, metadataCache } = this.plugin.app;
+		for (const file of vault.getMarkdownFiles()) {
+			if (!metadataCache.getFileCache(file)) this.unindexedAtStartup.add(file.path);
+		}
+		if (this.unindexedAtStartup.size > 0) {
+			this.indexWaitStartedAt = Date.now();
+			this.startupCatchUpBoundary = this.lastSuccessfulCheck;
+			const indexed = (path: string) => {
+				this.unindexedAtStartup.delete(path);
+				if (this.unindexedAtStartup.size === 0) void this.scanTasksAndBuildQueue();
+			};
+			this.indexListeners = [
+				{
+					events: metadataCache,
+					ref: metadataCache.on("changed", (file) => indexed(file.path)),
+				},
+				{
+					events: vault,
+					ref: vault.on("delete", (file) => {
+						for (const path of this.unindexedAtStartup) {
+							if (path === file.path || path.startsWith(`${file.path}/`))
+								this.unindexedAtStartup.delete(path);
+						}
+						if (this.unindexedAtStartup.size === 0) void this.scanTasksAndBuildQueue();
+					}),
+				},
+				{
+					events: vault,
+					ref: vault.on("rename", (file, oldPath) => {
+						for (const path of [...this.unindexedAtStartup]) {
+							if (path !== oldPath && !path.startsWith(`${oldPath}/`)) continue;
+							this.unindexedAtStartup.delete(path);
+							const renamedPath = `${file.path}${path.slice(oldPath.length)}`;
+							const renamed = vault.getAbstractFileByPath(renamedPath);
+							if (renamed instanceof TFile && !metadataCache.getFileCache(renamed)) {
+								this.unindexedAtStartup.add(renamedPath);
+							}
+						}
+						if (this.unindexedAtStartup.size === 0) void this.scanTasksAndBuildQueue();
+					}),
+				},
+			];
+			return;
+		}
+
 		await this.scanTasksAndBuildQueue();
+	}
+
+	private stopWaitingForMetadata(): void {
+		this.unindexedAtStartup.clear();
+		this.startupCatchUpBoundary = null;
+		for (const { events, ref } of this.indexListeners) events.offref(ref);
+		this.indexListeners = [];
 	}
 
 	destroy(): void {
@@ -75,6 +177,7 @@ export class NotificationService {
 		if (this.fileUpdateListener) {
 			this.plugin.emitter.offref(this.fileUpdateListener);
 		}
+		this.stopWaitingForMetadata();
 		for (const timeout of this.audioCleanupTimeouts) {
 			window.clearTimeout(timeout);
 		}
@@ -114,8 +217,8 @@ export class NotificationService {
 
 			// Check for system sleep/wake for quick checks too
 			if (timeSinceLastCheck > this.QUICK_CHECK_INTERVAL + 60000) {
-				// 1 minute tolerance
-				// Don't spam with catch-up, just process current queue
+				// Recover reminders beyond the old queue horizon when this timer wakes first.
+				void this.handleSystemWakeUp();
 			}
 
 			this.checkNotificationQueue();
@@ -124,45 +227,37 @@ export class NotificationService {
 	}
 
 	private async scanTasksAndBuildQueue(): Promise<void> {
-		// Clear existing queue and rebuild
-		this.notificationQueue = [];
-
-		// Broad background scans must stay cache-only so an incomplete metadata cache
-		// cannot cause recurring vault-wide disk reads.
-		const tasks = this.plugin.cacheManager.getAllCachedTasks();
-		const now = Date.now();
-		const windowEnd = now + this.QUEUE_WINDOW;
-
-		for (const task of tasks) {
-			if (!task.reminders || task.reminders.length === 0) {
-				continue;
-			}
-
-			for (const reminder of task.reminders) {
-				// Skip if already processed
-				const reminderId = `${task.path}-${reminder.id}`;
-				if (this.processedReminders.has(reminderId)) {
-					continue;
-				}
-
-				const notifyAt = this.calculateNotificationTime(task, reminder);
-				if (notifyAt === null) {
-					continue;
-				}
-
-				// Add to queue if within the next scan window
-				if (notifyAt > now && notifyAt <= windowEnd) {
-					this.notificationQueue.push({
-						taskPath: task.path,
-						reminder,
-						notifyAt,
-					});
-				}
-			}
+		// After one broad interval, resume delivery for indexed tasks without discarding
+		// the original boundary or listeners for files that are still being indexed.
+		if (
+			this.unindexedAtStartup.size > 0 &&
+			Date.now() - this.indexWaitStartedAt < this.BROAD_SCAN_INTERVAL
+		) {
+			return;
 		}
-
-		// Sort queue by notification time
-		this.notificationQueue.sort((a, b) => a.notifyAt - b.notifyAt);
+		const catchUpBoundary = this.startupCatchUpBoundary ?? this.lastSuccessfulCheck;
+		if (this.unindexedAtStartup.size === 0) this.stopWaitingForMetadata();
+		// Deliver queued deadlines before a rescan can discard them.
+		this.checkNotificationQueue();
+		// Scans stay cache-only; move the cursor only after a successful scan.
+		// Reminders only come from the reminders field, so skip mapping other tasks.
+		const tasks = this.plugin.cacheManager.getAllCachedTasks({
+			withFrontmatterField: this.plugin.fieldMapper.toUserField("reminders"),
+		});
+		const now = Date.now();
+		const windowStart = Math.max(catchUpBoundary, now - this.CATCH_UP_WINDOW);
+		this.notificationQueue = [];
+		for (const task of tasks) {
+			this.queueRemindersForTask(task.path, task, windowStart);
+		}
+		this.lastSuccessfulCheck = now;
+		this.queueCoveredUntil = now + this.QUEUE_WINDOW;
+		this.saveCursor(now);
+		this.checkNotificationQueue();
+		for (const key of this.processedReminders) {
+			const [, , notifyAt] = JSON.parse(key) as [string, string, number];
+			if (notifyAt < now - this.CATCH_UP_WINDOW) this.processedReminders.delete(key);
+		}
 	}
 
 	private calculateNotificationTime(task: TaskInfo, reminder: Reminder): number | null {
@@ -236,41 +331,70 @@ export class NotificationService {
 
 	private checkNotificationQueue(): void {
 		const now = Date.now();
-		const toRemove: number[] = [];
+		// Queue is sorted, so due items are a prefix.
+		const dueCount = this.notificationQueue.findIndex((item) => item.notifyAt > now);
+		const due = this.notificationQueue.splice(
+			0,
+			dueCount === -1 ? this.notificationQueue.length : dueCount
+		);
+		if (due.length === 0) return;
 
-		for (let i = 0; i < this.notificationQueue.length; i++) {
-			const item = this.notificationQueue[i];
-
-			if (item.notifyAt <= now) {
-				// Trigger the notification
-				void this.triggerNotification(item);
-				toRemove.push(i);
-
-				// Mark as processed to avoid duplicates
-				const reminderId = `${item.taskPath}-${item.reminder.id}`;
-				this.processedReminders.add(reminderId);
+		const missed: NotificationQueueItem[] = [];
+		for (const item of due) {
+			// Mark as processed to avoid duplicates
+			this.processedReminders.add(
+				this.reminderKey(item.taskPath, item.reminder, item.notifyAt)
+			);
+			if (now - item.notifyAt > this.LATE_THRESHOLD) {
+				missed.push(item);
 			} else {
-				// Queue is sorted, so we can break early
-				break;
+				void this.triggerNotification(item);
 			}
 		}
+		if (missed.length > 0) void this.deliverMissedReminders(missed);
 
-		// Remove triggered items from queue
-		for (let i = toRemove.length - 1; i >= 0; i--) {
-			this.notificationQueue.splice(toRemove[i], 1);
+		// The queue covers every reminder up to its horizon, so delivered ones need no replay
+		// after a restart.
+		if (now <= this.queueCoveredUntil && now > this.lastSuccessfulCheck) {
+			this.lastSuccessfulCheck = now;
+			this.saveCursor(now);
 		}
 	}
 
-	private async triggerNotification(item: NotificationQueueItem): Promise<void> {
-		// Get the task info for the notification
+	private loadCursor(): number | null {
+		try {
+			const stored: unknown = this.plugin.app.loadLocalStorage(this.CURSOR_STORAGE_KEY);
+			const cursor = Number(stored);
+			return stored !== null && Number.isFinite(cursor) && cursor <= Date.now()
+				? cursor
+				: null;
+		} catch {
+			return null;
+		}
+	}
+
+	private saveCursor(cursor: number | null): void {
+		try {
+			// A partial scan must not persist a cursor past still-unindexed reminders.
+			const safeCursor =
+				cursor !== null && this.startupCatchUpBoundary !== null
+					? Math.min(cursor, this.startupCatchUpBoundary)
+					: cursor;
+			this.plugin.app.saveLocalStorage(this.CURSOR_STORAGE_KEY, safeCursor);
+		} catch {
+			// Catch-up across restarts is best effort.
+		}
+	}
+
+	private getEligibleTask(item: NotificationQueueItem): TaskInfo | null {
 		const file = this.plugin.app.vault.getAbstractFileByPath(item.taskPath);
 		if (!(file instanceof TFile)) {
-			return;
+			return null;
 		}
 
 		const metadata = this.plugin.app.metadataCache.getFileCache(file);
 		if (!metadata || !metadata.frontmatter) {
-			return;
+			return null;
 		}
 
 		const task = this.plugin.fieldMapper.mapFromFrontmatter(
@@ -279,18 +403,65 @@ export class NotificationService {
 			this.plugin.settings.storeTitleInFilename
 		) as TaskInfo;
 
-		// Generate notification message
-		const message =
-			item.reminder.description || this.generateDefaultMessage(task, item.reminder);
+		// Completion/archive state can change between queueing and delivery.
+		return this.isReminderEligible(task, item.reminder, item.notifyAt) ? task : null;
+	}
+
+	private async triggerNotification(item: NotificationQueueItem): Promise<void> {
+		const task = this.getEligibleTask(item);
+		if (!task) return;
 
 		this.playNotificationSound();
+		await this.deliverNotification(task, item, false);
+	}
+
+	private async deliverMissedReminders(items: NotificationQueueItem[]): Promise<void> {
+		// Keep only the latest missed reminder for each task.
+		const latestByTask = new Map<string, { task: TaskInfo; item: NotificationQueueItem }>();
+		for (const item of items) {
+			const task = this.getEligibleTask(item);
+			const existing = latestByTask.get(item.taskPath);
+			if (task && (!existing || item.notifyAt >= existing.item.notifyAt)) {
+				latestByTask.set(item.taskPath, { task, item });
+			}
+		}
+		const missed = [...latestByTask.values()].sort((a, b) => a.item.notifyAt - b.item.notifyAt);
+		if (missed.length === 0) return;
+
+		this.playNotificationSound();
+		if (missed.length <= this.MISSED_SUMMARY_THRESHOLD) {
+			for (const { task, item } of missed) {
+				await this.deliverNotification(task, item, true);
+			}
+			return;
+		}
+
+		this.showMissedSummary(missed.map(({ task, item }) => ({ task, path: item.taskPath })));
+		for (const { task, item } of missed) {
+			await this.triggerReminderWebhook(
+				task,
+				item,
+				this.generateMissedMessage(task, item),
+				true
+			);
+		}
+	}
+
+	private async deliverNotification(
+		task: TaskInfo,
+		item: NotificationQueueItem,
+		missed: boolean
+	): Promise<void> {
+		const message = missed
+			? this.generateMissedMessage(task, item)
+			: reminderDescriptionLabel(item.reminder.description || "") || this.generateDefaultMessage(task, item.reminder);
 
 		if (this.plugin.settings.notificationType === "system") {
 			// System notification
 			if ("Notification" in window && Notification.permission === "granted") {
-				const notification = new Notification(task.title || "TaskNotes Reminder", {
+				const notification = new Notification(task.title || uiText(msg({ message: "TaskNotes Reminder", context: "ui/NotificationService: NotificationService.deliverNotification display" })), {
 					body: message,
-					tag: `tasknotes-${item.taskPath}-${item.reminder.id}`,
+					tag: reminderNotificationTag(item.taskPath, item.reminder.id),
 				});
 
 				// Open task note when notification is clicked
@@ -307,7 +478,15 @@ export class NotificationService {
 			this.showInAppNotice(message, item.taskPath);
 		}
 
-		// Trigger webhook for reminder
+		await this.triggerReminderWebhook(task, item, message, missed);
+	}
+
+	private async triggerReminderWebhook(
+		task: TaskInfo,
+		item: NotificationQueueItem,
+		message: string,
+		missed: boolean
+	): Promise<void> {
 		if (this.plugin.apiService) {
 			await this.plugin.apiService.triggerWebhook("reminder.triggered", {
 				task,
@@ -315,8 +494,60 @@ export class NotificationService {
 				notificationTime: new Date(item.notifyAt).toISOString(),
 				message,
 				notificationType: this.plugin.settings.notificationType,
+				missed,
 			});
 		}
+	}
+
+	private showMissedSummary(missed: { task: TaskInfo; path: string }[]): void {
+		const title = this.translateMissed("summaryTitle", { count: missed.length });
+
+		if (
+			this.plugin.settings.notificationType === "system" &&
+			"Notification" in window &&
+			Notification.permission === "granted"
+		) {
+			const shown = missed.slice(0, 5).map(({ task }) => task.title);
+			const more = missed.length - shown.length;
+			const notification = new Notification(title, {
+				body:
+					more > 0
+						? this.translateMissed("summaryMore", {
+								titles: shown.join(", "),
+								count: more,
+							})
+						: shown.join(", "),
+				tag: "tasknotes-missed-reminders",
+			});
+			notification.onclick = () => {
+				window.focus();
+				notification.close();
+				this.showMissedSummaryNotice(title, missed);
+			};
+			return;
+		}
+
+		this.showMissedSummaryNotice(title, missed);
+	}
+
+	private showMissedSummaryNotice(
+		title: string,
+		missed: { task: TaskInfo; path: string }[]
+	): void {
+		const fragment = createFragment();
+		const container = fragment.createDiv({ cls: "tasknotes-missed-reminders" });
+		container.createDiv({ cls: "tasknotes-missed-reminders__title", text: title });
+		const links: HTMLElement[] = missed.map(({ task, path }) =>
+			container.createDiv({ cls: "tasknotes-missed-reminders__task", text: task.title })
+		);
+		const notice = showNotice(fragment, 0); // 0 = persistent until dismissed
+		links.forEach((link, index) => {
+			link.addEventListener("click", (event) => {
+				event.stopPropagation();
+				void this.plugin.app.workspace.openLinkText(missed[index].path, "", false);
+				notice.hide();
+			});
+		});
 	}
 
 	playNotificationSound(): void {
@@ -386,8 +617,8 @@ export class NotificationService {
 	}
 
 	async sendTestReminderNotification(): Promise<void> {
-		const title = "TaskNotes Reminder";
-		const message = "This is a test reminder from TaskNotes.";
+		const title = uiText(msg({ message: "TaskNotes Reminder", context: "ui/NotificationService: NotificationService.sendTestReminderNotification display" }));
+		const message = uiText(msg({ message: "This is a test reminder from TaskNotes.", context: "ui/NotificationService: NotificationService.sendTestReminderNotification display" }));
 
 		this.playNotificationSound();
 
@@ -431,42 +662,82 @@ export class NotificationService {
 
 	private generateDefaultMessage(task: TaskInfo, reminder: Reminder): string {
 		if (reminder.type === "absolute") {
-			return `Reminder: ${task.title}`;
-		} else {
-			const anchor = reminder.relatedTo === "due" ? "due" : "scheduled";
-			const offset = this.formatDurationForDisplay(reminder.offset || "");
-
-			if (offset.startsWith("-")) {
-				return `${task.title} is ${anchor} in ${offset.substring(1)}`;
-			} else if (offset === "PT0S" || offset === "PT0M") {
-				return `${task.title} is ${anchor} now`;
-			} else {
-				return `${task.title} was ${anchor} ${offset} ago`;
-			}
+			return uiText(msg({ message: "Reminder: {title}", context: "ui/NotificationService: NotificationService.generateDefaultMessage display" }), { title: task.title });
 		}
+		const offset = this.parseISO8601Duration(reminder.offset || "PT0S") ?? 0;
+		return uiText(msg({ message: "{anchor, select, due {{timing, select, before {{title} is due in {duration}} after {{title} was due {duration} ago} other {{title} is due now}}} other {{timing, select, before {{title} is scheduled in {duration}} after {{title} was scheduled {duration} ago} other {{title} is scheduled now}}}}", context: "relative reminder notification" }), {
+			title: task.title,
+			anchor: reminder.relatedTo,
+			timing: offset < 0 ? "before" : offset > 0 ? "after" : "now",
+			duration: this.formatDurationForDisplay(reminder.offset || "PT0S"),
+		});
+	}
+
+	private generateMissedMessage(task: TaskInfo, item: NotificationQueueItem): string {
+		const missedAt = this.formatDateParts(item.notifyAt);
+		const prefix = missedAt.day
+			? this.translateMissed("prefixOnDay", { day: missedAt.day, time: missedAt.time })
+			: this.translateMissed("prefixToday", { time: missedAt.time });
+		const withPrefix = (text: string) => this.translateMissed("message", { prefix, text });
+		const { reminder } = item;
+		if (reminder.description) return withPrefix(reminderDescriptionLabel(reminder.description));
+
+		const anchorStr =
+			reminder.type === "relative"
+				? reminder.relatedTo === "due"
+					? task.due
+					: task.scheduled
+				: undefined;
+		if (!anchorStr) return withPrefix(task.title);
+
+		// Say when the anchor is rather than replaying an offset that no longer holds.
+		const anchor = parseDateToLocal(anchorStr).getTime();
+		const { day, time } = this.formatDateParts(anchor);
+		const hasTime = anchorStr.includes("T");
+		const when = hasTime
+			? day
+				? this.translateMissed("whenOnDayAt", { day, time })
+				: this.translateMissed("whenTodayAt", { time })
+			: day
+				? this.translateMissed("whenOnDay", { day })
+				: this.translateMissed("whenToday");
+		const past = (hasTime ? anchor : anchor + 24 * 60 * 60 * 1000) <= Date.now();
+		const anchorLabel = reminder.relatedTo === "due" ? "due" : "scheduled";
+		return withPrefix(
+			this.translateMissed(`${anchorLabel}${past ? "Was" : "Is"}`, {
+				title: task.title,
+				when,
+			})
+		);
+	}
+
+	private translateMissed(key: MessageSuffix<"services.notification.missed.">, params?: InterpolationValues): string {
+		return this.plugin.i18n.translate(messageForKey(`services.notification.missed.${key}`), params);
+	}
+
+	/** Day is omitted for today. */
+	private formatDateParts(timestamp: number): { day: string | null; time: string } {
+		const date = new Date(timestamp);
+		return {
+			day: date.toDateString() === new Date().toDateString()
+				? null
+				: date.toLocaleDateString(uiLocale(), { month: "short", day: "numeric" }),
+			time: date.toLocaleTimeString(uiLocale(), { hour: "numeric", minute: "2-digit", hour12: this.plugin.settings.calendarViewSettings?.timeFormat === "12" }),
+		};
 	}
 
 	private formatDurationForDisplay(duration: string): string {
 		const ms = this.parseISO8601Duration(duration);
-		if (ms === null) return duration;
+		if (ms === null) return uiData(duration, "Invalid/unsupported stored ISO duration; preserve user data for diagnosis");
 
 		const absMs = Math.abs(ms);
 		const minutes = Math.floor(absMs / (60 * 1000));
 		const hours = Math.floor(absMs / (60 * 60 * 1000));
 		const days = Math.floor(absMs / (24 * 60 * 60 * 1000));
 
-		let result = "";
-		if (days > 0) {
-			result = `${days} day${days > 1 ? "s" : ""}`;
-		} else if (hours > 0) {
-			result = `${hours} hour${hours > 1 ? "s" : ""}`;
-		} else if (minutes > 0) {
-			result = `${minutes} minute${minutes > 1 ? "s" : ""}`;
-		} else {
-			result = "now";
-		}
-
-		return ms < 0 ? `-${result}` : result;
+		const unit = days > 0 ? "day" : hours > 0 ? "hour" : minutes > 0 ? "minute" : "second";
+		const value = days || hours || minutes || absMs / 1000;
+		return uiNumber(value, { style: "unit", unit, unitDisplay: "long" });
 	}
 
 	// Public method to manually refresh reminders (useful for testing)
@@ -474,7 +745,34 @@ export class NotificationService {
 		await this.scanTasksAndBuildQueue();
 	}
 
-	private queueRemindersForTask(taskPath: string, task: TaskInfo): void {
+	private reminderKey(path: string, reminder: Reminder, notifyAt: number): string {
+		return JSON.stringify([path, reminder.id, notifyAt]);
+	}
+
+	private isReminderEligible(task: TaskInfo, reminder: Reminder, notifyAt: number): boolean {
+		// Relative reminders refer to the anchor occurrence, not the offset's day.
+		const anchor =
+			reminder.type === "relative"
+				? reminder.relatedTo === "due"
+					? task.due
+					: task.scheduled
+				: undefined;
+		return (
+			!task.archived &&
+			!isTaskInstanceCompleted(
+				task,
+				anchor ? parseDateToLocal(anchor) : new Date(notifyAt),
+				this.plugin.statusManager,
+				this.plugin.settings.defaultTaskStatus
+			)
+		);
+	}
+
+	private queueRemindersForTask(
+		taskPath: string,
+		task: TaskInfo,
+		windowStart = Date.now()
+	): void {
 		const now = Date.now();
 		const windowEnd = now + this.QUEUE_WINDOW;
 
@@ -483,17 +781,14 @@ export class NotificationService {
 		}
 
 		for (const reminder of task.reminders) {
-			const reminderId = `${taskPath}-${reminder.id}`;
-			if (this.processedReminders.has(reminderId)) {
-				continue;
-			}
-
 			const notifyAt = this.calculateNotificationTime(task, reminder);
-			if (notifyAt === null) {
+			if (notifyAt === null || !this.isReminderEligible(task, reminder, notifyAt)) {
 				continue;
 			}
+			if (this.processedReminders.has(this.reminderKey(taskPath, reminder, notifyAt)))
+				continue;
 
-			if (notifyAt > now && notifyAt <= windowEnd) {
+			if (notifyAt > windowStart && notifyAt <= windowEnd) {
 				this.notificationQueue.push({
 					taskPath,
 					reminder,
@@ -510,7 +805,6 @@ export class NotificationService {
 		updatedTask?: TaskInfo | null
 	): Promise<void> {
 		this.removeNotificationsForTask(taskPath);
-		this.clearProcessedRemindersForTask(taskPath);
 
 		const task =
 			updatedTask === undefined
@@ -528,7 +822,7 @@ export class NotificationService {
 	clearProcessedRemindersForTask(taskPath: string): void {
 		const keysToRemove: string[] = [];
 		for (const key of this.processedReminders) {
-			if (key.startsWith(`${taskPath}-`)) {
+			if ((JSON.parse(key) as [string, string, number])[0] === taskPath) {
 				keysToRemove.push(key);
 			}
 		}
@@ -568,37 +862,7 @@ export class NotificationService {
 	}
 
 	private async handleSystemWakeUp(): Promise<void> {
-		// Clear processed reminders to allow missed notifications to trigger
-		// But only for reminders that are now past their notification time
-		const now = Date.now();
-		const keysToRemove: string[] = [];
-
-		// Check all processed reminders and remove ones that should have triggered
-		for (const key of this.processedReminders) {
-			const [taskPath, reminderId] = key.split("-", 2);
-			if (!taskPath || !reminderId) continue;
-
-			// Try to get the task and check if the reminder time has passed
-			try {
-				const task = await this.plugin.cacheManager.getTaskInfo(taskPath);
-				if (task && task.reminders) {
-					const reminder = task.reminders.find((r) => r.id === reminderId);
-					if (reminder) {
-						const notifyAt = this.calculateNotificationTime(task, reminder);
-						if (notifyAt && notifyAt <= now) {
-							keysToRemove.push(key);
-						}
-					}
-				}
-			} catch {
-				// If we can't get the task, remove the processed reminder anyway
-				keysToRemove.push(key);
-			}
-		}
-
-		keysToRemove.forEach((key) => this.processedReminders.delete(key));
-
-		// Perform a full scan to rebuild the queue with current data
+		// Preserve delivery identities across wake; the scan catches up from its cursor.
 		await this.scanTasksAndBuildQueue();
 	}
 }

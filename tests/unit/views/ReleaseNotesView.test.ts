@@ -1,6 +1,11 @@
+import { observeTranslation as mockObserveTranslation, englishText as mockEnglishText, conceptDescriptor as mockConceptDescriptor } from "../../helpers/real-i18n";
+import { msg } from "@lingui/core/macro";
 import { MarkdownRenderer } from "obsidian";
 import { ReleaseNotesView, transformReleaseNoteIssueLinks } from "../../../src/views/ReleaseNotesView";
 import type { ReleaseNoteVersion } from "../../../src/releaseNotes";
+import { readFileSync } from "fs";
+import { join } from "path";
+const releaseNotesAnnouncement = readFileSync(join(__dirname, "../../../src/releaseNotesAnnouncement.md"), "utf8");
 
 describe("transformReleaseNoteIssueLinks", () => {
 	it("links a single parenthesized issue reference", () => {
@@ -36,8 +41,7 @@ describe("ReleaseNotesView", () => {
 			{
 				app: {},
 				i18n: {
-					translate: (key: string) =>
-						key === "views.releaseNotes.baseFilesNotice" ? "Base files notice" : key,
+					translate: mockObserveTranslation(),
 				},
 			} as never,
 			[],
@@ -72,6 +76,52 @@ describe("ReleaseNotesView", () => {
 
 	beforeEach(() => {
 		jest.mocked(MarkdownRenderer.render).mockClear();
+	});
+
+	it("renders one shared announcement above the version list", async () => {
+		const view = createView();
+		await view.onOpen();
+
+		expect(view.contentEl.querySelectorAll(".release-notes-announcement")).toHaveLength(1);
+		const announcement = view.contentEl.querySelector(".release-notes-announcement");
+		expect(announcement?.nextElementSibling?.className).toBe("release-notes-versions");
+		const calls = jest.mocked(MarkdownRenderer.render).mock.calls;
+		expect(calls).toHaveLength(1);
+		expect(calls[0][1]).toBe(releaseNotesAnnouncement);
+		expect(calls[0][2]).toBe(announcement);
+		expect(calls[0][4]).toBe(view);
+	});
+
+	it("keeps the shared announcement compact without tester recruitment or stale stable-version claims", () => {
+		expect(releaseNotesAnnouncement.trim().split(/\n\s*\n/)).toHaveLength(1);
+		expect(releaseNotesAnnouncement.length).toBeLessThan(600);
+		expect(releaseNotesAnnouncement).toContain("Settings → TaskNotes → TaskNotes App");
+		expect(releaseNotesAnnouncement).not.toMatch(/testers|Google Group|14 consecutive|4\.13|beta\.2/);
+		expect(releaseNotesAnnouncement.match(/\]\(https:/g)).toHaveLength(4);
+	});
+
+	it("omits legacy beta callouts without changing other release content", async () => {
+		const content = "# TaskNotes 4.12.4\n\n> [!info] TaskNotes v5 beta\n>\n> Old announcement\n\n## Fixed\n\n- A fix\n\n> [!info] Another notice\n> Keep this\n";
+		await createSection(releaseNote({ content }), true);
+
+		const rendered = jest.mocked(MarkdownRenderer.render).mock.calls[0][1];
+		expect(rendered).not.toContain("Old announcement");
+		expect(rendered).not.toContain("# TaskNotes 4.12.4");
+		expect(rendered).not.toContain("[!info] TaskNotes v5 beta");
+		expect(rendered).toContain("## Fixed\n\n- A fix");
+		expect(rendered).toContain("> [!info] Another notice\n> Keep this");
+		expect(content).toContain("Old announcement");
+	});
+
+	it("expands and collapses release sections with the keyboard", async () => {
+		const container = await createSection(releaseNote(), false);
+		const header = container.querySelector<HTMLElement>(".release-notes-version-header")!;
+		expect(header.getAttribute("aria-expanded")).toBe("false");
+		header.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
+		await flushPromises();
+		expect(header.getAttribute("aria-expanded")).toBe("true");
+		header.dispatchEvent(new KeyboardEvent("keydown", { key: " " }));
+		expect(header.getAttribute("aria-expanded")).toBe("false");
 	});
 
 	it("renders initially expanded release notes immediately", async () => {

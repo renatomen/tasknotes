@@ -27,6 +27,8 @@ import {
 	valueToKanbanGroupString,
 	valueToKanbanListGroupKeys,
 } from "../../../src/bases/kanbanGrouping";
+import { applySortOrderPlan, prepareSortOrderUpdate } from "../../../src/bases/sortOrderUtils";
+import { TFile } from "obsidian";
 import type { PriorityConfig, StatusConfig, TaskInfo } from "../../../src/types";
 
 type TestTask = {
@@ -76,6 +78,84 @@ function priority(value: string, weight = 1): PriorityConfig {
 }
 
 describe("Kanban grouping helpers", () => {
+	it.each(["asc", "desc"] as const)("keeps unranked tasks last and stable in %s groups", (direction) => {
+		const groups = buildKanbanTaskGroups({
+			taskNotes: ["missing", "low", "empty", "high", "null"].map((name) => taskInfo(`${name}.md`)),
+			groupByPropertyId: "status",
+			pathToProps: new Map(),
+			explodeListColumns: false,
+			groupedData: [],
+			convertGroupKeyToString: String,
+			isListTypeProperty: () => false,
+			getListPropertyValue: () => [],
+			canonicalizeGroupKey: (key) => key,
+			sortOrderValues: new Map<string, unknown>([
+				["low.md", "tnaaaaaaaaaa"], ["high.md", "tnzzzzzzzzzz"],
+				["empty.md", ""], ["null.md", null],
+			]),
+			sortOrderDirection: direction,
+			statusConfigs: [],
+			priorityConfigs: [],
+			isStatusGroupingProperty: () => true,
+			isPriorityGroupingProperty: () => false,
+			getStatusGroupKeyAliases: () => new Set(),
+			pinnedColumns: [],
+		});
+		const ranked = direction === "asc" ? ["low.md", "high.md"] : ["high.md", "low.md"];
+		expect(groups.get("todo")?.map((item) => item.path)).toEqual([
+			...ranked, "missing.md", "empty.md", "null.md",
+		]);
+	});
+
+	it.each([
+		["asc", false], ["desc", false], ["asc", true], ["desc", true],
+	] as const)("preserves other cards after a %s move (cross-column: %s)", async (direction, crossColumn) => {
+		const frontmatter = Object.fromEntries(["a", "b", "c", "d", "e", "f", "g"].map((name) => [
+			`${name}.md`, { status: name < "e" ? "todo" : "waiting" } as Record<string, unknown>,
+		]));
+		const plugin = {
+			settings: { fieldMapping: { sortOrder: "tasknotes_manual_order" } },
+			app: {
+				vault: {
+					getMarkdownFiles: () => Object.keys(frontmatter).map((path) => new TFile(path)),
+					getAbstractFileByPath: (path: string) => new TFile(path),
+				},
+				metadataCache: { getFileCache: (file: TFile) => ({ frontmatter: frontmatter[file.path] }) },
+				fileManager: { processFrontMatter: async (file: TFile, update: (value: Record<string, unknown>) => void) => update(frontmatter[file.path]) },
+			},
+		} as any;
+		const targetGroup = crossColumn ? "waiting" : "todo";
+		const plan = await prepareSortOrderUpdate(
+			crossColumn ? "f.md" : "c.md", true, targetGroup, "status", "a.md", plugin,
+			{ sortDirection: direction, visibleTaskPaths: crossColumn ? ["e.md", "f.md", "g.md"] : ["a.md", "b.md", "c.md", "d.md"] }
+		);
+		await applySortOrderPlan("a.md", plan, plugin);
+		frontmatter["a.md"].status = targetGroup;
+		const groups = buildKanbanTaskGroups({
+			taskNotes: Object.keys(frontmatter).map((path) => taskInfo(path, { status: frontmatter[path].status as string })),
+			groupByPropertyId: "status",
+			pathToProps: new Map(),
+			explodeListColumns: false,
+			groupedData: [],
+			convertGroupKeyToString: String,
+			isListTypeProperty: () => false,
+			getListPropertyValue: () => [],
+			canonicalizeGroupKey: (key) => key,
+			sortOrderValues: new Map(Object.entries(frontmatter).map(([path, values]) => [path, values.tasknotes_manual_order])),
+			sortOrderDirection: direction,
+			statusConfigs: [],
+			priorityConfigs: [],
+			isStatusGroupingProperty: () => true,
+			isPriorityGroupingProperty: () => false,
+			getStatusGroupKeyAliases: () => new Set(),
+			pinnedColumns: [],
+		});
+		expect(groups.get("todo")?.map((item) => item.path)).toEqual(crossColumn
+			? ["b.md", "c.md", "d.md"] : ["b.md", "a.md", "c.md", "d.md"]);
+		expect(groups.get("waiting")?.map((item) => item.path)).toEqual(crossColumn
+			? ["e.md", "a.md", "f.md", "g.md"] : ["e.md", "f.md", "g.md"]);
+	});
+
 	it("normalizes saved column and swimlane order configs", () => {
 		expect(
 			normalizeKanbanOrderConfig(
@@ -187,7 +267,7 @@ describe("Kanban grouping helpers", () => {
 		).toBe("high");
 	});
 
-	it("builds exploded list groups, preserves source order, replays sort order, and adds empty configured groups", () => {
+	it.each(["asc", "desc"] as const)("builds exploded list groups with %s manual order and preserves stored rank meaning", (direction) => {
 		const alpha = taskInfo("alpha.md", { contexts: ["work", "call"] });
 		const beta = taskInfo("beta.md", { contexts: ["work"] });
 		const gamma = taskInfo("gamma.md", { contexts: [] });
@@ -207,6 +287,7 @@ describe("Kanban grouping helpers", () => {
 				["alpha.md", "002"],
 				["beta.md", "001"],
 			]),
+			sortOrderDirection: direction,
 			statusConfigs: [status("todo"), status("done")],
 			priorityConfigs: [priority("high")],
 			isStatusGroupingProperty: () => false,
@@ -215,7 +296,7 @@ describe("Kanban grouping helpers", () => {
 			pinnedColumns: ["pinned"],
 		});
 
-		expect(groups.get("work")?.map((item) => item.path)).toEqual(["beta.md", "alpha.md"]);
+		expect(groups.get("work")?.map((item) => item.path)).toEqual(direction === "asc" ? ["beta.md", "alpha.md"] : ["alpha.md", "beta.md"]);
 		expect(groups.get("call")?.map((item) => item.path)).toEqual(["alpha.md"]);
 		expect(groups.get("None")?.map((item) => item.path)).toEqual(["gamma.md"]);
 		expect(groups.get("pinned")).toEqual([]);
@@ -543,6 +624,7 @@ describe("Kanban grouping helpers", () => {
 			columnKeys: ["todo", "done"],
 			swimLaneOrders: { priority: ["medium", "low", "high"] },
 			hideEmptySwimLanes: false,
+			priorityKeys: [],
 			isPriorityField: (propertyId) => propertyId === "task.priority",
 			isStatusField: () => false,
 			getPriorityWeight: (key) => ({ high: 3, medium: 2, low: 1 })[key] ?? 0,
@@ -564,6 +646,7 @@ describe("Kanban grouping helpers", () => {
 			columnKeys: ["todo", "done"],
 			swimLaneOrders: { priority: ["medium", "low", "high"] },
 			hideEmptySwimLanes: true,
+			priorityKeys: [],
 			isPriorityField: (propertyId) => propertyId === "task.priority",
 			isStatusField: () => false,
 			getPriorityWeight: (key) => ({ high: 3, medium: 2, low: 1 })[key] ?? 0,
@@ -571,6 +654,40 @@ describe("Kanban grouping helpers", () => {
 		});
 
 		expect([...hiddenEmpty.keys()]).toEqual(["low"]);
+	});
+
+	it("shows all configured priority swimlanes even when only hidden subtasks have those values", () => {
+		const parent = task("parent.md");
+		const visibleLanes = new Map([
+			["low", new Map([["todo", [parent]]])],
+		]);
+		const options = {
+			swimLanePropertyId: "task.priority",
+			swimLanes: visibleLanes,
+			columnKeys: ["todo", "done"],
+			swimLaneOrders: {},
+			priorityKeys: ["high", "medium", "low", "none"],
+			isPriorityField: (propertyId: string | null) => propertyId === "task.priority",
+			isStatusField: () => false,
+			getPriorityWeight: (key: string) => ({ high: 3, medium: 2, low: 1 })[key] ?? 0,
+			getStatusOrder: () => 0,
+		};
+
+		const shown = applyKanbanSwimLaneOrderToMap({
+			...options,
+			hideEmptySwimLanes: false,
+		});
+		expect([...shown.keys()]).toEqual(["high", "medium", "low", "none"]);
+		expect(shown.get("high")?.get("todo")).toEqual([]);
+		expect(shown.get("medium")?.get("done")).toEqual([]);
+		expect(shown.get("low")?.get("todo")).toEqual([parent]);
+		expect([...visibleLanes.keys()]).toEqual(["low"]);
+
+		const hidden = applyKanbanSwimLaneOrderToMap({
+			...options,
+			hideEmptySwimLanes: true,
+		});
+		expect([...hidden.keys()]).toEqual(["low"]);
 	});
 
 	it("exposes small ordering helpers for view adapters", () => {

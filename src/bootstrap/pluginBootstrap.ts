@@ -1,15 +1,17 @@
-import { MarkdownView, Platform, addIcon } from "obsidian";
+import { uiText } from "../i18n/runtime";
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
+import { MarkdownView, Platform, WorkspaceLeaf, addIcon, setTooltip } from "obsidian";
 import { EditorView } from "@codemirror/view";
 import type TaskNotesPlugin from "../main";
 import {
 	EVENT_TASK_UPDATED,
-	POMODORO_STATS_VIEW_TYPE,
 	POMODORO_VIEW_TYPE,
-	STATS_VIEW_TYPE,
 	TaskInfo,
 } from "../types";
 import { RequestDeduplicator, PredictivePrefetcher } from "../utils/RequestDeduplicator";
 import { DOMReconciler, UIStateManager } from "../utils/DOMReconciler";
+import { installMdbaseFolderVisibility } from "../services/MdbaseFolderVisibility";
 import { FieldMapper } from "../services/FieldMapper";
 import { StatusManager } from "../services/StatusManager";
 import { PriorityManager } from "../services/PriorityManager";
@@ -18,7 +20,6 @@ import { DependencyCache } from "../utils/DependencyCache";
 import { TaskService } from "../services/TaskService";
 import { FilterService } from "../services/FilterService";
 import { TaskStatsService } from "../services/TaskStatsService";
-import { ViewStateManager } from "../services/ViewStateManager";
 import { ProjectSubtasksService } from "../services/ProjectSubtasksService";
 import { ExpandedProjectsService } from "../services/ExpandedProjectsService";
 import { AutoArchiveService } from "../services/AutoArchiveService";
@@ -27,8 +28,6 @@ import { StatusBarService } from "../ui/StatusBarService";
 import { NotificationService } from "../ui/NotificationService";
 import { ViewPerformanceService } from "../services/ViewPerformanceService";
 import { PomodoroView } from "../views/PomodoroView";
-import { PomodoroStatsView } from "../views/PomodoroStatsView";
-import { StatsView } from "../views/StatsView";
 import { ReleaseNotesView, RELEASE_NOTES_VIEW_TYPE } from "../views/ReleaseNotesView";
 import { RELEASE_NOTES_BUNDLE, CURRENT_VERSION } from "../releaseNotes";
 import { createTaskLinkOverlay, dispatchTaskUpdate } from "../editor/TaskLinkOverlay";
@@ -46,7 +45,9 @@ import { ICSNoteService } from "../services/ICSNoteService";
 import { OAuthService } from "../services/OAuthService";
 import { GoogleCalendarService } from "../services/GoogleCalendarService";
 import { MicrosoftCalendarService } from "../services/MicrosoftCalendarService";
-import { CalendarProviderRegistry } from "../services/CalendarProvider";
+import { CalendarProviderRegistry, useGoogleCalendarSource } from "../services/CalendarProvider";
+import { HostedGoogleCalendarService } from "../services/HostedGoogleCalendarService";
+import { createCalendarServiceClient } from "../services/calendarServiceHost";
 import { PomodoroService } from "../services/PomodoroService";
 import { AutoExportService } from "../services/AutoExportService";
 import { TaskFileLifecycleReconciliationService } from "../services/TaskFileLifecycleReconciliationService";
@@ -56,6 +57,7 @@ import { createTaskNotesLogger } from "../utils/tasknotesLogger";
 import { TASKNOTES_RUNTIME_LIFECYCLE_RAW_EVENTS } from "../api/runtime-api";
 import { showNotice } from "../ui/notifications";
 import { EVENT_USER_NOTICE, type UserNoticePayload } from "../core/userNotices";
+import { applyNewInstallRibbonDefaults, type RibbonConfiguration } from "./ribbonDefaults";
 
 const tasknotesLogger = createTaskNotesLogger({ tag: "Bootstrap/PluginBootstrap" });
 
@@ -112,6 +114,18 @@ export function registerTaskNotesIcon(): void {
 export async function initializeCoreServices(plugin: TaskNotesPlugin): Promise<void> {
 	plugin.api = new TaskNotesAPI(plugin);
 
+	// Legacy recognition runs before runtime services. Build from loaded settings,
+	// then rebuild below after the collection's canonical settings are imported.
+	plugin.fieldMapper = new FieldMapper(
+		plugin.settings.fieldMapping,
+		plugin.settings.userFields ?? [],
+		plugin.settings.customStatuses,
+		plugin.settings.customPriorities
+	);
+	const { MdbaseSpecService } = await import("../services/MdbaseSpecService");
+	plugin.mdbaseSpecService = new MdbaseSpecService(plugin);
+	await plugin.mdbaseSpecService.initialize();
+
 	plugin.fieldMapper = new FieldMapper(
 		plugin.settings.fieldMapping,
 		plugin.settings.userFields ?? [],
@@ -136,6 +150,7 @@ export async function initializeCoreServices(plugin: TaskNotesPlugin): Promise<v
 			showNotice(payload.message, payload.timeout);
 		})
 	);
+	plugin.mdbaseSpecService.flushPendingNotices();
 
 	plugin.dependencyCache = new DependencyCache(
 		plugin.app,
@@ -154,7 +169,6 @@ export async function initializeCoreServices(plugin: TaskNotesPlugin): Promise<v
 		plugin
 	);
 	plugin.taskStatsService = new TaskStatsService(plugin.cacheManager, plugin.statusManager);
-	plugin.viewStateManager = new ViewStateManager(plugin.app, plugin);
 	plugin.projectSubtasksService = new ProjectSubtasksService(plugin);
 	plugin.expandedProjectsService = new ExpandedProjectsService(plugin);
 	plugin.autoArchiveService = new AutoArchiveService(plugin);
@@ -166,90 +180,86 @@ export async function initializeCoreServices(plugin: TaskNotesPlugin): Promise<v
 	plugin.notificationService = new NotificationService(plugin);
 	plugin.viewPerformanceService = new ViewPerformanceService(plugin);
 
-	const { BasesFilterConverter } = await import("../services/BasesFilterConverter");
-	plugin.basesFilterConverter = new BasesFilterConverter(plugin);
-
-	const { MdbaseSpecService } = await import("../services/MdbaseSpecService");
-	plugin.mdbaseSpecService = new MdbaseSpecService(plugin);
-
 	plugin.icsSubscriptionService = new ICSSubscriptionService(plugin);
 	plugin.icsNoteService = new ICSNoteService(plugin);
 	plugin.taskService.setAutoArchiveService(plugin.autoArchiveService);
 }
 
 export function registerRibbonIcons(plugin: TaskNotesPlugin): void {
-	plugin.addRibbonIcon(
-		"calendar-days",
-		plugin.i18n.translate("commands.openCalendarView"),
-		async () => {
-			await plugin.activateCalendarView();
+	const firstInstall = plugin.isNewInstall;
+	const ribbons: { element: HTMLElement; key: MessageDescriptor }[] = [];
+	const addRibbon = (
+		icon: string,
+		key: MessageDescriptor,
+		callback: (event: MouseEvent) => void | Promise<void>
+	) => {
+		const element = plugin.addRibbonIcon(icon, plugin.i18n.translate(key), callback);
+		ribbons.push({ element, key });
+	};
+	const refresh = () => {
+		for (const { element, key } of ribbons) {
+			setTooltip(element, plugin.i18n.translate(key), { placement: "right" });
 		}
-	);
+	};
+	const listener = plugin.i18n.on("locale-changed", refresh);
+	plugin.register(() => plugin.i18n.offref(listener));
 
-	plugin.addRibbonIcon(
-		"calendar",
-		plugin.i18n.translate("commands.openAdvancedCalendarView"),
-		async () => {
-			await plugin.openBasesFileForCommand("open-advanced-calendar-view");
-		}
-	);
+	addRibbon("calendar-days", msg({ message: "Open mini calendar view", context: "commands.openCalendarView" }), async () => {
+		await plugin.activateCalendarView();
+	});
 
-	plugin.addRibbonIcon(
-		"check-square",
-		plugin.i18n.translate("commands.openTasksView"),
-		async () => {
-			await plugin.openBasesFileForCommand("open-tasks-view");
-		}
-	);
+	addRibbon("calendar", msg({ message: "Open calendar view", context: "commands.openAdvancedCalendarView" }), async () => {
+		await plugin.openBasesFileForCommand("open-advanced-calendar-view");
+	});
 
-	plugin.addRibbonIcon("list", plugin.i18n.translate("commands.openAgendaView"), async () => {
+	addRibbon("check-square", msg({ message: "Open tasks view", context: "commands.openTasksView" }), async () => {
+		await plugin.openBasesFileForCommand("open-tasks-view");
+	});
+
+	addRibbon("list", msg({ message: "Open agenda view", context: "commands.openAgendaView" }), async () => {
 		await plugin.openBasesFileForCommand("open-agenda-view");
 	});
 
-	plugin.addRibbonIcon(
-		"columns-3",
-		plugin.i18n.translate("commands.openKanbanView"),
-		async () => {
-			await plugin.openBasesFileForCommand("open-kanban-view");
-		}
-	);
+	addRibbon("columns-3", msg({ message: "Open Kanban board", context: "commands.openKanbanView" }), async () => {
+		await plugin.openBasesFileForCommand("open-kanban-view");
+	});
 
-	plugin.addRibbonIcon("timer", plugin.i18n.translate("commands.openPomodoroView"), async () => {
+	addRibbon("timer", msg({ message: "Open Pomodoro timer", context: "commands.openPomodoroView" }), async () => {
 		await plugin.activatePomodoroView();
 	});
 
-	plugin.addRibbonIcon(
-		"bar-chart-3",
-		plugin.i18n.translate("commands.openPomodoroStats"),
-		async () => {
-			await plugin.activatePomodoroStatsView();
-		}
-	);
+	if (firstInstall) {
+		plugin.app.workspace.onLayoutReady(() => {
+			// Obsidian owns ribbon visibility and persists it in workspace configuration.
+			const workspace = plugin.app.workspace as unknown as {
+				leftRibbon?: RibbonConfiguration;
+			};
+			const optionalTitles = [msg({ message: "Open mini calendar view", context: "commands.openCalendarView" }), msg({ message: "Open agenda view", context: "commands.openAgendaView" }),
+				msg({ message: "Open Kanban board", context: "commands.openKanbanView" }), msg({ message: "Open Pomodoro timer", context: "commands.openPomodoroView" })];
+			const optionalIds = new Set(optionalTitles.map(key => `tasknotes:${plugin.i18n.translate(key)}`));
+			applyNewInstallRibbonDefaults(workspace.leftRibbon, firstInstall, optionalIds);
+		});
+	}
 
-	plugin.addRibbonIcon(
-		"tasknotes-simple",
-		plugin.i18n.translate("commands.createNewTask"),
-		() => {
-			plugin.openTaskCreationModal();
-		}
-	);
+	addRibbon("tasknotes-simple", msg({ message: "Create new task", context: "commands.createNewTask" }), () => {
+		plugin.openTaskCreationModal();
+	});
 }
 
 export function initializeCalendarProviders(plugin: TaskNotesPlugin): void {
 	plugin.oauthService = new OAuthService(plugin, plugin.oauthSecretStore);
-	plugin.googleCalendarService = new GoogleCalendarService(plugin, plugin.oauthService);
+	plugin.ownGoogleCalendarService = new GoogleCalendarService(plugin, plugin.oauthService);
+	plugin.hostedGoogleCalendarService = new HostedGoogleCalendarService(
+		plugin,
+		createCalendarServiceClient(plugin.app)
+	);
 	plugin.microsoftCalendarService = new MicrosoftCalendarService(plugin, plugin.oauthService);
 	plugin.calendarProviderRegistry = new CalendarProviderRegistry();
-	plugin.calendarProviderRegistry.register(plugin.googleCalendarService);
+	useGoogleCalendarSource(plugin);
 	plugin.calendarProviderRegistry.register(plugin.microsoftCalendarService);
 }
 
 export async function registerBasesIntegration(plugin: TaskNotesPlugin): Promise<void> {
-	if (!plugin.settings?.enableBases) {
-		clearBasesRegistrationRetry(plugin);
-		return;
-	}
-
 	if (plugin.basesRegistered && areTaskNotesBasesViewsRegistered(plugin)) {
 		clearBasesRegistrationRetry(plugin);
 		return;
@@ -303,7 +313,6 @@ function clearBasesRegistrationRetry(plugin: TaskNotesPlugin): void {
 
 function scheduleBasesRegistrationRetry(plugin: TaskNotesPlugin): void {
 	if (
-		!plugin.settings?.enableBases ||
 		plugin.basesRegistrationRetryIntervalId !== null ||
 		areTaskNotesBasesViewsRegistered(plugin)
 	) {
@@ -344,14 +353,24 @@ export async function initializeHTTPAPI(plugin: TaskNotesPlugin): Promise<void> 
 		plugin.taskService.setWebhookNotifier(plugin.apiService);
 		plugin.pomodoroService.setWebhookNotifier(plugin.apiService);
 		await plugin.apiService.start();
-		showNotice(`TaskNotes API started on port ${plugin.apiService.getPort()}`);
+		showNotice(
+			plugin.i18n.translate(msg({ message: "TaskNotes API started on port {port}", context: "notices.interface.apiStarted" }), {
+				port: plugin.apiService.getPort(),
+			})
+		);
+		if (plugin.apiService.didGenerateAuthToken()) {
+			showNotice(
+				uiText(msg({ message: "TaskNotes created a new API token for this device. Copy it from Settings → TaskNotes → Integrations into your API and MCP clients.", context: "integration.TaskNotescreatedanewAPItokenforthisdeviceCopy" })),
+				15000
+			);
+		}
 	} catch (error) {
 		tasknotesLogger.error("Failed to initialize HTTP API:", {
 			category: "provider",
 			operation: "initialize-http-api",
 			error: error,
 		});
-		showNotice("Failed to start tasknotes API server. Check console for details.");
+		showNotice(plugin.i18n.translate(msg({ message: "Failed to start TaskNotes API server. Check console for details.", context: "notices.interface.apiFailed" })));
 	}
 }
 
@@ -365,10 +384,11 @@ export async function initializeAfterLayoutReady(plugin: TaskNotesPlugin): Promi
 		if (plugin.settings.autoCreateDefaultBasesFiles) {
 			await plugin.ensureBasesViewFiles();
 		}
-		await plugin.ensureStarterNote();
 
 		plugin.injectCustomStyles();
+		installMdbaseFolderVisibility(plugin);
 		registerActiveViews(plugin);
+		closeRetiredViews(plugin);
 		registerEditorIntegrations(plugin);
 
 		plugin.cacheManager.initialize();
@@ -376,7 +396,7 @@ export async function initializeAfterLayoutReady(plugin: TaskNotesPlugin): Promi
 		plugin.filterService.initialize();
 		plugin.statusBarService.initialize();
 		await plugin.notificationService.initialize();
-		await plugin.warmupProjectIndexes();
+		scheduleIdleIndexWarmup(plugin);
 		await plugin.autoArchiveService.start();
 		plugin.setupDateChangeDetection();
 		initializeServicesLazily(plugin);
@@ -393,14 +413,39 @@ export async function initializeAfterLayoutReady(plugin: TaskNotesPlugin): Promi
 	}
 }
 
+/**
+ * Builds the filter indexes once Obsidian is idle instead of during startup.
+ * Queries that need them before then build them on demand.
+ */
+function scheduleIdleIndexWarmup(plugin: TaskNotesPlugin): void {
+	const warmup = () => void plugin.warmupProjectIndexes();
+	if (typeof window.requestIdleCallback === "function") {
+		const handle = window.requestIdleCallback(warmup, { timeout: 10_000 });
+		plugin.register(() => window.cancelIdleCallback(handle));
+	} else {
+		const handle = window.setTimeout(warmup, 2_000);
+		plugin.register(() => window.clearTimeout(handle));
+	}
+}
+
 function registerActiveViews(plugin: TaskNotesPlugin): void {
 	plugin.registerView(POMODORO_VIEW_TYPE, (leaf) => new PomodoroView(leaf, plugin));
-	plugin.registerView(POMODORO_STATS_VIEW_TYPE, (leaf) => new PomodoroStatsView(leaf, plugin));
-	plugin.registerView(STATS_VIEW_TYPE, (leaf) => new StatsView(leaf, plugin));
 	plugin.registerView(
 		RELEASE_NOTES_VIEW_TYPE,
 		(leaf) => new ReleaseNotesView(leaf, plugin, RELEASE_NOTES_BUNDLE, CURRENT_VERSION)
 	);
+}
+
+/** Views TaskNotes no longer provides. A saved workspace can still hold their tabs. */
+const RETIRED_VIEW_TYPES = new Set(["tasknotes-stats-view", "tasknotes-pomodoro-stats-view"]);
+
+/** Closes leftover tabs of retired views, which Obsidian would otherwise show as from an inactive plugin. */
+function closeRetiredViews(plugin: TaskNotesPlugin): void {
+	const retired: WorkspaceLeaf[] = [];
+	plugin.app.workspace.iterateAllLeaves((leaf) => {
+		if (RETIRED_VIEW_TYPES.has(leaf.getViewState().type)) retired.push(leaf);
+	});
+	for (const leaf of retired) leaf.detach();
 }
 
 function registerEditorIntegrations(plugin: TaskNotesPlugin): void {
@@ -412,32 +457,67 @@ function registerEditorIntegrations(plugin: TaskNotesPlugin): void {
 	plugin.registerMarkdownPostProcessor(createReadingModeTaskLinkProcessor(plugin));
 }
 
+/**
+ * Runs one lazy initialization step, logging its failure so that the steps
+ * after it still run.
+ */
+async function runLazyInitStep(
+	operation: string,
+	step: () => void | Promise<void>
+): Promise<void> {
+	try {
+		await step();
+	} catch (error) {
+		tasknotesLogger.error("Error during lazy service initialization:", {
+			category: "internal",
+			operation: `lazy-service-initialization:${operation}`,
+			error: error,
+		});
+	}
+}
+
 export function initializeServicesLazily(plugin: TaskNotesPlugin): void {
 	window.setTimeout(() => {
 		void (async () => {
-			try {
+			await runLazyInitStep("pomodoro", async () => {
 				if (!plugin.pomodoroService) {
 					plugin.pomodoroService = new PomodoroService(plugin);
 					await plugin.pomodoroService.initialize();
 				}
+			});
 
+			await runLazyInitStep("auto-export", () => {
 				plugin.autoExportService = new AutoExportService(plugin);
 				plugin.autoExportService.start();
+			});
 
-				if (!isCalendarIntegrationDisabledOnMobile(plugin.settings)) {
-					await plugin.icsSubscriptionService.initialize();
+			if (!isCalendarIntegrationDisabledOnMobile(plugin.settings)) {
+				await runLazyInitStep("ics-subscriptions", () =>
+					plugin.icsSubscriptionService.initialize()
+				);
 
-					plugin.googleCalendarService.on("data-changed", () => {
-						plugin.notifyDataChanged(undefined, false, true);
+				await runLazyInitStep("google-calendar", async () => {
+					const changed = () => plugin.notifyDataChanged(undefined, false, true);
+					plugin.ownGoogleCalendarService.on("data-changed", changed);
+					plugin.hostedGoogleCalendarService.on("data-changed", changed);
+					plugin.hostedGoogleCalendarService.on("session-changed", () => {
+						if (useGoogleCalendarSource(plugin)) changed();
 					});
-					await plugin.googleCalendarService.initialize();
+					await plugin.hostedGoogleCalendarService.initialize();
+					await plugin.ownGoogleCalendarService.initialize();
 
+					// Writing tasks and timeblocks into Google Calendar stays with the
+					// person's own Google application; the calendar service does not do it.
 					plugin.taskCalendarSyncService = new (
 						await import("../services/TaskCalendarSyncService")
-					).TaskCalendarSyncService(plugin, plugin.googleCalendarService);
+					).TaskCalendarSyncService(plugin, plugin.ownGoogleCalendarService);
 					await plugin.taskCalendarSyncService.initializeExternalFileReconciliation();
+					plugin.taskCalendarSyncService.timeblocks.initialize();
+					plugin.taskCalendarSyncService.timeblocks.registerVaultEvents();
 					plugin.taskCalendarSyncService.startRecoveryQueueProcessor();
+				});
 
+				await runLazyInitStep("google-calendar-task-events", () => {
 					plugin.registerEvent(
 						plugin.emitter.on("file-updated", (data: FileUpdatedEventData) => {
 							if (!plugin.taskCalendarSyncService || !data?.path) {
@@ -503,19 +583,25 @@ export function initializeServicesLazily(plugin: TaskNotesPlugin): void {
 							}
 						})
 					);
+				});
 
+				await runLazyInitStep("microsoft-calendar", async () => {
 					plugin.microsoftCalendarService.on("data-changed", () => {
 						plugin.notifyDataChanged(undefined, false, true);
 					});
 					await plugin.microsoftCalendarService.initialize();
-				}
+				});
+			}
 
+			await runLazyInitStep("task-file-lifecycle-reconciliation", async () => {
 				plugin.taskFileLifecycleReconciliationService =
 					new TaskFileLifecycleReconciliationService(plugin);
 				await plugin.taskFileLifecycleReconciliationService.initialize();
+			});
 
-				await initializeHTTPAPI(plugin);
+			await runLazyInitStep("http-api", () => initializeHTTPAPI(plugin));
 
+			await runLazyInitStep("editor-services", async () => {
 				const { TaskLinkDetectionService } = await import(
 					"../services/TaskLinkDetectionService"
 				);
@@ -580,18 +666,17 @@ export function initializeServicesLazily(plugin: TaskNotesPlugin): void {
 						}, 100);
 					})
 				);
+			});
 
+			await runLazyInitStep("event-listeners", () => {
 				plugin.setupStatusBarEventListeners();
 				plugin.setupTimeTrackingEventListeners();
+			});
+
+			await runLazyInitStep("version-check", async () => {
 				await plugin.checkForVersionUpdate();
 				void plugin.checkForNewReleaseOnStartup();
-			} catch (error) {
-				tasknotesLogger.error("Error during lazy service initialization:", {
-					category: "internal",
-					operation: "lazy-service-initialization",
-					error: error,
-				});
-			}
+			});
 		})();
 	}, 10);
 }

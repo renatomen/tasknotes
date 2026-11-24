@@ -1,4 +1,7 @@
-import { setTooltip, TFile } from "obsidian";
+import { uiData } from "../i18n/dataText";
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
+import { setIcon, setTooltip, TFile } from "obsidian";
 import TaskNotesPlugin from "../main";
 import { TaskDependency, TaskInfo } from "../types";
 import {
@@ -8,7 +11,7 @@ import {
 	resolveDependencyEntry,
 } from "../utils/dependencyUtils";
 import { appendInternalLink, type LinkServices } from "../ui/renderers/linkRenderer";
-import { createTaskCard } from "../ui/TaskCard";
+import { createTaskModalTaskRow } from "./taskModalTaskRow";
 import { stringifyUnknown } from "../utils/stringUtils";
 
 export interface DependencyItem {
@@ -28,7 +31,7 @@ export interface RenderDependencyListOptions {
 	listEl: HTMLElement | undefined;
 	items: DependencyItem[];
 	linkServices: LinkServices;
-	translate: (key: string, params?: Record<string, string | number>) => string;
+	translate: (key: MessageDescriptor, params?: Record<string, string | number>) => string;
 	onRemove: (index: number) => void;
 }
 
@@ -146,6 +149,8 @@ export function removeDependencyItemAtIndex(
 	return items.filter((_, index) => index !== indexToRemove);
 }
 
+const dependencyListRenderVersions = new WeakMap<HTMLElement, number>();
+
 export async function renderDependencyList({
 	plugin,
 	listEl,
@@ -158,14 +163,16 @@ export async function renderDependencyList({
 		return;
 	}
 
-	listEl.empty();
-	if (items.length === 0) {
-		return;
-	}
+	const version = (dependencyListRenderVersions.get(listEl) ?? 0) + 1;
+	dependencyListRenderVersions.set(listEl, version);
+	// Build off-DOM so concurrent renders cannot interleave rows in the visible list.
+	const rows = listEl.cloneNode(false) as HTMLElement;
 
 	for (const [index, item] of items.entries()) {
+		if (dependencyListRenderVersions.get(listEl) !== version) return;
+
 		const hasResolvedTaskPath = Boolean(item.path && !item.unresolved);
-		const itemEl = listEl.createDiv({
+		const itemEl = rows.createDiv({
 			cls: hasResolvedTaskPath
 				? "task-project-item task-project-item--task-card"
 				: "task-project-item",
@@ -174,7 +181,7 @@ export async function renderDependencyList({
 			itemEl.addClass("task-project-item--unresolved");
 			setTooltip(
 				itemEl,
-				translate("contextMenus.task.dependencies.notices.unresolved", {
+				translate(msg({ message: "Could not resolve: {entries}", context: "contextMenus.task.dependencies.notices.unresolved" }), {
 					entries: item.dependency.uid,
 				}),
 				{ placement: "top" }
@@ -187,6 +194,7 @@ export async function renderDependencyList({
 
 		if (item.path && !item.unresolved) {
 			await renderResolvedDependency(plugin, contentEl, item, linkServices);
+			if (dependencyListRenderVersions.get(listEl) !== version) return;
 		} else {
 			renderUnresolvedDependency(contentEl, item);
 		}
@@ -195,14 +203,20 @@ export async function renderDependencyList({
 			cls: "task-project-remove",
 			text: "×",
 		});
-		setTooltip(removeBtn, translate("modals.task.dependencies.removeTaskTooltip"), {
+		setTooltip(removeBtn, translate(msg({ message: "Remove task", context: "modals.task.dependencies.removeTaskTooltip" })), {
 			placement: "top",
 		});
 		removeBtn.addEventListener("click", (event) => {
 			event.preventDefault();
 			event.stopPropagation();
+			// The visible rows may belong to an older list while its replacement loads.
+			if (dependencyListRenderVersions.get(listEl) !== version) return;
 			onRemove(index);
 		});
+	}
+
+	if (dependencyListRenderVersions.get(listEl) === version) {
+		listEl.replaceChildren(...rows.childNodes);
 	}
 }
 
@@ -218,17 +232,12 @@ async function renderResolvedDependency(
 
 	const taskInfo = await plugin.cacheManager.getCachedTaskInfo(item.path);
 	if (taskInfo) {
-		const taskCard = createTaskCard(taskInfo, plugin, undefined, {
-			layout: "default",
-			showSecondaryBadges: false,
-			enableHoverPreview: false,
-		});
-		contentEl.appendChild(taskCard);
+		contentEl.appendChild(createTaskModalTaskRow(taskInfo, plugin));
 		return;
 	}
 
 	const nameEl = contentEl.createSpan({ cls: "task-project-name clickable-dependency" });
-	appendInternalLink(nameEl, item.path, item.name, linkServices, {
+	appendInternalLink(nameEl, item.path, uiData(item.name, "Resolved vault/Markdown link alias or filename; preserve user-authored link data"), linkServices, {
 		cssClass: "task-dependency-link internal-link",
 		hoverSource: "tasknotes-dependency-link",
 		showErrorNotices: true,
@@ -238,11 +247,11 @@ async function renderResolvedDependency(
 	}
 }
 
+/** Sits where a task's status glyph would, so missing tasks align with the found ones. */
 function renderUnresolvedDependency(contentEl: HTMLElement, item: DependencyItem): void {
+	setIcon(contentEl.createSpan({ cls: "tn-task-modal__task-row-placeholder" }), "unlink");
 	const nameEl = contentEl.createSpan({ cls: "task-project-name" });
 	nameEl.textContent = item.name;
-	const pathText = item.path ?? item.dependency.uid;
-	contentEl.createDiv({ cls: "task-project-path", text: pathText });
 }
 
 export function candidateDependencyUid(

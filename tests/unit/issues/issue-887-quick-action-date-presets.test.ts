@@ -1,7 +1,11 @@
+import { createI18nService } from "../../../src/i18n";
 import { App } from "obsidian";
 import { TaskActionPaletteModal } from "../../../src/modals/TaskActionPaletteModal";
 import type TaskNotesPlugin from "../../../src/main";
 import type { TaskInfo } from "../../../src/types";
+import { changeTaskProperty } from "../../../src/ui/taskPropertyPickers";
+
+jest.mock("../../../src/ui/taskPropertyPickers", () => ({ changeTaskProperty: jest.fn() }));
 
 function createTask(overrides: Partial<TaskInfo> = {}): TaskInfo {
 	return {
@@ -17,6 +21,8 @@ function createTask(overrides: Partial<TaskInfo> = {}): TaskInfo {
 function createPlugin(): TaskNotesPlugin {
 	return {
 		app: new App(),
+		i18n: createI18nService(),
+		settings: { calendarViewSettings: { firstDay: 1 } },
 		statusManager: {
 			getAllStatuses: jest.fn(() => [{ value: "open", label: "Open" }]),
 			getNonCompletionStatuses: jest.fn(() => [{ value: "open", label: "Open" }]),
@@ -109,6 +115,22 @@ describe("Issue #887: quick-action date presets", () => {
 		);
 	});
 
+	it("uses the configured first day for next-week dates and search", async () => {
+		jest.setSystemTime(new Date(2026, 11, 30, 12));
+		const task = createTask();
+		const plugin = createPlugin();
+		plugin.settings.calendarViewSettings.firstDay = 0;
+		const modal = createModal(task, plugin);
+
+		for (const property of ["due", "scheduled"] as const) {
+			const action = modal.getItems().find((item) => item.id === `set-${property}-next-week`)!;
+			expect(action.keywords).toContain("sunday");
+			expect(action.keywords).not.toContain("monday");
+			await action.execute(task, plugin, new Date());
+			expect(changeTaskProperty).toHaveBeenCalledWith(plugin, [task], property, "2027-01-03");
+		}
+	});
+
 	it("sets preset dates directly without opening the date picker", async () => {
 		const task = createTask();
 		const plugin = createPlugin();
@@ -117,7 +139,7 @@ describe("Issue #887: quick-action date presets", () => {
 
 		await action?.execute(task, plugin, new Date("2026-05-18T12:00:00+10:00"));
 
-		expect(plugin.updateTaskProperty).toHaveBeenCalledWith(task, "scheduled", "2026-05-19");
+		expect(changeTaskProperty).toHaveBeenCalledWith(plugin, [task], "scheduled", "2026-05-19");
 		expect(plugin.openScheduledDateModal).not.toHaveBeenCalled();
 	});
 

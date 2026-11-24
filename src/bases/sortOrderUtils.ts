@@ -4,6 +4,7 @@
  */
 import { LexoRank as LexoRankValue } from "lexorank";
 import { TFile } from "obsidian";
+import { NONE_GROUP_KEY, TRUE_GROUP_KEY, FALSE_GROUP_KEY } from "./groupKeys";
 import type TaskNotesPlugin from "../main";
 import type { TaskInfo } from "../types";
 import { stringifyUnknown } from "../utils/stringUtils";
@@ -19,6 +20,8 @@ export interface SortOrderComputationOptions {
 	taskInfoCache?: Map<string, TaskInfo>;
 	visibleTaskPaths?: string[];
 	candidateTaskPaths?: string[];
+	/** The view's configured manual-order direction; inferred from neighbours when absent. */
+	sortDirection?: SortDirection;
 }
 
 export interface SortOrderWrite {
@@ -43,13 +46,14 @@ const ALPHA_RANK_BASE = 26;
 const ALPHA_RANK_MAX = Math.pow(ALPHA_RANK_BASE, ALPHA_RANK_WIDTH) - 1;
 const ALPHA_RANK_PATTERN = /^tn[a-z]{10}$/;
 
-type SortDirection = "asc" | "desc";
+export type SortDirection = "asc" | "desc";
 type SortConfigItem = {
 	property?: unknown;
 	column?: unknown;
 	field?: unknown;
 	id?: unknown;
 	name?: unknown;
+	direction?: unknown;
 };
 type SortConfigSource = {
 	getSortConfig(): SortConfigItem | SortConfigItem[] | null | undefined;
@@ -73,14 +77,14 @@ class AlphaRank implements RankLike {
 		if (this.value <= 0) {
 			throw new Error("Cannot generate rank before minimum alpha rank");
 		}
-		return new AlphaRank(this.value - 1);
+		return new AlphaRank(Math.floor(this.value / 2));
 	}
 
 	genNext(): RankLike {
 		if (this.value >= ALPHA_RANK_MAX) {
 			throw new Error("Cannot generate rank after maximum alpha rank");
 		}
-		return new AlphaRank(this.value + 1);
+		return new AlphaRank(this.value + Math.max(1, Math.floor((ALPHA_RANK_MAX - this.value) / 2)));
 	}
 
 	between(other: RankLike): RankLike {
@@ -137,6 +141,16 @@ function createAlphaRankForDisplayIndex(
 function compareRankStringsForBases(left: string, right: string): number {
 	const collated = BASES_SORT_COLLATOR.compare(left, right);
 	return collated !== 0 ? collated : left.localeCompare(right);
+}
+
+export function compareManualOrderValues(
+	left: unknown,
+	right: unknown,
+	direction: SortDirection = "asc"
+): number {
+	if (left == null || left === "") return right == null || right === "" ? 0 : 1;
+	if (right == null || right === "") return -1;
+	return compareDisplaySortStrings(stringifyUnknown(left), stringifyUnknown(right), direction);
 }
 
 function compareDisplaySortStrings(
@@ -209,6 +223,31 @@ export function isSortOrderInSortConfig(dataAdapter: SortConfigSource, sortOrder
 	}
 }
 
+/**
+ * The configured direction of the sort-order field, if the view sorts by it. Inferring the
+ * direction from neighbours fails when a scope holds only one other ranked task.
+ */
+export function getSortOrderDirection(
+	dataAdapter: SortConfigSource,
+	sortOrderField: string
+): SortDirection | undefined {
+	try {
+		const sortConfig = dataAdapter.getSortConfig();
+		if (!sortConfig) return undefined;
+		const configs = Array.isArray(sortConfig) ? sortConfig : [sortConfig];
+		const match = configs.find((s) => {
+			if (!s || typeof s !== "object") return false;
+			const candidate = s.property || s.column || s.field || s.id || s.name || "";
+			const clean = stringifyUnknown(candidate).replace(/^(note\.|file\.|task\.)/, "");
+			return clean === sortOrderField;
+		});
+		const direction = stringifyUnknown(match?.direction ?? "").toLowerCase();
+		return direction === "asc" || direction === "desc" ? direction : undefined;
+	} catch {
+		return undefined;
+	}
+}
+
 function tryParseSortRank(value: string | undefined): RankLike | null {
 	if (typeof value !== "string" || value.length === 0) return null;
 	const alphaRankValue = decodeAlphaRank(value);
@@ -230,19 +269,19 @@ function shouldRebalanceRank(rank: RankLike | null): boolean {
 }
 
 function frontmatterValueToGroupString(value: unknown): string {
-	if (value === null || value === undefined || value === "") return "None";
+	if (value === null || value === undefined || value === "") return NONE_GROUP_KEY;
 	if (typeof value === "string") return value;
-	if (typeof value === "boolean") return value ? "True" : "False";
+	if (typeof value === "boolean") return value ? TRUE_GROUP_KEY : FALSE_GROUP_KEY;
 	if (typeof value === "number") return String(value);
-	return stringifyUnknown(value) || "None";
+	return stringifyUnknown(value) || NONE_GROUP_KEY;
 }
 
 function getFrontmatterGroupValues(value: unknown): string[] {
-	if (value === null || value === undefined || value === "") return ["None"];
+	if (value === null || value === undefined || value === "") return [NONE_GROUP_KEY];
 	if (Array.isArray(value)) {
 		return value.length > 0
 			? value.map((entry) => frontmatterValueToGroupString(entry))
-			: ["None"];
+			: [NONE_GROUP_KEY];
 	}
 	return [frontmatterValueToGroupString(value)];
 }
@@ -462,6 +501,35 @@ function createRebalancePlan(
 	};
 }
 
+function createSparseInitPlan(
+	tasks: TaskInfo[],
+	insertAt: number,
+	direction: SortDirection
+): SortOrderPlan | null {
+	const firstUnranked = tasks.findIndex((task) => !task.sortOrder);
+	if (firstUnranked < 0 || insertAt < firstUnranked) return null;
+	if (tasks.slice(firstUnranked).some((task) => task.sortOrder)) return null;
+	const anchor = firstUnranked > 0 ? tasks[firstUnranked - 1].sortOrder : undefined;
+	const anchorValue = anchor ? decodeAlphaRank(anchor) : null;
+	if (anchor && anchorValue === null) return null;
+	for (let index = 1; index < firstUnranked; index++) {
+		if (compareManualOrderValues(tasks[index - 1].sortOrder, tasks[index].sortOrder, direction) >= 0) return null;
+	}
+	const count = insertAt - firstUnranked + 1;
+	const lower = direction === "asc" ? anchorValue ?? 0 : 0;
+	const upper = direction === "desc" ? anchorValue ?? ALPHA_RANK_MAX : ALPHA_RANK_MAX;
+	const step = Math.floor((upper - lower) / (count + 1));
+	if (step < 1) return null;
+	const ranks = Array.from({ length: count }, (_, index) => encodeAlphaRank(
+		direction === "asc" ? lower + step * (index + 1) : upper - step * (index + 1)
+	));
+	return {
+		sortOrder: ranks[count - 1],
+		additionalWrites: tasks.slice(firstUnranked, insertAt).map((task, index) => ({ path: task.path, sortOrder: ranks[index] })),
+		reason: "sparse-init",
+	};
+}
+
 export function generateEndRank(): string {
 	return encodeAlphaRank(ALPHA_RANK_MAX - 1);
 }
@@ -579,7 +647,7 @@ export async function prepareSortOrderUpdate(
 		(task) => task.path !== draggedPath
 	);
 	const orderedTasks = getVisibleOrderedTasks(columnTasks, options.visibleTaskPaths, draggedPath);
-	const sortDirection = inferSortDirection(orderedTasks);
+	const sortDirection = options.sortDirection ?? inferSortDirection(orderedTasks);
 
 	if (columnTasks.length === 0) {
 		return {
@@ -623,7 +691,8 @@ export async function prepareSortOrderUpdate(
 	const nextRank = nextTask ? tryParseSortRank(nextTask.sortOrder) : null;
 
 	if (!targetRank) {
-		return createRebalancePlan(orderedTasks, targetIndex, above, sortDirection);
+		return createSparseInitPlan(orderedTasks, targetIndex + (above ? 0 : 1), sortDirection)
+			?? createRebalancePlan(orderedTasks, targetIndex, above, sortDirection);
 	}
 
 	const previousBoundaryInvalid = previousRank

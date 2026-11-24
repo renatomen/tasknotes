@@ -1,3 +1,9 @@
+import { uiData } from "../i18n/dataText";
+import { uiText } from "../i18n/runtime";
+import { installTaskViewKeyboard } from "../ui/taskViewKeyboard";
+import { inferBasesCreationFolder } from "./basesFilterDefaults";
+import { showToast } from "../ui/kit/toast";
+import { msg } from "@lingui/core/macro";
 import { Component, App, Notice } from "obsidian";
 import type { BasesPropertyId, BasesQueryResult, BasesViewConfig, EventRef } from "obsidian";
 import TaskNotesPlugin from "../main";
@@ -23,14 +29,8 @@ import {
 	formatBasesExportAsTsv,
 	type BasesExportTable,
 } from "./basesExport";
-import {
-	getRenderedTaskPaths,
-	planBasesTaskDeletedEvent,
-} from "./basesUpdateEvents";
-import {
-	cleanupBasesNewTaskButton,
-	injectBasesNewTaskButton,
-} from "./basesToolbar";
+import { getRenderedTaskPaths, planBasesTaskDeletedEvent } from "./basesUpdateEvents";
+import { cleanupBasesNewTaskButton, injectBasesNewTaskButton } from "./basesToolbar";
 import {
 	buildBasesVisibleProperties,
 	buildBasesVisiblePropertyLabels,
@@ -66,7 +66,9 @@ import {
 	cleanupBasesTaskUpdateListeners,
 	registerBasesTaskUpdateListeners,
 } from "./basesTaskUpdateListeners";
+import { registerBasesDateRollover } from "./basesDateRollover";
 import { filterTopLevelSubtasks } from "./topLevelSubtasks";
+import { renderEmptyState } from "../ui/kit/emptyState";
 import type { BasesTaskUpdateSource } from "./basesUpdateEvents";
 import { createTaskNotesLogger, type TaskNotesLogger } from "../utils/tasknotesLogger";
 
@@ -105,8 +107,10 @@ export abstract class BasesViewBase extends Component {
 
 	// Search functionality (opt-in via enableSearch flag)
 	protected enableSearch = false;
+	private configuredSearchEnabled: boolean | null = null;
 	protected searchBox: SearchBox | null = null;
 	protected searchContainerEl: HTMLElement | null = null;
+	private nativeSearchButton: HTMLElement | null = null;
 	protected searchFilter: TaskSearchFilter | null = null;
 	protected currentSearchTerm = "";
 
@@ -171,7 +175,11 @@ export abstract class BasesViewBase extends Component {
 	 */
 	onload(): void {
 		this.setupContainer();
+		this.registerEvent(this.plugin.emitter.on("settings-changed", () => this.debouncedRefresh()));
 		this.setupTaskUpdateListener();
+		const settingsListener = this.plugin.emitter.on("settings-changed", () => this.onDataUpdated());
+		this.register(() => this.plugin.emitter.offref(settingsListener));
+		this.setupDateRolloverListener();
 		this.setupSelectionHandling();
 		this.updateRelevantPathsCache();
 		void this.render();
@@ -342,6 +350,13 @@ export abstract class BasesViewBase extends Component {
 		this.containerEl.appendChild(root);
 		this.rootElement = root;
 
+		// Bases owns this element; the attribute lets styles adjust it per view type.
+		const host = this.containerEl;
+		host.dataset.tnView = this.type;
+		this.register(() => {
+			if (host.dataset.tnView === this.type) delete host.dataset.tnView;
+		});
+
 		// Add custom "New Task" button and hide the default Bases "New" button
 		this.setupNewTaskButton();
 	}
@@ -371,12 +386,21 @@ export abstract class BasesViewBase extends Component {
 	private injectNewTaskButton(): void {
 		const result = injectBasesNewTaskButton({
 			containerEl: this.containerEl,
-			label: this.plugin.i18n.translate("common.new"),
+			keyHint: this.type === "tasknotesTaskList" || this.type === "tasknotesKanban" ? "C" : undefined,
+			label: this.plugin.i18n.translate(msg({ message: "New", context: "common.new" })),
 			onClick: (event) => {
 				event.preventDefault();
 				event.stopPropagation();
 
-				void this.createFileForView("New Task");
+				void this.createFileForView(
+					uiText(
+						msg({
+							message: "New Task",
+							context:
+								"bases/BasesViewBase: BasesViewBase.injectNewTaskButton.onClick display",
+						})
+					)
+				);
 			},
 		});
 
@@ -438,6 +462,24 @@ export abstract class BasesViewBase extends Component {
 				this.taskUpdateListener = null;
 			}
 		});
+	}
+
+	private setupDateRolloverListener(): void {
+		this.register(
+			registerBasesDateRollover({
+				emitter: this.plugin.emitter,
+				getElement: () => this.rootElement,
+				onDateRollover: (previousDay) => this.handleDateRollover(previousDay),
+			})
+		);
+	}
+
+	/**
+	 * Redraw date-dependent cards on a new day, through the same path as a Bases
+	 * update so that views keep their guards against rendering mid-drag.
+	 */
+	protected handleDateRollover(_previousDay: string): void {
+		this.onDataUpdated();
 	}
 
 	private handleTaskDeletedEvent(eventData: unknown): void {
@@ -510,21 +552,35 @@ export abstract class BasesViewBase extends Component {
 			fieldMapper: this.plugin.fieldMapper,
 			taskTag: this.plugin.settings.taskTag,
 			userFields: this.plugin.settings.userFields || [],
-			currentFileLink: () => getBasesCurrentFileLinkDefault(app),
+			currentFileLink: () =>
+				getBasesCurrentFileLinkDefault(app, this.plugin.settings.useFrontmatterMarkdownLinks),
 			frontmatterProcessor,
 		});
 
 		// Open TaskNotes creation modal
 		// Use this.app if available (set by Bases), otherwise fall back to plugin.app
 		const modal = new TaskCreationModal(app, this.plugin, {
+			targetFolder: inferBasesCreationFolder(this.config),
 			prePopulatedValues: taskCreationData,
 			onTaskCreated: (task: TaskInfo) => {
 				// Refresh the view after task creation so it appears immediately
-				this.refresh();
+				this.onViewTaskCreated(task);
+				const timer = window.setTimeout(() => {
+					if (!this.rootElement?.isConnected || this.data?.data.some((entry) => entry.file.path === task.path)) return;
+					showToast({
+						message: uiText(msg({ message: "Task created, but hidden by this view", context: "bases creation feedback" })),
+						action: { label: uiText(msg({ message: "Open", context: "bases creation feedback" })), run: () => { void app.workspace.openLinkText(task.path, "", false); } },
+					});
+				}, 1500);
+				this.register(() => window.clearTimeout(timer));
 			},
 		});
 
 		modal.open();
+	}
+
+	protected onViewTaskCreated(_task: TaskInfo): void {
+		this.refresh();
 	}
 
 	/**
@@ -572,12 +628,38 @@ export abstract class BasesViewBase extends Component {
 		);
 	}
 
+	protected updateSearchConfiguration(enabled: boolean): void {
+		if (enabled === this.configuredSearchEnabled) return;
+		this.configuredSearchEnabled = enabled;
+		this.enableSearch = enabled;
+	}
+
 	/**
 	 * Initialize search functionality for this view.
 	 * Call this from render() in subclasses that want search.
 	 * Requires enableSearch to be true and will only create the UI once.
 	 */
 	protected setupSearch(container: HTMLElement): void {
+		const host = container.closest(".bases-view")?.parentElement;
+		const nativeSearch = host?.querySelector<HTMLElement>(".bases-toolbar-search :is([role=button], .text-icon-button)");
+		if (nativeSearch && this.nativeSearchButton !== nativeSearch) {
+			if (nativeSearch.classList.contains("is-active")) nativeSearch.click();
+			this.nativeSearchButton = nativeSearch;
+			const launchSearch = (event: MouseEvent) => {
+				event.preventDefault();
+				event.stopImmediatePropagation();
+				this.enableSearch = true;
+				this.setupSearch(container);
+				this.searchContainerEl?.querySelector("input")?.focus();
+			};
+			nativeSearch.addEventListener("click", launchSearch, true);
+			this.register(() => {
+				nativeSearch.removeEventListener("click", launchSearch, true);
+				host?.classList.remove("tn-search-active");
+			});
+		}
+		if (this.searchContainerEl?.contains(container.ownerDocument.activeElement) || this.currentSearchTerm) this.enableSearch = true;
+		host?.classList.toggle("tn-search-active", this.enableSearch);
 		// Tear down search UI if it exists but search has been disabled
 		if (this.searchBox && !this.enableSearch) {
 			this.teardownSearch();
@@ -586,6 +668,7 @@ export abstract class BasesViewBase extends Component {
 
 		// Idempotency: if search UI is already created, restore value and return
 		if (this.searchBox) {
+			if (this.searchContainerEl && !this.searchContainerEl.isConnected) container.prepend(this.searchContainerEl);
 			// Restore search term if it was cleared during re-render
 			if (this.currentSearchTerm && this.searchBox.getValue() !== this.currentSearchTerm) {
 				this.searchBox.setValue(this.currentSearchTerm);
@@ -619,6 +702,12 @@ export abstract class BasesViewBase extends Component {
 		this.searchFilter = searchControls.searchFilter;
 		this.searchBox = searchControls.searchBox;
 		this.searchContainerEl = searchControls.searchContainer;
+		searchControls.searchContainer.addEventListener("tn-search-close", () => {
+			this.enableSearch = false;
+			this.teardownSearch();
+			host?.classList.remove("tn-search-active");
+			this.debouncedRefresh();
+		});
 
 		// Register cleanup using Component lifecycle
 		this.register(() => this.teardownSearch());
@@ -644,12 +733,12 @@ export abstract class BasesViewBase extends Component {
 	 * Subclasses can override for custom behavior.
 	 * Includes performance monitoring for search operations.
 	 */
-	protected handleSearch(term: string): void {
+	protected async handleSearch(term: string): Promise<void> {
 		const startTime = performance.now();
 		this.currentSearchTerm = term;
 
 		// Re-render with filtered tasks
-		void this.render();
+		await this.render();
 
 		const filterTime = performance.now() - startTime;
 
@@ -668,12 +757,18 @@ export abstract class BasesViewBase extends Component {
 	 * Returns filtered tasks or original if no search term.
 	 */
 	protected applySearchFilter(tasks: TaskInfo[]): TaskInfo[] {
+		const updateCount = (visible: number) => {
+			const countLabel = this.containerEl.closest(".bases-view")?.parentElement?.querySelector<HTMLElement>(".bases-toolbar-result-count .text-button-label");
+			if (countLabel && this.enableSearch) countLabel.textContent = uiText(msg({ message: "{visible} of {total} tasks", context: "filtered task count" }), { visible, total: tasks.length });
+		};
 		if (!this.searchFilter || !this.currentSearchTerm) {
+			updateCount(tasks.length);
 			return tasks;
 		}
 
 		const startTime = performance.now();
 		const filtered = this.searchFilter.filterTasks(tasks, this.currentSearchTerm);
+		updateCount(filtered.length);
 		const filterTime = performance.now() - startTime;
 
 		// Log filter performance for monitoring
@@ -702,18 +797,34 @@ export abstract class BasesViewBase extends Component {
 			});
 
 			if (result.status === "empty") {
-				new Notice("No tasks to copy");
+				new Notice(
+					this.plugin.i18n.translate(
+						msg({ message: "No tasks to copy", context: "notices.audit.noTasksCopy" })
+					)
+				);
 				return;
 			}
 
-			new Notice(`Copied ${result.count} tasks`);
+			new Notice(
+				this.plugin.i18n.translate(
+					msg({ message: "Tasks copied: {count}", context: "notices.audit.copiedTasks" }),
+					{ count: result.count }
+				)
+			);
 		} catch (error) {
 			this.logger.error("Failed to copy current view tasks", {
 				category: "provider",
 				operation: "copy-current-view-tasks",
 				error,
 			});
-			new Notice("Failed to copy tasks");
+			new Notice(
+				this.plugin.i18n.translate(
+					msg({
+						message: "Failed to copy to clipboard",
+						context: "contextMenus.task.notices.copyFailure",
+					})
+				)
+			);
 		}
 	}
 
@@ -722,8 +833,7 @@ export abstract class BasesViewBase extends Component {
 	}
 
 	private getBasesExportFileName(): string {
-		const configName =
-			typeof this.config?.get === "function" ? this.config.get("name") : "";
+		const configName = typeof this.config?.get === "function" ? this.config.get("name") : "";
 		return buildBasesExportFileName(configName, this.type);
 	}
 
@@ -733,14 +843,26 @@ export abstract class BasesViewBase extends Component {
 			const text = formatBasesExportAsTsv(table);
 
 			await navigator.clipboard.writeText(text);
-			new Notice(`Copied ${table.rows.length} rows`);
+			new Notice(
+				this.plugin.i18n.translate(
+					msg({ message: "Rows copied: {count}", context: "notices.audit.copiedRows" }),
+					{ count: table.rows.length }
+				)
+			);
 		} catch (error) {
 			this.logger.error("Failed to copy Bases table", {
 				category: "provider",
 				operation: "copy-bases-table",
 				error,
 			});
-			new Notice("Failed to copy table");
+			new Notice(
+				this.plugin.i18n.translate(
+					msg({
+						message: "Failed to copy to clipboard",
+						context: "contextMenus.task.notices.copyFailure",
+					})
+				)
+			);
 		}
 	}
 
@@ -757,14 +879,34 @@ export abstract class BasesViewBase extends Component {
 			link.download = this.getBasesExportFileName();
 			link.click();
 			win.URL.revokeObjectURL(url);
-			new Notice(`Exported ${table.rows.length} rows`);
+			new Notice(
+				this.plugin.i18n.translate(
+					msg({
+						message: "Rows exported: {count}",
+						context: "notices.audit.exportedRows",
+					}),
+					{
+						count: table.rows.length,
+					}
+				)
+			);
 		} catch (error) {
 			this.logger.error("Failed to export Bases table", {
 				category: "provider",
 				operation: "export-bases-table",
 				error,
 			});
-			new Notice("Failed to export table");
+			new Notice(
+				this.plugin.i18n.translate(
+					msg({ message: "Action failed: {action}", context: "notices.audit.failed" }),
+					{
+						action: uiData(
+							"CSV",
+							"CSV interchange format name; preserve the standard acronym"
+						),
+					}
+				)
+			);
 		}
 	}
 
@@ -785,7 +927,30 @@ export abstract class BasesViewBase extends Component {
 	 * Call this when search produces no matches.
 	 */
 	protected renderSearchNoResults(container: HTMLElement): void {
-		renderBasesSearchNoResults(container, this.currentSearchTerm);
+		renderBasesSearchNoResults(container, this.currentSearchTerm, () => {
+			this.searchBox?.setValue("");
+			void this.handleSearch("");
+		});
+	}
+
+	protected renderTaskEmptyState(container: HTMLElement): HTMLElement {
+		// An empty view is often the expected result (every task done, nothing linked yet). Filter
+		// and New are already in the toolbar, so it is one quiet line instead of a call to action.
+		if (this.plugin.cacheManager.getAllTaskPaths().size > 0) {
+			return renderEmptyState(container, {
+				message: uiText(msg({ message: "No tasks match this view.", context: "empty task view" })),
+				compact: true,
+			});
+		}
+		// With no tasks at all, New and then the Start Here guide are the next steps.
+		return renderEmptyState(container, {
+			message: uiText(msg({ message: "No tasks yet.", context: "empty task collection" })),
+			actionLabel: uiText(msg({ message: "New", context: "common.new" })),
+			actionKey: "C",
+			onAction: () => { void this.createFileForView(""); },
+			secondaryActionLabel: uiText(msg({ message: "Start Here guide", context: "empty task collection guide" })),
+			onSecondaryAction: () => { void this.plugin.openStarterNote(); },
+		});
 	}
 
 	// =====================
@@ -797,12 +962,45 @@ export abstract class BasesViewBase extends Component {
 	 */
 	protected setupSelectionHandling(): void {
 		if (!this.rootElement) return;
+		const hasTaskKeyboard =
+			this.type === "tasknotesTaskList" || this.type === "tasknotesKanban" || this.type === "tasknotesCalendar";
+		if (hasTaskKeyboard && this.type !== "tasknotesCalendar")
+			this.register(
+				installTaskViewKeyboard({
+					plugin: this.plugin,
+					root: this.rootElement,
+					paths: () => this.getVisibleTaskPaths(),
+					reveal: (path) => this.revealKeyboardTask(path),
+					groupForPath: (path) => this.getKeyboardTaskGroup(path),
+					horizontal: this.type === "tasknotesKanban"
+						? (path, direction) => this.getHorizontalTaskPath(path, direction)
+						: undefined,
+					refreshSelection: () => this.updateSelectionVisuals(),
+					create: () => {
+						void this.createFileForView(
+							uiText(
+								msg({
+									message: "New Task",
+									context:
+										"bases/BasesViewBase: BasesViewBase.injectNewTaskButton.onClick display",
+								})
+							)
+						);
+					},
+					search: () => {
+						this.enableSearch = true;
+						if (this.rootElement) this.setupSearch(this.rootElement);
+						this.rootElement?.querySelector<HTMLInputElement>("input")?.focus();
+					},
+				})
+			);
 
 		const selectionService = this.plugin.taskSelectionService;
 		if (!selectionService) return;
 
 		// Keyboard event handler for selection mode
 		const handleKeyDown = (e: KeyboardEvent) => {
+			if (hasTaskKeyboard) return;
 			handleBasesSelectionKeyDown({
 				event: e,
 				selectionService,
@@ -928,6 +1126,16 @@ export abstract class BasesViewBase extends Component {
 	 */
 	protected getVisibleTaskPaths(): string[] {
 		return getVisibleTaskPathsFromBasesRoot(this.rootElement);
+	}
+
+	protected revealKeyboardTask(_path: string): void {}
+
+	protected getKeyboardTaskGroup(_path: string): { key: string; paths: string[] } | undefined {
+		return undefined;
+	}
+
+	protected getHorizontalTaskPath(_path: string | null, _direction: number): string | null {
+		return null;
 	}
 
 	// Abstract methods that subclasses must implement

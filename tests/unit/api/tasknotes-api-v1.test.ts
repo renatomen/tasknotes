@@ -64,6 +64,7 @@ interface TestPluginContext {
 	};
 	cacheManager: {
 		getTaskInfo: jest.Mock<Promise<TaskInfo | null>, [string]>;
+		getTasksById: jest.Mock<Promise<TaskInfo[]>, [string]>;
 		getAllTasks: jest.Mock<Promise<TaskInfo[]>, []>;
 		clearCacheEntry: jest.Mock<void, [string]>;
 		updateTaskInfoInCache: jest.Mock<void, [string, TaskInfo]>;
@@ -115,6 +116,8 @@ function createTask(overrides: Partial<TaskInfo> = {}): TaskInfo {
 		priority: "normal",
 		path: "Tasks/write-plan.md",
 		archived: false,
+		dateCreated: "2026-06-01T09:00:00.000Z",
+		dateModified: "2026-06-01T09:00:00.000Z",
 		...overrides,
 	};
 }
@@ -127,6 +130,9 @@ function createPluginContext(initialTasks: TaskInfo[] = [createTask()]): TestPlu
 
 	const cacheManager: TestPluginContext["cacheManager"] = {
 		getTaskInfo: jest.fn(async (path: string) => tasks.get(path) ?? null),
+		getTasksById: jest.fn(async (id: string) =>
+			Array.from(tasks.values()).filter((task) => task.id?.trim() === id.trim())
+		),
 		getAllTasks: jest.fn(async () => Array.from(tasks.values())),
 		clearCacheEntry: jest.fn((path: string) => {
 			tasks.delete(path);
@@ -534,6 +540,7 @@ describe("TaskNotesApiV1", () => {
 
 		expect(api.apiVersion).toBe(1);
 		expect(api.capabilities).toContain("tasks.write");
+		expect(api.capabilities).toContain("tasks.lookup-id");
 		expect(api.capabilities).toContain("pomodoro.events");
 		expect(api.capabilities).toContain("events.list");
 		expect(api.capabilities).toContain("extensions.register");
@@ -553,6 +560,8 @@ describe("TaskNotesApiV1", () => {
 		expect(typeof api.model.config).toBe("function");
 		expect(typeof api.parseNaturalLanguage).toBe("function");
 		expect(typeof api.tasks.update).toBe("function");
+		expect(typeof api.tasks.getByPath).toBe("function");
+		expect(typeof api.tasks.getById).toBe("function");
 		expect(typeof api.relationships.subtasks).toBe("function");
 		expect(typeof api.time.start).toBe("function");
 		expect(typeof api.pomodoro.start).toBe("function");
@@ -630,6 +639,16 @@ describe("TaskNotesApiV1", () => {
 		);
 	});
 
+	it("reports a remapped ID property in the field catalog (#2574)", () => {
+		const { plugin } = createPluginContext();
+		plugin.settings.fieldMapping = { ...plugin.settings.fieldMapping, id: "tasknote_id" };
+		const api = new TaskNotesAPI(plugin);
+
+		expect(api.catalog.fields()).toContainEqual(
+			expect.objectContaining({ id: "id", frontmatterKey: "tasknote_id" })
+		);
+	});
+
 	it("exposes catalog metadata for companion plugin editors", () => {
 		const { plugin } = createPluginContext();
 		const api = new TaskNotesAPI(plugin);
@@ -657,6 +676,14 @@ describe("TaskNotesApiV1", () => {
 			])
 		);
 		expect(api.catalog.writableFields().some((field) => field.id === "path")).toBe(false);
+		expect(api.catalog.fields()).toContainEqual(
+			expect.objectContaining({
+				id: "id",
+				frontmatterKey: "id",
+				source: "model",
+				writable: false,
+			})
+		);
 		expect(api.catalog.filterProperties()).toEqual(
 			expect.arrayContaining([
 				expect.objectContaining({
@@ -687,6 +714,22 @@ describe("TaskNotesApiV1", () => {
 		expect(api.catalog.dependencyRelTypes()).toEqual(
 			expect.arrayContaining([expect.objectContaining({ value: "FINISHTOSTART" })])
 		);
+	});
+
+	it("resolves custom query aliases and exposes them in the field catalog", async () => {
+		const { plugin, filterService } = createPluginContext();
+		plugin.settings.userFields = [{ id: "field_1234567890", key: "my-custom-field", displayName: "My Custom Field", type: "text" }];
+		const api = new TaskNotesAPI(plugin);
+		const aliases = ["user:field_1234567890", "user.field_1234567890", "user:my-custom-field", "user.my-custom-field"];
+		expect(api.catalog.fields()).toEqual(expect.arrayContaining([
+			expect.objectContaining({ id: aliases[0], aliases: expect.arrayContaining(aliases.slice(1)), frontmatterKey: "my-custom-field" }),
+		]));
+		for (const field of aliases) {
+			await api.query.tasks({ where: { field, op: "contains", value: "ABC-123" } });
+			expect(filterService.getGroupedTasks).toHaveBeenLastCalledWith(expect.objectContaining({
+				children: [expect.objectContaining({ property: aliases[0] })],
+			}));
+		}
 	});
 
 	it("lists runtime event definitions for companion plugin UIs", () => {
@@ -884,7 +927,7 @@ describe("TaskNotesApiV1", () => {
 	});
 
 	it("reads individual tasks and queried task lists without exposing mutable arrays", async () => {
-		const task = createTask({ tags: ["work"] });
+		const task = createTask({ id: "stable-task-id", tags: ["work"] });
 		const { plugin, filterService } = createPluginContext([task]);
 		const api = new TaskNotesAPI(plugin);
 
@@ -894,6 +937,9 @@ describe("TaskNotesApiV1", () => {
 
 		const refetched = await api.getTask(task.path);
 		expect(refetched?.tags).toEqual(["work"]);
+		await expect(api.tasks.getByPath(task.path)).resolves.toEqual(task);
+		await expect(api.tasks.getById("stable-task-id")).resolves.toEqual(task);
+		await expect(api.tasks.getById("missing-id")).resolves.toBeNull();
 
 		const query = { where: { field: "task.tags", op: "contains", value: "work" } };
 		filterService.getGroupedTasks.mockResolvedValueOnce(new Map([["work", [task]]]));
@@ -912,8 +958,71 @@ describe("TaskNotesApiV1", () => {
 		);
 	});
 
+	it("keeps Bases view data out of tasks and events returned to companion plugins (#2119)", async () => {
+		// Bases views attach their entry to the cached TaskInfo. The entry
+		// reaches the Obsidian app, which is a circular object graph.
+		const app: { appMenuBarManager?: { app: unknown } } = {};
+		app.appMenuBarManager = { app };
+		const parent = createTask({
+			title: "Parent",
+			path: "Projects/project.md",
+			basesData: { app },
+		});
+		const task = createTask({
+			projects: ["[[Projects/project]]"],
+			tags: ["work"],
+			basesData: { app },
+		});
+		const { plugin, emitter } = createPluginContext([parent, task]);
+		const api = new TaskNotesAPI(plugin);
+		const events: TaskNotesApiEventPayload[] = [];
+		api.on("task.status.changed", (payload) => events.push(payload));
+		const pomodoroEvents: TaskNotesApiEventPayload[] = [];
+		api.on("pomodoro.started", (payload) => pomodoroEvents.push(payload));
+
+		const returned: unknown[] = [
+			await api.getTask(task.path),
+			await api.listTasks(),
+			await api.relationships.parents(task.path),
+			await api.updateTask(task.path, { status: "active" }),
+		];
+
+		expect(returned[0]).toEqual({ ...task, basesData: undefined });
+		expect(events).toHaveLength(1);
+		for (const value of [...returned, events[0]?.task, events[0]?.before, events[0]?.after]) {
+			expect(() => JSON.stringify(value)).not.toThrow();
+		}
+		expect(events[0]?.after).not.toHaveProperty("basesData");
+		expect(events[0]?.changes).toEqual({ status: { before: "open", after: "active" } });
+
+		emitter.trigger(EVENT_POMODORO_START, { task, session: { taskPath: task.path } });
+		expect(pomodoroEvents).toHaveLength(1);
+		expect(() => JSON.stringify(pomodoroEvents[0])).not.toThrow();
+		expect(pomodoroEvents[0]?.data).toEqual({
+			task: { ...task, basesData: undefined },
+			session: { taskPath: task.path },
+		});
+	});
+
+	it("rejects ambiguous stable-ID lookups instead of choosing an arbitrary task", async () => {
+		const first = createTask({ id: "duplicate-id", path: "Tasks/first.md" });
+		const second = createTask({ id: "duplicate-id", path: "Tasks/second.md" });
+		const { plugin } = createPluginContext([first, second]);
+		const api = new TaskNotesAPI(plugin);
+
+		await expect(api.tasks.getById("duplicate-id")).rejects.toMatchObject({
+			code: "duplicate_task_id",
+			status: 409,
+			details: {
+				id: "duplicate-id",
+				paths: ["Tasks/first.md", "Tasks/second.md"],
+			},
+		});
+	});
+
 	it("exposes query, stats, time summary, task time data, and health helpers", async () => {
 		const task = createTask({
+			id: "stable-time-task-id",
 			timeEntries: [
 				{
 					startTime: "2026-05-31T09:00:00.000Z",
@@ -998,7 +1107,7 @@ describe("TaskNotesApiV1", () => {
 		);
 		await expect(api.time.task(task.path)).resolves.toEqual(
 			expect.objectContaining({
-				task: expect.objectContaining({ id: task.path }),
+				task: expect.objectContaining({ id: task.id }),
 				summary: expect.objectContaining({ totalMinutes: 30 }),
 			})
 		);
@@ -1151,7 +1260,7 @@ describe("TaskNotesApiV1", () => {
 	});
 
 	it("moves a task note, updates the cache, and emits a task.moved event with context", async () => {
-		const task = createTask();
+		const task = createTask({ id: "stable-task-id" });
 		const { plugin, cacheManager, fileManager, files, folders } = createPluginContext([task]);
 		const api = new TaskNotesAPI(plugin);
 		const handler = jest.fn<void, [TaskNotesApiEventPayload]>();
@@ -1164,6 +1273,7 @@ describe("TaskNotesApiV1", () => {
 		});
 
 		expect(moved.path).toBe("Workflow Inbox/write-plan.md");
+		expect(moved.id).toBe("stable-task-id");
 		expect(folders.has("Workflow Inbox")).toBe(true);
 		expect(files.has("Workflow Inbox/write-plan.md")).toBe(true);
 		expect(fileManager.renameFile).toHaveBeenCalledWith(
@@ -1178,6 +1288,7 @@ describe("TaskNotesApiV1", () => {
 		expect(handler).toHaveBeenCalledWith(
 			expect.objectContaining({
 				event: "task.moved",
+				taskId: "stable-task-id",
 				taskPath: "Workflow Inbox/write-plan.md",
 				source: "tasknotes-workflows",
 				correlationId: "run-123",

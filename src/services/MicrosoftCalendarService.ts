@@ -1,4 +1,9 @@
+import { uiData } from "../i18n/dataText";
+import { displayError } from "../i18n/runtime";
+import { uiText } from "../i18n/runtime";
+import { msg } from "@lingui/core/macro";
 import { requestUrl } from "obsidian";
+import { format, parseISO } from "date-fns";
 import TaskNotesPlugin from "../main";
 import { OAuthService } from "./OAuthService";
 import { ICSEvent } from "../types";
@@ -123,6 +128,15 @@ export class MicrosoftCalendarService extends CalendarProvider {
 	private refreshTimer: number | null = null;
 	private availableCalendars: ProviderCalendar[] = [];
 	private lastManualRefresh = 0; // Timestamp of last manual refresh for rate limiting
+	private lifecycleGeneration = 0;
+	private get connectionGeneration(): number {
+		return this.lifecycleGeneration + (this.oauthService.getConnectionGeneration?.("microsoft") || 0);
+	}
+	private destroyed = false;
+
+	private isCurrentConnection(generation: number): boolean {
+		return !this.destroyed && generation === this.connectionGeneration;
+	}
 	private syncStatus: MicrosoftCalendarSyncStatus = {
 		lastAttempt: null,
 		lastSuccess: null,
@@ -329,23 +343,25 @@ export class MicrosoftCalendarService extends CalendarProvider {
 		}
 
 		const firstError = errors[0];
-		const label = firstError.calendarName || firstError.calendarId || "Microsoft calendar";
+		const label = firstError.calendarName || firstError.calendarId || uiText(msg({ message: "Microsoft calendar", context: "services/MicrosoftCalendarService: MicrosoftCalendarService.formatSyncErrorSummary display" }));
 		if (errors.length === 1) {
-			return `${label}: ${firstError.message}`;
+			return uiText(msg({ message: "{label}: {message}", context: "services/MicrosoftCalendarService: MicrosoftCalendarService.formatSyncErrorSummary display" }), { label: label, message: displayError(firstError.message) });
 		}
 
-		return `${errors.length} Microsoft calendars failed to refresh. First error: ${label}: ${firstError.message}`;
+		return uiText(msg({ message: "{count, plural, one {# Microsoft calendar failed to refresh. First error: {label}: {message}} other {# Microsoft calendars failed to refresh. First error: {label}: {message}}}", context: "services/MicrosoftCalendarService: MicrosoftCalendarService.formatSyncErrorSummary display" }), { count: errors.length, label, message: displayError(firstError.message) });
 	}
 
 	async initialize(): Promise<void> {
+		const generation = this.connectionGeneration;
+		if (this.destroyed) return;
 		// Check if connected
 		const isConnected = await this.oauthService.isConnected("microsoft");
-		if (isConnected) {
+		if (isConnected && this.isCurrentConnection(generation)) {
 			// Fetch initial data
 			await this.refreshAllCalendars();
 
 			// Set up periodic refresh (every 15 minutes)
-			this.startRefreshTimer();
+			if (this.isCurrentConnection(generation)) this.startRefreshTimer();
 		}
 	}
 
@@ -353,6 +369,8 @@ export class MicrosoftCalendarService extends CalendarProvider {
 	 * Starts periodic refresh timer
 	 */
 	private startRefreshTimer(): void {
+		if (this.destroyed) return;
+		const generation = this.connectionGeneration;
 		if (this.refreshTimer) {
 			window.clearTimeout(this.refreshTimer);
 		}
@@ -369,7 +387,7 @@ export class MicrosoftCalendarService extends CalendarProvider {
 				})
 				.finally(() => {
 					void this.oauthService.isConnected("microsoft").then((isConnected) => {
-						if (isConnected) {
+						if (isConnected && this.isCurrentConnection(generation)) {
 							this.startRefreshTimer();
 						}
 					});
@@ -391,9 +409,11 @@ export class MicrosoftCalendarService extends CalendarProvider {
 	 * Fetches list of user's calendars
 	 */
 	async listCalendars(): Promise<ProviderCalendar[]> {
+		const generation = this.connectionGeneration;
 		try {
 			return await this.withRetry(async () => {
 				const token = await this.oauthService.getValidToken("microsoft");
+				if (!this.isCurrentConnection(generation)) return [];
 
 				let allCalendars: MicrosoftCalendar[] = [];
 				let nextLink: string | undefined = `${this.baseUrl}/me/calendars`;
@@ -409,6 +429,7 @@ export class MicrosoftCalendarService extends CalendarProvider {
 						},
 					});
 
+					if (!this.isCurrentConnection(generation)) return [];
 					const data = response.json as MicrosoftCalendarListResponse;
 					const calendars: MicrosoftCalendar[] = data.value || [];
 					allCalendars.push(...calendars);
@@ -424,6 +445,7 @@ export class MicrosoftCalendarService extends CalendarProvider {
 					backgroundColor: cal.hexColor || undefined,
 					primary: cal.isDefaultCalendar || false,
 					isDefault: cal.isDefaultCalendar || false,
+					canWrite: cal.canEdit,
 				}));
 			}, "List calendars");
 		} catch (error) {
@@ -452,8 +474,10 @@ export class MicrosoftCalendarService extends CalendarProvider {
 		isFullSync: boolean;
 		hasDeletes: boolean;
 	}> {
+		const generation = this.connectionGeneration;
 		try {
 			const token = await this.oauthService.getValidToken("microsoft");
+			if (!this.isCurrentConnection(generation)) return { events: [], isFullSync: true, hasDeletes: false };
 			const deltaLink = this.getSyncToken(calendarId);
 
 			let allEvents: MicrosoftCalendarEvent[] = [];
@@ -506,6 +530,7 @@ export class MicrosoftCalendarService extends CalendarProvider {
 						});
 					}, `Fetch events for ${calendarId}`);
 
+					if (!this.isCurrentConnection(generation)) return { events: [], isFullSync: true, hasDeletes: false };
 					const data = response.json;
 					const items: MicrosoftCalendarEvent[] = data.value || [];
 
@@ -526,7 +551,7 @@ export class MicrosoftCalendarService extends CalendarProvider {
 					}
 				} catch (error) {
 					// Check if delta link expired (HTTP 410)
-					if (error.status === 410) {
+					if (error.status === 410 && this.isCurrentConnection(generation)) {
 						await this.clearSyncToken(calendarId);
 						// Retry with full sync
 						return await this.fetchCalendarEvents(calendarId, timeMin, timeMax);
@@ -536,7 +561,7 @@ export class MicrosoftCalendarService extends CalendarProvider {
 			} while (nextLink);
 
 			// Save the new delta link
-			if (newDeltaLink) {
+			if (newDeltaLink && this.isCurrentConnection(generation)) {
 				await this.saveSyncToken(calendarId, newDeltaLink);
 			}
 
@@ -580,9 +605,6 @@ export class MicrosoftCalendarService extends CalendarProvider {
 			start = msEvent.start.dateTime.split("T")[0];
 			end = msEvent.end.dateTime.split("T")[0];
 		} else {
-			// eslint-disable-next-line @typescript-eslint/no-require-imports -- date-fns is lazy-loaded inside Microsoft all-day event conversion.
-			const { format, parseISO } = require("date-fns");
-
 			const startIso = this.ensureUtcDateTime(msEvent.start.dateTime, msEvent.start.timeZone);
 			const endIso = this.ensureUtcDateTime(msEvent.end.dateTime, msEvent.end.timeZone);
 
@@ -603,7 +625,7 @@ export class MicrosoftCalendarService extends CalendarProvider {
 		return {
 			id: `microsoft-${calendarId}-${msEvent.id}`,
 			subscriptionId: `microsoft-${calendarId}`,
-			title: msEvent.subject || "Untitled Event",
+			title: msEvent.subject || uiData("Untitled Event", "Persisted/cache provider fallback title; preserve English data seed"),
 			description: msEvent.bodyPreview || msEvent.body?.content,
 			start: start,
 			end: end,
@@ -619,6 +641,8 @@ export class MicrosoftCalendarService extends CalendarProvider {
 	 * Refreshes all enabled Microsoft calendars using delta sync when possible
 	 */
 	async refreshAllCalendars(): Promise<void> {
+		const generation = this.connectionGeneration;
+		if (this.destroyed) return;
 		const attemptStartedAt = new Date().toISOString();
 		this.syncStatus = {
 			...this.syncStatus,
@@ -631,12 +655,11 @@ export class MicrosoftCalendarService extends CalendarProvider {
 
 		try {
 			const isConnected = await this.oauthService.isConnected("microsoft");
-			if (!isConnected) {
-				return;
-			}
+			if (!isConnected || !this.isCurrentConnection(generation)) return;
 
-			// Get list of calendars and store them
-			this.availableCalendars = await this.listCalendars();
+			const calendars = await this.listCalendars();
+			if (!this.isCurrentConnection(generation)) return;
+			this.availableCalendars = calendars;
 
 			// Get enabled calendar IDs from settings
 			const enabledCalendarIds = this.getEnabledCalendarIds();
@@ -646,13 +669,14 @@ export class MicrosoftCalendarService extends CalendarProvider {
 			const calendarErrors: MicrosoftCalendarSyncError[] = [];
 
 			// Get current cached events
-			let cachedEvents = this.cache.get("all") || [];
+			let cachedEvents = this.getAllEvents();
 
 			// Fetch events from each enabled calendar
 			for (const calendarId of enabledCalendarIds) {
 				try {
 					const { events: msEvents, isFullSync } =
 						await this.fetchCalendarEvents(calendarId);
+					if (!this.isCurrentConnection(generation)) return;
 
 					if (isFullSync) {
 						// Full sync: Replace all events from this calendar
@@ -722,6 +746,8 @@ export class MicrosoftCalendarService extends CalendarProvider {
 				}
 			}
 
+			// Discard responses from a disconnected/replaced account.
+			if (!this.isCurrentConnection(generation)) return;
 			// Update cache
 			this.cache.set("all", cachedEvents);
 			this.syncStatus = {
@@ -744,6 +770,7 @@ export class MicrosoftCalendarService extends CalendarProvider {
 				operation: "refresh-microsoft-calendars",
 				error: error,
 			});
+			if (!this.isCurrentConnection(generation)) return;
 			const syncError = this.createSyncError(error);
 			this.syncStatus = {
 				...this.syncStatus,
@@ -773,7 +800,8 @@ export class MicrosoftCalendarService extends CalendarProvider {
 	 */
 	getAllEvents(): ICSEvent[] {
 		const events = this.cache.get("all") || [];
-		return events;
+		const enabled = new Set(this.getEnabledCalendarIds().map((id) => `microsoft-${id}`));
+		return events.filter((event) => enabled.has(event.subscriptionId));
 	}
 
 	/**
@@ -826,8 +854,18 @@ export class MicrosoftCalendarService extends CalendarProvider {
 	 * Disconnects and clears cache - for test compatibility
 	 */
 	async disconnect(): Promise<void> {
+		this.lifecycleGeneration++;
 		this.clearCache();
 		this.stopRefreshTimer();
+		this.availableCalendars = [];
+		this.lastManualRefresh = 0;
+		this.plugin.settings.microsoftCalendarSyncTokens = {};
+		this.syncStatus = {
+			lastAttempt: null, lastSuccess: null, lastError: null,
+			calendarErrors: [], calendarsChecked: 0, eventsLoaded: 0,
+		};
+		this.emit("data-changed");
+		await this.persistSettingsDataOnly();
 	}
 
 	/**
@@ -841,7 +879,7 @@ export class MicrosoftCalendarService extends CalendarProvider {
 
 		if (timeSinceLastRefresh < minInterval) {
 			const remainingMs = minInterval - timeSinceLastRefresh;
-			publishUserNotice(this.plugin.emitter, `Please wait ${Math.ceil(remainingMs / 1000)}s before refreshing again`);
+			publishUserNotice(this.plugin.emitter, uiText(msg({ message: "{seconds, plural, one {Please wait # second before refreshing again} other {Please wait # seconds before refreshing again}}", context: "calendar refresh throttling" }), { seconds: Math.ceil(remainingMs / 1000) }));
 			return;
 		}
 
@@ -1237,6 +1275,8 @@ export class MicrosoftCalendarService extends CalendarProvider {
 	 * Cleanup method
 	 */
 	destroy(): void {
+		this.destroyed = true;
+		this.lifecycleGeneration++;
 		this.stopRefreshTimer();
 		this.cache.clear();
 		this.removeAllListeners();

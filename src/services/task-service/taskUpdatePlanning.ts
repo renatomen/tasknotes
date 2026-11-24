@@ -1,12 +1,16 @@
 import type { FieldMappingKey, TaskInfo, TimeEntry } from "../../types";
-import {
-	addDTSTARTToRecurrenceRule,
-	updateToNextScheduledOccurrence,
-} from "../../core/recurrence";
+import { addDTSTARTToRecurrenceRule, updateToNextScheduledOccurrence } from "../../core/recurrence";
 import {
 	applyGoogleCalendarRecurringExceptionCleanup,
 	applyGoogleCalendarRecurringExceptionForScheduledChange,
+	resolveGoogleCalendarRecurringExceptionAfterCurrentInstanceAction,
 } from "./googleCalendarRecurringExceptions";
+import {
+	applyRecurringMoveForScheduledChange,
+	clearRecurringMoveAfterSeriesChange,
+	getRecurringMoveOriginalDate,
+	resolveRecurringMoveAfterAction,
+} from "./recurringMoveIdentity";
 import {
 	applyPropertyTaskIdentifier,
 	getFrontmatterTags,
@@ -18,6 +22,11 @@ export type TaskUpdateInput = Partial<TaskInfo> & {
 };
 
 export interface TaskUpdateFieldMapper {
+	mapFromFrontmatter: (
+		frontmatter: unknown,
+		filePath: string,
+		storeTitleInFilename?: boolean
+	) => Partial<TaskInfo>;
 	mapToFrontmatter: (
 		taskData: Partial<TaskInfo>,
 		taskTag?: string,
@@ -50,6 +59,7 @@ export interface ApplyTaskUpdateFrontmatterChangeInput {
 	fieldMapper: TaskUpdateFieldMapper;
 	taskIdentification: TaskIdentificationSettings;
 	storeTitleInFilename: boolean;
+	titleIsRepresentedByFilename?: boolean;
 	updateCompletedDateInFrontmatter: (
 		frontmatter: Record<string, unknown>,
 		newStatus: string,
@@ -88,6 +98,65 @@ function stripTimeEntryDuration(entry: TimeEntry): TimeEntry {
 	const sanitizedEntry = { ...entry };
 	delete sanitizedEntry.duration;
 	return sanitizedEntry;
+}
+
+function getStringArray(value: unknown): string[] {
+	return Array.isArray(value)
+		? value.filter((entry): entry is string => typeof entry === "string")
+		: [];
+}
+
+/**
+ * When completing or skipping a recurring instance also advances `scheduled` to the
+ * next occurrence, that's the series cursor rolling forward - not a manual reschedule
+ * of a single occurrence. Returns the instance date that was newly marked complete or
+ * skipped, if any, so the caller can resolve (rather than create) a Google Calendar
+ * "moved occurrence" exception. Without this distinction, sync would create a detached
+ * event for the next occurrence in addition to the recurring series event already
+ * covering that date.
+ */
+function getNewlyRecordedInstanceDate(
+	originalTask: TaskInfo,
+	updates: TaskUpdateInput
+): string | undefined {
+	const originalCompleted = new Set(getStringArray(originalTask.complete_instances));
+	const originalSkipped = new Set(getStringArray(originalTask.skipped_instances));
+
+	let latest: string | undefined;
+	const consider = (dateStr: string) => {
+		if (!latest || dateStr > latest) {
+			latest = dateStr;
+		}
+	};
+
+	if (Object.prototype.hasOwnProperty.call(updates, "complete_instances")) {
+		for (const dateStr of getStringArray(updates.complete_instances)) {
+			if (!originalCompleted.has(dateStr)) {
+				consider(dateStr);
+			}
+		}
+	}
+
+	if (Object.prototype.hasOwnProperty.call(updates, "skipped_instances")) {
+		for (const dateStr of getStringArray(updates.skipped_instances)) {
+			if (!originalSkipped.has(dateStr)) {
+				consider(dateStr);
+			}
+		}
+	}
+
+	return latest;
+}
+
+function hasReopenedInstance(originalTask: TaskInfo, updatedTask: TaskInfo): boolean {
+	const stillProcessed = new Set([
+		...getStringArray(updatedTask.complete_instances),
+		...getStringArray(updatedTask.skipped_instances),
+	]);
+	return (
+		getStringArray(originalTask.complete_instances).some((date) => !stillProcessed.has(date)) ||
+		getStringArray(originalTask.skipped_instances).some((date) => !stillProcessed.has(date))
+	);
 }
 
 export function normalizeTaskUpdateDetails(updates: TaskUpdateInput): string | null {
@@ -154,12 +223,13 @@ export function buildTaskUpdateRecurrenceUpdates({
 	if (
 		updates.scheduled !== undefined &&
 		updates.scheduled !== originalTask.scheduled &&
+		(!Object.prototype.hasOwnProperty.call(updates, "recurrence") ||
+			updates.recurrence === originalTask.recurrence) &&
 		originalTask.recurrence &&
 		typeof originalTask.recurrence === "string" &&
 		!originalTask.recurrence.includes("DTSTART:")
 	) {
-		const tempTask: TaskInfo = { ...originalTask, ...updates };
-		const updatedRecurrence = addDTSTARTToRecurrenceRuleFn(tempTask);
+		const updatedRecurrence = addDTSTARTToRecurrenceRuleFn(originalTask);
 		if (updatedRecurrence) {
 			recurrenceUpdates.recurrence = updatedRecurrence;
 		}
@@ -167,16 +237,79 @@ export function buildTaskUpdateRecurrenceUpdates({
 
 	if (Object.prototype.hasOwnProperty.call(updates, "scheduled")) {
 		const nextTask: TaskInfo = { ...originalTask, ...updates, ...recurrenceUpdates };
-		applyGoogleCalendarRecurringExceptionForScheduledChange(
-			originalTask,
-			updates.scheduled,
-			nextTask
-		);
+		const completionActionDate = getNewlyRecordedInstanceDate(originalTask, updates);
+		const taskWithUpdatedHistory: TaskInfo = {
+			...originalTask,
+			complete_instances: updates.complete_instances ?? originalTask.complete_instances,
+			skipped_instances: updates.skipped_instances ?? originalTask.skipped_instances,
+		};
+		const reopenedInstance =
+			(updates.complete_instances !== undefined || updates.skipped_instances !== undefined) &&
+			hasReopenedInstance(originalTask, taskWithUpdatedHistory);
+
+		// Completing, skipping, or reopening can all recalculate the series cursor.
+		// Verify the date against the updated history to distinguish a manual move.
+		const expectedDates =
+			completionActionDate || reopenedInstance
+				? updateToNextScheduledOccurrenceFn(
+						taskWithUpdatedHistory,
+						maintainDueDateOffsetInRecurring
+					)
+				: undefined;
+		const isAutomaticScheduleChange =
+			expectedDates &&
+			updates.scheduled === expectedDates.scheduled &&
+			(updates.recurrence === undefined || updates.recurrence === originalTask.recurrence);
+
+		if (isAutomaticScheduleChange) {
+			const pendingOriginal = getRecurringMoveOriginalDate(originalTask);
+			const processed =
+				pendingOriginal &&
+				(nextTask.complete_instances?.includes(pendingOriginal) ||
+					nextTask.skipped_instances?.includes(pendingOriginal));
+			if (pendingOriginal && !processed) {
+				nextTask.scheduled = originalTask.scheduled;
+				nextTask.due = originalTask.due;
+				recurrenceUpdates.scheduled = originalTask.scheduled;
+				recurrenceUpdates.due = originalTask.due;
+			} else {
+				resolveRecurringMoveAfterAction(originalTask, nextTask, true);
+			}
+			if (completionActionDate) {
+				resolveGoogleCalendarRecurringExceptionAfterCurrentInstanceAction(
+					originalTask,
+					completionActionDate,
+					nextTask
+				);
+			}
+		} else {
+			applyRecurringMoveForScheduledChange(originalTask, nextTask);
+			applyGoogleCalendarRecurringExceptionForScheduledChange(
+				originalTask,
+				updates.scheduled,
+				nextTask
+			);
+		}
+
 		recurrenceUpdates.googleCalendarExceptionOriginalScheduled =
 			nextTask.googleCalendarExceptionOriginalScheduled;
+		recurrenceUpdates.googleCalendarMovedOriginalDates =
+			nextTask.googleCalendarMovedOriginalDates;
+		if (originalTask.recurrence_original_date || nextTask.recurrence_original_date) {
+			recurrenceUpdates.recurrence_original_date = nextTask.recurrence_original_date;
+		}
 	}
 
 	const nextTask: TaskInfo = { ...originalTask, ...updates, ...recurrenceUpdates };
+	if (
+		Object.prototype.hasOwnProperty.call(updates, "recurrence") ||
+		Object.prototype.hasOwnProperty.call(updates, "recurrence_anchor")
+	) {
+		clearRecurringMoveAfterSeriesChange(originalTask, nextTask);
+		if (originalTask.recurrence_original_date || nextTask.recurrence_original_date) {
+			recurrenceUpdates.recurrence_original_date = nextTask.recurrence_original_date;
+		}
+	}
 	applyGoogleCalendarRecurringExceptionCleanup(nextTask);
 	recurrenceUpdates.googleCalendarExceptionOriginalScheduled =
 		nextTask.googleCalendarExceptionOriginalScheduled;
@@ -194,10 +327,12 @@ export function applyTaskUpdateFrontmatterChange({
 	fieldMapper,
 	taskIdentification,
 	storeTitleInFilename,
+	titleIsRepresentedByFilename = false,
 	updateCompletedDateInFrontmatter,
 }: ApplyTaskUpdateFrontmatterChangeInput): ApplyTaskUpdateFrontmatterChangeResult {
+	// Publish only the named patch and its recurrence consequences.
 	const completeTaskData: Partial<TaskInfo> = {
-		...originalTask,
+		tags: getFrontmatterTags(frontmatter.tags),
 		...updates,
 		...recurrenceUpdates,
 		dateModified,
@@ -216,6 +351,11 @@ export function applyTaskUpdateFrontmatterChange({
 		}
 	});
 
+	// The shared mapper omits empty skip history. An explicit patch must clear it.
+	if (updates.skipped_instances?.length === 0) {
+		frontmatter[fieldMapper.toUserField("skippedInstances")] = [];
+	}
+
 	if (updates.status !== undefined) {
 		updateCompletedDateInFrontmatter(frontmatter, updates.status, !!originalTask.recurrence);
 	}
@@ -224,8 +364,10 @@ export function applyTaskUpdateFrontmatterChange({
 		applyConfiguredPropertyTaskIdentifier(frontmatter, taskIdentification);
 	}
 
+	const idField = fieldMapper.toUserField("id");
 	if (updates.customFrontmatter) {
 		Object.entries(updates.customFrontmatter).forEach(([key, value]) => {
+			if (key === idField) return;
 			if (value === null) {
 				delete frontmatter[key];
 			} else {
@@ -234,10 +376,28 @@ export function applyTaskUpdateFrontmatterChange({
 		});
 	}
 
+	// The shared mapper deliberately leaves the mapped identity field alone.
+	// Reassert an existing ID so converting a note persists its newly assigned
+	// identity and ordinary edits cannot replace it through a patch/template.
+	if (originalTask.id) {
+		frontmatter[idField] = originalTask.id;
+	}
+
 	removeUnsetMappedFields(frontmatter, { ...updates, ...recurrenceUpdates }, fieldMapper);
 
-	if (storeTitleInFilename) {
-		delete frontmatter[fieldMapper.toUserField("title")];
+	// Use the resolved filename, not just the requested title: sanitization,
+	// fallback names and collision suffixes all need a lossless property copy.
+	if (
+		storeTitleInFilename &&
+		updates.title !== undefined &&
+		updates.title !== originalTask.title
+	) {
+		const titleField = fieldMapper.toUserField("title");
+		if (titleIsRepresentedByFilename) {
+			delete frontmatter[titleField];
+		} else {
+			frontmatter[titleField] = updates.title;
+		}
 	}
 
 	if (Object.prototype.hasOwnProperty.call(updates, "tags")) {
@@ -282,13 +442,11 @@ function applyConfiguredPropertyTaskIdentifier(
 	frontmatter: Record<string, unknown>,
 	taskIdentification: TaskIdentificationSettings
 ): void {
-	if (taskIdentification.propertyName && taskIdentification.propertyValue) {
-		applyPropertyTaskIdentifier(
-			frontmatter,
-			taskIdentification.propertyName,
-			taskIdentification.propertyValue
-		);
-	}
+	applyPropertyTaskIdentifier(
+		frontmatter,
+		taskIdentification.propertyName,
+		taskIdentification.propertyValue
+	);
 }
 
 function removeUnsetMappedFields(
@@ -321,6 +479,12 @@ function removeUnsetMappedFields(
 		}
 	}
 	if (
+		Object.prototype.hasOwnProperty.call(updates, "attachments") &&
+		(!Array.isArray(updates.attachments) || updates.attachments.length === 0)
+	) {
+		delete frontmatter[fieldMapper.toUserField("attachments")];
+	}
+	if (
 		Object.prototype.hasOwnProperty.call(updates, "timeEstimate") &&
 		updates.timeEstimate === undefined
 	) {
@@ -339,10 +503,13 @@ function removeUnsetMappedFields(
 		delete frontmatter[fieldMapper.toUserField("recurrence")];
 	}
 	if (
-		Object.prototype.hasOwnProperty.call(
-			updates,
-			"googleCalendarExceptionOriginalScheduled"
-		) &&
+		Object.prototype.hasOwnProperty.call(updates, "recurrence_original_date") &&
+		updates.recurrence_original_date === undefined
+	) {
+		delete frontmatter[fieldMapper.toUserField("recurrenceOriginalDate")];
+	}
+	if (
+		Object.prototype.hasOwnProperty.call(updates, "googleCalendarExceptionOriginalScheduled") &&
 		updates.googleCalendarExceptionOriginalScheduled === undefined
 	) {
 		delete frontmatter[fieldMapper.toUserField("googleCalendarExceptionOriginalScheduled")];
@@ -386,6 +553,11 @@ export function buildUpdatedTaskFromPlan({
 		path: newPath,
 		dateModified,
 	};
+	if (originalTask.id === undefined) {
+		delete updatedTask.id;
+	} else {
+		updatedTask.id = originalTask.id;
+	}
 
 	if (finalTags) {
 		updatedTask.tags = finalTags;

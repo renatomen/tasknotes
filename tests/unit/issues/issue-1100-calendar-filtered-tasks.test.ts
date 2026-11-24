@@ -51,6 +51,7 @@ function createPlugin(): TaskNotesPlugin {
 			mapFromFrontmatter: (frontmatter: Record<string, unknown>) => frontmatter,
 		},
 		cacheManager: {
+			getAllTasks: jest.fn<() => Promise<TaskInfo[]>>(() => Promise.resolve([])),
 			isTaskFile: (frontmatter: Record<string, unknown>) =>
 				Array.isArray(frontmatter.tags) && frontmatter.tags.includes("task"),
 			getCachedTaskInfoSync: jest.fn(() => null),
@@ -133,7 +134,10 @@ describe("Issue #1100: Advanced Calendar View filtering", () => {
 	});
 
 	it("updates an existing calendar with the filtered task set", async () => {
-		const view = createCalendarViewProbe({ refetchEvents: jest.fn() });
+		const view = createCalendarViewProbe({
+			getOptions: () => ({ navLinks: false }),
+			refetchEvents: jest.fn(),
+		});
 
 		await view.render();
 

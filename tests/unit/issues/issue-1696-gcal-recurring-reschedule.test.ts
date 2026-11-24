@@ -64,6 +64,7 @@ function createGoogleSyncPlugin(frontmatter: Record<string, unknown> = {}) {
 			},
 		},
 		fieldMapper: {
+			mapFromFrontmatter: (fm: Record<string, unknown>) => ({ ...fm }),
 			toUserField: jest.fn((field: string) => field),
 			mapToFrontmatter: jest.fn((taskData: Record<string, unknown>) => {
 				const mapped: Record<string, unknown> = {};
@@ -82,6 +83,7 @@ function createGoogleSyncPlugin(frontmatter: Record<string, unknown> = {}) {
 		statusManager: {
 			getStatusConfig: jest.fn().mockReturnValue(null),
 			isCompletedStatus: jest.fn().mockImplementation((status: string) => status === "done"),
+			getConfiguredStatusAfterCompletion: jest.fn(),
 		},
 		i18n: {
 			translate: jest.fn((key: string) => key),
@@ -131,6 +133,7 @@ describe("Issue #1696: Google Calendar recurring reschedule sync", () => {
 			googleCalendarEventId: "master-event-id",
 		} as TaskInfo;
 
+		Object.assign(frontmatter, task);
 		const updatedTask = await taskService.updateTask(task, {
 			scheduled: "2026-04-15",
 		});
@@ -166,7 +169,9 @@ describe("Issue #1696: Google Calendar recurring reschedule sync", () => {
 		const event = (syncService as any).taskToCalendarEvent(task);
 
 		expect(event?.recurrence).toContain("EXDATE;VALUE=DATE:20260413");
-		expect(event?.recurrence).toContain("EXDATE;VALUE=DATE:20260415");
+		// The moved Wednesday is not a member of the Monday series. Only
+		// its original recurrence date belongs in the master's exclusions.
+		expect(event?.recurrence).not.toContain("EXDATE;VALUE=DATE:20260415");
 	});
 
 	it("creates a detached exception event for a pending moved occurrence", async () => {
@@ -286,6 +291,36 @@ describe("Issue #1696: Google Calendar recurring reschedule sync", () => {
 		expect(updatedTask.googleCalendarExceptionOriginalScheduled).toBeUndefined();
 		expect(updatedTask.googleCalendarExceptionEventId).toBe("detached-exception-id");
 		expect(frontmatter.googleCalendarMovedOriginalDates).toEqual(["2026-04-13"]);
+		expect(frontmatter.googleCalendarExceptionOriginalScheduled).toBeUndefined();
+	});
+
+	it("does not flag a moved occurrence when the completions calendar advances scheduled (regression)", async () => {
+		const frontmatter: Record<string, unknown> = {};
+		const plugin = createGoogleSyncPlugin(frontmatter);
+		const taskService = new TaskService(plugin);
+		const task = {
+			path: "TaskNotes/Tasks/Collect medication.md",
+			title: "Collect medication",
+			status: "ready",
+			priority: "normal",
+			archived: false,
+			scheduled: "2026-04-13",
+			recurrence: "DTSTART:20260316;FREQ=WEEKLY;INTERVAL=4;BYDAY=MO",
+			recurrence_anchor: "scheduled",
+			complete_instances: [],
+			skipped_instances: [],
+			googleCalendarEventId: "master-event-id",
+		} as TaskInfo;
+
+		// Mirrors what the task edit modal's completions calendar sends: it checks off
+		// the current instance and advances `scheduled` to the next occurrence in the
+		// same update, unlike a manual drag-to-reschedule which only changes `scheduled`.
+		const updatedTask = await taskService.updateTask(task, {
+			complete_instances: ["2026-04-13"],
+			scheduled: "2026-05-11",
+		});
+
+		expect(updatedTask.googleCalendarExceptionOriginalScheduled).toBeUndefined();
 		expect(frontmatter.googleCalendarExceptionOriginalScheduled).toBeUndefined();
 	});
 });

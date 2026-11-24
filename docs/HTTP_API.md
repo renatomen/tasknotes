@@ -9,10 +9,11 @@ The TaskNotes HTTP API provides local HTTP access to tasks, time tracking, pomod
 - Started when Obsidian starts and TaskNotes API is enabled
 - Bound to loopback (`127.0.0.1`) only, not the local network
 - Browser CORS requests are allowed only from loopback origins such as
-  `localhost`, `127.0.0.1`, and `[::1]`
+  `localhost`, `127.0.0.1`, and `[::1]`, and origin-only Chrome/Firefox extension URLs
+  (`chrome-extension://…`, `moz-extension://…`) without paths, credentials, ports, queries, or fragments
 - Not available on mobile
 
-Enable it in `Settings -> TaskNotes -> Integrations -> HTTP API`.
+Enable it in `Settings -> TaskNotes -> Advanced -> HTTP API`.
 
 ## Base URL
 
@@ -22,18 +23,54 @@ Default port is `8080`.
 
 ## Authentication
 
-Authentication is optional.
+Authentication is required for both HTTP API and MCP requests.
 
-- If `apiAuthToken` is empty, all API requests are accepted.
-- If `apiAuthToken` is set, send `Authorization: Bearer <token>`.
-- Set a token for any workflow where local browser pages, scripts, or other
-  desktop apps are not fully trusted.
+- Send `Authorization: Bearer <token>` using the token in Integrations settings.
+- If the token is empty at startup, TaskNotes generates and saves a token before starting the server and shows a notice asking you to update your clients.
+- The token is stored in Obsidian Secret Storage on each device, not in TaskNotes' `data.json`. Each device that runs the HTTP API has its own token, and syncing or committing `data.json` does not share it. When upgrading from TaskNotes 4.x, an existing token in `data.json` moves to Secret Storage automatically; a synced device that starts after the token has been removed from `data.json` generates a new one.
+- Clearing the token does not enable unauthenticated access; requests are rejected until a token is configured or generated at the next server start.
+- Existing clients that omitted authentication must be updated to send the token.
 
 Example:
 
 ```bash
 curl -H "Authorization: Bearer YOUR_TOKEN" http://localhost:8080/api/health
 ```
+
+## Connecting Claude Desktop with MCP
+
+TaskNotes 4.13.0 and later require a **TaskNotes API token**, not a Claude/Anthropic API key. The local MCP endpoint uses bearer authentication, not OAuth registration.
+
+1. In **Settings → TaskNotes → Advanced → HTTP API**, turn on **Enable HTTP API** and **Enable MCP server**.
+2. To generate a TaskNotes token, leave **API authentication token** empty and restart Obsidian. An existing TaskNotes token can be reused; do not clear it unless you intend to replace it for all clients.
+3. Reopen Integrations and copy the generated token. Keep it private.
+4. In Claude Desktop, open **Settings → Developer → Edit Config** and add the following entry, preserving any other MCP servers:
+
+```json
+{
+  "mcpServers": {
+    "Tasknotes": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "http://127.0.0.1:8080/mcp",
+        "--header",
+        "Authorization:${AUTH_HEADER}"
+      ],
+      "env": {
+        "AUTH_HEADER": "Bearer YOUR_TASKNOTES_API_TOKEN"
+      }
+    }
+  }
+}
+```
+
+Replace `YOUR_TASKNOTES_API_TOKEN` with the token from TaskNotes, keeping the `Bearer ` prefix. Change `8080` if you configured a different port. This configuration requires Node.js/npm so Claude can run `npx`.
+
+5. Fully quit and reopen Claude Desktop. Keep Obsidian running while using the tools.
+
+If Claude reports **Server Disconnected**, or `mcp-remote` fails in `registerClient`/OAuth registration, first check that the bearer header contains the current TaskNotes token. A missing or rejected token can cause the client to attempt OAuth registration, which this endpoint does not provide. After changing the token in TaskNotes, update every client and restart Claude. Do not disable authentication as a workaround.
 
 ## Response Format
 
@@ -185,6 +222,8 @@ Common optional fields:
 
 `blocking` is a read-only reverse relationship in API responses. To make a task block existing tasks, update those existing tasks' `blockedBy` fields.
 
+The MCP tools `tasknotes_create_task` and `tasknotes_update_task` accept the same `blockedBy` objects. On `tasknotes_update_task`, `blockedBy` replaces the whole list, and `null` or `[]` clears it.
+
 ```bash
 curl -X POST http://localhost:8080/api/tasks \
   -H "Content-Type: application/json" \
@@ -237,7 +276,8 @@ Complete recurring instance.
 
 Request body:
 
-- Optional `date` (ISO string). If omitted, uses current date context.
+- Optional `date` (a valid ISO calendar date, such as `YYYY-MM-DD`, or an ISO timestamp). If omitted, uses current date context. Date-only values are recommended for occurrence selection; ISO timestamps remain supported for existing clients.
+- Legacy `instanceDate` is accepted as an alias. Conflicting aliases or malformed dates return `400` without completing an occurrence.
 
 When the recurring parent uses materialized occurrence notes, this endpoint completes the matching occurrence note if one exists. If the parent is set to **Create next after completion** and no matching occurrence note exists yet, TaskNotes creates and completes that occurrence note instead of only recording a virtual `complete_instances` entry.
 
@@ -344,7 +384,25 @@ Condition fields:
 - `operator`: one of `is`, `is-not`, `contains`, `does-not-contain`, `is-before`, `is-after`, `is-on-or-before`, `is-on-or-after`, `is-empty`, `is-not-empty`, `is-checked`, `is-not-checked`, `is-greater-than`, `is-less-than`, `is-greater-than-or-equal`, or `is-less-than-or-equal`
 - `value`: required for comparison operators, omitted for empty/checked operators
 
-For user-defined fields, use `property: "user:<fieldId>"`.
+For user-defined fields, the canonical property is `user:<fieldId>`. Queries also accept
+`user:<frontmatter-key>`, `user.<fieldId>`, and `user.<frontmatter-key>`, including in
+`sortKey` and `groupKey`. For example, a field with ID `field_1234567890` and key
+`my-custom-field` can be queried with either `user:field_1234567890` or
+`user:my-custom-field`. Bare custom keys such as `my-custom-field` are not supported.
+
+`GET /api/filter-options` returns each configured field in `userProperties`, including
+its canonical `id`, accepted `aliases`, `frontmatterKey`, and `supportedOperators`.
+Canonical IDs take precedence if a field's ID collides with another field's key.
+
+External queries must contain complete, valid conditions. Unknown properties, invalid
+operators, incomplete conditions, and invalid sort/group keys return HTTP **400**,
+even if the vault is empty or another AND/OR branch would short-circuit evaluation.
+A valid query with no matches remains a successful response with an empty task list.
+
+The MCP tool `tasknotes_query_tasks` uses the same validation and custom-field aliases.
+Invalid queries return a tool result with `isError: true`; valid queries with no matches
+remain successful (for an ungrouped query, `{"all":[]}`). Use
+`tasknotes_get_filter_options` to discover fields before querying them.
 
 Response:
 
@@ -564,9 +622,9 @@ Common status codes:
 
 Current behavior:
 
-- CORS allows all origins (`*`).
+- CORS permits loopback and origin-only Chrome/Firefox extension origins, not arbitrary websites.
 - Transport is HTTP only (no TLS).
-- Node server is started with `server.listen(port)` and does not explicitly bind to `127.0.0.1`.
+- The server binds explicitly to `127.0.0.1`; bearer authentication is required.
 
 Practical guidance:
 

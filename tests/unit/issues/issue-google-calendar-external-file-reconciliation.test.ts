@@ -1,3 +1,4 @@
+import { observeTranslation as mockObserveTranslation, englishText as mockEnglishText, conceptDescriptor as mockConceptDescriptor } from "../../helpers/real-i18n";
 import { describe, it, expect, jest, beforeEach } from "@jest/globals";
 import { TFile } from "obsidian";
 
@@ -75,26 +76,7 @@ function createPlugin(
 			cancelAutoArchive: jest.fn().mockResolvedValue(undefined),
 		},
 		i18n: {
-			translate: jest.fn((key: string, params?: Record<string, string | number>) => {
-				const translations: Record<string, string> = {
-					"settings.integrations.googleCalendarExport.eventDescription.untitledTask":
-						"Untitled Task",
-					"settings.integrations.googleCalendarExport.eventDescription.priority":
-						"Priority: {value}",
-					"settings.integrations.googleCalendarExport.eventDescription.status":
-						"Status: {value}",
-					"settings.integrations.googleCalendarExport.eventDescription.scheduled":
-						"Scheduled: {value}",
-					"settings.integrations.googleCalendarExport.eventDescription.timeEstimate":
-						"Time Estimate: {value}",
-					"settings.integrations.googleCalendarExport.eventDescription.openInObsidian":
-						"Open in Obsidian",
-				};
-				const translation = translations[key] || key;
-				return translation.replace(/\{(\w+)\}/g, (_match, name) =>
-					String(params?.[name] ?? "")
-				);
-			}),
+			translate: mockObserveTranslation(),
 		},
 		cacheManager: {
 			getAllTasks: jest.fn().mockResolvedValue(tasks),
@@ -358,6 +340,32 @@ describe("Google Calendar external file reconciliation", () => {
 			[firstTask.path]: (syncService as any).getCalendarRelevantFingerprint(firstTask),
 			[secondTask.path]: (syncService as any).getCalendarRelevantFingerprint(secondTask),
 		});
+	});
+
+	it("exports a task added after an empty vault completed its first reconciliation", async () => {
+		const tasks: TaskInfo[] = [];
+		const pluginData: Record<string, unknown> = {};
+		const plugin = createPlugin(tasks, {}, pluginData);
+		const googleCalendarService = createGoogleCalendarService();
+		const syncService = new TaskCalendarSyncService(plugin, googleCalendarService as any);
+
+		await syncService.initializeExternalFileReconciliation();
+		tasks.push({
+			path: "TaskNotes/Tasks/created-after-empty-baseline.md",
+			title: "Created after empty baseline",
+			status: "ready",
+			priority: "3-medium",
+			archived: false,
+			scheduled: "2026-05-15",
+		} as TaskInfo);
+		await syncService.initializeExternalFileReconciliation();
+
+		expect(googleCalendarService.createEvent).toHaveBeenCalledTimes(1);
+		expect(googleCalendarService.createEvent).toHaveBeenCalledWith(
+			"primary",
+			expect.objectContaining({ summary: "Created after empty baseline" }),
+			expect.any(Number)
+		);
 	});
 
 	it("does not duplicate an event when the new task already carries an event id", async () => {

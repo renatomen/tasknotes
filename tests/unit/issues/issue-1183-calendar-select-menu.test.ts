@@ -1,3 +1,4 @@
+import { createI18nService } from "../../../src/i18n";
 /**
  * Issue #1183: drag-selecting a time range in Calendar should keep the creation
  * menu open until the user dismisses it.
@@ -17,6 +18,7 @@ jest.mock("../../../src/modals/TaskCreationModal", () => ({
 type MockMenu = {
 	hide: jest.Mock;
 	showAtMouseEvent: jest.Mock;
+	showAtPosition: jest.Mock;
 };
 
 const menuMock = Menu as unknown as jest.Mock;
@@ -26,6 +28,7 @@ function createCalendarView(calendar: { unselect: jest.Mock }): CalendarView {
 	Object.assign(view, {
 		calendar,
 		plugin: {
+			i18n: createI18nService(),
 			app: {},
 			calendarProviderRegistry: null,
 			settings: {
@@ -44,6 +47,45 @@ function createCalendarView(calendar: { unselect: jest.Mock }): CalendarView {
 describe("Issue #1183: calendar selection menu lifecycle", () => {
 	afterEach(() => {
 		menuMock.mockClear();
+	});
+
+	it("positions a touch selection menu at the released finger", async () => {
+		const view = createCalendarView({ unselect: jest.fn() });
+		// jsdom has no PointerEvent; a pointer event is a MouseEvent with a pointerType.
+		const event = new MouseEvent("pointerup", { clientX: 240, clientY: 360 });
+		Object.defineProperty(event, "pointerType", { value: "touch" });
+
+		await (view as any).handleDateSelect({
+			allDay: false,
+			end: new Date("2026-06-01T11:00:00"),
+			jsEvent: event,
+			start: new Date("2026-06-01T09:00:00"),
+		});
+
+		const menu = menuMock.mock.results[0].value as MockMenu;
+		const shownAt = menu.showAtMouseEvent.mock.calls[0][0] as MouseEvent;
+		expect(shownAt.clientX).toBe(240);
+		expect(shownAt.clientY).toBe(360);
+	});
+
+	it("anchors a keyboard selection menu to the calendar", async () => {
+		const view = createCalendarView({ unselect: jest.fn() });
+		const calendarEl = document.createElement("div");
+		calendarEl.getBoundingClientRect = () =>
+			({ left: 100, top: 50, width: 400, height: 300 }) as DOMRect;
+		Object.assign(view, { calendarEl });
+
+		await (view as any).handleDateSelect({
+			allDay: true,
+			end: new Date("2026-06-02T00:00:00"),
+			jsEvent: new KeyboardEvent("keydown", { key: "Enter" }),
+			start: new Date("2026-06-01T00:00:00"),
+		});
+
+		const menu = menuMock.mock.results[0].value as MockMenu;
+		const shownAt = menu.showAtMouseEvent.mock.calls[0][0] as MouseEvent;
+		expect(shownAt.clientX).toBe(124);
+		expect(shownAt.clientY).toBe(62);
 	});
 
 	it("does not clear a drag selection until the creation menu closes", async () => {

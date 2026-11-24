@@ -1,9 +1,7 @@
 # Task Properties Settings
 
-This tab configures all task properties. Each property is displayed as a card containing its configuration options.
+Open **Settings → TaskNotes → Properties** to configure property mappings and definitions. Open a property to edit its settings and NLP trigger in inline groups. Advanced filters have a separate detail page. Built-in default values are under **Task creation → Defaults**.
 
-
-![Task Properties Settings](../assets/settings-task-properties.png)
 
 !!! tip "Looking for property type documentation?"
     See the [Property Types Reference](property-types-reference.md) for detailed documentation on the expected data types (text, list, date, etc.) for each frontmatter property.
@@ -16,7 +14,7 @@ Each property card contains:
 - **Default**: The default value applied to new tasks (where applicable)
 - **NLP trigger**: Toggle and character configuration for natural language parsing (where applicable)
 - **Property-specific settings**: Additional configuration options specific to that property
-This tab defines the task schema used by creation flows, NLP parsing, views, and API payloads.
+These settings define the task schema used by creation flows, NLP parsing, views, and API payloads.
 
 Property keys are YAML/frontmatter keys. TaskNotes can read and write keys that contain spaces or punctuation, but hand-written Bases filters and formulas must reference those keys with bracket syntax, for example `note["TN-status"]`, rather than dot syntax such as `note.TN-status`.
 
@@ -27,7 +25,7 @@ Property keys are YAML/frontmatter keys. TaskNotes can read and write keys that 
 The task title property. Configuration options:
 
 - **Property key**: Frontmatter field name (default: `title`)
-- **Store title in filename**: When enabled, the task title is stored in the filename instead of frontmatter. The filename updates when the title changes.
+- **Store title in filename**: When enabled, the task title is stored in the filename instead of frontmatter when the filename can represent it. Long, sanitized, or duplicate filenames may require a title property to preserve the full text. Editing titles or other properties preserves the full title whenever the resulting filename cannot represent it exactly. The filename updates when the title changes; if the rename fails, the previous title and properties remain unchanged.
 - **Filename format**: When "Store title in filename" is disabled, choose how filenames are generated:
     - Title-based
     - Zettelkasten-style
@@ -53,7 +51,7 @@ Each status value has:
 - **Icon**: Optional icon identifier
 - **Completed**: Whether this status represents a finished task
 - **Skip when cycling**: Exclude this status from the click-to-cycle order on task cards while keeping it available in menus, suggestions, and direct edits
-- **Next status**: Optional override for the status used when cycling forward from this status; leave it set to the status order to use the normal sequence
+- **Next status**: Optional override for the status used when cycling forward from this status; leave it set to the status order to use the normal sequence. On the first status marked **Completed**, it is also the status a recurring series moves to once an occurrence is finished, and it lets recurring tasks follow the click cycle, when **Reset status after each occurrence** is on under [Features](features.md#recurring-tasks). In new setups, TaskNotes' built-in Done status moves on to Open. See [Recurring Tasks](../features/recurring-tasks.md#completion-tracking)
 - **Auto-archive**: Automatically archive tasks after a delay (1-1440 minutes)
 
 Status cards support drag-and-drop reordering.
@@ -93,7 +91,7 @@ Each priority value has:
 Priority cards support drag-and-drop reordering.
 Status and priority values are stored in frontmatter; renaming them later may require migration of existing task files.
 
-> **Note for Bases plugin users:** Obsidian's Bases plugin sorts priorities alphabetically by their **Value**. To control sort order, name values to sort alphabetically in the desired order:
+> **Note for Bases plugin users:** Obsidian's Bases plugin sorts the `priority` property alphabetically by its **Value**. To sort in the order of your priority cards, sort by `formula.priorityWeight` in descending order; see [Sort by priority](../guides/custom-bases.md#sort-by-priority). Alternatively, name values to sort alphabetically in the desired order:
 > - Example: `1-urgent`, `2-high`, `3-medium`, `4-normal`, `5-low`
 > - Or: `a-urgent`, `b-high`, `c-medium`, `d-normal`, `e-low`
 
@@ -133,6 +131,7 @@ Projects the task belongs to. Configuration options:
 
 - **Property key**: Frontmatter field name (default: `projects`)
 - **Default projects**: Select project notes to automatically link to new tasks
+- **Use default projects only when no project is specified**: Off by default. When on, a project you pick in the task creation form, or type in the natural language field, replaces the default projects. If you delete the typed project, the defaults come back. Instant conversion also leaves out the defaults when the converted text names a project. Projects filled in by a Bases view or a parent task are kept as they are.
 - **Use active note for new tasks**: Automatically link the active note as a project when opening task creation from the command palette or ribbon
 - **Use parent note for inline/instant conversion**: Automatically link the source note as a project when using inline task creation or instant task conversion
 - **NLP trigger**: Character that triggers project parsing (default: `+`)
@@ -146,8 +145,12 @@ Control which notes appear when selecting projects:
 - **Required tags**: Comma-separated list of tags (shows notes with ANY of these tags)
 - **Include folders**: Comma-separated list of folder paths (shows notes in ANY of these folders)
 - **Required property key**: Frontmatter property that must exist
-- **Required property value**: Expected value for the property (optional)
-These filters reduce suggestion noise in large vaults.
+- **Required property value**: Optional comma-separated allow-list, such as `active, planned`, or an explicit `containsAny("active", "planned")` expression. Use `!containsAny("completed", "archived")` or `not containsAny("done")` to exclude values. Matching is case-insensitive, including list-valued properties.
+  - Quoted expression arguments can contain commas; escape quotes and backslashes with a backslash. Malformed `containsAny(...)` calls match no notes.
+  - Plain filters remain literal: `not started` and `"active"` keep their original meaning. Negation only applies to explicit `containsAny(...)` calls.
+  - With no value filter, the property only has to exist (empty strings and lists are allowed). With a value filter, missing or null properties, blank strings and empty lists are excluded, including under negation.
+
+These filters reduce suggestion noise in large vaults, including hiding completed or archived projects from the `+` suggestions and project picker. Folder exclusions and suggestion sort order are separate settings/features.
 
 A "Filters On" badge appears when any filters are configured.
 
@@ -155,7 +158,6 @@ A "Filters On" badge appears when any filters are configured.
 
 Configure project suggestion appearance:
 
-- **Enable fuzzy matching**: Allow typos and partial matches in project search
 - **Row 1, 2, 3**: Configure up to 3 lines of information for each project suggestion
 
 ### Tags
@@ -211,6 +213,7 @@ Each default reminder can be:
 
 These properties are system-managed and typically only require property key configuration:
 
+- **Task ID**: The task's stable ID (default: `id`). Change it if your notes already use `id` for something else, for example `tasknote_id`. Existing notes keep their IDs under the old key until you rename it in them.
 - **Date Created**: When the task was created
 - **Date Modified**: When the task was last modified
 - **Completed Date**: When the task was completed
@@ -273,7 +276,7 @@ Each custom field can configure filters to control which files appear in wikilin
 - **Required tags**: Comma-separated list of tags (shows files with ANY of these tags)
 - **Include folders**: Comma-separated list of folder paths (shows files in ANY of these folders)
 - **Required property key**: Frontmatter property that must exist
-- **Required property value**: Expected value for the property (optional)
+- **Required property value**: Optional comma-separated allow-list or `containsAny("a", "b")` expression. Prefix the expression with `!` to exclude values, for example `!containsAny("archived")`.
 
 A "Filters On" badge appears when filters are configured.
 

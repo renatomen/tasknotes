@@ -1,3 +1,6 @@
+import { uiData } from "../i18n/dataText";
+import { uiText } from "../i18n/runtime";
+import { msg } from "@lingui/core/macro";
 /* eslint-disable @typescript-eslint/no-non-null-assertion -- Calendar sync validates credentials before accessing token fields. */
 import { requestUrl } from "obsidian";
 import { format } from "date-fns";
@@ -13,7 +16,12 @@ import {
 	TokenExpiredError,
 } from "./errors";
 import { validateCalendarId, validateEventId, validateRequired } from "./validation";
-import { CalendarProvider, ProviderCalendar } from "./CalendarProvider";
+import {
+	GoogleCalendarSource,
+	findProviderCalendar,
+	PRIMARY_CALENDAR_ALIAS,
+	ProviderCalendar,
+} from "./CalendarProvider";
 import { createTaskNotesLogger } from "../utils/tasknotesLogger";
 import { publishUserNotice } from "../core/userNotices";
 import { normalizeCalendarDescription } from "../utils/calendarDescription";
@@ -63,22 +71,32 @@ type GoogleCalendarEventPayload = Record<string, unknown> & {
  * Uses OAuth for authentication and provides calendar event access.
  * Implements the CalendarProvider interface for abstraction.
  */
-export class GoogleCalendarService extends CalendarProvider {
-	readonly providerId = "google";
-	readonly providerName = "Google Calendar";
+export class GoogleCalendarService extends GoogleCalendarSource {
 	private plugin: TaskNotesPlugin;
 	private oauthService: OAuthService;
 	private baseUrl = "https://www.googleapis.com/calendar/v3";
 	private cache: Map<string, ICSEvent[]> = new Map();
+	// Calendars whose events are in the in-memory cache. Sync tokens are persisted, but the
+	// cache is not, so a saved token is only usable once this session has a full sync (#2243).
+	private cachedCalendarIds: Set<string> = new Set();
 	private refreshTimer: number | null = null;
 	private availableCalendars: ProviderCalendar[] = [];
 	private calendarColors: Map<string, string> = new Map(); // Map calendar ID to color
+	private cacheConnectionGeneration = 0;
 	private lastManualRefresh = 0; // Timestamp of last manual refresh for rate limiting
+	private syncStatus: { lastSuccess: string | null; calendarErrors: { calendarId: string; message: string }[]; calendarsChecked: number } = {
+		lastSuccess: null, calendarErrors: [], calendarsChecked: 0,
+	};
+
+	getSyncStatus() {
+		return { ...this.syncStatus, calendarErrors: this.syncStatus.calendarErrors.map((error) => ({ ...error })) };
+	}
 
 	constructor(plugin: TaskNotesPlugin, oauthService: OAuthService) {
 		super();
 		this.plugin = plugin;
 		this.oauthService = oauthService;
+		this.cacheConnectionGeneration = this.getConnectionGeneration();
 	}
 
 	/**
@@ -161,24 +179,52 @@ export class GoogleCalendarService extends CalendarProvider {
 	 * Gets the list of available Google Calendars
 	 */
 	getAvailableCalendars(): ProviderCalendar[] {
+		this.clearMemoryCachesForChangedConnection();
 		return this.availableCalendars;
 	}
 
 	getConnectionGeneration(): number {
-		return this.oauthService.getConnectionGeneration("google");
+		const oauthService = this.oauthService as OAuthService & {
+			getConnectionGeneration?: (provider: "google") => number;
+		};
+		return oauthService.getConnectionGeneration?.("google") ?? 0;
 	}
 
 	async isConnectionGenerationCurrent(expectedGeneration: number): Promise<boolean> {
 		return this.oauthService.isConnectionGenerationCurrent("google", expectedGeneration);
 	}
 
+	private clearMemoryCachesForChangedConnection(): void {
+		const currentGeneration = this.getConnectionGeneration();
+		if (currentGeneration === this.cacheConnectionGeneration) return;
+		this.cacheConnectionGeneration = currentGeneration;
+		this.availableCalendars = [];
+		this.calendarColors.clear();
+		this.cache.clear();
+		this.cachedCalendarIds.clear();
+	}
+
+	private async prepareConnectionGeneration(connectionGeneration: number): Promise<void> {
+		if (connectionGeneration === this.cacheConnectionGeneration) return;
+		this.clearMemoryCachesForChangedConnection();
+		this.plugin.settings.googleCalendarSyncTokens = {};
+		await this.persistSettingsDataOnly();
+	}
+
+	async handleDisconnect(): Promise<void> {
+		this.stopRefreshTimer();
+		await this.prepareConnectionGeneration(this.getConnectionGeneration());
+	}
+
 	/**
 	 * Gets the list of enabled calendar IDs from settings
 	 */
-	private getEnabledCalendarIds(): string[] {
+	private getEnabledCalendarIds(
+		calendars: ProviderCalendar[] = this.availableCalendars
+	): string[] {
 		// If empty, show all calendars
 		if (this.plugin.settings.enabledGoogleCalendars.length === 0) {
-			return this.availableCalendars.map((cal) => cal.id);
+			return calendars.map((cal) => cal.id);
 		}
 		return this.plugin.settings.enabledGoogleCalendars;
 	}
@@ -274,10 +320,14 @@ export class GoogleCalendarService extends CalendarProvider {
 	/**
 	 * Fetches list of user's calendars and stores their colors
 	 */
-	async listCalendars(): Promise<ProviderCalendar[]> {
+	async listCalendars(expectedGeneration?: number): Promise<ProviderCalendar[]> {
+		const connectionGeneration = expectedGeneration ?? this.getConnectionGeneration();
 		try {
 			return await this.withRetry(async () => {
-				const token = await this.oauthService.getValidToken("google");
+				const token = await this.oauthService.getValidToken(
+					"google",
+					connectionGeneration
+				);
 
 				const response = await requestUrl({
 					url: `${this.baseUrl}/users/me/calendarList`,
@@ -291,21 +341,34 @@ export class GoogleCalendarService extends CalendarProvider {
 				const data = response.json;
 				const calendars = data.items || [];
 
-				// Store calendar colors for later use and convert to ProviderCalendar format
+				// Build results locally so an account switch cannot partially update caches.
 				const providerCalendars: ProviderCalendar[] = [];
+				const calendarColors = new Map<string, string>();
 				for (const calendar of calendars) {
 					if (calendar.backgroundColor) {
-						this.calendarColors.set(calendar.id, calendar.backgroundColor);
+						calendarColors.set(calendar.id, calendar.backgroundColor);
+						// Event conversion precedes publishing availableCalendars during a
+						// refresh, so resolve the alias from this same metadata snapshot.
+						if (calendar.primary) {
+							calendarColors.set(PRIMARY_CALENDAR_ALIAS, calendar.backgroundColor);
+						}
 					}
 					providerCalendars.push({
 						id: calendar.id,
-						summary: calendar.summary,
+						summary: calendar.summaryOverride || calendar.summary,
 						description: calendar.description,
 						backgroundColor: calendar.backgroundColor,
 						primary: calendar.primary || false,
+						canWrite: calendar.accessRole
+							? calendar.accessRole === "owner" || calendar.accessRole === "writer"
+							: undefined,
 					});
 				}
 
+				if (this.getConnectionGeneration() !== connectionGeneration) {
+					throw new Error("Google OAuth connection changed while listing calendars");
+				}
+				this.calendarColors = calendarColors;
 				return providerCalendars;
 			}, "List calendars");
 		} catch (error) {
@@ -328,15 +391,18 @@ export class GoogleCalendarService extends CalendarProvider {
 	async fetchCalendarEvents(
 		calendarId: string,
 		timeMin?: Date,
-		timeMax?: Date
+		timeMax?: Date,
+		expectedGeneration?: number,
+		options: { forceFullSync?: boolean } = {}
 	): Promise<{
 		events: GoogleCalendarEvent[];
 		isFullSync: boolean;
 		hasDeletes: boolean;
 	}> {
+		const connectionGeneration = expectedGeneration ?? this.getConnectionGeneration();
 		try {
-			const token = await this.oauthService.getValidToken("google");
-			const syncToken = this.getSyncToken(calendarId);
+			const token = await this.oauthService.getValidToken("google", connectionGeneration);
+			const syncToken = options.forceFullSync ? undefined : this.getSyncToken(calendarId);
 
 			let allEvents: GoogleCalendarEvent[] = [];
 			let nextPageToken: string | undefined;
@@ -428,11 +494,21 @@ export class GoogleCalendarService extends CalendarProvider {
 					if (error.status === 410) {
 						await this.clearSyncToken(calendarId);
 						// Retry with full sync
-						return await this.fetchCalendarEvents(calendarId, timeMin, timeMax);
+						return await this.fetchCalendarEvents(
+							calendarId,
+							timeMin,
+							timeMax,
+							connectionGeneration,
+							options
+						);
 					}
 					throw error;
 				}
 			} while (nextPageToken);
+
+			if (this.getConnectionGeneration() !== connectionGeneration) {
+				throw new Error("Google OAuth connection changed while fetching calendar events");
+			}
 
 			// Save the new sync token
 			if (nextSyncToken) {
@@ -452,6 +528,20 @@ export class GoogleCalendarService extends CalendarProvider {
 			});
 			throw new Error(`Failed to fetch calendar events: ${error.message}`);
 		}
+	}
+
+	/**
+	 * Resolves a calendar's color, including for calendars fetched under the
+	 * primary alias, whose colors are cached under the account's real calendar id.
+	 */
+	private getCalendarColor(calendarId: string): string | undefined {
+		const directColor = this.calendarColors.get(calendarId);
+		if (directColor) {
+			return directColor;
+		}
+
+		const calendar = findProviderCalendar(this.availableCalendars, calendarId);
+		return calendar ? this.calendarColors.get(calendar.id) : undefined;
 	}
 
 	/**
@@ -492,7 +582,7 @@ export class GoogleCalendarService extends CalendarProvider {
 
 		// Priority 2: Calendar-level color (from calendar metadata)
 		if (!color) {
-			color = this.calendarColors.get(calendarId);
+			color = this.getCalendarColor(calendarId);
 		}
 
 		// Priority 3: Default Google Calendar blue
@@ -507,7 +597,7 @@ export class GoogleCalendarService extends CalendarProvider {
 		return {
 			id: `google-${calendarId}-${googleEvent.id}`,
 			subscriptionId: `google-${calendarId}`,
-			title: googleEvent.summary || "Untitled Event",
+			title: googleEvent.summary || uiData("Untitled Event", "Persisted/cache provider fallback title; preserve English data seed"),
 			description: normalizeCalendarDescription(googleEvent.description),
 			start: start,
 			end: end,
@@ -523,26 +613,35 @@ export class GoogleCalendarService extends CalendarProvider {
 	 * Refreshes all enabled Google calendars using incremental sync when possible
 	 */
 	async refreshAllCalendars(options: { propagateErrors?: boolean } = {}): Promise<void> {
+		const connectionGeneration = this.getConnectionGeneration();
 		try {
+			await this.prepareConnectionGeneration(connectionGeneration);
 			const isConnected = await this.oauthService.isConnected("google");
 			if (!isConnected) {
 				return;
 			}
 
-			// Get list of calendars and store them
-			this.availableCalendars = await this.listCalendars();
+			// Keep refreshed calendars local until the whole refresh is confirmed current.
+			const refreshedCalendars = await this.listCalendars(connectionGeneration);
 
 			// Get enabled calendar IDs from settings
-			const enabledCalendarIds = this.getEnabledCalendarIds();
+			const enabledCalendarIds = this.getEnabledCalendarIds(refreshedCalendars);
 
 			// Get current cached events
-			let cachedEvents = this.cache.get("all") || [];
+			let cachedEvents = this.getAllEvents();
+			const cachedCalendarIds = new Set(this.cachedCalendarIds);
+			const calendarErrors: { calendarId: string; message: string }[] = [];
 
 			// Fetch events from each enabled calendar
 			for (const calendarId of enabledCalendarIds) {
 				try {
-					const { events: googleEvents, isFullSync } =
-						await this.fetchCalendarEvents(calendarId);
+					const { events: googleEvents, isFullSync } = await this.fetchCalendarEvents(
+						calendarId,
+						undefined,
+						undefined,
+						connectionGeneration,
+						{ forceFullSync: !cachedCalendarIds.has(calendarId) }
+					);
 
 					if (isFullSync) {
 						// Full sync: Replace all events from this calendar
@@ -557,6 +656,7 @@ export class GoogleCalendarService extends CalendarProvider {
 							.map((event) => this.convertToICSEvent(event, calendarId));
 
 						cachedEvents.push(...icsEvents);
+						cachedCalendarIds.add(calendarId);
 					} else {
 						// Incremental sync: Update cache with changes
 						for (const googleEvent of googleEvents) {
@@ -588,15 +688,30 @@ export class GoogleCalendarService extends CalendarProvider {
 						operation: "fetch-events-calendar",
 						error: error,
 					});
+					calendarErrors.push({ calendarId, message: error instanceof Error ? error.message : String(error) });
 					// Continue with other calendars
 				}
 			}
 
-			// Update cache
-			this.cache.set("all", cachedEvents);
+			if (this.getConnectionGeneration() !== connectionGeneration) {
+				throw new Error("Google OAuth connection changed while refreshing calendars");
+			}
 
-			// Emit data-changed event
+			// Update caches together for the same connection.
+			this.availableCalendars = refreshedCalendars;
+			this.cache.set("all", cachedEvents);
+			this.cachedCalendarIds = cachedCalendarIds;
+
+			this.syncStatus = {
+				lastSuccess: calendarErrors.length === 0 ? new Date().toISOString() : this.syncStatus.lastSuccess,
+				calendarErrors,
+				calendarsChecked: enabledCalendarIds.length,
+			};
+			// Publish successful calendars even when other calendars failed.
 			this.emit("data-changed");
+			if (calendarErrors.length > 0 && options.propagateErrors) {
+				throw new Error(calendarErrors.map(({ calendarId, message }) => `${calendarId}: ${message}`).join("\n"));
+			}
 		} catch (error) {
 			tasknotesLogger.error("Failed to refresh Google calendars:", {
 				category: "provider",
@@ -625,8 +740,10 @@ export class GoogleCalendarService extends CalendarProvider {
 	 * Gets all cached events
 	 */
 	getAllEvents(): ICSEvent[] {
+		this.clearMemoryCachesForChangedConnection();
 		const events = this.cache.get("all") || [];
-		return events;
+		const enabled = new Set(this.getEnabledCalendarIds().map((id) => `google-${id}`));
+		return events.filter((event) => enabled.has(event.subscriptionId));
 	}
 
 	/**
@@ -666,7 +783,7 @@ export class GoogleCalendarService extends CalendarProvider {
 
 		if (timeSinceLastRefresh < minInterval) {
 			const remainingMs = minInterval - timeSinceLastRefresh;
-			publishUserNotice(this.plugin.emitter, `Please wait ${Math.ceil(remainingMs / 1000)}s before refreshing again`);
+			publishUserNotice(this.plugin.emitter, uiText(msg({ message: "{seconds, plural, one {Please wait # second before refreshing again} other {Please wait # seconds before refreshing again}}", context: "calendar refresh throttling" }), { seconds: Math.ceil(remainingMs / 1000) }));
 			return;
 		}
 
@@ -679,6 +796,7 @@ export class GoogleCalendarService extends CalendarProvider {
 	 */
 	clearCache(): void {
 		this.cache.clear();
+		this.cachedCalendarIds.clear();
 	}
 
 	/**
@@ -689,6 +807,7 @@ export class GoogleCalendarService extends CalendarProvider {
 		calendarId: string,
 		eventId: string,
 		updates: {
+			transparency?: "opaque" | "transparent";
 			title?: string;
 			summary?: string;
 			description?: string;
@@ -711,13 +830,12 @@ export class GoogleCalendarService extends CalendarProvider {
 		validateRequired(updates, "updates");
 
 		try {
-			const token = await this.oauthService.getValidToken(
-				"google",
-				expectedConnectionGeneration
-			);
-
 			// First, get the current event to merge with updates
 			const getResponse = await this.withRetry(async () => {
+				const token = await this.oauthService.getValidToken(
+					"google",
+					expectedConnectionGeneration
+				);
 				return await requestUrl({
 					url: `${this.baseUrl}/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`,
 					method: "GET",
@@ -739,6 +857,9 @@ export class GoogleCalendarService extends CalendarProvider {
 			// Support both 'title' and 'summary'
 			if (updates.title !== undefined || updates.summary !== undefined) {
 				payload.summary = updates.summary || updates.title;
+			}
+			if (updates.transparency !== undefined) {
+				payload.transparency = updates.transparency;
 			}
 			if (updates.description !== undefined) {
 				payload.description = updates.description;
@@ -804,6 +925,10 @@ export class GoogleCalendarService extends CalendarProvider {
 
 			// Update the event with retry logic
 			const updateResponse = await this.withRetry(async () => {
+				const token = await this.oauthService.getValidToken(
+					"google",
+					expectedConnectionGeneration
+				);
 				return await requestUrl({
 					url: `${this.baseUrl}/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`,
 					method: "PUT",
@@ -852,6 +977,7 @@ export class GoogleCalendarService extends CalendarProvider {
 	async createEvent(
 		calendarId: string,
 		event: {
+			transparency?: "opaque" | "transparent";
 			title?: string;
 			summary?: string;
 			description?: string;
@@ -879,17 +1005,16 @@ export class GoogleCalendarService extends CalendarProvider {
 		validateRequired(event.end, "event.end");
 
 		try {
-			const token = await this.oauthService.getValidToken(
-				"google",
-				expectedConnectionGeneration
-			);
-
 			// Build Google Calendar API payload
 			const payload: GoogleCalendarEventPayload = {
 				summary: summary,
 				description: event.description,
 				location: event.location,
 			};
+
+			if (event.transparency !== undefined) {
+				payload.transparency = event.transparency;
+			}
 
 			// Add reminders if provided
 			if (event.reminders) {
@@ -926,6 +1051,10 @@ export class GoogleCalendarService extends CalendarProvider {
 			}
 
 			const response = await this.withRetry(async () => {
+				const token = await this.oauthService.getValidToken(
+					"google",
+					expectedConnectionGeneration
+				);
 				return await requestUrl({
 					url: `${this.baseUrl}/calendars/${encodeURIComponent(calendarId)}/events`,
 					method: "POST",
@@ -979,12 +1108,11 @@ export class GoogleCalendarService extends CalendarProvider {
 		validateEventId(eventId);
 
 		try {
-			const token = await this.oauthService.getValidToken(
-				"google",
-				expectedConnectionGeneration
-			);
-
 			await this.withRetry(async () => {
+				const token = await this.oauthService.getValidToken(
+					"google",
+					expectedConnectionGeneration
+				);
 				return await requestUrl({
 					url: `${this.baseUrl}/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`,
 					method: "DELETE",
@@ -1075,6 +1203,7 @@ export class GoogleCalendarService extends CalendarProvider {
 	destroy(): void {
 		this.stopRefreshTimer();
 		this.cache.clear();
+		this.cachedCalendarIds.clear();
 		this.removeAllListeners();
 	}
 }

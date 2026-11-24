@@ -1,4 +1,6 @@
 import { requestUrl, Platform } from "obsidian";
+import { msg } from "@lingui/core/macro";
+import { oauthCallbackHtml } from "../i18n/oauthCallbackHtml";
 import TaskNotesPlugin from "../main";
 import { OAuthProvider, OAuthTokens, OAuthConnection, OAuthConfig } from "../types";
 import { OAUTH_CONSTANTS } from "./constants";
@@ -7,6 +9,7 @@ import type { HTTPRequestLike, HTTPResponseLike, HTTPServerLike } from "../api/h
 import { createTaskNotesLogger } from "../utils/tasknotesLogger";
 import { publishUserNotice } from "../core/userNotices";
 import { OAuthSecretStore, type OAuthCredentials } from "./OAuthSecretStore";
+import { generateUuidV4 } from "../utils/uuid";
 
 const tasknotesLogger = createTaskNotesLogger({ tag: "Services/OAuthService" });
 
@@ -137,7 +140,14 @@ export class OAuthService {
 	 * Standard OAuth flow with loopback redirect (client_id required, client_secret optional)
 	 * Used for desktop applications with PKCE for security
 	 */
+	private authenticationInProgress = false;
+
 	private async authenticateStandard(provider: OAuthProvider): Promise<void> {
+		// A second attempt must not close the first attempt's listener in finally.
+		if (this.authenticationInProgress) {
+			throw new Error("An OAuth authorization is already in progress");
+		}
+		this.authenticationInProgress = true;
 		try {
 			const config = this.getConfig(provider);
 
@@ -157,12 +167,7 @@ export class OAuthService {
 			const codeChallenge = await this.generateCodeChallenge(codeVerifier);
 			const state = this.generateState();
 
-			// Find available port
-			const port = await this.findAvailablePort(
-				OAUTH_CONSTANTS.CALLBACK_PORT_START,
-				OAUTH_CONSTANTS.CALLBACK_PORT_END
-			);
-			await this.startCallbackServer(port);
+			const port = await this.startCallbackServer(0);
 
 			// Update redirect URI for this session
 			const originalRedirectUri = config.redirectUri;
@@ -185,11 +190,16 @@ export class OAuthService {
 					`Opening browser for ${provider} authorization...`
 				);
 
-				// Open browser to authorization URL
-				await this.openAuthorizationUrl(authUrl);
-
-				// Wait for callback with timeout
-				const code = await this.waitForCallback(state, 300000); // 5 minute timeout
+				// Register the resolver before the browser can return a fast callback.
+				const callback = this.waitForCallback(state, 300000);
+				// Electron can open the browser without ever settling openExternal.
+				// Let the callback/timeout drive the flow independently (#2279).
+				void this.openAuthorizationUrl(authUrl).catch((error: unknown) => {
+					this.pendingOAuthState.get(state)?.reject(
+						error instanceof Error ? error : new Error("Could not open OAuth browser")
+					);
+				});
+				const code = await callback;
 
 				// Exchange code for tokens
 				const tokens = await this.exchangeCodeForTokens(config, code, codeVerifier);
@@ -202,6 +212,10 @@ export class OAuthService {
 					`Successfully connected to ${provider} Calendar!`
 				);
 			} finally {
+				// Clear a pending resolver even if opening the browser failed.
+				const pending = this.pendingOAuthState.get(state);
+				this.pendingOAuthState.delete(state);
+				pending?.reject(new Error("OAuth flow ended before authorization"));
 				// Restore original redirect URI
 				config.redirectUri = originalRedirectUri;
 			}
@@ -217,13 +231,17 @@ export class OAuthService {
 			);
 			throw error;
 		} finally {
-			await this.stopCallbackServer();
+			try {
+				await this.stopCallbackServer();
+			} finally {
+				this.authenticationInProgress = false;
+			}
 		}
 	}
 
 	private async openAuthorizationUrl(authUrl: string): Promise<void> {
 		try {
-			// eslint-disable-next-line @typescript-eslint/no-require-imports, import/no-extraneous-dependencies -- OAuth must bypass Obsidian's in-app Web Viewer and use the system browser on desktop.
+			// eslint-disable-next-line @typescript-eslint/no-require-imports -- OAuth must bypass Obsidian's in-app Web Viewer and use the system browser on desktop.
 			const electron = require("electron") as ElectronModuleLike;
 			const shell = electron.shell;
 			if (shell?.openExternal) {
@@ -231,41 +249,17 @@ export class OAuthService {
 				return;
 			}
 		} catch (error) {
-			tasknotesLogger.warn("Failed to open OAuth URL in system browser; falling back to window.open.", {
-				category: "provider",
-				operation: "oauth-open-external",
-				error,
-			});
+			tasknotesLogger.warn(
+				"Failed to open OAuth URL in system browser; falling back to window.open.",
+				{
+					category: "provider",
+					operation: "oauth-open-external",
+					error,
+				}
+			);
 		}
 
 		window.open(authUrl, "_blank");
-	}
-
-	/**
-	 * Finds an available port in the given range
-	 */
-	private async findAvailablePort(startPort: number, endPort: number): Promise<number> {
-		const http = ensureHttpModule();
-
-		for (let port = startPort; port <= endPort; port++) {
-			try {
-				await new Promise<void>((resolve, reject) => {
-					const server = http.createServer();
-					server.once("error", reject);
-					server.once("listening", () => {
-						server.close();
-						resolve();
-					});
-					server.listen(port, "127.0.0.1");
-				});
-				return port;
-			} catch {
-				// Port in use, try next one
-				continue;
-			}
-		}
-
-		throw new Error(`No available ports found between ${startPort} and ${endPort}`);
 	}
 
 	/**
@@ -330,10 +324,10 @@ export class OAuthService {
 	/**
 	 * Starts a temporary HTTP server to receive the OAuth callback
 	 */
-	private async startCallbackServer(port: number): Promise<void> {
+	private async startCallbackServer(port: number): Promise<number> {
 		return new Promise((resolve, reject) => {
 			if (this.callbackServer) {
-				resolve(); // Already running
+				reject(new Error("An OAuth callback is already pending"));
 				return;
 			}
 
@@ -363,7 +357,12 @@ export class OAuthService {
 			});
 
 			this.callbackServer.listen(port, "127.0.0.1", () => {
-				resolve();
+				const address = this.callbackServer?.address?.();
+				if (!address || typeof address === "string") {
+					reject(new Error("OAuth listener did not expose its bound port"));
+					return;
+				}
+				resolve(address.port);
 			});
 		});
 	}
@@ -378,10 +377,9 @@ export class OAuthService {
 				return;
 			}
 
-			this.callbackServer.close(() => {
-				this.callbackServer = null;
-				resolve();
-			});
+			const server = this.callbackServer;
+			this.callbackServer = null;
+			server.close(() => resolve());
 		});
 	}
 
@@ -389,70 +387,54 @@ export class OAuthService {
 	 * Handles incoming HTTP requests to the callback server
 	 */
 	private handleCallback(req: HTTPRequestLike, res: HTTPResponseLike): void {
-		const hostHeader = req.headers.host;
-		const host = Array.isArray(hostHeader) ? hostHeader[0] : (hostHeader ?? "localhost");
-		const url = new URL(req.url || "", `http://${host}`);
-		const code = url.searchParams.get("code");
+		const headers = {
+			"Content-Type": "text/html; charset=utf-8",
+			"Content-Security-Policy":
+				"default-src 'none'; frame-ancestors 'none'; base-uri 'none'",
+			"X-Content-Type-Options": "nosniff",
+			"Cache-Control": "no-store",
+		};
+		let url: URL;
+		try {
+			url = new URL(req.url || "/", "http://127.0.0.1");
+		} catch {
+			res.writeHead(400, headers);
+			res.end(oauthCallbackHtml(this.plugin.i18n.translate(msg({ message: "Invalid callback", context: "OAuth callback title" })), "", this.plugin.i18n.getCurrentLocale()));
+			return;
+		}
 		const state = url.searchParams.get("state");
+		const pending = state ? this.pendingOAuthState.get(state) : undefined;
+		const code = url.searchParams.get("code");
 		const error = url.searchParams.get("error");
-
-		// Send response to browser
-		res.writeHead(200, { "Content-Type": "text/html" });
-
-		if (error) {
-			res.end(`
-				<!DOCTYPE html>
-				<html>
-					<head><title>OAuth Error</title></head>
-					<body>
-						<h1>Authorization Failed</h1>
-						<p>Error: ${error}</p>
-						<p>You can close this window.</p>
-					</body>
-				</html>
-			`);
-
-			const pending = state ? this.pendingOAuthState.get(state) : null;
-			if (pending && state) {
-				pending.reject(new Error(`OAuth error: ${error}`));
-				this.pendingOAuthState.delete(state);
-			}
+		if (
+			req.method !== "GET" ||
+			url.pathname !== "/" ||
+			!state ||
+			!pending ||
+			(!code && !error)
+		) {
+			res.writeHead(400, headers);
+			res.end(oauthCallbackHtml(
+				this.plugin.i18n.translate(msg({ message: "Invalid callback", context: "OAuth callback title" })),
+				this.plugin.i18n.translate(msg({ message: "No pending authorization matches this callback.", context: "OAuth callback description" })),
+				this.plugin.i18n.getCurrentLocale()
+			));
 			return;
 		}
-
-		if (!code || !state) {
-			res.end(`
-				<!DOCTYPE html>
-				<html>
-					<head><title>OAuth Error</title></head>
-					<body>
-						<h1>Invalid Callback</h1>
-						<p>Missing required parameters.</p>
-						<p>You can close this window.</p>
-					</body>
-				</html>
-			`);
-			return;
-		}
-
-		res.end(`
-			<!DOCTYPE html>
-			<html>
-				<head><title>OAuth Success</title></head>
-				<body>
-					<h1>Authorization Successful!</h1>
-					<p>You can close this window and return to Obsidian.</p>
-					<script>window.close();</script>
-				</body>
-			</html>
-		`);
-
-		// Resolve the pending promise
-		const pending = this.pendingOAuthState.get(state);
-		if (pending) {
-			pending.resolve(code);
-			this.pendingOAuthState.delete(state);
-		}
+		// Consume before responding: a replay cannot resolve the pending flow.
+		this.pendingOAuthState.delete(state);
+		res.writeHead(error ? 400 : 200, headers);
+		res.end(oauthCallbackHtml(
+			this.plugin.i18n.translate(error
+				? msg({ message: "Authorization failed", context: "OAuth callback title" })
+				: msg({ message: "Authorization complete", context: "OAuth callback title" })),
+			this.plugin.i18n.translate(error
+				? msg({ message: "Authorization was not completed. Return to Obsidian.", context: "OAuth callback description" })
+				: msg({ message: "You can close this window and return to Obsidian.", context: "OAuth callback description" })),
+			this.plugin.i18n.getCurrentLocale()
+		));
+		if (error) pending.reject(new Error("OAuth authorization failed"));
+		else pending.resolve(code as string);
 	}
 
 	/**
@@ -466,12 +448,17 @@ export class OAuthService {
 				return;
 			}
 
-			// Update the pending state with resolve/reject functions
-			pending.resolve = resolve;
-			pending.reject = reject;
+			// Release the timer on success, provider rejection, or browser failure.
+			pending.resolve = (code) => {
+				window.clearTimeout(timer);
+				resolve(code);
+			};
+			pending.reject = (error) => {
+				window.clearTimeout(timer);
+				reject(error);
+			};
 
-			// Set timeout
-			window.setTimeout(() => {
+			const timer = window.setTimeout(() => {
 				if (this.pendingOAuthState.has(state)) {
 					this.pendingOAuthState.delete(state);
 					reject(new Error("OAuth timeout - authorization took too long"));
@@ -687,7 +674,9 @@ export class OAuthService {
 				provider,
 				newTokens,
 				connection.userEmail,
-				connectionGeneration
+				connectionGeneration,
+				connection.connectionId,
+				connection.connectedAt
 			);
 
 			return newTokens;
@@ -786,7 +775,9 @@ export class OAuthService {
 		provider: OAuthProvider,
 		tokens: OAuthTokens,
 		userEmail?: string,
-		expectedGeneration?: number
+		expectedGeneration?: number,
+		connectionId?: string,
+		connectedAt?: string
 	): Promise<void> {
 		if (
 			expectedGeneration !== undefined &&
@@ -798,8 +789,9 @@ export class OAuthService {
 		const connection: OAuthConnection = {
 			provider,
 			tokens,
+			connectionId: connectionId ?? generateUuidV4(),
 			userEmail,
-			connectedAt: new Date().toISOString(),
+			connectedAt: connectedAt ?? new Date().toISOString(),
 			lastRefreshed: new Date().toISOString(),
 		};
 		this.secretStore.setConnection(provider, connection);
@@ -813,7 +805,17 @@ export class OAuthService {
 	 * Retrieves a connection from Obsidian SecretStorage.
 	 */
 	async getConnection(provider: OAuthProvider): Promise<OAuthConnection | null> {
-		return this.secretStore.getConnection(provider);
+		const connection = this.secretStore.getConnection(provider);
+		if (!connection || connection.connectionId) {
+			return connection;
+		}
+
+		const migratedConnection = {
+			...connection,
+			connectionId: generateUuidV4(),
+		};
+		this.secretStore.setConnection(provider, migratedConnection);
+		return migratedConnection;
 	}
 
 	/**
@@ -910,11 +912,13 @@ export class OAuthService {
 	 * Ensures all resources are properly released to prevent memory leaks
 	 */
 	async destroy(): Promise<void> {
-		// Stop HTTP callback server
-		await this.stopCallbackServer();
-
-		// Clear pending OAuth state
+		// Reject pending flows as well as clearing state, so callbacks and their
+		// timeout handles cannot remain orphaned when the plugin unloads.
+		for (const pending of this.pendingOAuthState.values()) {
+			pending.reject(new Error("OAuth authorization cancelled"));
+		}
 		this.pendingOAuthState.clear();
+		await this.stopCallbackServer();
 
 		// Clear token refresh state to prevent orphaned promises.
 		this.tokenRefreshPromises.clear();

@@ -5,7 +5,7 @@ import { execFileSync } from "child_process";
 import { closeObsidian, launchObsidian, ObsidianApp, runCommand } from "./obsidian";
 
 const PROJECT_ROOT = path.resolve(__dirname, "..");
-const E2E_VAULT_DIR = path.join(PROJECT_ROOT, "tasknotes-e2e-vault");
+const E2E_VAULT_DIR = path.resolve(process.env.TASKNOTES_E2E_VAULT_DIR ?? path.join(PROJECT_ROOT, "tasknotes-e2e-vault"));
 const GIF_ROOT = path.join(PROJECT_ROOT, "test-results", "release-gifs");
 const FRAME_ROOT = path.join(PROJECT_ROOT, "test-results", "release-gif-frames");
 const DOC_VIEWPORT = { width: 1400, height: 900 };
@@ -144,13 +144,14 @@ function writeVaultFile(relativePath: string, content: string): void {
 }
 
 function formatDate(date: Date): string {
-	return date.toISOString().slice(0, 10);
+	const month = String(date.getMonth() + 1).padStart(2, "0");
+	const day = String(date.getDate()).padStart(2, "0");
+	return `${date.getFullYear()}-${month}-${day}`;
 }
 
 function formatDateTime(date: Date, hours: number, minutes = 0): string {
-	const copy = new Date(date);
-	copy.setHours(hours, minutes, 0, 0);
-	return copy.toISOString().slice(0, 16);
+	// Frontmatter without a timezone represents local wall time, not truncated UTC.
+	return `${formatDate(date)}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
 }
 
 async function ensureCleanState(page: Page): Promise<void> {
@@ -239,7 +240,7 @@ async function openTaskListByPath(page: Page, relativePath: string): Promise<voi
 
 async function openCalendarByPath(page: Page, relativePath: string): Promise<void> {
 	await openFileByPath(page, relativePath);
-	const calendar = page.locator(".workspace-leaf.mod-active .fc, .workspace-leaf.mod-active .tasknotes-calendar-view").first();
+	const calendar = page.locator(".workspace-leaf.mod-active .tnc, .workspace-leaf.mod-active .tasknotes-calendar-view").first();
 	await calendar.waitFor({ state: "visible", timeout: 10000 });
 }
 
@@ -344,7 +345,7 @@ tags:
 		await ensureCleanState(page);
 		const recorder = new GifRecorder("release-1704-today-column-width");
 		const getCalendarClip = async () => {
-			const calendar = page.locator(".workspace-leaf.mod-active .fc").first();
+			const calendar = page.locator(".workspace-leaf.mod-active .tnc").first();
 			const box = await calendar.boundingBox();
 			if (!box) return undefined;
 			return {
@@ -356,9 +357,9 @@ tags:
 		};
 
 		await openCalendarByPath(page, normalBasePath);
-		const weekButton = page.locator('.workspace-leaf.mod-active button.fc-timeGridWeek-button').first();
+		const weekButton = page.locator('.workspace-leaf.mod-active .tnc-toolbar-view-select').first();
 		if (await weekButton.isVisible({ timeout: 3000 }).catch(() => false)) {
-			await weekButton.click();
+			await weekButton.selectOption('week');
 			await page.waitForTimeout(700);
 		}
 		await recorder.capture(page, 4, { clip: await getCalendarClip() });
@@ -587,9 +588,10 @@ test("calendar-visible-date-preserved", async () => {
 	const page = getPage();
 	const future = new Date();
 	future.setMonth(future.getMonth() + 1, 14);
-	const taskPath = "TaskNotes/Release GIF Fixtures/Future calendar edit.md";
+	const taskPath = "TaskNotes/Release GIF Fixtures/calendar-date-preserved/Future calendar edit.md";
+	const renamedTaskPath = "TaskNotes/Release GIF Fixtures/calendar-date-preserved/Future calendar edit updated.md";
 	const basePath = "TaskNotes/Views/release-gif-calendar-preserve-date.base";
-	const backup = backupFiles([taskPath, basePath]);
+	const backup = backupFiles([taskPath, renamedTaskPath, basePath]);
 
 	try {
 		writeVaultFile(
@@ -613,21 +615,31 @@ tags:
 		const recorder = new GifRecorder("release-1513-calendar-visible-date-preserved");
 
 		await openCalendarByPath(page, basePath);
-		const nextButton = page.locator(".workspace-leaf.mod-active .fc-next-button").first();
-		await nextButton.click();
-		await page.waitForTimeout(700);
+		const nextButton = page.locator(".workspace-leaf.mod-active .tnc-btn-next").first();
+		const heading = page.locator('.workspace-leaf.mod-active .tnc-title').first();
+		const targetDay = page.locator(`.workspace-leaf.mod-active .tnc-col[data-date="${formatDate(future)}"]`);
+		// Next advances one week; the fixture can be several weeks into next month.
+		for (let i = 0; i < 7 && await targetDay.count() === 0; i++) {
+			const previousDate = await heading.innerText();
+			await nextButton.click();
+			await expect(heading).not.toHaveText(previousDate);
+		}
+		await expect(targetDay.first()).toBeVisible();
 		await recorder.capture(page, 3);
-
-		const event = page.locator('.workspace-leaf.mod-active .fc-event:has-text("Future calendar edit")').first();
+		const visibleDate = await heading.innerText();
+		const event = page.locator('.workspace-leaf.mod-active .tnc-item[data-event-type="scheduled"]:has-text("Future calendar edit"):visible').first();
+		await expect(event).toBeVisible({ timeout: 10000 });
 		await event.click();
 		await page.waitForTimeout(800);
-		const titleInput = page.locator('.modal input[type="text"]').first();
-		await expect(titleInput).toBeVisible({ timeout: 5000 });
+		const titleInput = page.locator('.modal .title-input');
+		await expect(titleInput).toHaveText('Future calendar edit');
 		await titleInput.fill("Future calendar edit updated");
 		await page.waitForTimeout(400);
-		const saveButton = page.locator('.modal button:has-text("Save"), .modal button.mod-cta').last();
+		const saveButton = page.locator('.modal').getByRole('button', { name: /^Save(?: task)?$/i });
 		await saveButton.click();
 		await page.waitForTimeout(1500);
+		await expect(heading).toHaveText(visibleDate);
+		await expect(page.locator('.workspace-leaf.mod-active .tnc-item[data-event-type="scheduled"]:has-text("Future calendar edit updated"):visible').first()).toBeVisible();
 		await recorder.capture(page, 5);
 
 		recorder.finalize();

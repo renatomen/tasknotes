@@ -1,13 +1,20 @@
-# Appearance & UI Settings
+# Appearance & interaction settings
 
 These settings control the visual appearance of the plugin, including the calendar, task cards, and other UI elements.
 
-
-![Appearance Settings](../assets/settings-appearance.png)
-
 ## Task Cards
 
+Location: **Settings → TaskNotes → Appearance & interaction → Task cards**
+
 Use **Default visible properties** to decide what metadata appears on task cards without opening each task. This is the primary control for card density.
+
+**Show all properties on task cards** is on by default when no choice has been saved. Properties wrap onto extra lines when a card is too narrow, so every property stays visible and cards get taller. Turn it off to keep properties on one line and hide the rest behind a count such as **+3**; select the count to see the hidden properties. Previously saved choices are preserved. This applies to task cards in Bases views (task list, Kanban and calendar agenda). Task links in notes have their own setting, **Show all properties on inline task cards**, under Inline tasks on this page. It is off by default; see [Inline tasks](../features/inline-tasks.md).
+
+In Bases views that show the **priority** property, a task with a priority gets a bar in the priority's colour along the left edge of its card, as well as the priority mark. Tasks with no priority, or a priority of weight 0 such as *None*, have no bar. Remove **priority** from the view's properties to hide both.
+
+A task with attachments shows a paperclip and a count on its card. To see the file names instead, add **attachments** to the view's properties (or to **Default visible properties**). Each attachment then appears as a link named by its file, such as *Quarterly report.pdf*, and the count is no longer shown.
+
+Use **Group complete and skip actions in a submenu** to control how the completion actions are laid out in the task context menu. When on (the default), the *Completed today / on schedule / on due date / on (pick date)* actions — and *Skip instance* for recurring tasks — are nested under a single **Mark complete or skip** entry. Turn it off to show them directly in the menu, set off by dividers.
 
 Checklist progress is available as a visible property in task cards. In Bases view `order` arrays, the corresponding source property is `file.tasks` (shown as `tasks` in Bases property pickers once present in the view `order` list).
 
@@ -42,9 +49,17 @@ for task-link lines:
 
 ## Display Formatting
 
-Use **Time format** to switch between 12-hour and 24-hour display across all TaskNotes surfaces.
+Location: **Settings → TaskNotes → Appearance & interaction → Display formatting**
+
+Use **Date format** to choose **Default** or **ISO 8601 (2026-08-23)**. ISO mode shows full year-month-day dates in task dialogs, task cards, calendar date headings and tooltips, reminders, and other TaskNotes date labels. Dates normally shown as “Today” on task cards become absolute dates. Calendar grid day numbers remain compact.
+
+Use **Time format** to switch between 12-hour and 24-hour display, including created and modified timestamps. For example, ISO dates with 24-hour time appear as `2026-08-23 19:16`. Date-only values do not gain a time.
+
+These are display preferences only. Frontmatter, date inputs, filenames, templates, timezone handling, and user-authored Bases formulas are unchanged. A formula with its own `.format(...)` expression continues to use that expression.
 
 ## Calendar View
+
+Location: **Settings → TaskNotes → Appearance & interaction → Calendar defaults**
 
 Calendar view settings determine the default landing mode, day/week framing, and timeline affordances. You can choose the default view, custom day span, first day of week, weekend visibility, week numbers, and whether today/current-time markers are shown. **Selection mirror** controls whether drag selections show a visual preview before committing.
 
@@ -52,19 +67,25 @@ Use **Calendar locale** for region-specific formatting and calendar systems (for
 
 ## Default Event Visibility
 
-This section controls which event layers are enabled when a calendar view opens. You can independently toggle scheduled tasks, due dates, due dates for already-scheduled tasks, time entries, recurring tasks, and ICS events.
+Location: **Settings → TaskNotes → Appearance & interaction → Calendar defaults**
+
+This section controls which event layers are enabled when a calendar view opens. You can independently toggle scheduled tasks, due dates, time entries, and recurring tasks. Each calendar view shows or hides calendar subscriptions in its own options.
 
 ## Time Settings
+
+Location: **Settings → TaskNotes → Appearance & interaction → Calendar defaults**
 
 Time settings define the structure of timeline views: slot duration, earliest visible time, latest visible time, and initial scroll position. Use these together to match your workday shape.
 
 ## UI Elements
 
-UI element toggles control auxiliary surfaces such as the tracked-task status bar entry, the project subtasks widget and its placement, expandable subtasks in cards, chevron position, and the alignment of the views/filters button.
+Location: **Settings → TaskNotes → Appearance & interaction → UI elements**
+
+UI element toggles control auxiliary surfaces such as the tracked-task status bar entry, the project subtasks widget and its placement, expandable subtasks in cards, and chevron position.
 
 ## Related Settings
 
 Some appearance-related settings are configured elsewhere:
 
-- **Task filename format**: Configured in [Task Properties](task-properties.md) → Title card
-- **Project autosuggest display**: Configured in [Task Properties](task-properties.md) → Projects card
+- **Task filename format**: Configured in **Task files → Filenames**
+- **Project autosuggest display**: Configured in **Properties → Projects**

@@ -2,6 +2,8 @@ import { jest } from "@jest/globals";
 import { TFile } from "obsidian";
 import {
 	applySortOrderPlan,
+	compareManualOrderValues,
+	getSortOrderDirection,
 	prepareSortOrderUpdate,
 	stripPropertyPrefix,
 	type SortOrderPlan,
@@ -71,6 +73,40 @@ function createPlugin(frontmatterByPath: FrontmatterMap, sortOrderField = "taskn
 }
 
 describe("sortOrderUtils", () => {
+	it.each(["asc", "desc"] as const)("initializes only the prefix needed for a first %s drop, then writes only the moved note", async (direction) => {
+		const frontmatterByPath: FrontmatterMap = Object.fromEntries(Array.from({ length: 39 }, (_, index) => [`task-${index}.md`, { status: "todo" }]));
+		const plugin = createPlugin(frontmatterByPath);
+		const visibleTaskPaths = Object.keys(frontmatterByPath);
+		const plan = await prepareSortOrderUpdate("task-2.md", true, "todo", "status", "task-0.md", plugin, { visibleTaskPaths, sortDirection: direction });
+		expect(plan.reason).toBe("sparse-init");
+		expect(plan.additionalWrites.map((write) => write.path)).toEqual(["task-1.md"]);
+		await applySortOrderPlan("task-0.md", plan, plugin);
+		const ranks = [frontmatterByPath["task-1.md"].tasknotes_manual_order, frontmatterByPath["task-0.md"].tasknotes_manual_order];
+		if (direction === "asc") expectAscendingDisplayOrder(ranks);
+		else expectDescendingDisplayOrder(ranks);
+		const next = await prepareSortOrderUpdate("task-1.md", true, "todo", "status", "task-0.md", plugin, { visibleTaskPaths: ["task-1.md", "task-0.md", ...visibleTaskPaths.slice(2)], sortDirection: direction });
+		expect(next.additionalWrites).toEqual([]);
+		expect(plugin.app.fileManager.processFrontMatter).toHaveBeenCalledTimes(2);
+	});
+	it.each(["asc", "desc"] as const)("keeps missing manual ranks last in %s order", (direction) => {
+		for (const missing of [undefined, null, ""]) {
+			expect(compareManualOrderValues(missing, "tnmmmmmmmmmm", direction)).toBeGreaterThan(0);
+			expect(compareManualOrderValues("tnmmmmmmmmmm", missing, direction)).toBeLessThan(0);
+			for (const otherMissing of [undefined, null, ""]) {
+				expect(compareManualOrderValues(missing, otherMissing, direction)).toBe(0);
+			}
+		}
+	});
+
+	it("compares manual ranks in the configured direction with Bases numeric collation", () => {
+		for (const [left, right] of [["tnaaaaaaaaaa", "tnzzzzzzzzzz"], ["rank2", "rank10"], [2, 10]]) {
+			expect(compareManualOrderValues(left, right, "asc")).toBeLessThan(0);
+			expect(compareManualOrderValues(left, right, "desc")).toBeGreaterThan(0);
+			expect(compareManualOrderValues(left, left, "desc")).toBe(0);
+		}
+		expect(compareManualOrderValues("tnaaaaaaaaaa", "tnzzzzzzzzzz")).toBeLessThan(0);
+	});
+
 	it("strips repeated Bases property prefixes", () => {
 		expect(stripPropertyPrefix("status")).toBe("status");
 		expect(stripPropertyPrefix("task.status")).toBe("status");
@@ -283,6 +319,38 @@ describe("sortOrderUtils", () => {
 		expect(plan.additionalWrites).toEqual([]);
 		expect(compareBasesOrder(plan.sortOrder!, "0|jc3j7d:")).toBeLessThan(0);
 		expect(compareBasesOrder(plan.sortOrder!, "0|jc2tkt:")).toBeGreaterThan(0);
+	});
+
+	it("uses the configured direction when a scope has only one other ranked task", async () => {
+		const plugin = createPlugin({
+			"peer.md": { status: "todo", tasknotes_manual_order: "0|i0000n:" },
+			"dragged.md": { status: "todo", tasknotes_manual_order: "0|hzzzzz:" },
+		});
+
+		const plan = await prepareSortOrderUpdate("peer.md", true, "todo", "status", "dragged.md", plugin, {
+			visibleTaskPaths: ["peer.md", "dragged.md"],
+			sortDirection: "desc",
+		});
+
+		// Above the peer in a descending view means a greater rank.
+		expect(compareBasesOrder(plan.sortOrder!, "0|i0000n:")).toBeGreaterThan(0);
+	});
+
+	it("reads the sort-order direction from the view configuration", () => {
+		const adapter = (config: unknown) => ({ getSortConfig: () => config as any });
+		expect(
+			getSortOrderDirection(
+				adapter([
+					{ property: "note.due", direction: "ASC" },
+					{ property: "note.tasknotes_manual_order", direction: "DESC" },
+				]),
+				"tasknotes_manual_order"
+			)
+		).toBe("desc");
+		expect(
+			getSortOrderDirection(adapter([{ property: "note.due", direction: "DESC" }]), "tasknotes_manual_order")
+		).toBeUndefined();
+		expect(getSortOrderDirection(adapter(null), "tasknotes_manual_order")).toBeUndefined();
 	});
 
 	it("rebalances descending duplicate boundaries instead of jumping above the previous task", async () => {

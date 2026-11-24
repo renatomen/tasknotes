@@ -22,7 +22,7 @@ If commands open empty or unexpected views, first confirm Bases is enabled and t
 
 ### View File Location
 
-When you use the "Open Tasks View" command or ribbon icon, TaskNotes opens the `.base` file configured under `Settings -> TaskNotes -> General -> Views & base files` (initially `TaskNotes/Views/tasks-default.base`). TaskNotes creates missing default `.base` files automatically on startup when **Auto-create default files** is enabled, and you can point the command to any other `.base` file if you maintain multiple task-list layouts.
+When you use the "Open Tasks View" command or ribbon icon, TaskNotes opens the `.base` file configured under `Settings -> TaskNotes -> Appearance & interaction -> Views & base files` (initially `TaskNotes/Views/tasks-default.base`). TaskNotes creates missing default `.base` files automatically on startup when **Auto-create default files** is enabled, and you can point the command to any other `.base` file if you maintain multiple task-list layouts.
 
 ## Configuration
 
@@ -59,14 +59,14 @@ views:
 For existing `.base` files, add `file.tasks` in YAML manually; once present in `order`, it appears in the Bases picker as `tasks`.
 
 **`sort`**: Array of sort criteria. Tasks are sorted by the first criterion, with ties broken by subsequent criteria.
-- `column`: Property to sort by (e.g., `due`, `scheduled`, `priority`, `title`)
+- `column`: Property to sort by (e.g., `due`, `scheduled`, `formula.priorityWeight`, `title`). Sorting by `priority` itself is alphabetical; see [Sort by priority](../guides/custom-bases.md#sort-by-priority).
 - `direction`: `ASC` (ascending) or `DESC` (descending)
 
 **`groupBy`**: Optional grouping configuration
 - `property`: Property to group by (e.g., `note.status`, `note.priority`)
 - `direction`: Sort direction for group headers
 
-**`hideTopLevelSubtasks`**: Optional boolean. When `true`, tasks whose Projects field links to another task in the current filtered result set are hidden as top-level rows and remain available through the parent task's expanded subtasks.
+**`hideTopLevelSubtasks`**: Optional boolean. When `true`, tasks whose Projects field links to another task in the current filtered result set are hidden as top-level rows and remain available through the parent task's expanded subtasks. Expanded subtasks in the filtered result set follow the current view's sort order, including formula sorts such as `formula.priorityWeight`. Changing that order refreshes already-expanded subtasks without needing to collapse and reopen the parent.
 
 **`filters`**: Optional filter conditions using Bases query syntax
 ```yaml
@@ -98,7 +98,7 @@ TaskNotes properties are accessed in Bases YAML using these paths:
 | Created | `file.ctime` | File creation date |
 | Modified | `file.mtime` | File modification date |
 
-The exact property names depend on your TaskNotes field mapping settings (`Settings -> TaskNotes -> Task Properties`). The table above shows default mappings.
+The exact property names depend on your TaskNotes field mapping settings (`Settings -> TaskNotes -> Properties`). The table above shows default mappings.
 
 ## Filtering and Sorting
 
@@ -142,13 +142,40 @@ sort:
 Multiple sort criteria:
 ```yaml
 sort:
-  - column: priority
+  - column: formula.priorityWeight
     direction: DESC
   - column: due
     direction: ASC
   - column: title
     direction: ASC
 ```
+
+### Moving Between Groups
+
+Drag a task into another group or subgroup to update its grouping properties. This works with any active sort, including due date and priority sorting; a move does not change the task's manual rank.
+
+- Dropping on a task or subgroup header applies both destination values where needed.
+- Dropping on a primary group header changes only the primary property. It does not assign a subgroup value.
+- A highlighted destination previews the properties that will change. An insertion line means manual reordering instead.
+- Collapsed headers remain drop targets. While dragging, **Other destinations** offers configured empty status/priority groups and an empty value.
+- Moving a recurring task to a status marked **Completed** completes the occurrence shown on its row, as its checkbox does, instead of setting the task to that status. Other property changes in the move are not applied. If that occurrence has since been completed, skipped or rescheduled, the move changes nothing and a notice says so. See [Recurring Tasks](../features/recurring-tasks.md#completion-tracking).
+- Use the **Move task** handle to move a task without dragging. It opens a searchable list with **Add as subtask of…**, then every group the task can move to, with subgroups listed as *Group / Subgroup*. Type to filter it, for example by a group's name. When the view is sorted by manual order, the list also offers **Move up** and **Move down** within the current group. On touch screens, tap the handle for the menu, or drag from it so ordinary row gestures remain available for scrolling. A touch move only applies after the handle has actually moved; lifting your finger in place does nothing.
+- Press Escape, or release the task back on its own row, to cancel. Holding a dragged task near the view's top or bottom edge scrolls the list.
+- Grouping by a list property such as contexts, projects, or tags groups by the whole list. Moving a task to another such group replaces its list with that group's values, and the preview shows the values before and after, for example `contexts: work, call → home, focus`. If a group's values cannot be determined from its notes' properties (for example, a tag group that only comes from inline tags), the move is blocked rather than guessed.
+
+Formula groups, computed file properties, and TaskNotes-managed manual-order and modified-date fields cannot be assigned by a group move. If a drop would assign a different read-only value, the whole move is blocked rather than changing just one of its properties. Changing a writable property may still naturally recalculate a formula or update the modified date.
+
+After a property move, **Undo** is available briefly. It restores only fields changed by that move and preserves unrelated later edits. If a moved field has since changed, Undo refuses to overwrite it. Manual reordering and recurring-task status changes do not currently offer this Undo action; recurring status changes can affect multiple occurrence notes.
+
+### Assigning a Parent Task
+
+While dragging, each task row shows a separate **Add as subtask** target. Drop on this labeled target to add that task as a parent. Dropping elsewhere on the row keeps the group-movement or manual-reordering behavior above.
+
+Parent assignment adds a link to the dragged task's projects property. It preserves existing project memberships, status, priority, and manual rank, even when the parent is in a different group. This also works in ungrouped lists and views grouped by read-only properties.
+
+The preview names the parent before release. Self-assignment and assignments under a descendant are blocked; existing links are recognized even when they use aliases or Markdown format. Relationships are checked again against file contents when saving. **Undo** removes the assignment while preserving unrelated edits, but refuses if the projects property has since changed.
+
+For keyboard or non-drag use, open **Move task**, select **Add as subtask of…**, and choose an existing task. You can cancel the drag or selector without changing the note.
 
 ### Drag-to-Reorder
 
@@ -168,12 +195,12 @@ If your field mapping changes the sort-order property name, use that mapped prop
 
 ### Drag-to-Reorder with Grouping
 
-Grouped Task List views can also be reordered, but the reorder scope is the current group. For example, when grouping by status, dragging within the "In Progress" group updates the manual order for tasks in that group.
+Grouped Task List views can also be reordered, but the reorder scope is the current group and subgroup. For example, when grouping by status and subgrouping by priority, dragging within "In Progress / High" updates manual order only within that destination.
 
 Important constraints:
 
 - Drag-to-reorder only works when the view sort includes the manual-order property.
-- Reordering in formula-based groups is blocked because formula values are computed and cannot be edited directly.
+- Reordering within the same formula-based destination is allowed when manual ordering is active. Assigning a different formula group is blocked.
 - In filtered or partially visible lists, TaskNotes may also update hidden or filtered notes in the same reorder scope to preserve a stable persistent order.
 - Large reorder operations may show a confirmation dialog before writing changes.
 
@@ -264,16 +291,17 @@ The v3 FilterBar UI component no longer exists - all configuration is done throu
 
 The Task List View provides interaction with tasks through clicking and context menus:
 
-- **Click on a task**: Opens the task for editing or navigates to the task note (behavior configured in `Settings -> TaskNotes -> General` in click-action controls)
+- **Click on a task**: Opens the task for editing or navigates to the task note (behavior configured in `Settings -> TaskNotes -> Appearance & interaction -> Task interaction`)
+- **Ctrl/Cmd-click or middle-click on a task**: Opens the task note in a new tab, as with a link in Obsidian. Ctrl/Cmd+Alt-click opens it to the side, and Ctrl/Cmd+Alt+Shift-click in a new window. The context menu also has **Open note in new tab**.
 - **Right-click on a task**: Opens a context menu with actions:
   - Mark as complete
-  - Change priority
-  - Change status
-  - Edit dates
-  - Delete task
+  - Change status, priority, tags, dates, recurrence and reminders. Each opens the same searchable picker as the task's own controls.
+  - Delete task. The task note moves to the trash straight away, and the notice that follows offers **Undo**.
   - And more
 
 Context menu availability depends on your TaskNotes settings and task properties.
+
+For batch date changes in Task List or Kanban, Shift-click a task card to start a selection (Shift-click another card to select the range between them), then click or Ctrl/Cmd-click cards to add or remove them, and right-click a selected card. While no selection is active, Ctrl/Cmd-click opens the task note in a new tab instead; links and other card controls keep their own actions. **Status**, **Priority**, **Tags**, **Due date** and **Scheduled date** open the same pickers as a single task's. A date assigns that same value to each selected task, and the +/- day and week options move each task's own date. A date-only choice removes the time from that property; dismissing the picker changes nothing. Each change, and **Delete**, can be undone from the notice that follows.
 
 ## Virtual Scrolling
 

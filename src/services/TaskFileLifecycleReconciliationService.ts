@@ -24,6 +24,7 @@ const RECONCILED_TASK_FIELDS = [
 	"due",
 	"priority",
 	"recurrence",
+	"occurrence_materialization",
 	"complete_instances",
 	"skipped_instances",
 	"timeEstimate",
@@ -33,6 +34,9 @@ const RECONCILED_TASK_FIELDS = [
 ] as const satisfies readonly (keyof TaskInfo)[];
 
 type ReconciledTaskField = (typeof RECONCILED_TASK_FIELDS)[number];
+
+/** A task as last observed; startup snapshots are mapped only when an edit needs them. */
+type TaskSnapshot = TaskInfo | (() => TaskInfo | null);
 
 function taskFromPayload(payload: TaskUpdatePayload): TaskInfo | undefined {
 	return payload.updatedTask ?? payload.taskInfo ?? payload.task;
@@ -79,9 +83,10 @@ export function selectReconciledTaskProperty(
 }
 
 export class TaskFileLifecycleReconciliationService {
-	private readonly taskSnapshots = new Map<string, TaskInfo>();
+	private readonly taskSnapshots = new Map<string, TaskSnapshot>();
 	private taskUpdatedRef: Nullable<EventRef> = null;
-	private readonly handlingPaths = new Set<string>();
+	private readonly pathWork = new Map<string, Promise<void>>();
+	private generation = 0;
 
 	constructor(private readonly plugin: TaskNotesPlugin) {}
 
@@ -100,7 +105,8 @@ export class TaskFileLifecycleReconciliationService {
 			this.plugin.emitter.offref(this.taskUpdatedRef);
 			this.taskUpdatedRef = null;
 		}
-		this.handlingPaths.clear();
+		this.generation++;
+		this.pathWork.clear();
 		this.taskSnapshots.clear();
 	}
 
@@ -119,10 +125,31 @@ export class TaskFileLifecycleReconciliationService {
 			return;
 		}
 
-		const originalTask = this.taskSnapshots.get(path);
-		this.taskSnapshots.set(path, updatedTask);
+		// Keep every observed transition in order. Advancing the snapshot while a
+		// previous edit is still reconciling would silently lose completion/uncompletion.
+		const generation = this.generation;
+		const previousWork = this.pathWork.get(path) ?? Promise.resolve();
+		const work = previousWork.then(async () => {
+			if (generation === this.generation) {
+				await this.reconcileTaskUpdate(path, updatedTask);
+			}
+		});
+		this.pathWork.set(path, work);
+		try {
+			await work;
+		} finally {
+			if (this.pathWork.get(path) === work) {
+				this.pathWork.delete(path);
+			}
+		}
+	}
 
-		if (!originalTask || this.handlingPaths.has(path)) {
+	private async reconcileTaskUpdate(path: string, updatedTask: TaskInfo): Promise<void> {
+		const snapshot = this.taskSnapshots.get(path);
+		this.taskSnapshots.set(path, updatedTask);
+		const originalTask = typeof snapshot === "function" ? snapshot() : snapshot;
+
+		if (!originalTask) {
 			return;
 		}
 
@@ -136,7 +163,6 @@ export class TaskFileLifecycleReconciliationService {
 			return;
 		}
 
-		this.handlingPaths.add(path);
 		try {
 			await this.plugin.taskService.applyPropertyChangeSideEffects(
 				file,
@@ -153,16 +179,15 @@ export class TaskFileLifecycleReconciliationService {
 				details: { taskPath: path, property },
 				error,
 			});
-		} finally {
-			this.handlingPaths.delete(path);
 		}
 	}
 
 	private async captureCurrentTasks(): Promise<void> {
 		try {
-			const tasks = await this.plugin.cacheManager.getAllTasks();
-			for (const task of tasks) {
-				this.taskSnapshots.set(task.path, task);
+			// Mapping every task here took tens of milliseconds at startup in large vaults.
+			const snapshots = await this.plugin.cacheManager.getAllTaskSnapshots();
+			for (const [path, snapshot] of snapshots) {
+				this.taskSnapshots.set(path, snapshot);
 			}
 		} catch (error) {
 			tasknotesLogger.warn("Failed to snapshot tasks for direct file edit reconciliation:", {

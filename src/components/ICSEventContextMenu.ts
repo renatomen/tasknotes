@@ -1,3 +1,5 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
 import { Notice, TAbstractFile, TFile } from "obsidian";
 import TaskNotesPlugin from "../main";
 import { ICSEvent } from "../types";
@@ -6,8 +8,12 @@ import { ICSNoteCreationModal } from "../modals/ICSNoteCreationModal";
 import { openFileSelector } from "../modals/FileSelectorModal";
 import { SafeAsync } from "../utils/safeAsync";
 import { ContextMenu } from "./ContextMenu";
+import { showCoordinatedMenu, showCoordinatedMenuAtElement } from "./ContextMenuCoordinator";
 import { createTaskNotesLogger } from "../utils/tasknotesLogger";
 import { showNotice } from "../ui/notifications";
+import { formatDateLabel } from "../utils/dateUtils";
+import { showConfirmationModal } from "../modals/ConfirmationModal";
+import { deleteProviderEvent, getDeletingProvider } from "./providerEventDeletion";
 
 const tasknotesLogger = createTaskNotesLogger({ tag: "Components/ICSEventContextMenu" });
 
@@ -28,7 +34,7 @@ export class ICSEventContextMenu {
 		this.buildMenu();
 	}
 
-	private t(key: string, params?: Record<string, string | number>): string {
+	private t(key: MessageDescriptor, params?: Record<string, string | number>): string {
 		return this.options.plugin.i18n.translate(key, params);
 	}
 
@@ -42,7 +48,7 @@ export class ICSEventContextMenu {
 		// Show details option
 		this.menu.addItem((item) =>
 			item
-				.setTitle(this.t("contextMenus.ics.showDetails"))
+				.setTitle(this.t(msg({ message: "Show details", context: "contextMenus.ics.showDetails" })))
 				.setIcon("info")
 				.onClick(() => {
 					const modal = new ICSEventInfoModal(
@@ -60,7 +66,7 @@ export class ICSEventContextMenu {
 		// Create task from event
 		this.menu.addItem((item) =>
 			item
-				.setTitle(this.t("contextMenus.ics.createTask"))
+				.setTitle(this.t(msg({ message: "Create task from event", context: "contextMenus.ics.createTask" })))
 				.setIcon("check-circle")
 				.onClick(async () => {
 					await this.createTaskFromEvent();
@@ -70,7 +76,7 @@ export class ICSEventContextMenu {
 		// Create note from event
 		this.menu.addItem((item) =>
 			item
-				.setTitle(this.t("contextMenus.ics.createNote"))
+				.setTitle(this.t(msg({ message: "Create note from event", context: "contextMenus.ics.createNote" })))
 				.setIcon("file-plus")
 				.onClick(() => {
 					this.createNoteFromEvent();
@@ -80,7 +86,7 @@ export class ICSEventContextMenu {
 		// Link existing note
 		this.menu.addItem((item) =>
 			item
-				.setTitle(this.t("contextMenus.ics.linkNote"))
+				.setTitle(this.t(msg({ message: "Link existing note", context: "contextMenus.ics.linkNote" })))
 				.setIcon("link")
 				.onClick(() => {
 					void this.linkExistingNote();
@@ -92,14 +98,14 @@ export class ICSEventContextMenu {
 		// Copy title option
 		this.menu.addItem((item) =>
 			item
-				.setTitle(this.t("contextMenus.ics.copyTitle"))
+				.setTitle(this.t(msg({ message: "Copy title", context: "contextMenus.ics.copyTitle" })))
 				.setIcon("copy")
 				.onClick(async () => {
 					try {
 						await navigator.clipboard.writeText(icsEvent.title);
-						new Notice(this.t("contextMenus.ics.notices.copyTitleSuccess"));
+						new Notice(this.t(msg({ message: "Event title copied to clipboard", context: "contextMenus.ics.notices.copyTitleSuccess" })));
 					} catch {
-						new Notice(this.t("contextMenus.ics.notices.copyFailure"));
+						new Notice(this.t(msg({ message: "Failed to copy to clipboard", context: "contextMenus.ics.notices.copyFailure" })));
 					}
 				})
 		);
@@ -108,14 +114,14 @@ export class ICSEventContextMenu {
 		if (icsEvent.location) {
 			this.menu.addItem((item) =>
 				item
-					.setTitle(this.t("contextMenus.ics.copyLocation"))
+					.setTitle(this.t(msg({ message: "Copy location", context: "contextMenus.ics.copyLocation" })))
 					.setIcon("map-pin")
 					.onClick(async () => {
 						try {
 							await navigator.clipboard.writeText(icsEvent.location || "");
-							new Notice(this.t("contextMenus.ics.notices.copyLocationSuccess"));
+							new Notice(this.t(msg({ message: "Location copied to clipboard", context: "contextMenus.ics.notices.copyLocationSuccess" })));
 						} catch {
-							new Notice(this.t("contextMenus.ics.notices.copyFailure"));
+							new Notice(this.t(msg({ message: "Failed to copy to clipboard", context: "contextMenus.ics.notices.copyFailure" })));
 						}
 					})
 			);
@@ -125,14 +131,14 @@ export class ICSEventContextMenu {
 		if (icsEvent.url) {
 			this.menu.addItem((item) =>
 				item
-					.setTitle(this.t("contextMenus.ics.copyUrl"))
+					.setTitle(this.t(msg({ message: "Copy URL", context: "contextMenus.ics.copyUrl" })))
 					.setIcon("external-link")
 					.onClick(async () => {
 						try {
 							await navigator.clipboard.writeText(icsEvent.url || "");
-							new Notice(this.t("contextMenus.ics.notices.copyUrlSuccess"));
+							new Notice(this.t(msg({ message: "Event URL copied to clipboard", context: "contextMenus.ics.notices.copyUrlSuccess" })));
 						} catch {
-							new Notice(this.t("contextMenus.ics.notices.copyFailure"));
+							new Notice(this.t(msg({ message: "Failed to copy to clipboard", context: "contextMenus.ics.notices.copyFailure" })));
 						}
 					})
 			);
@@ -141,18 +147,38 @@ export class ICSEventContextMenu {
 		// Copy event details as markdown
 		this.menu.addItem((item) =>
 			item
-				.setTitle(this.t("contextMenus.ics.copyMarkdown"))
+				.setTitle(this.t(msg({ message: "Copy as Markdown", context: "contextMenus.ics.copyMarkdown" })))
 				.setIcon("file-text")
 				.onClick(async () => {
 					const markdown = this.formatEventAsMarkdown();
 					try {
 						await navigator.clipboard.writeText(markdown);
-						new Notice(this.t("contextMenus.ics.notices.copyMarkdownSuccess"));
+						new Notice(this.t(msg({ message: "Event details copied as Markdown", context: "contextMenus.ics.notices.copyMarkdownSuccess" })));
 					} catch {
-						new Notice(this.t("contextMenus.ics.notices.copyFailure"));
+						new Notice(this.t(msg({ message: "Failed to copy to clipboard", context: "contextMenus.ics.notices.copyFailure" })));
 					}
 				})
 		);
+
+		// Delete event (connected Google/Microsoft calendars the account can edit)
+		if (getDeletingProvider(plugin, icsEvent)) {
+			this.menu.addSeparator();
+			this.menu.addItem((item) => {
+				item
+					.setTitle(this.t(msg({ message: "Delete event", context: "contextMenus.ics.deleteEvent" })))
+					.setIcon("trash")
+					.setWarning(true)
+					.onClick(async () => {
+						const deleted = await deleteProviderEvent({
+							plugin,
+							icsEvent,
+							confirm: (options) => showConfirmationModal(plugin.app, options),
+							notify: (message) => new Notice(message),
+						});
+						if (deleted) this.options.onUpdate?.();
+					});
+			});
+		}
 	}
 
 	private async createTaskFromEvent(): Promise<void> {
@@ -162,7 +188,7 @@ export class ICSEventContextMenu {
 					this.options.icsEvent
 				);
 				new Notice(
-					this.t("contextMenus.ics.notices.taskCreated", { title: result.taskInfo.title })
+					this.t(msg({ message: "Task created: {title}", context: "contextMenus.ics.notices.taskCreated" }), { title: result.taskInfo.title })
 				);
 
 				// Open the created task file
@@ -177,7 +203,7 @@ export class ICSEventContextMenu {
 				}
 			},
 			{
-				errorMessage: this.t("contextMenus.ics.notices.taskCreateFailure"),
+				errorMessage: this.t(msg({ message: "Failed to create task from event", context: "contextMenus.ics.notices.taskCreateFailure" })),
 				noticeHandler: showNotice,
 			}
 		);
@@ -188,10 +214,10 @@ export class ICSEventContextMenu {
 			const modal = new ICSNoteCreationModal(this.options.plugin.app, this.options.plugin, {
 				icsEvent: this.options.icsEvent,
 				subscriptionName:
-					this.options.subscriptionName || this.t("contextMenus.ics.subscriptionUnknown"),
+					this.options.subscriptionName || this.t(msg({ message: "Unknown calendar", context: "contextMenus.ics.subscriptionUnknown" })),
 				onContentCreated: (file: TFile) => {
 					void (async () => {
-						new Notice(this.t("contextMenus.ics.notices.noteCreated"));
+						new Notice(this.t(msg({ message: "Note created successfully", context: "contextMenus.ics.notices.noteCreated" })));
 						await this.options.plugin.app.workspace.getLeaf().openFile(file);
 
 						// Trigger update callback if provided
@@ -209,7 +235,7 @@ export class ICSEventContextMenu {
 				operation: "opening-creation-modal",
 				error: error,
 			});
-			new Notice(this.t("contextMenus.ics.notices.creationFailure"));
+			new Notice(this.t(msg({ message: "Failed to open creation modal", context: "contextMenus.ics.notices.creationFailure" })));
 		}
 	}
 
@@ -228,7 +254,7 @@ export class ICSEventContextMenu {
 									this.options.icsEvent
 								);
 								new Notice(
-									this.t("contextMenus.ics.notices.linkSuccess", {
+									this.t(msg({ message: "Linked note \"{name}\" to event", context: "contextMenus.ics.notices.linkSuccess" }), {
 										name: file.name,
 									})
 								);
@@ -239,19 +265,19 @@ export class ICSEventContextMenu {
 								}
 							},
 							{
-								errorMessage: this.t("contextMenus.ics.notices.linkFailure"),
+								errorMessage: this.t(msg({ message: "Failed to link note", context: "contextMenus.ics.notices.linkFailure" })),
 								noticeHandler: showNotice,
 							}
 						);
 					},
 					{
-						placeholder: "Search notes to link...",
+						placeholder: this.t(msg({ message: "Search notes to link...", context: "modals.icsEventInfo.searchNotes" })),
 						filter: "markdown",
 					}
 				);
 			},
 			{
-				errorMessage: this.t("contextMenus.ics.notices.linkSelectionFailure"),
+				errorMessage: this.t(msg({ message: "Failed to open note selection", context: "contextMenus.ics.notices.linkSelectionFailure" })),
 				noticeHandler: showNotice,
 			}
 		);
@@ -261,12 +287,12 @@ export class ICSEventContextMenu {
 		const { icsEvent, subscriptionName } = this.options;
 		const lines: string[] = [];
 
-		const title = icsEvent.title || this.t("contextMenus.ics.markdown.titleFallback");
+		const title = icsEvent.title || this.t(msg({ message: "Untitled event", context: "contextMenus.ics.markdown.titleFallback" }));
 		lines.push(`## ${title}`);
 		lines.push("");
 
 		if (subscriptionName) {
-			lines.push(this.t("contextMenus.ics.markdown.calendar", { value: subscriptionName }));
+			lines.push(this.t(msg({ message: "**Calendar:** {value}", context: "contextMenus.ics.markdown.calendar" }), { value: subscriptionName }));
 		}
 
 		const locale = this.getLocale();
@@ -285,11 +311,14 @@ export class ICSEventContextMenu {
 		const timeFormatter = new Intl.DateTimeFormat(locale, {
 			hour: "numeric",
 			minute: "2-digit",
+			hour12: this.options.plugin.settings.calendarViewSettings.timeFormat === "12",
 		});
 
-		let dateText = dateFormatter.format(startDate);
+		let dateText = this.options.plugin.settings.dateDisplayFormat === "iso"
+			? formatDateLabel(startDate, this.options.plugin.settings)
+			: dateFormatter.format(startDate);
 		if (!icsEvent.allDay) {
-			dateText += this.t("contextMenus.ics.markdown.at", {
+			dateText += this.t(msg({ message: " at {time}", context: "contextMenus.ics.markdown.at" }), {
 				time: timeFormatter.format(startDate),
 			});
 			if (icsEvent.end) {
@@ -301,34 +330,31 @@ export class ICSEventContextMenu {
 			}
 		}
 
-		lines.push(this.t("contextMenus.ics.markdown.date", { value: dateText }));
+		lines.push(this.t(msg({ message: "**Date & Time:** {value}", context: "contextMenus.ics.markdown.date" }), { value: dateText }));
 
 		if (icsEvent.location) {
-			lines.push(this.t("contextMenus.ics.markdown.location", { value: icsEvent.location }));
+			lines.push(this.t(msg({ message: "**Location:** {value}", context: "contextMenus.ics.markdown.location" }), { value: icsEvent.location }));
 		}
 
 		if (icsEvent.description) {
 			lines.push("");
-			lines.push(this.t("contextMenus.ics.markdown.descriptionHeading"));
+			lines.push(this.t(msg({ message: "### Description", context: "contextMenus.ics.markdown.descriptionHeading" })));
 			lines.push(icsEvent.description);
 		}
 
 		if (icsEvent.url) {
 			lines.push("");
-			lines.push(this.t("contextMenus.ics.markdown.url", { value: icsEvent.url }));
+			lines.push(this.t(msg({ message: "**URL:** {value}", context: "contextMenus.ics.markdown.url" }), { value: icsEvent.url }));
 		}
 
 		return lines.join("\n");
 	}
 
 	public show(event: MouseEvent): void {
-		this.menu.showAtMouseEvent(event);
+		showCoordinatedMenu(this.menu, event);
 	}
 
 	public showAtElement(element: HTMLElement): void {
-		this.menu.showAtPosition({
-			x: element.getBoundingClientRect().left,
-			y: element.getBoundingClientRect().bottom + 4,
-		});
+		showCoordinatedMenuAtElement(this.menu, element);
 	}
 }

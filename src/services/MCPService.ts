@@ -8,7 +8,7 @@ import { TaskService } from "./TaskService";
 import { FilterService } from "./FilterService";
 import { TaskManager } from "../utils/TaskManager";
 import { StatusManager } from "./StatusManager";
-import { NaturalLanguageParser } from "./NaturalLanguageParser";
+import type { TaskTextParser } from "./NaturalLanguageParser";
 import { TaskStatsService } from "./TaskStatsService";
 import {
 	FILTER_OPERATORS,
@@ -20,6 +20,7 @@ import {
 	TaskGroupKey,
 	TaskSortKey,
 	Reminder,
+	TaskDependency,
 } from "../types";
 import {
 	computeActiveTimeSessions,
@@ -57,6 +58,16 @@ const MCP_REMINDER_SCHEMA = z.object({
 		.optional()
 		.describe("Absolute reminder time as an ISO 8601 timestamp"),
 	description: z.string().optional().describe("Optional reminder description"),
+});
+const MCP_TASK_DEPENDENCY_SCHEMA = z.object({
+	uid: z
+		.string()
+		.min(1)
+		.describe("Link or identifier for the blocking task, e.g. [[Project setup]]"),
+	reltype: z
+		.enum(["FINISHTOSTART", "FINISHTOFINISH", "STARTTOSTART", "STARTTOFINISH"])
+		.describe("Dependency relationship type"),
+	gap: z.string().optional().describe("Optional ISO 8601 duration between tasks, e.g. P1D"),
 });
 const MCP_CUSTOM_PROPERTIES_SCHEMA = z
 	.record(z.string(), z.unknown())
@@ -123,17 +134,19 @@ type CreateTaskArgs = {
 	recurrence?: string;
 	timeEstimate?: number;
 	reminders?: Reminder[];
+	blockedBy?: TaskDependency[];
 	details?: string;
 	customProperties?: Record<string, unknown>;
 };
 type UpdateTaskArgs = TaskIdArgs &
-	Partial<Omit<CreateTaskArgs, "title" | "timeEstimate" | "reminders">> & {
+	Partial<Omit<CreateTaskArgs, "title" | "timeEstimate" | "reminders" | "blockedBy">> & {
 		title?: string;
 		recurrence?: string | null;
 		timeEstimate?: number | null;
 		due?: string | null;
 		scheduled?: string | null;
 		reminders?: Reminder[] | null;
+		blockedBy?: TaskDependency[] | null;
 	};
 type CompleteRecurringArgs = TaskIdArgs & { date?: string };
 type MaterializeOccurrenceArgs = TaskIdArgs & { date: string };
@@ -173,7 +186,7 @@ export class MCPService {
 		private filterService: FilterService,
 		private cacheManager: TaskManager,
 		private statusManager: StatusManager,
-		private nlParser: NaturalLanguageParser,
+		private nlParser: TaskTextParser,
 		private taskStatsService: TaskStatsService
 	) {}
 
@@ -330,6 +343,10 @@ export class MCPService {
 						.array(MCP_REMINDER_SCHEMA)
 						.optional()
 						.describe("Task reminders"),
+					blockedBy: z
+						.array(MCP_TASK_DEPENDENCY_SCHEMA)
+						.optional()
+						.describe("Tasks that block this task"),
 					details: z.string().optional().describe("Task body/description"),
 					customProperties: MCP_CUSTOM_PROPERTIES_SCHEMA,
 				},
@@ -350,6 +367,7 @@ export class MCPService {
 						recurrence: args.recurrence,
 						timeEstimate: args.timeEstimate,
 						reminders: args.reminders,
+						blockedBy: args.blockedBy,
 						details: args.details,
 						customProperties: args.customProperties,
 						creationContext: "api",
@@ -400,6 +418,13 @@ export class MCPService {
 						.nullable()
 						.optional()
 						.describe("New reminders array or null to clear"),
+					blockedBy: z
+						.array(MCP_TASK_DEPENDENCY_SCHEMA)
+						.nullable()
+						.optional()
+						.describe(
+							"Replacement list of tasks that block this task; null or [] clears it"
+						),
 					details: z.string().optional().describe("New body/description"),
 					customProperties: MCP_CUSTOM_PROPERTIES_SCHEMA,
 				},
@@ -416,6 +441,11 @@ export class MCPService {
 					for (const [key, value] of Object.entries(updates)) {
 						if (key === "reminders" && value === null) {
 							cleanUpdates.reminders = undefined;
+							continue;
+						}
+
+						if (key === "blockedBy" && value === null) {
+							cleanUpdates.blockedBy = [];
 							continue;
 						}
 
@@ -597,7 +627,7 @@ export class MCPService {
 			property: z
 				.string()
 				.describe(
-					"Filter property (e.g. 'status', 'priority', 'due', 'tags', 'projects', 'contexts')"
+					"Filter property (e.g. 'status', 'priority', 'due', 'tags', 'projects', 'contexts'). Custom fields accept user:<id>, user:<frontmatter-key>, user.<id>, or user.<frontmatter-key>; get canonical IDs and aliases from tasknotes_get_filter_options. Bare custom keys and unknown properties are errors."
 				),
 			operator: filterOperatorSchema,
 			value: filterValueSchema,
@@ -616,7 +646,7 @@ export class MCPService {
 			"tasknotes_query_tasks",
 			{
 				description:
-					"Query tasks using advanced filters with AND/OR logic, sorting, and grouping",
+					"Query tasks using complete advanced filters with AND/OR logic, sorting, and grouping. Invalid properties, operators, or incomplete conditions return an error, not an empty result.",
 				inputSchema: {
 					conjunction: z.enum(["and", "or"]).describe("How to combine filter conditions"),
 					children: z
@@ -625,12 +655,12 @@ export class MCPService {
 					sortKey: z
 						.string()
 						.optional()
-						.describe("Sort by field (e.g. 'due', 'priority', 'title', 'status')"),
+						.describe("Sort by field (e.g. 'due', 'priority', 'title', 'status'); custom fields accept user:<id-or-key> or user.<id-or-key>"),
 					sortDirection: z.enum(["asc", "desc"]).optional().describe("Sort direction"),
 					groupKey: z
 						.string()
 						.optional()
-						.describe("Group by field (e.g. 'priority', 'status', 'projects')"),
+						.describe("Group by field (e.g. 'priority', 'status', 'project', 'context', 'tags'); custom fields accept user:<id-or-key> or user.<id-or-key>"),
 				},
 			},
 			async (args: QueryTasksArgs) => {
@@ -645,7 +675,7 @@ export class MCPService {
 						groupKey: args.groupKey,
 					};
 
-					const grouped = await this.filterService.getGroupedTasks(query);
+					const grouped = await this.filterService.getGroupedTasksStrict(query);
 					const result: Record<string, unknown[]> = {};
 					for (const [key, tasks] of grouped) {
 						result[key] = tasks;
@@ -661,7 +691,7 @@ export class MCPService {
 			"tasknotes_get_filter_options",
 			{
 				description:
-					"Get available filter options (statuses, priorities, tags, contexts, projects)",
+					"Get available filter options (statuses, priorities, tags, contexts, projects) and custom userProperties with canonical IDs, accepted aliases, frontmatter keys, and supported operators",
 				inputSchema: {},
 			},
 			async () => {

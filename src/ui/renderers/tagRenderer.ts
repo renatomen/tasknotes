@@ -4,6 +4,7 @@ import { stringifyUnknown } from "../../utils/stringUtils";
 import { renderTextWithLinks, type LinkServices } from "./linkRenderer";
 
 export interface TagServices {
+	showHashPrefix?: boolean;
 	onTagClick?: (tag: string, event: MouseEvent | KeyboardEvent) => void | Promise<void>;
 	linkServices?: LinkServices;
 }
@@ -17,7 +18,7 @@ export function renderTag(container: HTMLElement, tag: string, services?: TagSer
 
 	const el = container.createEl("a", {
 		cls: "tag",
-		text: normalized,
+		text: services?.showHashPrefix === false ? normalized.slice(1) : normalized,
 		attr: {
 			href: normalized,
 			role: "button",
@@ -164,6 +165,28 @@ function isLinkLikeContext(value: string): boolean {
 	);
 }
 
+const DISPLAY_LABEL_UNICODE_CHARACTER =
+	/\p{L}|\p{N}|\p{M}|\p{Emoji_Presentation}|\p{Extended_Pictographic}|\p{Emoji_Modifier}/u;
+
+function cleanDisplayLabel(value: string, prefix: "#" | "@"): string {
+	// Keep punctuation and invisible tag characters only inside complete emoji sequences.
+	const characters = value.match(/[#*0-9]\uFE0F?\u20E3|\u{1F3F4}[\u{E0030}-\u{E0039}\u{E0061}-\u{E007A}]+\u{E007F}|[\s\S]/gu) ?? [];
+	return characters
+		.filter(
+			(character) =>
+				Array.from(character).length > 1 ||
+				DISPLAY_LABEL_UNICODE_CHARACTER.test(character) ||
+				character === "\u200D" ||
+				character === "\uFE0F" ||
+				character === " " ||
+				character === "_" ||
+				character === "/" ||
+				character === "-" ||
+				character === prefix
+		)
+		.join("");
+}
+
 /**
  * Normalize arbitrary tag strings into #tag form
  * Enhanced to handle spaces and special characters including Unicode
@@ -173,10 +196,10 @@ export function normalizeTag(raw: string): string | null {
 	const s = raw.trim();
 	if (!s) return null;
 
-	// Clean input: keep Unicode word chars, hyphens, and slashes for hierarchical tags
-	// Use \p{L} (Unicode letters), \p{N} (Unicode numbers), and _ (underscore)
+	// Keep readable Unicode labels, including spaces and complete emoji sequences,
+	// while still removing punctuation and control characters from card display.
 	const hasPrefix = s.startsWith("#");
-	const cleaned = s.replace(/[^\p{L}\p{N}_#/-]/gu, "");
+	const cleaned = cleanDisplayLabel(s, "#");
 
 	if (hasPrefix) {
 		return cleaned.length > 1 ? cleaned : null;
@@ -226,10 +249,10 @@ export function normalizeContext(raw: string): string | null {
 	const s = raw.trim();
 	if (!s) return null;
 
-	// Clean input: keep Unicode word chars, hyphens, and slashes for hierarchical contexts
-	// Use \p{L} (Unicode letters), \p{N} (Unicode numbers), and _ (underscore)
+	// Keep readable Unicode labels, including spaces and complete emoji sequences,
+	// while still removing punctuation and control characters from card display.
 	const hasPrefix = s.startsWith("@");
-	const cleaned = s.replace(/[^\p{L}\p{N}_@/-]/gu, "");
+	const cleaned = cleanDisplayLabel(s, "@");
 
 	if (hasPrefix) {
 		return cleaned.length > 1 ? cleaned : null;

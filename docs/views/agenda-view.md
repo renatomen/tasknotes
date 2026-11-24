@@ -9,7 +9,7 @@ The Agenda view is a dedicated `.base` file that opens the calendar in list mode
 
 - Default file: `TaskNotes/Views/agenda-default.base`
 - Command: **Open Agenda View** (ribbon icon and command palette)
-- Configure the file path in **Settings → TaskNotes → General → View Commands**
+- Configure the file path in **Settings → TaskNotes → Appearance & interaction → Views & base files**
 
 TaskNotes creates missing default `.base` files automatically on startup when **Auto-create default files** is enabled. You can replace the command path with your own `.base` file if you maintain multiple agendas.
 
@@ -25,9 +25,8 @@ views:
     listDayCount: 7
     startDateProperty: file.ctime
     titleProperty: file.basename
-    options:
-      showPropertyBasedEvents: false
-      showOverdueOnToday: true
+    showPropertyBasedEvents: false
+    showOverdueOnToday: true
     order:
       - note.status
       - note.priority
@@ -47,6 +46,7 @@ Edit the `.base` file to tailor the agenda:
 - Set `showOverdueOnToday: false` if you want the list to show only events that fall inside the current date window
 - Add `filters` to focus on specific projects, tags, or statuses
 - Modify `order` to control which task properties appear in the row layout
+- Turn on **Hide top-level subtasks** (`hideTopLevelSubtasks: true`) to drop a subtask's own row on days its parent task is also listed; the subtask stays available under the parent's expanded subtasks. On days the parent isn't listed, the subtask keeps its own row. The option also applies to the month view's selected day panel.
 
 Because the view runs inside Bases, any YAML changes are applied immediately after saving the file.
 
