@@ -15,6 +15,8 @@ interface DependencyItem {
 export interface BlockingUpdates {
 	added: string[];
 	removed: string[];
+	/** Paths kept in the list whose reltype or gap differs from `initialBlockingEntries`. */
+	modified: string[];
 	raw: Record<string, TaskDependency>;
 }
 
@@ -37,6 +39,8 @@ export interface TaskEditChangeInput {
 	initialBlockedBy: TaskDependency[];
 	blockingItems: DependencyItem[];
 	initialBlockingPaths: string[];
+	/** Keyed by blocked task path, as stored on that task. A path without an entry is never modified. */
+	initialBlockingEntries?: Record<string, TaskDependency>;
 	details: string;
 	originalDetails: string;
 	completedInstancesChanges: string[];
@@ -250,9 +254,18 @@ function buildBlockingUpdates(input: TaskEditChangeInput): {
 	const newPathSet = new Set(newBlockingPaths);
 	const added = newBlockingPaths.filter((path) => !originalPaths.has(path));
 	const removed = input.initialBlockingPaths.filter((path) => !newPathSet.has(path));
+	const initialEntries = input.initialBlockingEntries ?? {};
+	const modified = newBlockingPaths.filter((path) => {
+		const current = resolvedBlocking.get(path);
+		const initial = initialEntries[path];
+		if (!originalPaths.has(path) || !current || !initial) {
+			return false;
+		}
+		return current.reltype !== initial.reltype || (current.gap || "") !== (initial.gap || "");
+	});
 	const raw: Record<string, TaskDependency> = {};
 
-	for (const path of added) {
+	for (const path of [...added, ...modified]) {
 		const dependency = resolvedBlocking.get(path);
 		if (dependency) {
 			raw[path] = { ...dependency };
@@ -260,7 +273,7 @@ function buildBlockingUpdates(input: TaskEditChangeInput): {
 	}
 
 	return {
-		blockingUpdates: { added, removed, raw },
+		blockingUpdates: { added, removed, modified, raw },
 		unresolvedBlockingEntries,
 	};
 }

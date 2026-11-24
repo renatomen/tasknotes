@@ -179,9 +179,18 @@ Dependencies are separate from project/subtask membership: adding a blocker does
 - The task context menu provides the same selector, enabling dependency management directly from the Task List, Kanban, and calendar views.
 - Task cards show a fork icon whenever a task blocks other work. Clicking it expands an inline list of downstream tasks without triggering the parent card’s modal, so you can inspect dependents in place.
 
-These controls currently create and manage finish-to-start style blockers. Other `reltype` values written in frontmatter are preserved and evaluated.
+These controls create finish-to-start dependencies. Other `reltype` values written in frontmatter are preserved and evaluated.
 
 ![Task context menu](../assets/feature-task-context-menu.png)
+
+### Choosing a relationship type and lag
+
+Turn on **Advanced dependency types** in [Task Properties settings](../settings/task-properties.md) to set a relationship type and a lag for each dependency. Each row under “Blocked by” and “Blocking” in the task creation and edit modals then shows:
+
+- **Relationship**: finish-to-start, start-to-start, finish-to-finish or start-to-finish. A line under the controls spells out the choice, for example “Order hardware must finish before Install rack can start”.
+- **Lag**: a whole number of days, weeks or hours, stored as the dependency’s `gap`. Clear the field or enter 0 to remove the lag.
+
+A change made on a “Blocking” row is saved to the dependent task’s `blockedBy` entry, because that is where the dependency is stored. A `gap` written in frontmatter in a form these fields cannot express, such as `P1DT2H`, is shown as text and left unchanged.
 
 ### How blocking is evaluated
 

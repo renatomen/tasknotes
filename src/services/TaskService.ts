@@ -98,6 +98,7 @@ import {
 	resolveRecurringMoveDate,
 } from "./task-service/recurringMoveIdentity";
 import {
+	type BlockingRelationshipAction,
 	buildBlockedByTaskUpdate,
 	buildBlockingRelationshipPathChanges,
 	computeBlockedByUpdate,
@@ -1945,7 +1946,8 @@ export class TaskService {
 		removedBlockedTaskPaths: string[],
 		rawEntries: Record<string, TaskDependency | string> = {},
 		updateBlockedTask: (task: TaskInfo, updates: Partial<TaskInfo>) => Promise<unknown> =
-			(task, updates) => this.updateTask(task, updates)
+			(task, updates) => this.updateTask(task, updates),
+		modifiedBlockedTaskPaths: string[] = []
 	): Promise<void> {
 		// This method is called when the current task's "blocking" list is updated in the UI.
 		// The current task is the one blocking other tasks.
@@ -1996,12 +1998,34 @@ export class TaskService {
 
 			await updateBlockedTask(blockedTask, updates);
 		}
+
+		// Rewrite the reltype and gap on tasks that stay blocked, keeping the link each task stores
+		for (const blockedTaskPath of modifiedBlockedTaskPaths) {
+			const blockedTask = await this.plugin.cacheManager.getTaskInfo(blockedTaskPath);
+			if (!blockedTask) {
+				continue;
+			}
+
+			const updates = buildBlockedByTaskUpdate(
+				this.computeBlockedByUpdate(
+					blockedTask,
+					currentTask.path,
+					"modify",
+					rawEntries[blockedTaskPath]
+				)
+			);
+			if (!updates) {
+				continue;
+			}
+
+			await updateBlockedTask(blockedTask, updates);
+		}
 	}
 
 	private computeBlockedByUpdate(
 		blockedTask: TaskInfo,
 		blockingTaskPath: string,
-		action: "add" | "remove",
+		action: BlockingRelationshipAction,
 		rawEntry?: TaskDependency | string
 	): TaskDependency[] | null {
 		return computeBlockedByUpdate({

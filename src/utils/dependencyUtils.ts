@@ -72,6 +72,40 @@ export function deriveBlockingState(
 	};
 }
 
+export type DependencyGapUnit = "hours" | "days" | "weeks";
+
+export interface StructuredGap {
+	value: number;
+	unit: DependencyGapUnit;
+}
+
+/** ISO 8601 duration of whole units; undefined unless the floored value is within 1 to 100000. */
+export function composeDependencyGap(value: number, unit: DependencyGapUnit): string | undefined {
+	const whole = Math.floor(value);
+	if (!Number.isFinite(value) || whole <= 0 || whole > 100000) {
+		return undefined;
+	}
+	if (unit === "hours") {
+		return `PT${whole}H`;
+	}
+	return unit === "weeks" ? `P${whole}W` : `P${whole}D`;
+}
+
+/** Null for a missing gap and for any form `composeDependencyGap` does not produce, such as `P1DT2H`. */
+export function parseDependencyGap(gap: string | undefined): StructuredGap | null {
+	if (!gap) {
+		return null;
+	}
+	const match = /^P(?:T(\d+)H|(\d+)([DW]))$/.exec(gap.trim().toUpperCase());
+	if (!match) {
+		return null;
+	}
+	if (match[1]) {
+		return { value: Number(match[1]), unit: "hours" };
+	}
+	return { value: Number(match[2]), unit: match[3] === "W" ? "weeks" : "days" };
+}
+
 export function extractDependencyUid(entry: unknown): string {
 	if (typeof entry === "string") {
 		return entry;

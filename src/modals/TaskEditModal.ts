@@ -16,6 +16,7 @@ import { stringifyUnknown } from "../utils/stringUtils";
 import { deleteNotesWithUndo } from "../ui/noteDeletion";
 import { createCompletionsCalendarSection } from "./taskEditCompletions";
 import { BlockingUpdates } from "./taskEditChanges";
+import { findBlockingEdgeDependency } from "./taskModalDependencies";
 import { buildTaskEditChangesFromModalState } from "./taskEditChangeState";
 import { buildTaskEditFormStateFromTask } from "./taskEditFormState";
 import {
@@ -43,7 +44,8 @@ export class TaskEditModal extends TaskModal {
 	private skippedInstancesChanges: string[] = [];
 	private initialBlockedBy: TaskDependency[] = [];
 	private initialBlockingPaths: string[] = [];
-	private pendingBlockingUpdates: BlockingUpdates = { added: [], removed: [], raw: {} };
+	private initialBlockingEntries: Record<string, TaskDependency> = {};
+	private pendingBlockingUpdates: BlockingUpdates = { added: [], removed: [], modified: [], raw: {} };
 	private unresolvedBlockingEntries: string[] = [];
 	private initialTags = "";
 	private isConvertingNoteToTask = false;
@@ -128,13 +130,31 @@ export class TaskEditModal extends TaskModal {
 		);
 		this.initialBlockedBy = this.blockedByItems.map((item) => ({ ...item.dependency }));
 
-		this.blockingItems = (this.task.blocking ?? []).map((path) =>
-			this.createDependencyItemFromPath(path)
-		);
+		this.blockingItems = (this.task.blocking ?? []).map((path) => {
+			const item = this.createDependencyItemFromPath(path);
+			const blockedTask = this.plugin.cacheManager.getCachedTaskInfoSync(path);
+			const stored = blockedTask
+				? findBlockingEdgeDependency(this.plugin, this.task.path, blockedTask)
+				: null;
+			if (!stored) {
+				return item;
+			}
+			const { reltype, gap } = stored;
+			return {
+				...item,
+				dependency: gap ? { ...item.dependency, reltype, gap } : { ...item.dependency, reltype },
+			};
+		});
 		this.initialBlockingPaths = this.blockingItems
 			.filter((item) => item.path)
 			.map((item) => item.path!);
-		this.pendingBlockingUpdates = { added: [], removed: [], raw: {} };
+		this.initialBlockingEntries = {};
+		for (const item of this.blockingItems) {
+			if (item.path) {
+				this.initialBlockingEntries[item.path] = { ...item.dependency };
+			}
+		}
+		this.pendingBlockingUpdates = { added: [], removed: [], modified: [], raw: {} };
 		this.unresolvedBlockingEntries = [];
 
 		// Values stay on show: fields start hidden only when there is nothing in them.
@@ -318,7 +338,8 @@ export class TaskEditModal extends TaskModal {
 			const changes = this.getChanges({ includeConversionWrite: true });
 			const hasBlockingChanges =
 				this.pendingBlockingUpdates.added.length > 0 ||
-				this.pendingBlockingUpdates.removed.length > 0;
+				this.pendingBlockingUpdates.removed.length > 0 ||
+				this.pendingBlockingUpdates.modified.length > 0;
 			const hasTaskChanges = Object.keys(changes).length > 0;
 			const hasSubtaskChanges = this.hasSubtaskChanges();
 
@@ -388,7 +409,8 @@ export class TaskEditModal extends TaskModal {
 						const receipt = await captureTaskUndo(this.plugin, task, () => this.plugin.taskService.updateTask(task, updates));
 						if (receipt.undo) undo.push(receipt.undo);
 						return receipt.task;
-					}
+					},
+					this.pendingBlockingUpdates.modified
 				);
 
 				const refreshed = await this.plugin.cacheManager.getTaskInfo(updatedTask.path);
@@ -431,7 +453,7 @@ export class TaskEditModal extends TaskModal {
 				);
 			}
 
-			this.pendingBlockingUpdates = { added: [], removed: [], raw: {} };
+			this.pendingBlockingUpdates = { added: [], removed: [], modified: [], raw: {} };
 			this.unresolvedBlockingEntries = [];
 			return { status: "saved" };
 		} catch (error) {
@@ -475,6 +497,7 @@ export class TaskEditModal extends TaskModal {
 			initialBlockedBy: this.initialBlockedBy,
 			blockingItems: this.blockingItems,
 			initialBlockingPaths: this.initialBlockingPaths,
+			initialBlockingEntries: this.initialBlockingEntries,
 			details: this.form.values.details,
 			originalDetails: this.originalDetails,
 			completedInstancesChanges: this.completedInstancesChanges,
