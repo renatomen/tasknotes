@@ -2479,6 +2479,11 @@ msgctxt "settings.integrations.subscriptionsList.titleFilter.help"
 msgid "Case-insensitive text, not regex; empty shows all events"
 msgstr "Text ohne Beachtung der Groß-/Kleinschreibung, kein regulärer Ausdruck; leer zeigt alle Termine"
 
+#: src/settings/native/properties.ts
+msgctxt "settings.taskProperties.taskStatuses.fields.category"
+msgid "Category:"
+msgstr "Kategorie:"
+
 #: src/modals/TaskActionPaletteModal.ts
 msgctxt "modals.actionPalette.statusAction"
 msgid "Change status to \"{label}\""
@@ -10338,6 +10343,11 @@ msgstr "Legen Sie fest, bis wann diese Aufgabe abgeschlossen sein soll"
 msgctxt "modals.scheduledDate.descriptions.dateTime"
 msgid "Set when you plan to work on this task"
 msgstr "Legen Sie fest, wann Sie an dieser Aufgabe arbeiten möchten"
+
+#: src/settings/native/properties.ts
+msgctxt "settings.taskProperties.taskStatuses.fields.categoryDescription"
+msgid "Sets the lifecycle stage so dependencies can tell when a task has started or finished. Completed statuses count as completed."
+msgstr "Legt die Lebenszyklusphase fest, damit Abhängigkeiten erkennen, wann eine Aufgabe begonnen oder abgeschlossen wurde. Abgeschlossene Statuswerte gelten als abgeschlossen."
 
 #: src/settings/native/tasknotesApp.ts
 msgctxt "settings.tasknotesApp.guide.name"

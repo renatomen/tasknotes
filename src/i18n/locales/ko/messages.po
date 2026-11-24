@@ -2478,6 +2478,11 @@ msgctxt "settings.integrations.subscriptionsList.titleFilter.help"
 msgid "Case-insensitive text, not regex; empty shows all events"
 msgstr "대소문자를 구분하지 않는 일반 텍스트입니다. 정규식은 지원하지 않으며 비워 두면 모든 이벤트가 표시됩니다"
 
+#: src/settings/native/properties.ts
+msgctxt "settings.taskProperties.taskStatuses.fields.category"
+msgid "Category:"
+msgstr "카테고리:"
+
 #: src/modals/TaskActionPaletteModal.ts
 msgctxt "modals.actionPalette.statusAction"
 msgid "Change status to \"{label}\""
@@ -10339,6 +10344,11 @@ msgstr "이 작업을 완료해야 하는 시간 설정"
 msgctxt "modals.scheduledDate.descriptions.dateTime"
 msgid "Set when you plan to work on this task"
 msgstr "이 작업을 수행할 시간 설정"
+
+#: src/settings/native/properties.ts
+msgctxt "settings.taskProperties.taskStatuses.fields.categoryDescription"
+msgid "Sets the lifecycle stage so dependencies can tell when a task has started or finished. Completed statuses count as completed."
+msgstr "수명 주기 단계를 설정하여 종속성이 작업의 시작 및 완료 시점을 판단할 수 있게 합니다. 완료됨 상태는 완료로 간주됩니다."
 
 #: src/settings/native/tasknotesApp.ts
 msgctxt "settings.tasknotesApp.guide.name"

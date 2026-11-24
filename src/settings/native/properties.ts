@@ -7,11 +7,17 @@ import {
 	type SettingDefinitionGroup,
 	type SettingDefinitionPage,
 } from "obsidian";
-import type { FieldMapping, StatusConfig, PriorityConfig } from "../../types";
+import {
+	STATUS_CATEGORIES,
+	type FieldMapping,
+	type StatusConfig,
+	type PriorityConfig,
+} from "../../types";
 import type { UserMappedField } from "../../types/settings";
 import type { FileFilterConfig } from "../../suggest/FileSuggestHelper";
 import { showConfirmationModal } from "../../modals/ConfirmationModal";
 import { initializeFieldConfig } from "../../utils/fieldConfigDefaults";
+import { STATUS_CATEGORY_LABELS } from "../defaults";
 import { SettingsContext } from "./SettingsContext";
 
 export function reorder<T>(items: readonly T[], from: number, to: number): T[] {
@@ -335,9 +341,37 @@ function configuredValues(
 				fields.push(
 					ctx.field(
 						item,
+						"category",
+						`${id}.category`,
+						ctx.t(msg({ message: "Category:", context: "settings.taskProperties.taskStatuses.fields.category" })),
+						{
+							type: "dropdown",
+							desc: ctx.t(
+								msg({ message: "Sets the lifecycle stage so dependencies can tell when a task has started or finished. Completed statuses count as completed.", context: "settings.taskProperties.taskStatuses.fields.categoryDescription" })
+							),
+							options: Object.fromEntries(
+								STATUS_CATEGORIES.map((category) => [
+									category,
+									ctx.t(STATUS_CATEGORY_LABELS[category]),
+								])
+							),
+							onChange: () => {
+								item.isCompleted = item.category === "completed";
+								ctx.rebuild();
+							},
+						}
+					),
+					ctx.field(
+						item,
 						"isCompleted",
 						`${id}.isCompleted`,
-						ctx.t(msg({ message: "Counts as completed", context: "settings.native.countsAsCompleted" }))
+						ctx.t(msg({ message: "Counts as completed", context: "settings.native.countsAsCompleted" })),
+						{
+							onChange: () => {
+								item.category = item.isCompleted ? "completed" : "planned";
+								ctx.rebuild();
+							},
+						}
 					),
 					ctx.field(
 						item,
@@ -408,6 +442,9 @@ function configuredValues(
 				type: "page",
 				name: configLabel(item) || item.value,
 				desc: item.value,
+				...("isCompleted" in item
+					? { displayValue: () => ctx.t(STATUS_CATEGORY_LABELS[item.category ?? "planned"]) }
+					: {}),
 				items: fields,
 			};
 		}),
