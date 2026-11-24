@@ -58,6 +58,18 @@ describe("hovering a submenu parent in a nested task menu", () => {
 		expect(menu.openSubmenu).not.toHaveBeenCalled();
 	});
 
+	it("leaves the first hover to Obsidian when no submenu is open yet", () => {
+		const menu = createMenu();
+		const { item, dom } = createSubmenuParent(menu);
+		getSubmenu(item);
+
+		dom.dispatchEvent(new Event("pointerenter"));
+		jest.advanceTimersByTime(250);
+
+		expect(menu.closeSubmenu).not.toHaveBeenCalled();
+		expect(menu.openSubmenu).not.toHaveBeenCalled();
+	});
+
 	it("leaves its own open submenu alone", () => {
 		const menu = createMenu();
 		const { item, submenu, dom } = createSubmenuParent(menu);
