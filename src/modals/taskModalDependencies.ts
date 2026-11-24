@@ -54,8 +54,7 @@ export interface DependencyReltypeControls {
 	onGapChange: (index: number, gap: string | undefined) => void;
 }
 
-/** Listed in the order the types are offered. */
-export const DEPENDENCY_RELTYPE_LABELS: Record<TaskDependencyRelType, MessageDescriptor> = {
+const DEPENDENCY_RELTYPE_LABELS: Record<TaskDependencyRelType, MessageDescriptor> = {
 	FINISHTOSTART: msg({ message: "Finish-to-start", context: "ui.dependencies.reltype.finishToStart" }),
 	STARTTOSTART: msg({ message: "Start-to-start", context: "ui.dependencies.reltype.startToStart" }),
 	FINISHTOFINISH: msg({ message: "Finish-to-finish", context: "ui.dependencies.reltype.finishToFinish" }),

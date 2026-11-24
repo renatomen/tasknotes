@@ -69,20 +69,12 @@ export function computeBlockedByUpdate({
 				modified = true;
 				continue;
 			}
-			if (action === "modify") {
-				const normalizedIncoming = rawEntry ? normalizeDependencyEntry(rawEntry) : null;
-				if (normalizedIncoming) {
-					const updated: TaskDependency = {
-						uid: entry.uid,
-						reltype: normalizedIncoming.reltype,
-					};
-					if (normalizedIncoming.gap) {
-						updated.gap = normalizedIncoming.gap;
-					}
-					result.push(updated);
-					modified = true;
-					continue;
-				}
+			const replacement =
+				action === "modify" && rawEntry ? normalizeDependencyEntry(rawEntry) : null;
+			if (replacement) {
+				result.push({ ...replacement, uid: entry.uid });
+				modified = true;
+				continue;
 			}
 		}
 		result.push(entry);

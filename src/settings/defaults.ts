@@ -117,7 +117,6 @@ export const STATUS_CATEGORY_LABELS: Record<StatusCategory, MessageDescriptor> =
 
 const START_CATEGORIES: readonly StatusCategory[] = ["planned", "in-progress"];
 
-/** The start categories (Not started, Started) that no status carries, in that order. */
 export function findMissingStartCategories(statuses: StatusConfig[]): StatusCategory[] {
 	const counts = countStatusCategories(statuses);
 	return START_CATEGORIES.filter((category) => counts[category] === 0);
@@ -132,7 +131,6 @@ export function describeMissingStartCategories(missing: StatusCategory[]): Messa
 	return msg({ message: "No status is categorized as Not started or Started.", context: "settings.taskProperties.dependencies.readiness.missing.both" });
 }
 
-/** Without a Not started status every remaining status counts as started, so the gap releases early, not late. */
 export function describeMissingStartConsequence(missing: StatusCategory[]): MessageDescriptor {
 	return missing.includes("planned")
 		? msg({ message: "Every status already counts as started, so start-to-start and start-to-finish dependencies will release immediately instead of holding the task until the predecessor starts.", context: "settings.taskProperties.dependencies.readiness.consequence.releasesImmediately" })

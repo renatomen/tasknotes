@@ -23,7 +23,6 @@ const tasknotesLogger = createTaskNotesLogger({ tag: "Components/TaskContextMenu
 
 type DependencyMenuSide = "blockedBy" | "blocking";
 
-/** Each side lists its types in the order they are offered. */
 const RELTYPE_MENU_TITLES: Record<
 	DependencyMenuSide,
 	Record<TaskDependencyRelType, MessageDescriptor>

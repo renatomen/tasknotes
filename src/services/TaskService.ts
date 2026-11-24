@@ -1999,7 +1999,6 @@ export class TaskService {
 			await updateBlockedTask(blockedTask, updates);
 		}
 
-		// Rewrite the reltype and gap on tasks that stay blocked, keeping the link each task stores
 		for (const blockedTaskPath of modifiedBlockedTaskPaths) {
 			const blockedTask = await this.plugin.cacheManager.getTaskInfo(blockedTaskPath);
 			if (!blockedTask) {
