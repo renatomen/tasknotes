@@ -508,6 +508,10 @@ body .tasknotes-plugin.tn-tasknotesTaskList .task-card:is(:hover, :focus-visible
     inset-inline-start: calc(-1 * (var(--tn-space-2) + var(--tn-space-5)));
 }
 
+body:not(.is-mobile) .tn-tasknotesTaskList .task-card--reorderable.task-card--chevron-left:not(.task-card--layout-inline) > .task-card__main-row::before {
+    inset-inline-start: calc(-1 * (var(--tn-space-3) + 2 * var(--tn-space-5)));
+}
+
 .tn-tasknotesTaskList .task-card--updated > .task-card__main-row::before {
     background: var(--tn-hover);
 }

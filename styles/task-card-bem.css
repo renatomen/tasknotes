@@ -1550,11 +1550,17 @@ body .tasknotes-plugin .task-card.task-card--chevron-left:not(.task-card--layout
     min-height: 0;
 }
 
-/* The drag handle shares that gutter, so it drops below the chevron. */
+/* The drag handle shares that gutter, so the gutter widens and the handle sits between the chevron and the status. */
+body:not(.is-mobile) .tn-tasknotesTaskList .task-card--reorderable.task-card--chevron-left:not(.task-card--layout-inline) {
+    padding-left: calc(var(--tn-space-2) + 2 * var(--tn-space-5));
+}
+
 body:not(.is-mobile) .tn-tasknotesTaskList .task-card--reorderable.task-card--chevron-left:not(.task-card--layout-inline) > .task-card__main-row > .task-card__drag-handle {
-    top: auto;
-    bottom: 0;
-    transform: none;
+    left: calc(-1 * (var(--tn-space-5) + var(--tn-space-half)));
+}
+
+body:not(.is-mobile) .tn-tasknotesTaskList .task-card--reorderable.task-card--chevron-left:not(.task-card--layout-inline) .task-card__badges .task-card__chevron {
+    left: calc(-1 * (var(--tn-control-sm) + var(--tn-space-5) + var(--tn-space-half)));
 }
 
 body .tasknotes-plugin .task-card:not(.task-card--layout-inline) .task-card__context-menu {
