@@ -483,8 +483,12 @@ export interface TaskInfo {
 	basesData?: unknown; // Raw Bases data for formula computation (internal use)
 	blockedBy?: TaskDependency[]; // Dependencies that must be satisfied before this task can start
 	blocking?: string[]; // Task paths that this task is blocking
-	isBlocked?: boolean; // True if any blocking dependency is incomplete
+	isBlocked?: boolean; // True if the task is start-blocked or finish-blocked
 	isBlocking?: boolean; // True if this task blocks at least one other task
+	startBlocked?: boolean; // Cannot start: a finish-to-start predecessor is unfinished or a start-to-start one is unstarted
+	finishBlocked?: boolean; // Cannot finish: a finish-to-finish predecessor is unfinished or a start-to-finish one is unstarted
+	isBlockingStart?: boolean; // True if this task blocks at least one other task's start
+	isBlockingFinish?: boolean; // True if this task blocks at least one other task's finish
 	hasSubtasks?: boolean; // True if another task references this task as a project
 	details?: string; // Optional task body content
 	sortOrder?: string; // LexoRank string for ordering within column
@@ -744,13 +748,19 @@ export interface RecurringCompletionOptions {
 	onlyIf?: (task: TaskInfo) => boolean;
 }
 
+/** Lifecycle stage of a status (labels: Not started / Started / Completed). */
+export type StatusCategory = "planned" | "in-progress" | "completed";
+
+export const STATUS_CATEGORIES: readonly StatusCategory[] = ["planned", "in-progress", "completed"];
+
 export interface StatusConfig {
 	id: string; // Unique identifier
 	value: string; // What gets written to YAML
 	label: string; // What displays in UI
 	color: string; // Hex color for UI elements
 	icon?: string; // Optional Lucide icon name (e.g., "circle", "check", "clock")
-	isCompleted: boolean; // Whether this counts as "done"
+	isCompleted: boolean; // Whether this counts as "done"; kept in sync with category === "completed"
+	category?: StatusCategory; // Lifecycle stage; always set at runtime (defaults to "planned")
 	isSkipped?: boolean; // Whether this counts as a skipped occurrence
 	excludeFromCycle?: boolean; // Whether status-dot cycling should skip this status
 	nextStatus?: string; // Optional status value to use when cycling forward from this status

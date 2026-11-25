@@ -553,6 +553,18 @@ msgid "{interval, plural, =1 {Yearly} other {Every # years}}"
 msgstr "{interval, plural, =1 {每年} other {每 # 年}}"
 
 #: src/i18n/messages.ts
+#: src/ui/taskCardMetadata.ts
+msgctxt "ui.taskCard.blockedFinish"
+msgid "{label} · finish"
+msgstr "{label} · 完成"
+
+#: src/i18n/messages.ts
+#: src/ui/taskCardMetadata.ts
+msgctxt "ui.taskCard.blockedStart"
+msgid "{label} · start"
+msgstr "{label} · 开始"
+
+#: src/i18n/messages.ts
 msgctxt "ui.taskCard.dueLabel"
 msgid "{label}: {display}"
 msgstr "{label}: {display}"
@@ -706,6 +718,26 @@ msgstr "{percent, number}%"
 msgctxt "ui/taskCardProperties: checklistProgress display"
 msgid "{percent, number}% complete ({completed, number}/{total, number})"
 msgstr "已完成 {percent, number}%（{completed, number}/{total, number}）"
+
+#: src/modals/taskModalDependencies.ts
+msgctxt "modals.task.dependencies.summary.finishToFinish"
+msgid "{predecessor} must finish before {successor} can finish"
+msgstr "{predecessor} 完成后，{successor} 才能完成"
+
+#: src/modals/taskModalDependencies.ts
+msgctxt "modals.task.dependencies.summary.finishToStart"
+msgid "{predecessor} must finish before {successor} can start"
+msgstr "{predecessor} 完成后，{successor} 才能开始"
+
+#: src/modals/taskModalDependencies.ts
+msgctxt "modals.task.dependencies.summary.startToFinish"
+msgid "{predecessor} must start before {successor} can finish"
+msgstr "{predecessor} 开始后，{successor} 才能完成"
+
+#: src/modals/taskModalDependencies.ts
+msgctxt "modals.task.dependencies.summary.startToStart"
+msgid "{predecessor} must start before {successor} can start"
+msgstr "{predecessor} 开始后，{successor} 才能开始"
 
 #: src/i18n/messages.ts
 msgctxt "services.notification.missed.message"
@@ -1456,6 +1488,11 @@ msgctxt "views.basesCalendar.settings.groups.advanced"
 msgid "Advanced"
 msgstr "高级"
 
+#: src/settings/native/properties.ts
+msgctxt "settings.taskProperties.dependencies.advancedTypes.name"
+msgid "Advanced dependency types"
+msgstr "高级依赖关系类型"
+
 #: src/settings/native/connections.ts
 msgctxt "settings.calendarService.ownApplication.name"
 msgid "Advanced: use your own Google Cloud project"
@@ -2014,6 +2051,15 @@ msgctxt "ui.taskCard.blockingToggle"
 msgid "Blocking {count} tasks"
 msgstr "阻塞 {count} 个任务"
 
+#: src/ui/taskCardSecondaryBadges.ts
+msgctxt "ui.taskCard.blockingToggleBreakdown"
+msgid "Blocking {count} tasks:\n"
+"{start} to start\n"
+"{finish} to finish"
+msgstr "阻塞 {count} 个任务：\n"
+"{start} 个待开始\n"
+"{finish} 个待完成"
+
 #: src/ui/taskCardProperties.ts
 msgctxt "ui/taskCardProperties: blockingTasks text"
 msgid "Blocking: "
@@ -2258,6 +2304,11 @@ msgctxt "settings.calendarService.calendars.heading"
 msgid "Calendars shown"
 msgstr "显示的日历"
 
+#: src/ui/taskCardMetadata.ts
+msgctxt "ui.taskCard.blockedFinishTooltip"
+msgid "Can start, but cannot finish yet — waiting on a predecessor"
+msgstr "可以开始，但暂时无法完成——正在等待前置任务"
+
 #: src/bases/KanbanView.ts
 #: src/bases/TaskListView.ts
 #: src/modals/CalendarEventCreationModal.ts
@@ -2427,6 +2478,11 @@ msgctxt "collectionCheck.unresolvedUserField"
 msgid "Cannot resolve owned user field {field}. Review its schema and retained field type before saving settings. Existing settings and metadata were preserved."
 msgstr "无法确定受管理的自定义字段 {field} 的类型。保存设置前，请检查其架构和保留的字段类型。现有设置和元数据已保留。"
 
+#: src/ui/taskCardMetadata.ts
+msgctxt "ui.taskCard.blockedStartTooltip"
+msgid "Cannot start yet — waiting on a predecessor"
+msgstr "暂时无法开始——正在等待前置任务"
+
 #: src/ui/kit/toast.ts
 msgctxt "interaction undo conflict"
 msgid "Cannot undo: the note has changed."
@@ -2446,6 +2502,11 @@ msgstr "卡片布局"
 msgctxt "settings.integrations.subscriptionsList.titleFilter.help"
 msgid "Case-insensitive text, not regex; empty shows all events"
 msgstr "不区分大小写的普通文本，不支持正则表达式；留空显示所有事件"
+
+#: src/settings/native/properties.ts
+msgctxt "settings.taskProperties.taskStatuses.fields.category"
+msgid "Category:"
+msgstr "类别："
 
 #: src/modals/TaskActionPaletteModal.ts
 msgctxt "modals.actionPalette.statusAction"
@@ -2542,6 +2603,11 @@ msgstr "从此设备选择文件。保存任务时会将其复制到仓库。"
 msgctxt "settings.native.chooseCalendarFile"
 msgid "Choose a local .ics file."
 msgstr "请选择本地 .ics 文件。"
+
+#: src/settings/native/properties.ts
+msgctxt "settings.taskProperties.dependencies.advancedTypes.description"
+msgid "Choose a relationship type (finish-to-start, start-to-start, finish-to-finish, start-to-finish) and an optional lag for each dependency. Relationship types already saved in task notes apply whether this is on or off."
+msgstr "为每个依赖关系选择关系类型（完成-开始、开始-开始、完成-完成、开始-完成）和可选的延隔时间。任务笔记中已保存的关系类型无论此项是否开启都会生效。"
 
 #: src/modals/CheckCollectionModal.ts
 msgctxt "collectionCheck.chooseStatus"
@@ -2840,6 +2906,11 @@ msgstr "完成此次重复"
 
 #: src/templates/defaultBasesFiles.ts
 msgctxt "generated Bases column name"
+msgid "Completed"
+msgstr "已完成"
+
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.taskStatuses.categories.completed"
 msgid "Completed"
 msgstr "已完成"
 
@@ -3616,6 +3687,11 @@ msgctxt "settings.appearance.calendarView.defaultView.options.customMultiDay"
 msgid "Custom multi-day"
 msgstr "自定义多日"
 
+#: src/modals/taskModalDependencies.ts
+msgctxt "modals.task.dependencies.gap.exotic"
+msgid "Custom offset: {gap}"
+msgstr "自定义偏移：{gap}"
+
 #: src/components/CustomRecurrenceModal.ts
 msgctxt "components.recurrenceContextMenu.customRecurrenceModal.title"
 msgid "Custom recurrence"
@@ -3847,6 +3923,7 @@ msgid "Day view"
 msgstr "日视图"
 
 #: src/modals/ReminderModal.ts
+#: src/modals/taskModalDependencies.ts
 #: src/settings/native/creation.ts
 msgctxt "settings.defaults.reminders.units.days"
 msgid "days"
@@ -4186,6 +4263,8 @@ msgid "Delivery status"
 msgstr "投递状态"
 
 #: src/components/TaskContextMenu.ts
+#: src/settings/native/properties.ts
+#: src/ui/taskCardSecondaryBadges.ts
 msgctxt "contextMenus.task.dependencies.title"
 msgid "Dependencies"
 msgstr "依赖关系"
@@ -4667,6 +4746,16 @@ msgctxt "services/buildTaskCreationDataFromCli: buildTaskCreationDataFromCli dis
 msgid "Either --text or --title is required"
 msgstr "必须提供 --text 或 --title"
 
+#: src/modals/DependencyReadinessConfirmationModal.ts
+msgctxt "modals.dependencyReadiness.title"
+msgid "Enable advanced dependency types?"
+msgstr "启用高级依赖关系类型？"
+
+#: src/modals/DependencyReadinessConfirmationModal.ts
+msgctxt "modals.dependencyReadiness.buttons.enableAndOpenStatuses"
+msgid "Enable and go to statuses..."
+msgstr "启用并前往状态..."
+
 #: src/settings/native/integrations.ts
 msgctxt "settings.integrations.autoExport.enable.name"
 msgid "Enable automatic export"
@@ -5029,6 +5118,11 @@ msgstr "每3天（完成后）"
 msgctxt "settings.calendarService.deleteAccount.confirmMessage"
 msgid "Every device is signed out and the service’s access to Google Calendar is withdrawn. Your events in Google Calendar are not changed. This cannot be undone."
 msgstr "所有设备都会退出登录，并撤销该服务对 Google 日历的访问权限。你在 Google 日历中的日程不会改变。此操作无法撤销。"
+
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.dependencies.readiness.consequence.releasesImmediately"
+msgid "Every status already counts as started, so start-to-start and start-to-finish dependencies will release immediately instead of holding the task until the predecessor starts."
+msgstr "所有状态都已视为已开始，因此开始-开始和开始-完成依赖关系会立即解除，而不会让任务等到前置任务开始。"
 
 #: src/components/CustomRecurrenceModal.ts
 msgctxt "components.recurrenceContextMenu.customRecurrenceModal.intervalDesc"
@@ -5950,6 +6044,36 @@ msgctxt "settings.taskProperties.projectsCard.filtersOn"
 msgid "Filters on"
 msgstr "筛选器开启"
 
+#: src/components/task-context-menu/relationships.ts
+msgctxt "contextMenus.task.dependencies.reltype.blocking.finishToFinish"
+msgid "Finish → finish · they can't finish until this finishes"
+msgstr "完成 → 完成 · 此任务完成后，另一任务才能完成"
+
+#: src/components/task-context-menu/relationships.ts
+msgctxt "contextMenus.task.dependencies.reltype.blockedBy.finishToFinish"
+msgid "Finish → finish · this can't finish until that finishes"
+msgstr "完成 → 完成 · 另一任务完成后，此任务才能完成"
+
+#: src/components/task-context-menu/relationships.ts
+msgctxt "contextMenus.task.dependencies.reltype.blocking.finishToStart"
+msgid "Finish → start · they can't start until this finishes"
+msgstr "完成 → 开始 · 此任务完成后，另一任务才能开始"
+
+#: src/components/task-context-menu/relationships.ts
+msgctxt "contextMenus.task.dependencies.reltype.blockedBy.finishToStart"
+msgid "Finish → start · this can't start until that finishes"
+msgstr "完成 → 开始 · 另一任务完成后，此任务才能开始"
+
+#: src/modals/taskModalDependencies.ts
+msgctxt "ui.dependencies.reltype.finishToFinish"
+msgid "Finish-to-finish"
+msgstr "完成-完成"
+
+#: src/modals/taskModalDependencies.ts
+msgctxt "ui.dependencies.reltype.finishToStart"
+msgid "Finish-to-start"
+msgstr "完成-开始"
+
 #: src/components/CustomRecurrenceModal.ts
 msgctxt "components.recurrenceContextMenu.customRecurrenceModal.weekPositions.first"
 msgid "first"
@@ -6138,6 +6262,11 @@ msgstr "下载 iPhone 版 TaskNotes"
 msgctxt "settings.calendarService.connect.description"
 msgid "Give TaskNotes access to your Google Calendar again."
 msgstr "重新授权 TaskNotes 访问你的 Google 日历。"
+
+#: src/modals/DependencyReadinessConfirmationModal.ts
+msgctxt "modals.dependencyReadiness.buttons.goBack"
+msgid "Go back"
+msgstr "返回"
 
 #: src/bases/MiniCalendarView.ts
 msgctxt "views.basesCalendar.hints.today"
@@ -6372,6 +6501,7 @@ msgid "Highlight the current day in calendar views"
 msgstr "在日历视图中高亮当前日期"
 
 #: src/modals/ReminderModal.ts
+#: src/modals/taskModalDependencies.ts
 #: src/settings/native/creation.ts
 msgctxt "settings.defaults.reminders.units.hours"
 msgid "hours"
@@ -6692,6 +6822,11 @@ msgctxt "bases/registration: registerBasesTaskList.attemptRegistration.options p
 msgid "JSON object keyed by swim lane property"
 msgstr "以泳道属性为键的 JSON 对象"
 
+#: src/modals/DependencyReadinessConfirmationModal.ts
+msgctxt "modals.dependencyReadiness.buttons.justEnable"
+msgid "Just enable"
+msgstr "仅启用"
+
 #: src/settings/native/relativeSyncTime.ts
 msgctxt "settings.integrations.timeFormats.justNow"
 msgid "Just now"
@@ -6762,6 +6897,11 @@ msgstr "键盘快捷键"
 msgctxt "settings.taskProperties.taskStatuses.fields.label"
 msgid "Label:"
 msgstr "标签："
+
+#: src/modals/taskModalDependencies.ts
+msgctxt "modals.task.dependencies.gap.label"
+msgid "Lag"
+msgstr "延隔时间"
 
 #: src/main.ts
 msgctxt "notices.languageChanged"
@@ -7907,6 +8047,21 @@ msgctxt "views.pomodoro.recent.empty"
 msgid "No sessions recorded yet"
 msgstr "尚未记录会话"
 
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.dependencies.readiness.missing.both"
+msgid "No status is categorized as Not started or Started."
+msgstr "没有状态被归类为“未开始”或“已开始”。"
+
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.dependencies.readiness.missing.notStarted"
+msgid "No status is categorized as Not started."
+msgstr "没有状态被归类为“未开始”。"
+
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.dependencies.readiness.missing.started"
+msgid "No status is categorized as Started."
+msgstr "没有状态被归类为“已开始”。"
+
 #: src/ui/taskPropertyPickers.ts
 msgctxt "interaction picker"
 msgid "No statuses configured"
@@ -8080,6 +8235,11 @@ msgstr "未完成"
 msgctxt "generated Bases grouping label"
 msgid "Not started"
 msgstr "未计划"
+
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.taskStatuses.categories.planned"
+msgid "Not started"
+msgstr "未开始"
 
 #: src/settings/native/connections.ts
 msgctxt "settings.native.notSyncedYet"
@@ -9417,6 +9577,11 @@ msgctxt "notices.icsRelatedItemsRefreshed"
 msgid "Related notes refreshed"
 msgstr "相关笔记已刷新"
 
+#: src/modals/taskModalDependencies.ts
+msgctxt "modals.task.dependencies.reltype.label"
+msgid "Relationship"
+msgstr "关系"
+
 #: src/settings/native/appearance.ts
 msgctxt "settings.appearance.uiElements.relationshipsPosition.name"
 msgid "Relationships position"
@@ -10296,6 +10461,11 @@ msgctxt "modals.scheduledDate.descriptions.dateTime"
 msgid "Set when you plan to work on this task"
 msgstr "设置你计划何时处理此任务"
 
+#: src/settings/native/properties.ts
+msgctxt "settings.taskProperties.taskStatuses.fields.categoryDescription"
+msgid "Sets the lifecycle stage so dependencies can tell when a task has started or finished. Completed statuses count as completed."
+msgstr "设置生命周期阶段，以便依赖关系判断任务何时已开始或已完成。已完成的状态视为已完成。"
+
 #: src/settings/native/tasknotesApp.ts
 msgctxt "settings.tasknotesApp.guide.name"
 msgid "Setup guide"
@@ -10727,6 +10897,26 @@ msgctxt "settings.native.splitLayoutOnWideScreens"
 msgid "Split layout on wide screens"
 msgstr "宽屏分栏布局"
 
+#: src/components/task-context-menu/relationships.ts
+msgctxt "contextMenus.task.dependencies.reltype.blocking.startToFinish"
+msgid "Start → finish · they can't finish until this starts"
+msgstr "开始 → 完成 · 此任务开始后，另一任务才能完成"
+
+#: src/components/task-context-menu/relationships.ts
+msgctxt "contextMenus.task.dependencies.reltype.blockedBy.startToFinish"
+msgid "Start → finish · this can't finish until that starts"
+msgstr "开始 → 完成 · 另一任务开始后，此任务才能完成"
+
+#: src/components/task-context-menu/relationships.ts
+msgctxt "contextMenus.task.dependencies.reltype.blocking.startToStart"
+msgid "Start → start · they can't start until this starts"
+msgstr "开始 → 开始 · 此任务开始后，另一任务才能开始"
+
+#: src/components/task-context-menu/relationships.ts
+msgctxt "contextMenus.task.dependencies.reltype.blockedBy.startToStart"
+msgid "Start → start · this can't start until that starts"
+msgstr "开始 → 开始 · 另一任务开始后，此任务才能开始"
+
 #: src/components/CustomRecurrenceModal.ts
 msgctxt "components.recurrenceContextMenu.customRecurrenceModal.startDate"
 msgid "Start date"
@@ -10824,10 +11014,30 @@ msgctxt "modals.actionPalette.startTrackingDesc"
 msgid "Start tracking time for this task"
 msgstr "开始跟踪此任务的用时"
 
+#: src/modals/taskModalDependencies.ts
+msgctxt "ui.dependencies.reltype.startToFinish"
+msgid "Start-to-finish"
+msgstr "开始-完成"
+
+#: src/modals/taskModalDependencies.ts
+msgctxt "ui.dependencies.reltype.startToStart"
+msgid "Start-to-start"
+msgstr "开始-开始"
+
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.dependencies.readiness.consequence.releasesOnCompletion"
+msgid "Start-to-start and start-to-finish dependencies will release only when the predecessor completes, not when it starts."
+msgstr "开始-开始和开始-完成依赖关系只会在前置任务完成时解除，而不是在其开始时。"
+
 #: src/modals/ICSNoteCreationModal.ts
 msgctxt "modals.icsNoteCreation.startLabel"
 msgid "Start: "
 msgstr "开始："
+
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.taskStatuses.categories.inProgress"
+msgid "Started"
+msgstr "已开始"
 
 #: src/components/BatchContextMenu.ts
 #: src/components/TaskContextMenu.ts
@@ -12238,6 +12448,11 @@ msgctxt "views.pomodoro.recent.deleteConfirmMessage"
 msgid "This removes the session from Pomodoro history. Existing task time entries are not changed."
 msgstr "此操作会从番茄钟历史记录中删除该会话，但不会更改现有的任务时间记录。"
 
+#: src/modals/TaskModal.ts
+msgctxt "modals.task.dependencies.thisTask"
+msgid "This task"
+msgstr "此任务"
+
 #: src/main.ts
 msgctxt "notices.commands.repeatOccurrence"
 msgid "This task is an occurrence of a recurring task"
@@ -12260,7 +12475,6 @@ msgid "This task is used as a project (click to show/hide subtasks)"
 msgstr "此任务用作项目（点击可显示/隐藏子任务）"
 
 #: src/i18n/messages.ts
-#: src/ui/taskCardMetadata.ts
 msgctxt "ui.taskCard.blockedBadgeTooltip"
 msgid "This task is waiting on another task"
 msgstr "此任务正在等待其他任务"
@@ -12656,6 +12870,11 @@ msgstr "title: {title}"
 msgctxt "modals.taskSelector.instructions.dismiss"
 msgid "to cancel"
 msgstr "取消"
+
+#: src/modals/DependencyReadinessConfirmationModal.ts
+msgctxt "modals.dependencyReadiness.remedy"
+msgid "To change that, assign the missing category to one of your existing statuses in the task properties settings."
+msgstr "要改变这一点，请在任务属性设置中将缺少的类别分配给某个现有状态。"
 
 #: src/modals/DeviceCodeModal.ts
 msgctxt "modals.deviceCode.instructions.intro"
@@ -13534,6 +13753,11 @@ msgstr "每周笔记插件未启用。请在设置中启用。"
 msgctxt "components.recurrenceContextMenu.weeklyOn"
 msgid "Weekly on {day}"
 msgstr "每周{day}"
+
+#: src/modals/taskModalDependencies.ts
+msgctxt "modals.task.dependencies.gap.units.weeks"
+msgid "weeks"
+msgstr "周"
 
 #: src/modals/TimeEntryEditorModal.ts
 msgctxt "modals.timeEntryEditor.descriptionPlaceholder"

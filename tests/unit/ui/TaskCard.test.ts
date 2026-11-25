@@ -1895,6 +1895,37 @@ describe("TaskCard Component", () => {
       toggle.dispatchEvent(mouseDown);
       expect(mouseDown.defaultPrevented).toBe(true);
     });
+
+    it('should leave an expanded blocked-by list untouched when the same task is rendered again', async () => {
+      const blocker = TaskFactory.createTask({ path: 'tasks/blocker.md', title: 'Blocker' });
+      const task = TaskFactory.createTask({
+        path: 'tasks/blocked.md',
+        blockedBy: [{ uid: 'tasks/blocker.md', reltype: 'FINISHTOSTART' }],
+        isBlocked: true,
+        startBlocked: true,
+      });
+      mockPlugin.cacheManager.getTaskInfo.mockImplementation(async (path: string) =>
+        path === blocker.path ? blocker : null);
+
+      const card = createTaskCard(task, mockPlugin);
+      container.appendChild(card);
+      (card.querySelector('.task-card__blocked-toggle') as HTMLElement).click();
+      await new Promise((r) => setTimeout(r, 0));
+      const expandedList = card.querySelector('.task-card__blocked-by') as HTMLElement;
+      const blockerCard = expandedList.querySelector('.task-card');
+      const lookups = mockPlugin.cacheManager.getTaskInfo.mock.calls.length;
+
+      const rerendered = createTaskCard(task, mockPlugin);
+      container.appendChild(rerendered);
+      await new Promise((r) => setTimeout(r, 0));
+
+      expect(blockerCard).not.toBeNull();
+      expect(card.querySelector('.task-card__blocked-by')).toBe(expandedList);
+      expect(expandedList.querySelector('.task-card')).toBe(blockerCard);
+      expect(card.querySelector('.task-card__blocked-toggle--expanded')).not.toBeNull();
+      expect(rerendered.querySelector('.task-card__blocked-by')).toBeNull();
+      expect(mockPlugin.cacheManager.getTaskInfo).toHaveBeenCalledTimes(lookups);
+    });
   });
   describe('Accessibility', () => {
     it('should have proper ARIA labels', () => {

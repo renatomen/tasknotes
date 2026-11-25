@@ -164,4 +164,74 @@ describe("taskBlockingRelationships", () => {
 			{ uid: "[[TaskNotes/Blocker.md]]", reltype: "FINISHTOSTART" },
 		]);
 	});
+
+	it("rewrites the reltype and gap of an existing entry, keeping its uid and the other entries", () => {
+		const context = createContext();
+		context.resolvedPaths.set(
+			"TaskNotes/Blocked task.md:TaskNotes/Blocker.md",
+			"TaskNotes/Blocker.md"
+		);
+
+		const updated = computeBlockedByUpdate({
+			blockedTask: createTask({
+				blockedBy: [
+					{ uid: "TaskNotes/Blocker.md", reltype: "FINISHTOSTART" },
+					{ uid: "TaskNotes/Other.md", reltype: "STARTTOSTART" },
+				],
+			}),
+			blockingTaskPath: "TaskNotes/Blocker.md",
+			action: "modify",
+			rawEntry: { uid: "Link written from the blocking task", reltype: "STARTTOSTART", gap: "P3D" },
+			resolveDependencyPath: context.resolveDependencyPath,
+			formatDependencyLink: context.formatDependencyLink,
+		});
+
+		expect(updated).toEqual([
+			{ uid: "TaskNotes/Blocker.md", reltype: "STARTTOSTART", gap: "P3D" },
+			{ uid: "TaskNotes/Other.md", reltype: "STARTTOSTART" },
+		]);
+		expect(context.formatDependencyLink).not.toHaveBeenCalled();
+	});
+
+	it("removes the stored gap when the modified entry has none", () => {
+		const context = createContext();
+		context.resolvedPaths.set(
+			"TaskNotes/Blocked task.md:TaskNotes/Blocker.md",
+			"TaskNotes/Blocker.md"
+		);
+
+		const updated = computeBlockedByUpdate({
+			blockedTask: createTask({
+				blockedBy: [{ uid: "TaskNotes/Blocker.md", reltype: "STARTTOSTART", gap: "P1D" }],
+			}),
+			blockingTaskPath: "TaskNotes/Blocker.md",
+			action: "modify",
+			rawEntry: { uid: "x", reltype: "FINISHTOSTART" },
+			resolveDependencyPath: context.resolveDependencyPath,
+			formatDependencyLink: context.formatDependencyLink,
+		});
+
+		expect(updated).toEqual([{ uid: "TaskNotes/Blocker.md", reltype: "FINISHTOSTART" }]);
+	});
+
+	it("does not add an entry when modifying a relationship the blocked task does not have", () => {
+		const context = createContext();
+		context.resolvedPaths.set(
+			"TaskNotes/Blocked task.md:TaskNotes/Other.md",
+			"TaskNotes/Other.md"
+		);
+
+		const updated = computeBlockedByUpdate({
+			blockedTask: createTask({
+				blockedBy: [{ uid: "TaskNotes/Other.md", reltype: "FINISHTOSTART" }],
+			}),
+			blockingTaskPath: "TaskNotes/Blocker.md",
+			action: "modify",
+			rawEntry: { uid: "x", reltype: "STARTTOSTART" },
+			resolveDependencyPath: context.resolveDependencyPath,
+			formatDependencyLink: context.formatDependencyLink,
+		});
+
+		expect(updated).toBeNull();
+	});
 });

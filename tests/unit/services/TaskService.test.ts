@@ -1571,6 +1571,65 @@ describe('TaskService', () => {
     });
   });
 
+  describe('updateBlockingRelationships', () => {
+    const blockedPath = 'Tasks/Blocked.md';
+    let blocker: TaskInfo;
+    let updateBlockedTask: jest.Mock;
+
+    function blockedTaskWith(blockedBy: TaskInfo['blockedBy']): TaskInfo {
+      const blocked = TaskFactory.createTask({ path: blockedPath, blockedBy });
+      mockPlugin.cacheManager.getTaskInfo.mockResolvedValue(blocked);
+      return blocked;
+    }
+
+    beforeEach(() => {
+      blocker = TaskFactory.createTask({ path: 'Tasks/Blocker.md' });
+      updateBlockedTask = jest.fn().mockResolvedValue(undefined);
+      mockPlugin.app.metadataCache.getFirstLinkpathDest = jest.fn(
+        (linkpath: string) => new TFile(linkpath)
+      );
+    });
+
+    it('rewrites the reltype and gap stored on a modified blocked task through the given update', async () => {
+      const blocked = blockedTaskWith([
+        { uid: 'Tasks/Blocker.md', reltype: 'FINISHTOSTART', gap: 'P1D' },
+        { uid: 'Tasks/Other.md', reltype: 'STARTTOSTART' },
+      ]);
+
+      await taskService.updateBlockingRelationships(
+        blocker,
+        [],
+        [],
+        { [blockedPath]: { uid: '[[Blocked]]', reltype: 'STARTTOFINISH', gap: 'P3D' } },
+        updateBlockedTask,
+        [blockedPath]
+      );
+
+      expect(updateBlockedTask).toHaveBeenCalledTimes(1);
+      expect(updateBlockedTask).toHaveBeenCalledWith(blocked, {
+        blockedBy: [
+          { uid: 'Tasks/Blocker.md', reltype: 'STARTTOFINISH', gap: 'P3D' },
+          { uid: 'Tasks/Other.md', reltype: 'STARTTOSTART' },
+        ],
+      });
+    });
+
+    it('writes nothing for a modified path whose task does not list the relationship', async () => {
+      blockedTaskWith([{ uid: 'Tasks/Other.md', reltype: 'FINISHTOSTART' }]);
+
+      await taskService.updateBlockingRelationships(
+        blocker,
+        [],
+        [],
+        { [blockedPath]: { uid: '[[Blocked]]', reltype: 'STARTTOSTART' } },
+        updateBlockedTask,
+        [blockedPath]
+      );
+
+      expect(updateBlockedTask).not.toHaveBeenCalled();
+    });
+  });
+
   describe('repeatTask', () => {
     let completedTask: TaskInfo;
     let capturedFrontmatter: any;

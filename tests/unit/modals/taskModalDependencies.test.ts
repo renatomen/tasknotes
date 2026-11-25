@@ -4,6 +4,7 @@ import {
 	getBlockedByDependencyCandidates,
 	getBlockingDependencyCandidates,
 	removeDependencyItemAtIndex,
+	updateDependencyItemAtIndex,
 	type DependencyItem,
 } from "../../../src/modals/taskModalDependencies";
 import type { TaskInfo } from "../../../src/types";
@@ -64,6 +65,23 @@ describe("taskModalDependencies state helpers", () => {
 
 		expect(removeDependencyItemAtIndex([first, second], 0)).toEqual([second]);
 		expect(removeDependencyItemAtIndex([first], 5)).toEqual([first]);
+	});
+
+	it("updates the reltype or gap of the item at an index, leaving the other items as they were", () => {
+		const first = dependency("[[Tasks/one]]", "Tasks/one.md");
+		const second = dependency("[[Tasks/two]]", "Tasks/two.md");
+
+		const updated = updateDependencyItemAtIndex([first, second], 1, {
+			reltype: "STARTTOSTART",
+			gap: "P2D",
+		});
+
+		expect(updated).toEqual([
+			first,
+			{ ...second, dependency: { uid: "[[Tasks/two]]", reltype: "STARTTOSTART", gap: "P2D" } },
+		]);
+		expect(updated[0]).toBe(first);
+		expect(second.dependency).toEqual({ uid: "[[Tasks/two]]", reltype: "FINISHTOSTART" });
 	});
 
 	it("filters blocked-by candidates by current task and existing dependency uid", () => {

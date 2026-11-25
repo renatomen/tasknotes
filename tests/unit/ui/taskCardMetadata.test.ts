@@ -540,6 +540,7 @@ describe("taskCardMetadata", () => {
 			card,
 			task: createTask({
 				isBlocked: true,
+				startBlocked: true,
 				blockedBy: [{ uid: "Tasks/blocker.md", reltype: "FINISHTOSTART" }],
 			}),
 			plugin,
@@ -551,7 +552,7 @@ describe("taskCardMetadata", () => {
 			".task-card__metadata-pill--blocked"
 		);
 		expect(elements).toEqual([blockedPill]);
-		expect(blockedPill?.textContent).toBe("Blocked (1)");
+		expect(blockedPill?.textContent).toBe("Blocked · start (1)");
 		expect(blockedPill?.getAttribute("role")).toBe("button");
 		expect(blockedPill?.getAttribute("aria-expanded")).toBe("false");
 
@@ -652,6 +653,7 @@ describe("taskCardMetadata", () => {
 			card,
 			task: createTask({
 				isBlocked: true,
+				startBlocked: true,
 				blockedBy: [{ uid: "Tasks/blocker.md", reltype: "FINISHTOSTART" }],
 			}),
 			plugin,

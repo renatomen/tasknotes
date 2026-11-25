@@ -3,11 +3,14 @@ import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { setIcon, setTooltip, TFile } from "obsidian";
 import TaskNotesPlugin from "../main";
-import { TaskDependency, TaskInfo } from "../types";
+import { TaskDependency, TaskDependencyRelType, TaskInfo } from "../types";
 import {
+	composeDependencyGap,
 	DEFAULT_DEPENDENCY_RELTYPE,
+	type DependencyGapUnit,
 	formatDependencyLink,
 	normalizeDependencyEntry,
+	parseDependencyGap,
 	resolveDependencyEntry,
 } from "../utils/dependencyUtils";
 import { appendInternalLink, type LinkServices } from "../ui/renderers/linkRenderer";
@@ -33,7 +36,44 @@ export interface RenderDependencyListOptions {
 	linkServices: LinkServices;
 	translate: (key: MessageDescriptor, params?: Record<string, string | number>) => string;
 	onRemove: (index: number) => void;
+	/** Omit to render rows without reltype and gap controls. */
+	reltypeControls?: DependencyReltypeControls;
 }
+
+export type DependencyListSide = "blocked-by" | "blocking";
+
+export interface DependencyReltypeControls {
+	side: DependencyListSide;
+	/** How the summary line names the task being edited. */
+	selfName: string;
+	/** Like `onGapChange`, must not re-render the list: the row rewords its own summary. */
+	onReltypeChange: (index: number, reltype: TaskDependencyRelType) => void;
+	/**
+	 * Called on each keystroke, so re-rendering the list from it would take focus from the field.
+	 * `gap` is undefined when the entry composes no duration, which removes a stored gap.
+	 */
+	onGapChange: (index: number, gap: string | undefined) => void;
+}
+
+const DEPENDENCY_RELTYPE_LABELS: Record<TaskDependencyRelType, MessageDescriptor> = {
+	FINISHTOSTART: msg({ message: "Finish-to-start", context: "ui.dependencies.reltype.finishToStart" }),
+	STARTTOSTART: msg({ message: "Start-to-start", context: "ui.dependencies.reltype.startToStart" }),
+	FINISHTOFINISH: msg({ message: "Finish-to-finish", context: "ui.dependencies.reltype.finishToFinish" }),
+	STARTTOFINISH: msg({ message: "Start-to-finish", context: "ui.dependencies.reltype.startToFinish" }),
+};
+
+const DEPENDENCY_SUMMARIES: Record<TaskDependencyRelType, MessageDescriptor> = {
+	FINISHTOSTART: msg({ message: "{predecessor} must finish before {successor} can start", context: "modals.task.dependencies.summary.finishToStart" }),
+	STARTTOSTART: msg({ message: "{predecessor} must start before {successor} can start", context: "modals.task.dependencies.summary.startToStart" }),
+	FINISHTOFINISH: msg({ message: "{predecessor} must finish before {successor} can finish", context: "modals.task.dependencies.summary.finishToFinish" }),
+	STARTTOFINISH: msg({ message: "{predecessor} must start before {successor} can finish", context: "modals.task.dependencies.summary.startToFinish" }),
+};
+
+const GAP_UNIT_LABELS: Record<DependencyGapUnit, MessageDescriptor> = {
+	days: msg({ message: "days", context: "settings.defaults.reminders.units.days" }),
+	weeks: msg({ message: "weeks", context: "modals.task.dependencies.gap.units.weeks" }),
+	hours: msg({ message: "hours", context: "settings.defaults.reminders.units.hours" }),
+};
 
 export function createDependencyItemFromFile(
 	{ plugin, sourcePath }: CreateDependencyContext,
@@ -88,6 +128,24 @@ export function createDependencyItemFromDependency(
 		name: cleaned || dependency.uid,
 		unresolved: true,
 	};
+}
+
+/** The entry on the blocked task that links back to `taskPath`: a blocking edge is stored there, not on the blocker. */
+export function findBlockingEdgeDependency(
+	plugin: TaskNotesPlugin,
+	taskPath: string,
+	blockedTask: Pick<TaskInfo, "path" | "blockedBy">
+): TaskDependency | null {
+	for (const entry of blockedTask.blockedBy ?? []) {
+		const normalized = normalizeDependencyEntry(entry);
+		if (
+			normalized &&
+			resolveDependencyEntry(plugin.app, blockedTask.path, normalized)?.path === taskPath
+		) {
+			return normalized;
+		}
+	}
+	return null;
 }
 
 export function createDependencyItemFromPath(
@@ -149,6 +207,16 @@ export function removeDependencyItemAtIndex(
 	return items.filter((_, index) => index !== indexToRemove);
 }
 
+export function updateDependencyItemAtIndex(
+	items: readonly DependencyItem[],
+	indexToUpdate: number,
+	patch: Partial<TaskDependency>
+): DependencyItem[] {
+	return items.map((item, index) =>
+		index === indexToUpdate ? { ...item, dependency: { ...item.dependency, ...patch } } : item
+	);
+}
+
 const dependencyListRenderVersions = new WeakMap<HTMLElement, number>();
 
 export async function renderDependencyList({
@@ -158,6 +226,7 @@ export async function renderDependencyList({
 	linkServices,
 	translate,
 	onRemove,
+	reltypeControls,
 }: RenderDependencyListOptions): Promise<void> {
 	if (!listEl) {
 		return;
@@ -213,11 +282,114 @@ export async function renderDependencyList({
 			if (dependencyListRenderVersions.get(listEl) !== version) return;
 			onRemove(index);
 		});
+
+		if (reltypeControls) {
+			renderReltypeControls(itemEl, {
+				item,
+				index,
+				controls: reltypeControls,
+				translate,
+				isCurrent: () => dependencyListRenderVersions.get(listEl) === version,
+			});
+		}
 	}
 
 	if (dependencyListRenderVersions.get(listEl) === version) {
 		listEl.replaceChildren(...rows.childNodes);
 	}
+}
+
+interface ReltypeControlsOptions {
+	item: DependencyItem;
+	index: number;
+	controls: DependencyReltypeControls;
+	translate: RenderDependencyListOptions["translate"];
+	/** False once a newer render has started, when `index` may no longer be this row's. */
+	isCurrent: () => boolean;
+}
+
+function renderReltypeControls(itemEl: HTMLElement, options: ReltypeControlsOptions): void {
+	const { item, index, controls, translate, isCurrent } = options;
+	itemEl.addClass("task-project-item--with-reltype");
+	const controlsEl = itemEl.createDiv({ cls: "task-dependency-controls" });
+
+	const reltypeLabel = translate(msg({ message: "Relationship", context: "modals.task.dependencies.reltype.label" }));
+	const reltypeField = controlsEl.createDiv({ cls: "task-dependency-field" });
+	reltypeField.createSpan({ cls: "task-dependency-field-label", text: reltypeLabel });
+	const reltypeSelect = reltypeField.createEl("select", {
+		cls: "tn-select task-dependency-reltype",
+		attr: { "aria-label": reltypeLabel },
+	});
+	for (const [reltype, label] of Object.entries(DEPENDENCY_RELTYPE_LABELS)) {
+		reltypeSelect.createEl("option", { value: reltype, text: translate(label) });
+	}
+	reltypeSelect.value = item.dependency.reltype;
+
+	renderGapField(controlsEl, options);
+
+	const summaryEl = controlsEl.createDiv({ cls: "task-dependency-summary" });
+	const showSummary = (reltype: TaskDependencyRelType) => {
+		summaryEl.textContent = translate(
+			DEPENDENCY_SUMMARIES[reltype],
+			controls.side === "blocked-by"
+				? { predecessor: item.name, successor: controls.selfName }
+				: { predecessor: controls.selfName, successor: item.name }
+		);
+	};
+	showSummary(item.dependency.reltype);
+	reltypeSelect.addEventListener("change", () => {
+		if (!isCurrent()) return;
+		const reltype = reltypeSelect.value as TaskDependencyRelType;
+		showSummary(reltype);
+		controls.onReltypeChange(index, reltype);
+	});
+}
+
+function renderGapField(
+	controlsEl: HTMLElement,
+	{ item, index, controls, translate, isCurrent }: ReltypeControlsOptions
+): void {
+	const gapLabel = translate(msg({ message: "Lag", context: "modals.task.dependencies.gap.label" }));
+	const gapField = controlsEl.createDiv({ cls: "task-dependency-field" });
+	gapField.createSpan({ cls: "task-dependency-field-label", text: gapLabel });
+
+	const parsed = parseDependencyGap(item.dependency.gap);
+	if (item.dependency.gap && !parsed) {
+		// Read-only: any value composed here would replace a duration these fields cannot express.
+		gapField.createSpan({
+			cls: "task-dependency-gap-exotic",
+			text: translate(msg({ message: "Custom offset: {gap}", context: "modals.task.dependencies.gap.exotic" }), {
+				gap: item.dependency.gap,
+			}),
+		});
+		return;
+	}
+
+	const valueInput = gapField.createEl("input", {
+		cls: "task-dependency-gap-value",
+		type: "number",
+		value: parsed ? String(parsed.value) : "",
+		attr: { "aria-label": gapLabel, min: "0", max: "100000", step: "1", placeholder: "0" },
+	});
+	const unitSelect = gapField.createEl("select", {
+		cls: "tn-select task-dependency-gap-unit",
+		attr: { "aria-label": gapLabel },
+	});
+	for (const [unit, label] of Object.entries(GAP_UNIT_LABELS)) {
+		unitSelect.createEl("option", { value: unit, text: translate(label) });
+	}
+	unitSelect.value = parsed?.unit ?? "days";
+
+	const emitGap = () => {
+		if (!isCurrent()) return;
+		controls.onGapChange(
+			index,
+			composeDependencyGap(Number(valueInput.value), unitSelect.value as DependencyGapUnit)
+		);
+	};
+	// Not "change": saving from the keyboard leaves the field focused, so "change" would never fire.
+	valueInput.addEventListener("input", emitGap);
+	unitSelect.addEventListener("change", emitGap);
 }
 
 async function renderResolvedDependency(

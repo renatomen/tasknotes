@@ -1,5 +1,5 @@
 import { normalizePath } from "obsidian";
-import { DEFAULT_NLP_TRIGGERS, DEFAULT_SETTINGS } from "./defaults";
+import { DEFAULT_NLP_TRIGGERS, DEFAULT_SETTINGS, normalizeStatusCategories } from "./defaults";
 import { hasMissingMigratedSettings } from "./settingsMigration";
 import type {
 	PropertyTriggerConfig,
@@ -355,7 +355,7 @@ export function buildSettingsFromLoadedData(data: LoadedSettingsData | null): Se
 			loadedData?.modalFieldsConfig,
 			loadedData?.userFields
 		),
-		customStatuses: (loadedData?.customStatuses || DEFAULT_SETTINGS.customStatuses).map((status) => ({ ...status })),
+		customStatuses: normalizeStatusCategories(loadedData?.customStatuses || DEFAULT_SETTINGS.customStatuses).map((status) => ({ ...status })),
 		customPriorities: (loadedData?.customPriorities || DEFAULT_SETTINGS.customPriorities).map((priority) => ({ ...priority })),
 	};
 
