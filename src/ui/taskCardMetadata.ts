@@ -12,7 +12,7 @@ import {
 	updateMetadataVisibility,
 	type TaskCardPropertyOptions,
 } from "./taskCardProperties";
-import { getBlockedByTaskPaths } from "./taskCardRelationships";
+import { resolveBlockedConstraint } from "./taskCardRelationships";
 import { prepareInteractiveControl } from "./taskCardIndicators";
 import { openPopover } from "./kit/popover";
 import {
@@ -215,43 +215,54 @@ function createBlockedMetadataPill(config: RenderTaskCardMetadataConfig): HTMLEl
 		return null;
 	}
 
+	const blocked = resolveBlockedConstraint(task, plugin.app, plugin.dependencyCache);
+	const isFinish = blocked.state === "finish";
 	const blockedLabel = plugin.i18n.translate(
-		msg({ message: "Blocked", context: "ui.taskCard.blockedBadge" })
+		isFinish
+			? msg({ message: "{label} · finish", context: "ui.taskCard.blockedFinish" })
+			: msg({ message: "{label} · start", context: "ui.taskCard.blockedStart" }),
+		{
+			label: plugin.i18n.translate(
+				msg({ message: "Blocked", context: "ui.taskCard.blockedBadge" })
+			),
+		}
 	);
-	const blockedByPaths = getBlockedByTaskPaths(task, plugin.app);
-	const blockedCount = task.blockedBy?.length ?? 0;
-	const pillText = blockedCount > 0 ? `${blockedLabel} (${blockedCount})` : blockedLabel;
+	const pillText = `${blockedLabel} (${blocked.count})`;
 	const blockedPill = metadataLine.createSpan({
-		cls: "task-card__metadata-pill task-card__metadata-pill--blocked",
+		cls: `task-card__metadata-pill task-card__metadata-pill--blocked ${
+			isFinish ? "is-finish-blocked" : "is-start-blocked"
+		}`,
 		text: pillText,
 	});
+	setTooltip(
+		blockedPill,
+		plugin.i18n.translate(
+			isFinish
+				? msg({
+						message: "Can start, but cannot finish yet — waiting on a predecessor",
+						context: "ui.taskCard.blockedFinishTooltip",
+					})
+				: msg({
+						message: "Cannot start yet — waiting on a predecessor",
+						context: "ui.taskCard.blockedStartTooltip",
+					})
+		),
+		{
+			placement: "top",
+		}
+	);
 
-	if (blockedByPaths.length > 0) {
-		const toggleLabel = `${blockedLabel} (${blockedByPaths.length})`;
+	if (blocked.state !== "none") {
 		prepareInteractiveControl(blockedPill);
-		blockedPill.setAttribute("aria-label", toggleLabel);
+		blockedPill.setAttribute("aria-label", pillText);
 		blockedPill.setAttribute(
 			"aria-expanded",
 			String(Boolean(card.querySelector(".task-card__blocked-by")))
 		);
-		setTooltip(blockedPill, toggleLabel, { placement: "top" });
 		blockedPill.addEventListener("click", (event) => {
 			event.stopPropagation();
 			onBlockedByToggle();
 		});
-	} else {
-		setTooltip(
-			blockedPill,
-			plugin.i18n.translate(
-				msg({
-					message: "This task is waiting on another task",
-					context: "ui.taskCard.blockedBadgeTooltip",
-				})
-			),
-			{
-				placement: "top",
-			}
-		);
 	}
 
 	return blockedPill;

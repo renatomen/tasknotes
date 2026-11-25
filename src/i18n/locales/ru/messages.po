@@ -553,6 +553,18 @@ msgid "{interval, plural, =1 {Yearly} other {Every # years}}"
 msgstr "{interval, plural, one {Раз в # год} =1 {Раз в 1 год} few {Раз в # года} many {Раз в # лет} other {Раз в # года}}"
 
 #: src/i18n/messages.ts
+#: src/ui/taskCardMetadata.ts
+msgctxt "ui.taskCard.blockedFinish"
+msgid "{label} · finish"
+msgstr "{label} · завершение"
+
+#: src/i18n/messages.ts
+#: src/ui/taskCardMetadata.ts
+msgctxt "ui.taskCard.blockedStart"
+msgid "{label} · start"
+msgstr "{label} · начало"
+
+#: src/i18n/messages.ts
 msgctxt "ui.taskCard.dueLabel"
 msgid "{label}: {display}"
 msgstr "{label}: {display}"
@@ -2017,6 +2029,15 @@ msgctxt "ui.taskCard.blockingToggle"
 msgid "Blocking {count} tasks"
 msgstr "Блокируемых задач: {count}"
 
+#: src/ui/taskCardSecondaryBadges.ts
+msgctxt "ui.taskCard.blockingToggleBreakdown"
+msgid "Blocking {count} tasks:\n"
+"{start} to start\n"
+"{finish} to finish"
+msgstr "Блокируемых задач: {count}\n"
+"Начало: {start}\n"
+"Завершение: {finish}"
+
 #: src/ui/taskCardProperties.ts
 msgctxt "ui/taskCardProperties: blockingTasks text"
 msgid "Blocking: "
@@ -2261,6 +2282,11 @@ msgctxt "settings.calendarService.calendars.heading"
 msgid "Calendars shown"
 msgstr "Показываемые календари"
 
+#: src/ui/taskCardMetadata.ts
+msgctxt "ui.taskCard.blockedFinishTooltip"
+msgid "Can start, but cannot finish yet — waiting on a predecessor"
+msgstr "Можно начать, но пока нельзя завершить — ожидается предшествующая задача"
+
 #: src/bases/KanbanView.ts
 #: src/bases/TaskListView.ts
 #: src/modals/CalendarEventCreationModal.ts
@@ -2430,6 +2456,11 @@ msgctxt "collectionCheck.unresolvedUserField"
 msgid "Cannot resolve owned user field {field}. Review its schema and retained field type before saving settings. Existing settings and metadata were preserved."
 msgstr "Не удалось определить тип управляемого пользовательского поля {field}. Проверьте его схему и сохранённый тип поля перед сохранением настроек. Существующие настройки и метаданные сохранены."
 
+#: src/ui/taskCardMetadata.ts
+msgctxt "ui.taskCard.blockedStartTooltip"
+msgid "Cannot start yet — waiting on a predecessor"
+msgstr "Пока нельзя начать — ожидается предшествующая задача"
+
 #: src/ui/kit/toast.ts
 msgctxt "interaction undo conflict"
 msgid "Cannot undo: the note has changed."
@@ -2449,6 +2480,11 @@ msgstr "Расположение карточек"
 msgctxt "settings.integrations.subscriptionsList.titleFilter.help"
 msgid "Case-insensitive text, not regex; empty shows all events"
 msgstr "Текст без учёта регистра, не регулярное выражение; пустое поле показывает все события"
+
+#: src/settings/native/properties.ts
+msgctxt "settings.taskProperties.taskStatuses.fields.category"
+msgid "Category:"
+msgstr "Категория:"
 
 #: src/modals/TaskActionPaletteModal.ts
 msgctxt "modals.actionPalette.statusAction"
@@ -2843,6 +2879,11 @@ msgstr "Завершить это повторение"
 
 #: src/templates/defaultBasesFiles.ts
 msgctxt "generated Bases column name"
+msgid "Completed"
+msgstr "Завершено"
+
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.taskStatuses.categories.completed"
 msgid "Completed"
 msgstr "Завершено"
 
@@ -4189,6 +4230,7 @@ msgid "Delivery status"
 msgstr "Состояние доставки"
 
 #: src/components/TaskContextMenu.ts
+#: src/ui/taskCardSecondaryBadges.ts
 msgctxt "contextMenus.task.dependencies.title"
 msgid "Dependencies"
 msgstr "Зависимости"
@@ -8084,6 +8126,11 @@ msgctxt "generated Bases grouping label"
 msgid "Not started"
 msgstr "Не начато"
 
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.taskStatuses.categories.planned"
+msgid "Not started"
+msgstr "Не начато"
+
 #: src/settings/native/connections.ts
 msgctxt "settings.native.notSyncedYet"
 msgid "Not synced yet"
@@ -10299,6 +10346,11 @@ msgctxt "modals.scheduledDate.descriptions.dateTime"
 msgid "Set when you plan to work on this task"
 msgstr "Укажите, когда планируете работать над задачей"
 
+#: src/settings/native/properties.ts
+msgctxt "settings.taskProperties.taskStatuses.fields.categoryDescription"
+msgid "Sets the lifecycle stage so dependencies can tell when a task has started or finished. Completed statuses count as completed."
+msgstr "Задаёт этап жизненного цикла, чтобы зависимости могли определить, когда задача начата или завершена. Завершённые статусы считаются завершёнными."
+
 #: src/settings/native/tasknotesApp.ts
 msgctxt "settings.tasknotesApp.guide.name"
 msgid "Setup guide"
@@ -10831,6 +10883,11 @@ msgstr "Начать учёт времени этой задачи"
 msgctxt "modals.icsNoteCreation.startLabel"
 msgid "Start: "
 msgstr "Начало: "
+
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.taskStatuses.categories.inProgress"
+msgid "Started"
+msgstr "Начато"
 
 #: src/components/BatchContextMenu.ts
 #: src/components/TaskContextMenu.ts
@@ -12263,7 +12320,6 @@ msgid "This task is used as a project (click to show/hide subtasks)"
 msgstr "Эта задача используется как проект (нажмите, чтобы показать/скрыть подзадачи)"
 
 #: src/i18n/messages.ts
-#: src/ui/taskCardMetadata.ts
 msgctxt "ui.taskCard.blockedBadgeTooltip"
 msgid "This task is waiting on another task"
 msgstr "Эта задача ожидает другую задачу"

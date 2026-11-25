@@ -553,6 +553,18 @@ msgid "{interval, plural, =1 {Yearly} other {Every # years}}"
 msgstr "{interval, plural, =1 {每年} other {每 # 年}}"
 
 #: src/i18n/messages.ts
+#: src/ui/taskCardMetadata.ts
+msgctxt "ui.taskCard.blockedFinish"
+msgid "{label} · finish"
+msgstr "{label} · 完成"
+
+#: src/i18n/messages.ts
+#: src/ui/taskCardMetadata.ts
+msgctxt "ui.taskCard.blockedStart"
+msgid "{label} · start"
+msgstr "{label} · 开始"
+
+#: src/i18n/messages.ts
 msgctxt "ui.taskCard.dueLabel"
 msgid "{label}: {display}"
 msgstr "{label}: {display}"
@@ -2014,6 +2026,15 @@ msgctxt "ui.taskCard.blockingToggle"
 msgid "Blocking {count} tasks"
 msgstr "阻塞 {count} 个任务"
 
+#: src/ui/taskCardSecondaryBadges.ts
+msgctxt "ui.taskCard.blockingToggleBreakdown"
+msgid "Blocking {count} tasks:\n"
+"{start} to start\n"
+"{finish} to finish"
+msgstr "阻塞 {count} 个任务：\n"
+"{start} 个待开始\n"
+"{finish} 个待完成"
+
 #: src/ui/taskCardProperties.ts
 msgctxt "ui/taskCardProperties: blockingTasks text"
 msgid "Blocking: "
@@ -2258,6 +2279,11 @@ msgctxt "settings.calendarService.calendars.heading"
 msgid "Calendars shown"
 msgstr "显示的日历"
 
+#: src/ui/taskCardMetadata.ts
+msgctxt "ui.taskCard.blockedFinishTooltip"
+msgid "Can start, but cannot finish yet — waiting on a predecessor"
+msgstr "可以开始，但暂时无法完成——正在等待前置任务"
+
 #: src/bases/KanbanView.ts
 #: src/bases/TaskListView.ts
 #: src/modals/CalendarEventCreationModal.ts
@@ -2427,6 +2453,11 @@ msgctxt "collectionCheck.unresolvedUserField"
 msgid "Cannot resolve owned user field {field}. Review its schema and retained field type before saving settings. Existing settings and metadata were preserved."
 msgstr "无法确定受管理的自定义字段 {field} 的类型。保存设置前，请检查其架构和保留的字段类型。现有设置和元数据已保留。"
 
+#: src/ui/taskCardMetadata.ts
+msgctxt "ui.taskCard.blockedStartTooltip"
+msgid "Cannot start yet — waiting on a predecessor"
+msgstr "暂时无法开始——正在等待前置任务"
+
 #: src/ui/kit/toast.ts
 msgctxt "interaction undo conflict"
 msgid "Cannot undo: the note has changed."
@@ -2446,6 +2477,11 @@ msgstr "卡片布局"
 msgctxt "settings.integrations.subscriptionsList.titleFilter.help"
 msgid "Case-insensitive text, not regex; empty shows all events"
 msgstr "不区分大小写的普通文本，不支持正则表达式；留空显示所有事件"
+
+#: src/settings/native/properties.ts
+msgctxt "settings.taskProperties.taskStatuses.fields.category"
+msgid "Category:"
+msgstr "类别："
 
 #: src/modals/TaskActionPaletteModal.ts
 msgctxt "modals.actionPalette.statusAction"
@@ -2840,6 +2876,11 @@ msgstr "完成此次重复"
 
 #: src/templates/defaultBasesFiles.ts
 msgctxt "generated Bases column name"
+msgid "Completed"
+msgstr "已完成"
+
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.taskStatuses.categories.completed"
 msgid "Completed"
 msgstr "已完成"
 
@@ -4186,6 +4227,7 @@ msgid "Delivery status"
 msgstr "投递状态"
 
 #: src/components/TaskContextMenu.ts
+#: src/ui/taskCardSecondaryBadges.ts
 msgctxt "contextMenus.task.dependencies.title"
 msgid "Dependencies"
 msgstr "依赖关系"
@@ -8081,6 +8123,11 @@ msgctxt "generated Bases grouping label"
 msgid "Not started"
 msgstr "未计划"
 
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.taskStatuses.categories.planned"
+msgid "Not started"
+msgstr "未开始"
+
 #: src/settings/native/connections.ts
 msgctxt "settings.native.notSyncedYet"
 msgid "Not synced yet"
@@ -10296,6 +10343,11 @@ msgctxt "modals.scheduledDate.descriptions.dateTime"
 msgid "Set when you plan to work on this task"
 msgstr "设置你计划何时处理此任务"
 
+#: src/settings/native/properties.ts
+msgctxt "settings.taskProperties.taskStatuses.fields.categoryDescription"
+msgid "Sets the lifecycle stage so dependencies can tell when a task has started or finished. Completed statuses count as completed."
+msgstr "设置生命周期阶段，以便依赖关系判断任务何时已开始或已完成。已完成的状态视为已完成。"
+
 #: src/settings/native/tasknotesApp.ts
 msgctxt "settings.tasknotesApp.guide.name"
 msgid "Setup guide"
@@ -10828,6 +10880,11 @@ msgstr "开始跟踪此任务的用时"
 msgctxt "modals.icsNoteCreation.startLabel"
 msgid "Start: "
 msgstr "开始："
+
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.taskStatuses.categories.inProgress"
+msgid "Started"
+msgstr "已开始"
 
 #: src/components/BatchContextMenu.ts
 #: src/components/TaskContextMenu.ts
@@ -12260,7 +12317,6 @@ msgid "This task is used as a project (click to show/hide subtasks)"
 msgstr "此任务用作项目（点击可显示/隐藏子任务）"
 
 #: src/i18n/messages.ts
-#: src/ui/taskCardMetadata.ts
 msgctxt "ui.taskCard.blockedBadgeTooltip"
 msgid "This task is waiting on another task"
 msgstr "此任务正在等待其他任务"

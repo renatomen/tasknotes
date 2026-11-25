@@ -347,6 +347,10 @@ export async function completeRecurringTaskWithUndo(
 						defaultTaskStatus: plugin.settings.defaultTaskStatus,
 						isBlocked: current.isBlocked ?? false,
 						blockingTasks: current.blocking ?? [],
+						startBlocked: current.startBlocked,
+						finishBlocked: current.finishBlocked,
+						isBlockingStart: current.isBlockingStart,
+						isBlockingFinish: current.isBlockingFinish,
 					});
 					plugin.cacheManager.updateTaskInfoInCache(entry.file.path, assembledTask);
 					syncUpdates.push({ current, restored: assembledTask });

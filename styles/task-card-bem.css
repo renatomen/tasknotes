@@ -414,6 +414,10 @@ body:not(.is-mobile) .tasknotes-plugin .task-card__metadata-pill:hover {
     color: var(--tn-danger);
 }
 
+.tasknotes-plugin .task-card__metadata-pill--blocked.is-finish-blocked {
+    color: var(--tn-color-warning);
+}
+
 .tasknotes-plugin .task-card__metadata-pill--google-calendar {
     background: transparent;
     color: var(--tn-color-google-calendar);
@@ -905,6 +909,16 @@ body:not(.is-mobile) .tasknotes-plugin .task-card__blocked-toggle:hover {
 .tasknotes-plugin .task-card__blocking-toggle.is-hidden,
 .tasknotes-plugin .task-card__blocked-toggle.is-hidden {
     display: none;
+}
+
+.tasknotes-plugin .task-card__blocked-toggle.is-start-blocked {
+    color: var(--tn-color-error);
+    opacity: 1;
+}
+
+.tasknotes-plugin .task-card__blocked-toggle.is-finish-blocked {
+    color: var(--tn-color-warning);
+    opacity: 1;
 }
 
 /* Left-position variant for subtask chevron */

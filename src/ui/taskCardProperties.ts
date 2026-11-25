@@ -44,6 +44,7 @@ import {
 } from "./renderers/linkRenderer";
 import { renderContextsValue, renderTagsValue, type TagServices } from "./renderers/tagRenderer";
 import { normalizeDependencyEntry, resolveDependencyEntry } from "../utils/dependencyUtils";
+import { resolveBlockedConstraint } from "./taskCardRelationships";
 import { relativeDay, relativeDayLabels } from "./kit/dateLabel";
 import { createTaskNotesLogger } from "../utils/tasknotesLogger";
 
@@ -449,10 +450,17 @@ const PROPERTY_RENDERERS: Record<string, PropertyRenderer> = {
 	},
 	blocked: (element, value, task, plugin, options) => {
 		if (value === true) {
-			const blockedCount = task.blockedBy?.length ?? 0;
+			const blocked = resolveBlockedConstraint(task, plugin.app, plugin.dependencyCache);
+			const isFinish = blocked.state === "finish";
 			const label = getTaskCardPropertyLabel("blocked", plugin, options?.propertyLabels);
-			element.textContent = blockedCount > 0 ? `${label} (${blockedCount})` : label;
-			element.classList.add("task-card__metadata-pill--blocked");
+			const endpointLabel = tTaskCard(plugin, isFinish ? "blockedFinish" : "blockedStart", {
+				label,
+			});
+			element.textContent = `${endpointLabel} (${blocked.count})`;
+			element.classList.add(
+				"task-card__metadata-pill--blocked",
+				isFinish ? "is-finish-blocked" : "is-start-blocked"
+			);
 		}
 	},
 	blocking: (element, value, task, plugin, options) => {

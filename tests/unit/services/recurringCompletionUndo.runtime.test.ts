@@ -110,4 +110,73 @@ describe("recurring Undo with runtime defaults and mappings", () => {
 				expect((await manager.getTaskInfo(occurrencePath))!.status).toBe("pending");
 		}
 	);
+
+	it("republishes the task's per-endpoint blocking flags on undo", async () => {
+		const app = new MockApp() as unknown as App;
+		const settings = {
+			...DEFAULT_SETTINGS,
+			defaultTaskStatus: "pending",
+			taskIdentificationMethod: "tag" as const,
+			taskTag: "task",
+			excludedFolders: "",
+			storeTitleInFilename: false,
+		};
+		const mapper = new FieldMapper(DEFAULT_FIELD_MAPPING);
+		const manager = new TaskManager(app, settings, mapper);
+		// Finish-blocked only, blocking only a successor's finish: what a start-only default gets wrong.
+		manager.setDependencyCache({
+			isTaskStartBlocked: () => false,
+			isTaskFinishBlocked: () => true,
+			getBlockedTaskPaths: () => ["Tasks/Next.md"],
+			getStartBlockedDependentPaths: () => [],
+			getFinishBlockedDependentPaths: () => ["Tasks/Next.md"],
+		} as never);
+		const parentPath = "Tasks/Annual.md";
+		MockObsidian.createTestFile(
+			parentPath,
+			"---\ntitle: Annual\ntags: [task]\nscheduled: 2035-10-21\nrecurrence: DTSTART:20351021;FREQ=YEARLY\n---\n"
+		);
+		const parent = (await manager.getTaskInfo(parentPath))!;
+		const trigger = jest.fn();
+		const plugin = {
+			app,
+			settings,
+			fieldMapper: mapper,
+			cacheManager: manager,
+			emitter: { trigger },
+			statusManager: { isCompletedStatus: (status: string) => status === "done" },
+			taskService: {
+				findMaterializedOccurrence: async () => null,
+				toggleRecurringTaskCompleteWithOccurrenceNotes: async () => {
+					await app.vault.modify(
+						app.vault.getAbstractFileByPath(parentPath) as any,
+						"---\ntitle: Annual\ntags: [task]\nscheduled: 2036-10-21\nrecurrence: DTSTART:20351021;FREQ=YEARLY\ncomplete_instances: [2035-10-21]\n---\n"
+					);
+					return (await manager.getTaskInfo(parentPath))!;
+				},
+			},
+		} as unknown as TaskNotesPlugin;
+
+		const completion = await completeRecurringTaskWithUndo(
+			plugin,
+			parent,
+			new Date("2035-10-21T00:00:00Z")
+		);
+		expect(await completion.undo()).toBe(true);
+
+		expect(trigger).toHaveBeenCalledWith(
+			"task-updated",
+			expect.objectContaining({
+				updatedTask: expect.objectContaining({
+					path: parentPath,
+					isBlocked: true,
+					startBlocked: false,
+					finishBlocked: true,
+					isBlocking: true,
+					isBlockingStart: false,
+					isBlockingFinish: true,
+				}),
+			})
+		);
+	});
 });

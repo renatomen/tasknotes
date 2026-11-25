@@ -8,6 +8,7 @@ import {
 	pluginDataFileExists,
 } from "../../../src/settings/settingsPersistence";
 import type { TaskNotesSettings } from "../../../src/types/settings";
+import type { StatusCategory, StatusConfig } from "../../../src/types";
 
 function createHost(options: {
 	dir?: string;
@@ -351,6 +352,74 @@ describe("settings persistence helpers", () => {
 					eventMaxStack: 3,
 				}),
 			})
+		);
+	});
+});
+
+describe("status category migration on load", () => {
+	const legacyStatus = (overrides: Partial<StatusConfig>): StatusConfig => ({
+		id: "s",
+		value: "s",
+		label: "S",
+		color: "#808080",
+		isCompleted: false,
+		order: 0,
+		autoArchive: false,
+		autoArchiveDelay: 5,
+		...overrides,
+	});
+
+	it("backfills category on a legacy completed status through the load path", () => {
+		const { settings } = buildSettingsFromLoadedData({
+			customStatuses: [legacyStatus({ value: "done", isCompleted: true })],
+		});
+		expect(settings.customStatuses[0].category).toBe("completed");
+		expect(settings.customStatuses[0].isCompleted).toBe(true);
+	});
+
+	it("sets the completed flag on a status saved as Completed without it", () => {
+		const { settings } = buildSettingsFromLoadedData({
+			customStatuses: [legacyStatus({ value: "shipped", category: "completed" })],
+		});
+		expect(settings.customStatuses[0].category).toBe("completed");
+		expect(settings.customStatuses[0].isCompleted).toBe(true);
+	});
+
+	it("defaults a legacy non-completed status to Not started through the load path", () => {
+		const { settings } = buildSettingsFromLoadedData({
+			customStatuses: [legacyStatus({ value: "open", isCompleted: false })],
+		});
+		expect(settings.customStatuses[0].category).toBe("planned");
+		expect(settings.customStatuses[0].isCompleted).toBe(false);
+	});
+
+	it("loads eleven saved statuses across three categories with their categories unchanged", () => {
+		const saved: Array<[string, StatusCategory]> = [
+			["inbox", "planned"],
+			["backlog", "planned"],
+			["ready", "planned"],
+			["waiting", "planned"],
+			["doing", "in-progress"],
+			["review", "in-progress"],
+			["testing", "in-progress"],
+			["paused", "in-progress"],
+			["done", "completed"],
+			["shipped", "completed"],
+			["cancelled", "completed"],
+		];
+		const { settings } = buildSettingsFromLoadedData({
+			customStatuses: saved.map(([value, category], order) =>
+				legacyStatus({
+					id: value,
+					value,
+					category,
+					isCompleted: category === "completed",
+					order,
+				})
+			),
+		});
+		expect(settings.customStatuses.map(({ value, category }) => [value, category])).toEqual(
+			saved
 		);
 	});
 });

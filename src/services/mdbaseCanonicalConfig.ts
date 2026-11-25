@@ -20,6 +20,7 @@ import { requireFrontmatter as splitFrontmatter } from "./mdbase/frontmatter";
 import { resolveRetainedUserFields } from "./mdbase/resolveUserFields";
 
 import { DEFAULT_SETTINGS } from "../settings/defaults";
+import type { StatusCategory, StatusConfig } from "../types";
 import type { TaskNotesSettings, UserMappedField } from "../types/settings";
 
 type UnknownRecord = Record<string, unknown>;
@@ -230,6 +231,17 @@ function reconcileEntries<T extends { id: string }>(current: T[], resolved: T[])
 	});
 }
 
+/** The canonical type carries no category: keep the one captured before reconciling, unless the completed flag now disagrees. */
+function restoreStatusCategories(
+	statuses: StatusConfig[],
+	captured: Map<string, StatusCategory | undefined>
+): void {
+	for (const status of statuses) {
+		if (status.isCompleted) status.category = "completed";
+		else status.category = captured.get(status.value) === "in-progress" ? "in-progress" : "planned";
+	}
+}
+
 /**
  * Apply a canonical type, and the app settings from the settings record, to the
  * plugin settings. With a `record` (empty when there is no record), each app
@@ -263,7 +275,11 @@ export function applyCanonicalTaskTypeToSettings(
 		settings.excludedFolders = excludedFolders.join(", ");
 	}
 	Object.assign(settings.fieldMapping, modelConfig.fieldMapping);
+	const statusCategories = new Map(
+		settings.customStatuses.map((status) => [status.value, status.category])
+	);
 	settings.customStatuses = reconcileEntries(settings.customStatuses, modelConfig.statuses);
+	restoreStatusCategories(settings.customStatuses, statusCategories);
 	settings.customPriorities = reconcileEntries(settings.customPriorities, modelConfig.priorities);
 	settings.defaultTaskStatus = modelConfig.defaults.status;
 	settings.defaultTaskPriority = modelConfig.defaults.priority;
@@ -411,9 +427,9 @@ export function portableSettingsFingerprint(settings: TaskNotesSettings): string
 		storeTitleInFilename: settings.storeTitleInFilename,
 		customFilenameTemplate: settings.customFilenameTemplate,
 		fieldMapping: settings.fieldMapping,
-		// Per-status automation lives in the settings record (appSettingsFingerprint).
+		// Per-status automation lives in the settings record (appSettingsFingerprint), the category only in plugin settings.
 		customStatuses: settings.customStatuses.map(
-			({ nextStatus: _next, excludeFromCycle: _exclude, autoArchive: _archive, autoArchiveDelay: _delay, ...status }) => status
+			({ nextStatus: _next, excludeFromCycle: _exclude, autoArchive: _archive, autoArchiveDelay: _delay, category: _category, ...status }) => status
 		),
 		customPriorities: settings.customPriorities,
 		userFields: (settings.userFields ?? []).map((field) => ({

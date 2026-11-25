@@ -17,6 +17,61 @@ export function isValidDependencyRelType(value: string): value is TaskDependency
 	return VALID_RELATIONSHIP_TYPES.includes(value as TaskDependencyRelType);
 }
 
+export function reltypeConstrainsStart(reltype: TaskDependencyRelType): boolean {
+	return reltype === "FINISHTOSTART" || reltype === "STARTTOSTART";
+}
+
+export function reltypeConstrainsFinish(reltype: TaskDependencyRelType): boolean {
+	return reltype === "FINISHTOFINISH" || reltype === "STARTTOFINISH";
+}
+
+export function reltypeReleasedByPredecessorFinish(reltype: TaskDependencyRelType): boolean {
+	return reltype === "FINISHTOSTART" || reltype === "FINISHTOFINISH";
+}
+
+export interface BlockingStateSource {
+	isTaskStartBlocked(taskPath: string): boolean;
+	isTaskFinishBlocked(taskPath: string): boolean;
+	getBlockedTaskPaths(taskPath: string): string[];
+	getStartBlockedDependentPaths(taskPath: string): string[];
+	getFinishBlockedDependentPaths(taskPath: string): string[];
+}
+
+export interface DerivedBlockingState {
+	startBlocked: boolean;
+	finishBlocked: boolean;
+	blockingTasks: string[];
+	isBlockingStart: boolean;
+	isBlockingFinish: boolean;
+}
+
+/**
+ * Without a cache or a path there is no status to consult: every listed dependency
+ * counts as unreleased and the task is reported as blocking nothing.
+ */
+export function deriveBlockingState(
+	cache: BlockingStateSource | undefined,
+	taskPath: string,
+	blockedByEntries: readonly TaskDependency[]
+): DerivedBlockingState {
+	if (cache && taskPath) {
+		return {
+			startBlocked: cache.isTaskStartBlocked(taskPath),
+			finishBlocked: cache.isTaskFinishBlocked(taskPath),
+			blockingTasks: cache.getBlockedTaskPaths(taskPath),
+			isBlockingStart: cache.getStartBlockedDependentPaths(taskPath).length > 0,
+			isBlockingFinish: cache.getFinishBlockedDependentPaths(taskPath).length > 0,
+		};
+	}
+	return {
+		startBlocked: blockedByEntries.some((edge) => reltypeConstrainsStart(edge.reltype)),
+		finishBlocked: blockedByEntries.some((edge) => reltypeConstrainsFinish(edge.reltype)),
+		blockingTasks: [],
+		isBlockingStart: false,
+		isBlockingFinish: false,
+	};
+}
+
 export function extractDependencyUid(entry: unknown): string {
 	if (typeof entry === "string") {
 		return entry;
