@@ -169,6 +169,8 @@ export interface TaskNotesSettings {
 	// Relationships widget settings (unified subtasks, projects, and dependencies)
 	showRelationships: boolean;
 	relationshipsPosition: "top" | "bottom";
+	// Opt-in for authoring a relationship type and lag on task dependencies
+	enableAdvancedDependencyTypes: boolean;
 	// Task card in note settings
 	showTaskCardInNote: boolean;
 	showCompletedTaskStrikethrough: boolean;

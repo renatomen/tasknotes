@@ -434,6 +434,34 @@ describe("TaskCreationModal - Fixed Implementation", () => {
 			);
 		});
 
+		it("creates a task with two dependencies keeping each row's reltype and gap", async () => {
+			(modal as any).form.values.title = "Write report";
+			(modal as any).blockedByItems = [
+				{
+					name: "Design",
+					path: "Design.md",
+					dependency: { uid: "[[Design]]", reltype: "STARTTOSTART", gap: "P2D" },
+				},
+				{
+					name: "Review",
+					path: "Review.md",
+					dependency: { uid: "[[Review]]", reltype: "FINISHTOFINISH" },
+				},
+			];
+
+			await modal.handleSave();
+
+			expect(mockPlugin.taskService.createTask).toHaveBeenCalledWith(
+				expect.objectContaining({
+					blockedBy: [
+						{ uid: "[[Design]]", reltype: "STARTTOSTART", gap: "P2D" },
+						{ uid: "[[Review]]", reltype: "FINISHTOFINISH" },
+					],
+				}),
+				{ applyDefaults: false }
+			);
+		});
+
 		it("should filter out empty contexts and tags", async () => {
 			(modal as any).form.values.title = "Test Task";
 			(modal as any).form.values.contexts = "work, , urgent, ";

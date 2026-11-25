@@ -49,7 +49,8 @@ Each status value has:
 - **Label**: Display name shown in the interface (e.g., "In Progress")
 - **Color**: Visual indicator color
 - **Icon**: Optional icon identifier
-- **Completed**: Whether this status represents a finished task
+- **Category**: The lifecycle stage this status stands for: Not started, Started, or Completed. Dependencies use it to tell when a blocking task has started or finished; see [How blocking is evaluated](../features/task-management.md#how-blocking-is-evaluated). The status list shows each status's category
+- **Completed**: Whether this status represents a finished task. It stays in step with the category: turning it on sets the category to Completed, turning it off sets it to Not started, and choosing Not started or Started turns it off
 - **Skip when cycling**: Exclude this status from the click-to-cycle order on task cards while keeping it available in menus, suggestions, and direct edits
 - **Next status**: Optional override for the status used when cycling forward from this status; leave it set to the status order to use the normal sequence. On the first status marked **Completed**, it is also the status a recurring series moves to once an occurrence is finished, and it lets recurring tasks follow the click cycle, when **Reset status after each occurrence** is on under [Features](features.md#recurring-tasks). In new setups, TaskNotes' built-in Done status moves on to Open. See [Recurring Tasks](../features/recurring-tasks.md#completion-tracking)
 - **Auto-archive**: Automatically archive tasks after a delay (1-1440 minutes)
@@ -281,3 +282,7 @@ Each custom field can configure filters to control which files appear in wikilin
 A "Filters On" badge appears when filters are configured.
 
 See [User Fields Feature Documentation](../features/user-fields.md#file-suggestion-filtering-advanced) for detailed examples.
+
+## Dependencies
+
+- **Advanced dependency types**: Opt-in for choosing a relationship type (finish-to-start, start-to-start, finish-to-finish, start-to-finish) and an optional lag for each dependency. Off by default. Relationship types already saved in task notes apply whether this is on or off; see [How blocking is evaluated](../features/task-management.md#how-blocking-is-evaluated)

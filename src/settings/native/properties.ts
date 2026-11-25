@@ -2,16 +2,33 @@ import { msg } from "@lingui/core/macro";
 import { configLabel } from "../../i18n/configLabels";
 import {
 	Notice,
+	type SettingDefinition,
 	type SettingDefinitionItem,
 	type SettingDefinitionList,
 	type SettingDefinitionGroup,
 	type SettingDefinitionPage,
 } from "obsidian";
-import type { FieldMapping, StatusConfig, PriorityConfig } from "../../types";
+import {
+	STATUS_CATEGORIES,
+	type FieldMapping,
+	type StatusConfig,
+	type PriorityConfig,
+} from "../../types";
 import type { UserMappedField } from "../../types/settings";
 import type { FileFilterConfig } from "../../suggest/FileSuggestHelper";
 import { showConfirmationModal } from "../../modals/ConfirmationModal";
+import {
+	DependencyReadinessConfirmationModal,
+	type DependencyReadinessChoice,
+} from "../../modals/DependencyReadinessConfirmationModal";
 import { initializeFieldConfig } from "../../utils/fieldConfigDefaults";
+import {
+	STATUS_CATEGORY_LABELS,
+	describeMissingStartCategories,
+	describeMissingStartConsequence,
+	findMissingStartCategories,
+} from "../defaults";
+import { openTaskPropertySettings } from "../TaskNotesSettingTab";
 import { SettingsContext } from "./SettingsContext";
 
 export function reorder<T>(items: readonly T[], from: number, to: number): T[] {
@@ -142,6 +159,32 @@ export function filterPage(
 	};
 }
 
+/** Obsidian leaves a focused control as drawn on rebuild, so release it first to show the saved value. */
+function redrawFocusedControl(ctx: SettingsContext): void {
+	const focused = activeDocument.activeElement;
+	if (focused?.instanceOf(HTMLElement)) focused.blur();
+	ctx.rebuild();
+}
+
+/** Present only while a start category has no status, so a status edit has to rebuild to clear it. */
+function startReadinessWarning(ctx: SettingsContext): SettingDefinition[] {
+	const { plugin } = ctx;
+	const missing = findMissingStartCategories(plugin.settings.customStatuses);
+	if (!missing.length) return [];
+	return [
+		{
+			name: "",
+			visible: () => plugin.settings.enableAdvancedDependencyTypes,
+			render: (setting) => {
+				setting.settingEl.addClass("tn-start-readiness-warning");
+				setting.setDesc(ctx.t(describeMissingStartCategories(missing)));
+				setting.descEl.createDiv({ text: ctx.t(describeMissingStartConsequence(missing)) });
+				setting.descEl.setAttribute("role", "status");
+			},
+		},
+	];
+}
+
 function configuredValues(
 	ctx: SettingsContext,
 	kind: "status" | "priority"
@@ -212,6 +255,7 @@ function configuredValues(
 						label: value,
 						color: "var(--text-muted)",
 						isCompleted: false,
+						category: "planned",
 						order: values.length,
 						autoArchive: false,
 						autoArchiveDelay: 5,
@@ -334,9 +378,37 @@ function configuredValues(
 				fields.push(
 					ctx.field(
 						item,
+						"category",
+						`${id}.category`,
+						ctx.t(msg({ message: "Category:", context: "settings.taskProperties.taskStatuses.fields.category" })),
+						{
+							type: "dropdown",
+							desc: ctx.t(
+								msg({ message: "Sets the lifecycle stage so dependencies can tell when a task has started or finished. Completed statuses count as completed.", context: "settings.taskProperties.taskStatuses.fields.categoryDescription" })
+							),
+							options: Object.fromEntries(
+								STATUS_CATEGORIES.map((category) => [
+									category,
+									ctx.t(STATUS_CATEGORY_LABELS[category]),
+								])
+							),
+							onChange: () => {
+								item.isCompleted = item.category === "completed";
+								ctx.rebuild();
+							},
+						}
+					),
+					ctx.field(
+						item,
 						"isCompleted",
 						`${id}.isCompleted`,
-						ctx.t(msg({ message: "Counts as completed", context: "settings.native.countsAsCompleted" }))
+						ctx.t(msg({ message: "Counts as completed", context: "settings.native.countsAsCompleted" })),
+						{
+							onChange: () => {
+								item.category = item.isCompleted ? "completed" : "planned";
+								ctx.rebuild();
+							},
+						}
 					),
 					ctx.field(
 						item,
@@ -407,6 +479,9 @@ function configuredValues(
 				type: "page",
 				name: configLabel(item) || item.value,
 				desc: item.value,
+				...("isCompleted" in item
+					? { displayValue: () => ctx.t(STATUS_CATEGORY_LABELS[item.category ?? "planned"]) }
+					: {}),
 				items: fields,
 			};
 		}),
@@ -663,6 +738,7 @@ export function propertyDefinitions(ctx: SettingsContext): SettingDefinitionItem
 			),
 		];
 		if (property in triggers) items.push(triggerGroup(ctx, property, triggers[property]));
+		if (property === "status") items.push(...startReadinessWarning(ctx));
 		if (property === "status" || property === "priority")
 		items.push(...configuredValues(ctx, property));
 		if (property === "projects") {
@@ -730,5 +806,42 @@ export function propertyDefinitions(ctx: SettingsContext): SettingDefinitionItem
 			items: [triggerGroup(ctx, "tags", "#")],
 		},
 		customProperties(ctx),
+		{
+			type: "group",
+			heading: t(msg({ message: "Dependencies", context: "contextMenus.task.dependencies.title" })),
+			items: [
+				ctx.toggle("enableAdvancedDependencyTypes", {
+					name: t(msg({ message: "Advanced dependency types", context: "settings.taskProperties.dependencies.advancedTypes.name" })),
+					desc: t(msg({ message: "Choose a relationship type (finish-to-start, start-to-start, finish-to-finish, start-to-finish) and an optional lag for each dependency. Relationship types already saved in task notes apply whether this is on or off.", context: "settings.taskProperties.dependencies.advancedTypes.description" })),
+					getValue: () => plugin.settings.enableAdvancedDependencyTypes,
+					setValue: async (value) => {
+						const missing = value
+							? findMissingStartCategories(plugin.settings.customStatuses)
+							: [];
+						let choice: DependencyReadinessChoice = "enable";
+						if (missing.length) {
+							try {
+								choice = await new DependencyReadinessConfirmationModal(
+									plugin,
+									missing
+								).show();
+							} catch (error) {
+								redrawFocusedControl(ctx);
+								throw error;
+							}
+						}
+						if (choice === "go-back") {
+							redrawFocusedControl(ctx);
+							return;
+						}
+						plugin.settings.enableAdvancedDependencyTypes = value;
+						ctx.save();
+						if (choice === "enable-and-open-statuses")
+							openTaskPropertySettings(plugin, "status");
+					},
+				}),
+				...startReadinessWarning(ctx),
+			],
+		},
 	];
 }

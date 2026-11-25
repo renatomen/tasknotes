@@ -553,6 +553,18 @@ msgid "{interval, plural, =1 {Yearly} other {Every # years}}"
 msgstr "{interval, plural, =1 {Ogni anno} other {Ogni # anni}}"
 
 #: src/i18n/messages.ts
+#: src/ui/taskCardMetadata.ts
+msgctxt "ui.taskCard.blockedFinish"
+msgid "{label} · finish"
+msgstr "{label} · fine"
+
+#: src/i18n/messages.ts
+#: src/ui/taskCardMetadata.ts
+msgctxt "ui.taskCard.blockedStart"
+msgid "{label} · start"
+msgstr "{label} · inizio"
+
+#: src/i18n/messages.ts
 msgctxt "ui.taskCard.dueLabel"
 msgid "{label}: {display}"
 msgstr "{label}: {display}"
@@ -706,6 +718,26 @@ msgstr "{percent, number}%"
 msgctxt "ui/taskCardProperties: checklistProgress display"
 msgid "{percent, number}% complete ({completed, number}/{total, number})"
 msgstr "Completamento: {percent, number}% ({completed, number}/{total, number})"
+
+#: src/modals/taskModalDependencies.ts
+msgctxt "modals.task.dependencies.summary.finishToFinish"
+msgid "{predecessor} must finish before {successor} can finish"
+msgstr "{predecessor} deve concludersi prima che {successor} possa concludersi"
+
+#: src/modals/taskModalDependencies.ts
+msgctxt "modals.task.dependencies.summary.finishToStart"
+msgid "{predecessor} must finish before {successor} can start"
+msgstr "{predecessor} deve concludersi prima che {successor} possa iniziare"
+
+#: src/modals/taskModalDependencies.ts
+msgctxt "modals.task.dependencies.summary.startToFinish"
+msgid "{predecessor} must start before {successor} can finish"
+msgstr "{predecessor} deve iniziare prima che {successor} possa concludersi"
+
+#: src/modals/taskModalDependencies.ts
+msgctxt "modals.task.dependencies.summary.startToStart"
+msgid "{predecessor} must start before {successor} can start"
+msgstr "{predecessor} deve iniziare prima che {successor} possa iniziare"
 
 #: src/i18n/messages.ts
 msgctxt "services.notification.missed.message"
@@ -1457,6 +1489,11 @@ msgctxt "views.basesCalendar.settings.groups.advanced"
 msgid "Advanced"
 msgstr "Avanzate"
 
+#: src/settings/native/properties.ts
+msgctxt "settings.taskProperties.dependencies.advancedTypes.name"
+msgid "Advanced dependency types"
+msgstr "Tipi di dipendenza avanzati"
+
 #: src/settings/native/connections.ts
 msgctxt "settings.calendarService.ownApplication.name"
 msgid "Advanced: use your own Google Cloud project"
@@ -2015,6 +2052,15 @@ msgctxt "ui.taskCard.blockingToggle"
 msgid "Blocking {count} tasks"
 msgstr "Blocca {count} attività"
 
+#: src/ui/taskCardSecondaryBadges.ts
+msgctxt "ui.taskCard.blockingToggleBreakdown"
+msgid "Blocking {count} tasks:\n"
+"{start} to start\n"
+"{finish} to finish"
+msgstr "Blocca {count} attività:\n"
+"{start} all’inizio\n"
+"{finish} alla fine"
+
 #: src/ui/taskCardProperties.ts
 msgctxt "ui/taskCardProperties: blockingTasks text"
 msgid "Blocking: "
@@ -2259,6 +2305,11 @@ msgctxt "settings.calendarService.calendars.heading"
 msgid "Calendars shown"
 msgstr "Calendari mostrati"
 
+#: src/ui/taskCardMetadata.ts
+msgctxt "ui.taskCard.blockedFinishTooltip"
+msgid "Can start, but cannot finish yet — waiting on a predecessor"
+msgstr "Può iniziare, ma non può ancora concludersi — in attesa di un predecessore"
+
 #: src/bases/KanbanView.ts
 #: src/bases/TaskListView.ts
 #: src/modals/CalendarEventCreationModal.ts
@@ -2428,6 +2479,11 @@ msgctxt "collectionCheck.unresolvedUserField"
 msgid "Cannot resolve owned user field {field}. Review its schema and retained field type before saving settings. Existing settings and metadata were preserved."
 msgstr "Impossibile risolvere il campo personalizzato di proprietà {field}. Controlla lo schema e il tipo di campo mantenuto prima di salvare le impostazioni. Le impostazioni e i metadati esistenti sono stati conservati."
 
+#: src/ui/taskCardMetadata.ts
+msgctxt "ui.taskCard.blockedStartTooltip"
+msgid "Cannot start yet — waiting on a predecessor"
+msgstr "Non può ancora iniziare — in attesa di un predecessore"
+
 #: src/ui/kit/toast.ts
 msgctxt "interaction undo conflict"
 msgid "Cannot undo: the note has changed."
@@ -2447,6 +2503,11 @@ msgstr "Layout della scheda"
 msgctxt "settings.integrations.subscriptionsList.titleFilter.help"
 msgid "Case-insensitive text, not regex; empty shows all events"
 msgstr "Testo senza distinzione tra maiuscole e minuscole, non un’espressione regolare; vuoto mostra tutti gli eventi"
+
+#: src/settings/native/properties.ts
+msgctxt "settings.taskProperties.taskStatuses.fields.category"
+msgid "Category:"
+msgstr "Categoria:"
 
 #: src/modals/TaskActionPaletteModal.ts
 msgctxt "modals.actionPalette.statusAction"
@@ -2543,6 +2604,11 @@ msgstr "Scegli un file da questo dispositivo. Viene copiato nel vault al salvata
 msgctxt "settings.native.chooseCalendarFile"
 msgid "Choose a local .ics file."
 msgstr "Scegli un file .ics locale."
+
+#: src/settings/native/properties.ts
+msgctxt "settings.taskProperties.dependencies.advancedTypes.description"
+msgid "Choose a relationship type (finish-to-start, start-to-start, finish-to-finish, start-to-finish) and an optional lag for each dependency. Relationship types already saved in task notes apply whether this is on or off."
+msgstr "Scegli un tipo di relazione (fine-inizio, inizio-inizio, fine-fine, inizio-fine) e un ritardo facoltativo per ogni dipendenza. I tipi di relazione già salvati nelle note delle attività si applicano comunque, con questa opzione attiva o disattivata."
 
 #: src/modals/CheckCollectionModal.ts
 msgctxt "collectionCheck.chooseStatus"
@@ -2843,6 +2909,11 @@ msgstr "Completa questa occorrenza"
 msgctxt "generated Bases column name"
 msgid "Completed"
 msgstr "Completati"
+
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.taskStatuses.categories.completed"
+msgid "Completed"
+msgstr "Completato"
 
 #: src/i18n/messages.ts
 msgctxt "ui.taskCard.labels.completed"
@@ -3617,6 +3688,11 @@ msgctxt "settings.appearance.calendarView.defaultView.options.customMultiDay"
 msgid "Custom multi-day"
 msgstr "Vista personalizzata di più giorni"
 
+#: src/modals/taskModalDependencies.ts
+msgctxt "modals.task.dependencies.gap.exotic"
+msgid "Custom offset: {gap}"
+msgstr "Scostamento personalizzato: {gap}"
+
 #: src/components/CustomRecurrenceModal.ts
 msgctxt "components.recurrenceContextMenu.customRecurrenceModal.title"
 msgid "Custom recurrence"
@@ -3848,6 +3924,7 @@ msgid "Day view"
 msgstr "Vista giornaliera"
 
 #: src/modals/ReminderModal.ts
+#: src/modals/taskModalDependencies.ts
 #: src/settings/native/creation.ts
 msgctxt "settings.defaults.reminders.units.days"
 msgid "days"
@@ -4187,6 +4264,8 @@ msgid "Delivery status"
 msgstr "Stato delle consegne"
 
 #: src/components/TaskContextMenu.ts
+#: src/settings/native/properties.ts
+#: src/ui/taskCardSecondaryBadges.ts
 msgctxt "contextMenus.task.dependencies.title"
 msgid "Dependencies"
 msgstr "Dipendenze"
@@ -4668,6 +4747,16 @@ msgctxt "services/buildTaskCreationDataFromCli: buildTaskCreationDataFromCli dis
 msgid "Either --text or --title is required"
 msgstr "Devi specificare --text oppure --title"
 
+#: src/modals/DependencyReadinessConfirmationModal.ts
+msgctxt "modals.dependencyReadiness.title"
+msgid "Enable advanced dependency types?"
+msgstr "Attivare i tipi di dipendenza avanzati?"
+
+#: src/modals/DependencyReadinessConfirmationModal.ts
+msgctxt "modals.dependencyReadiness.buttons.enableAndOpenStatuses"
+msgid "Enable and go to statuses..."
+msgstr "Attiva e vai agli stati..."
+
 #: src/settings/native/integrations.ts
 msgctxt "settings.integrations.autoExport.enable.name"
 msgid "Enable automatic export"
@@ -5030,6 +5119,11 @@ msgstr "Ogni 3 giorni (dopo il completamento)"
 msgctxt "settings.calendarService.deleteAccount.confirmMessage"
 msgid "Every device is signed out and the service’s access to Google Calendar is withdrawn. Your events in Google Calendar are not changed. This cannot be undone."
 msgstr "Tutti i dispositivi vengono disconnessi e l’accesso del servizio a Google Calendar viene revocato. I tuoi eventi in Google Calendar non vengono modificati. L’operazione non può essere annullata."
+
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.dependencies.readiness.consequence.releasesImmediately"
+msgid "Every status already counts as started, so start-to-start and start-to-finish dependencies will release immediately instead of holding the task until the predecessor starts."
+msgstr "Ogni stato conta già come iniziato, quindi le dipendenze inizio-inizio e inizio-fine verranno rilasciate subito invece di trattenere l’attività finché il predecessore non inizia."
 
 #: src/components/CustomRecurrenceModal.ts
 msgctxt "components.recurrenceContextMenu.customRecurrenceModal.intervalDesc"
@@ -5951,6 +6045,36 @@ msgctxt "settings.taskProperties.projectsCard.filtersOn"
 msgid "Filters on"
 msgstr "Filtri attivi"
 
+#: src/components/task-context-menu/relationships.ts
+msgctxt "contextMenus.task.dependencies.reltype.blocking.finishToFinish"
+msgid "Finish → finish · they can't finish until this finishes"
+msgstr "Fine → fine · non possono concludersi finché questa non si conclude"
+
+#: src/components/task-context-menu/relationships.ts
+msgctxt "contextMenus.task.dependencies.reltype.blockedBy.finishToFinish"
+msgid "Finish → finish · this can't finish until that finishes"
+msgstr "Fine → fine · questa non può concludersi finché l’altra non si conclude"
+
+#: src/components/task-context-menu/relationships.ts
+msgctxt "contextMenus.task.dependencies.reltype.blocking.finishToStart"
+msgid "Finish → start · they can't start until this finishes"
+msgstr "Fine → inizio · non possono iniziare finché questa non si conclude"
+
+#: src/components/task-context-menu/relationships.ts
+msgctxt "contextMenus.task.dependencies.reltype.blockedBy.finishToStart"
+msgid "Finish → start · this can't start until that finishes"
+msgstr "Fine → inizio · questa non può iniziare finché l’altra non si conclude"
+
+#: src/modals/taskModalDependencies.ts
+msgctxt "ui.dependencies.reltype.finishToFinish"
+msgid "Finish-to-finish"
+msgstr "Fine-fine"
+
+#: src/modals/taskModalDependencies.ts
+msgctxt "ui.dependencies.reltype.finishToStart"
+msgid "Finish-to-start"
+msgstr "Fine-inizio"
+
 #: src/components/CustomRecurrenceModal.ts
 msgctxt "components.recurrenceContextMenu.customRecurrenceModal.weekPositions.first"
 msgid "first"
@@ -6141,6 +6265,11 @@ msgstr "Scarica TaskNotes per iPhone"
 msgctxt "settings.calendarService.connect.description"
 msgid "Give TaskNotes access to your Google Calendar again."
 msgstr "Concedi di nuovo a TaskNotes l’accesso al tuo Google Calendar."
+
+#: src/modals/DependencyReadinessConfirmationModal.ts
+msgctxt "modals.dependencyReadiness.buttons.goBack"
+msgid "Go back"
+msgstr "Indietro"
 
 #: src/bases/MiniCalendarView.ts
 msgctxt "views.basesCalendar.hints.today"
@@ -6375,6 +6504,7 @@ msgid "Highlight the current day in calendar views"
 msgstr "Evidenzia il giorno corrente nelle viste del calendario"
 
 #: src/modals/ReminderModal.ts
+#: src/modals/taskModalDependencies.ts
 #: src/settings/native/creation.ts
 msgctxt "settings.defaults.reminders.units.hours"
 msgid "hours"
@@ -6695,6 +6825,11 @@ msgctxt "bases/registration: registerBasesTaskList.attemptRegistration.options p
 msgid "JSON object keyed by swim lane property"
 msgstr "Oggetto JSON indicizzato per proprietà di raggruppamento delle righe"
 
+#: src/modals/DependencyReadinessConfirmationModal.ts
+msgctxt "modals.dependencyReadiness.buttons.justEnable"
+msgid "Just enable"
+msgstr "Attiva soltanto"
+
 #: src/settings/native/relativeSyncTime.ts
 msgctxt "settings.integrations.timeFormats.justNow"
 msgid "Just now"
@@ -6765,6 +6900,11 @@ msgstr "Scorciatoie da tastiera"
 msgctxt "settings.taskProperties.taskStatuses.fields.label"
 msgid "Label:"
 msgstr "Etichetta:"
+
+#: src/modals/taskModalDependencies.ts
+msgctxt "modals.task.dependencies.gap.label"
+msgid "Lag"
+msgstr "Ritardo"
 
 #: src/main.ts
 msgctxt "notices.languageChanged"
@@ -7910,6 +8050,21 @@ msgctxt "views.pomodoro.recent.empty"
 msgid "No sessions recorded yet"
 msgstr "Nessuna sessione ancora registrata"
 
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.dependencies.readiness.missing.both"
+msgid "No status is categorized as Not started or Started."
+msgstr "Nessuno stato appartiene alla categoria «Non iniziato» o «Iniziato»."
+
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.dependencies.readiness.missing.notStarted"
+msgid "No status is categorized as Not started."
+msgstr "Nessuno stato appartiene alla categoria «Non iniziato»."
+
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.dependencies.readiness.missing.started"
+msgid "No status is categorized as Started."
+msgstr "Nessuno stato appartiene alla categoria «Iniziato»."
+
 #: src/ui/taskPropertyPickers.ts
 msgctxt "interaction picker"
 msgid "No statuses configured"
@@ -8083,6 +8238,11 @@ msgstr "Non pianificata"
 msgctxt "generated Bases grouping label"
 msgid "Not started"
 msgstr "Non iniziata"
+
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.taskStatuses.categories.planned"
+msgid "Not started"
+msgstr "Non iniziato"
 
 #: src/settings/native/connections.ts
 msgctxt "settings.native.notSyncedYet"
@@ -9420,6 +9580,11 @@ msgctxt "notices.icsRelatedItemsRefreshed"
 msgid "Related notes refreshed"
 msgstr "Note correlate aggiornate"
 
+#: src/modals/taskModalDependencies.ts
+msgctxt "modals.task.dependencies.reltype.label"
+msgid "Relationship"
+msgstr "Relazione"
+
 #: src/settings/native/appearance.ts
 msgctxt "settings.appearance.uiElements.relationshipsPosition.name"
 msgid "Relationships position"
@@ -10299,6 +10464,11 @@ msgctxt "modals.scheduledDate.descriptions.dateTime"
 msgid "Set when you plan to work on this task"
 msgstr "Imposta quando prevedi di lavorare su questa attività"
 
+#: src/settings/native/properties.ts
+msgctxt "settings.taskProperties.taskStatuses.fields.categoryDescription"
+msgid "Sets the lifecycle stage so dependencies can tell when a task has started or finished. Completed statuses count as completed."
+msgstr "Imposta la fase del ciclo di vita, così le dipendenze sanno quando un’attività è iniziata o terminata. Gli stati completati contano come completati."
+
 #: src/settings/native/tasknotesApp.ts
 msgctxt "settings.tasknotesApp.guide.name"
 msgid "Setup guide"
@@ -10730,6 +10900,26 @@ msgctxt "settings.native.splitLayoutOnWideScreens"
 msgid "Split layout on wide screens"
 msgstr "Disposizione affiancata sugli schermi larghi"
 
+#: src/components/task-context-menu/relationships.ts
+msgctxt "contextMenus.task.dependencies.reltype.blocking.startToFinish"
+msgid "Start → finish · they can't finish until this starts"
+msgstr "Inizio → fine · non possono concludersi finché questa non inizia"
+
+#: src/components/task-context-menu/relationships.ts
+msgctxt "contextMenus.task.dependencies.reltype.blockedBy.startToFinish"
+msgid "Start → finish · this can't finish until that starts"
+msgstr "Inizio → fine · questa non può concludersi finché l’altra non inizia"
+
+#: src/components/task-context-menu/relationships.ts
+msgctxt "contextMenus.task.dependencies.reltype.blocking.startToStart"
+msgid "Start → start · they can't start until this starts"
+msgstr "Inizio → inizio · non possono iniziare finché questa non inizia"
+
+#: src/components/task-context-menu/relationships.ts
+msgctxt "contextMenus.task.dependencies.reltype.blockedBy.startToStart"
+msgid "Start → start · this can't start until that starts"
+msgstr "Inizio → inizio · questa non può iniziare finché l’altra non inizia"
+
 #: src/components/CustomRecurrenceModal.ts
 msgctxt "components.recurrenceContextMenu.customRecurrenceModal.startDate"
 msgid "Start date"
@@ -10827,10 +11017,30 @@ msgctxt "modals.actionPalette.startTrackingDesc"
 msgid "Start tracking time for this task"
 msgstr "Avvia il monitoraggio del tempo per questa attività"
 
+#: src/modals/taskModalDependencies.ts
+msgctxt "ui.dependencies.reltype.startToFinish"
+msgid "Start-to-finish"
+msgstr "Inizio-fine"
+
+#: src/modals/taskModalDependencies.ts
+msgctxt "ui.dependencies.reltype.startToStart"
+msgid "Start-to-start"
+msgstr "Inizio-inizio"
+
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.dependencies.readiness.consequence.releasesOnCompletion"
+msgid "Start-to-start and start-to-finish dependencies will release only when the predecessor completes, not when it starts."
+msgstr "Le dipendenze inizio-inizio e inizio-fine verranno rilasciate solo quando il predecessore sarà completato, non quando inizia."
+
 #: src/modals/ICSNoteCreationModal.ts
 msgctxt "modals.icsNoteCreation.startLabel"
 msgid "Start: "
 msgstr "Inizio: "
+
+#: src/settings/defaults.ts
+msgctxt "settings.taskProperties.taskStatuses.categories.inProgress"
+msgid "Started"
+msgstr "Iniziato"
 
 #: src/components/BatchContextMenu.ts
 #: src/components/TaskContextMenu.ts
@@ -12241,6 +12451,11 @@ msgctxt "views.pomodoro.recent.deleteConfirmMessage"
 msgid "This removes the session from Pomodoro history. Existing task time entries are not changed."
 msgstr "La sessione verrà rimossa dalla cronologia di Pomodoro. Le registrazioni di tempo delle attività esistenti non verranno modificate."
 
+#: src/modals/TaskModal.ts
+msgctxt "modals.task.dependencies.thisTask"
+msgid "This task"
+msgstr "Questa attività"
+
 #: src/main.ts
 msgctxt "notices.commands.repeatOccurrence"
 msgid "This task is an occurrence of a recurring task"
@@ -12263,7 +12478,6 @@ msgid "This task is used as a project (click to show/hide subtasks)"
 msgstr "Questa attività è usata come progetto. Fai clic per mostrare o nascondere le sottoattività"
 
 #: src/i18n/messages.ts
-#: src/ui/taskCardMetadata.ts
 msgctxt "ui.taskCard.blockedBadgeTooltip"
 msgid "This task is waiting on another task"
 msgstr "Questa attività è in attesa di un’altra attività"
@@ -12659,6 +12873,11 @@ msgstr "titolo: {title}"
 msgctxt "modals.taskSelector.instructions.dismiss"
 msgid "to cancel"
 msgstr "per annullare"
+
+#: src/modals/DependencyReadinessConfirmationModal.ts
+msgctxt "modals.dependencyReadiness.remedy"
+msgid "To change that, assign the missing category to one of your existing statuses in the task properties settings."
+msgstr "Per cambiare questa situazione, assegna la categoria mancante a uno degli stati esistenti nelle impostazioni delle proprietà delle attività."
 
 #: src/modals/DeviceCodeModal.ts
 msgctxt "modals.deviceCode.instructions.intro"
@@ -13537,6 +13756,11 @@ msgstr "Il plugin Note settimanali non è attivo. Attivalo nelle impostazioni."
 msgctxt "components.recurrenceContextMenu.weeklyOn"
 msgid "Weekly on {day}"
 msgstr "Ogni settimana, il {day}"
+
+#: src/modals/taskModalDependencies.ts
+msgctxt "modals.task.dependencies.gap.units.weeks"
+msgid "weeks"
+msgstr "settimane"
 
 #: src/modals/TimeEntryEditorModal.ts
 msgctxt "modals.timeEntryEditor.descriptionPlaceholder"

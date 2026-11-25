@@ -1,6 +1,6 @@
 import { uiData } from "../i18n/dataText";
 
-import { StatusConfig } from "../types";
+import { StatusConfig, StatusCategory } from "../types";
 import { normalizeStatusConfigValue } from "../core/fieldMapping";
 import { isSupportedColorValue, normalizeThemeColor } from "../utils/themeColors";
 
@@ -150,6 +150,17 @@ export class StatusManager {
 		return status?.isCompleted || false;
 	}
 
+	getCategory(statusValue: string): StatusCategory | undefined {
+		return this.getStatusConfig(statusValue)?.category;
+	}
+
+	isStarted(statusValue: string): boolean {
+		if (this.isCompletedStatus(statusValue)) {
+			return true;
+		}
+		return this.getCategory(statusValue) === "in-progress";
+	}
+
 	/**
 	 * Get status order for sorting
 	 */
@@ -271,6 +282,7 @@ export class StatusManager {
 			label: uiData("New status", "Writable persisted seed for a new user-configured label; not a display getter"),
 			color: "#808080",
 			isCompleted: false,
+			category: "planned",
 			excludeFromCycle: false,
 			order,
 			autoArchive: false,

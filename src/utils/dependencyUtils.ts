@@ -17,6 +17,95 @@ export function isValidDependencyRelType(value: string): value is TaskDependency
 	return VALID_RELATIONSHIP_TYPES.includes(value as TaskDependencyRelType);
 }
 
+export function reltypeConstrainsStart(reltype: TaskDependencyRelType): boolean {
+	return reltype === "FINISHTOSTART" || reltype === "STARTTOSTART";
+}
+
+export function reltypeConstrainsFinish(reltype: TaskDependencyRelType): boolean {
+	return reltype === "FINISHTOFINISH" || reltype === "STARTTOFINISH";
+}
+
+export function reltypeReleasedByPredecessorFinish(reltype: TaskDependencyRelType): boolean {
+	return reltype === "FINISHTOSTART" || reltype === "FINISHTOFINISH";
+}
+
+export interface BlockingStateSource {
+	isTaskStartBlocked(taskPath: string): boolean;
+	isTaskFinishBlocked(taskPath: string): boolean;
+	getBlockedTaskPaths(taskPath: string): string[];
+	getStartBlockedDependentPaths(taskPath: string): string[];
+	getFinishBlockedDependentPaths(taskPath: string): string[];
+}
+
+export interface DerivedBlockingState {
+	startBlocked: boolean;
+	finishBlocked: boolean;
+	blockingTasks: string[];
+	isBlockingStart: boolean;
+	isBlockingFinish: boolean;
+}
+
+/**
+ * Without a cache or a path there is no status to consult: every listed dependency
+ * counts as unreleased and the task is reported as blocking nothing.
+ */
+export function deriveBlockingState(
+	cache: BlockingStateSource | undefined,
+	taskPath: string,
+	blockedByEntries: readonly TaskDependency[]
+): DerivedBlockingState {
+	if (cache && taskPath) {
+		return {
+			startBlocked: cache.isTaskStartBlocked(taskPath),
+			finishBlocked: cache.isTaskFinishBlocked(taskPath),
+			blockingTasks: cache.getBlockedTaskPaths(taskPath),
+			isBlockingStart: cache.getStartBlockedDependentPaths(taskPath).length > 0,
+			isBlockingFinish: cache.getFinishBlockedDependentPaths(taskPath).length > 0,
+		};
+	}
+	return {
+		startBlocked: blockedByEntries.some((edge) => reltypeConstrainsStart(edge.reltype)),
+		finishBlocked: blockedByEntries.some((edge) => reltypeConstrainsFinish(edge.reltype)),
+		blockingTasks: [],
+		isBlockingStart: false,
+		isBlockingFinish: false,
+	};
+}
+
+export type DependencyGapUnit = "hours" | "days" | "weeks";
+
+export interface StructuredGap {
+	value: number;
+	unit: DependencyGapUnit;
+}
+
+/** ISO 8601 duration of whole units; undefined unless the floored value is within 1 to 100000. */
+export function composeDependencyGap(value: number, unit: DependencyGapUnit): string | undefined {
+	const whole = Math.floor(value);
+	if (!Number.isFinite(value) || whole <= 0 || whole > 100000) {
+		return undefined;
+	}
+	if (unit === "hours") {
+		return `PT${whole}H`;
+	}
+	return unit === "weeks" ? `P${whole}W` : `P${whole}D`;
+}
+
+/** Null for a missing gap and for any form `composeDependencyGap` does not produce, such as `P1DT2H`. */
+export function parseDependencyGap(gap: string | undefined): StructuredGap | null {
+	if (!gap) {
+		return null;
+	}
+	const match = /^P(?:T(\d+)H|(\d+)([DW]))$/.exec(gap.trim().toUpperCase());
+	if (!match) {
+		return null;
+	}
+	if (match[1]) {
+		return { value: Number(match[1]), unit: "hours" };
+	}
+	return { value: Number(match[2]), unit: match[3] === "W" ? "weeks" : "days" };
+}
+
 export function extractDependencyUid(entry: unknown): string {
 	if (typeof entry === "string") {
 		return entry;

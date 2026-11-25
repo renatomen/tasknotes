@@ -1,5 +1,7 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
 import { uiData } from "../i18n/dataText";
-import { FieldMapping, StatusConfig, PriorityConfig } from "../types";
+import { FieldMapping, StatusCategory, StatusConfig, PriorityConfig } from "../types";
 import {
 	TaskNotesSettings,
 	TaskCreationDefaults,
@@ -33,6 +35,7 @@ export const DEFAULT_STATUSES: StatusConfig[] = [
 		label: uiData("None", "Writable persisted default label; localized only by configLabel at display boundaries"),
 		color: "#cccccc",
 		isCompleted: false,
+		category: "planned",
 		excludeFromCycle: false,
 		order: 0,
 		autoArchive: false,
@@ -44,6 +47,7 @@ export const DEFAULT_STATUSES: StatusConfig[] = [
 		label: uiData("Open", "Writable persisted default label; localized only by configLabel at display boundaries"),
 		color: "#808080",
 		isCompleted: false,
+		category: "planned",
 		excludeFromCycle: false,
 		order: 1,
 		autoArchive: false,
@@ -55,6 +59,7 @@ export const DEFAULT_STATUSES: StatusConfig[] = [
 		label: uiData("In progress", "Writable persisted default label; localized only by configLabel at display boundaries"),
 		color: "#0066cc",
 		isCompleted: false,
+		category: "in-progress",
 		excludeFromCycle: false,
 		order: 2,
 		autoArchive: false,
@@ -66,6 +71,7 @@ export const DEFAULT_STATUSES: StatusConfig[] = [
 		label: uiData("Done", "Writable persisted default label; localized only by configLabel at display boundaries"),
 		color: "#00aa00",
 		isCompleted: true,
+		category: "completed",
 		excludeFromCycle: false,
 		// Reopening a task, or finishing a recurring occurrence, starts again at Open.
 		nextStatus: "open",
@@ -74,6 +80,62 @@ export const DEFAULT_STATUSES: StatusConfig[] = [
 		autoArchiveDelay: 5,
 	},
 ];
+
+/**
+ * Keeps `isCompleted` and `category === "completed"` in step: completed by either signal becomes
+ * `completed`; any other status keeps a valid `planned`/`in-progress` category or defaults to
+ * `planned`. Idempotent; an already-normalized status is returned as the same object.
+ */
+export function normalizeStatusCategories(statuses: StatusConfig[]): StatusConfig[] {
+	return statuses.map((status) => {
+		if (status.isCompleted || status.category === "completed") {
+			if (status.isCompleted && status.category === "completed") {
+				return status;
+			}
+			return { ...status, isCompleted: true, category: "completed" };
+		}
+		if (status.category === "planned" || status.category === "in-progress") {
+			return status;
+		}
+		return { ...status, category: "planned" };
+	});
+}
+
+export function countStatusCategories(statuses: StatusConfig[]): Record<StatusCategory, number> {
+	const counts: Record<StatusCategory, number> = { planned: 0, "in-progress": 0, completed: 0 };
+	for (const status of normalizeStatusCategories(statuses)) {
+		counts[status.category ?? "planned"]++;
+	}
+	return counts;
+}
+
+export const STATUS_CATEGORY_LABELS: Record<StatusCategory, MessageDescriptor> = {
+	planned: msg({ message: "Not started", context: "settings.taskProperties.taskStatuses.categories.planned" }),
+	"in-progress": msg({ message: "Started", context: "settings.taskProperties.taskStatuses.categories.inProgress" }),
+	completed: msg({ message: "Completed", context: "settings.taskProperties.taskStatuses.categories.completed" }),
+};
+
+const START_CATEGORIES: readonly StatusCategory[] = ["planned", "in-progress"];
+
+export function findMissingStartCategories(statuses: StatusConfig[]): StatusCategory[] {
+	const counts = countStatusCategories(statuses);
+	return START_CATEGORIES.filter((category) => counts[category] === 0);
+}
+
+/** One whole sentence per case, so no translation has to join category names. `missing` must be non-empty. */
+export function describeMissingStartCategories(missing: StatusCategory[]): MessageDescriptor {
+	if (!missing.includes("planned"))
+		return msg({ message: "No status is categorized as Started.", context: "settings.taskProperties.dependencies.readiness.missing.started" });
+	if (!missing.includes("in-progress"))
+		return msg({ message: "No status is categorized as Not started.", context: "settings.taskProperties.dependencies.readiness.missing.notStarted" });
+	return msg({ message: "No status is categorized as Not started or Started.", context: "settings.taskProperties.dependencies.readiness.missing.both" });
+}
+
+export function describeMissingStartConsequence(missing: StatusCategory[]): MessageDescriptor {
+	return missing.includes("planned")
+		? msg({ message: "Every status already counts as started, so start-to-start and start-to-finish dependencies will release immediately instead of holding the task until the predecessor starts.", context: "settings.taskProperties.dependencies.readiness.consequence.releasesImmediately" })
+		: msg({ message: "Start-to-start and start-to-finish dependencies will release only when the predecessor completes, not when it starts.", context: "settings.taskProperties.dependencies.readiness.consequence.releasesOnCompletion" });
+}
 
 // Default priority configuration matches current hardcoded behavior
 export const DEFAULT_PRIORITIES: PriorityConfig[] = [
@@ -325,6 +387,7 @@ export const DEFAULT_SETTINGS: TaskNotesSettings = {
 	// Relationships widget defaults (unified subtasks, projects, and dependencies)
 	showRelationships: true,
 	relationshipsPosition: "bottom",
+	enableAdvancedDependencyTypes: false,
 	// Task card in note defaults
 	showTaskCardInNote: true,
 	showCompletedTaskStrikethrough: true,

@@ -9,7 +9,7 @@ import { convertInternalToUserProperties } from "../utils/propertyMapping";
 import { DEFAULT_INTERNAL_VISIBLE_PROPERTIES } from "../settings/defaults";
 import type { TaskCardOptions } from "../ui/TaskCard";
 import { PropertyMappingService } from "./PropertyMappingService";
-import { normalizeDependencyList } from "../utils/dependencyUtils";
+import { deriveBlockingState, normalizeDependencyList } from "../utils/dependencyUtils";
 import { stringifyUnknown, stringifyUnknownArray } from "../utils/stringUtils";
 import { createTaskNotesLogger } from "../utils/tasknotesLogger";
 import { createElementInDocument } from "../utils/documentDom";
@@ -219,19 +219,11 @@ function createTaskInfoFromProperties(
 	const timeEntries = toTimeEntries(props.timeEntries);
 	const totalTrackedTime = timeEntries ? calculateTotalTimeSpent(timeEntries) : 0;
 
-	// Get dependency information from DependencyCache if plugin is available
-	let isBlocked = false;
-	let blockingTasks: string[] = [];
-	let isBlocking = false;
-	if (plugin?.dependencyCache && basesItem.path) {
-		// Use DependencyCache for status-aware blocking check
-		isBlocked = plugin.dependencyCache.isTaskBlocked(basesItem.path);
-		blockingTasks = plugin.dependencyCache.getBlockedTaskPaths(basesItem.path);
-		isBlocking = blockingTasks.length > 0;
-	} else {
-		// Fallback when plugin not available: use simple existence check
-		isBlocked = Array.isArray(props.blockedBy) && props.blockedBy.length > 0;
-	}
+	const blockedBy = toDependencies(props.blockedBy);
+	const { startBlocked, finishBlocked, blockingTasks, isBlockingStart, isBlockingFinish } =
+		deriveBlockingState(plugin?.dependencyCache, basesItem.path ?? "", blockedBy ?? []);
+	const isBlocked = startBlocked || finishBlocked;
+	const isBlocking = blockingTasks.length > 0;
 
 	return {
 		title:
@@ -276,10 +268,14 @@ function createTaskInfoFromProperties(
 			props.googleCalendarExceptionOriginalScheduled
 		),
 		googleCalendarMovedOriginalDates: toStringArray(props.googleCalendarMovedOriginalDates),
-		blockedBy: toDependencies(props.blockedBy),
+		blockedBy,
 		blocking: blockingTasks.length > 0 ? blockingTasks : undefined,
 		isBlocked: isBlocked,
 		isBlocking: isBlocking,
+		startBlocked,
+		finishBlocked,
+		isBlockingStart,
+		isBlockingFinish,
 		sortOrder: toOptionalString(props.sortOrder),
 		customProperties: Object.keys(customProperties).length > 0 ? customProperties : undefined,
 		basesData: basesItem.basesData,

@@ -62,7 +62,10 @@ function makeDependencyCache(app: MockApp, excludedFolders: string): DependencyC
 			excludedFolders,
 		},
 		new FieldMapper(DEFAULT_FIELD_MAPPING),
-		{ isCompletedStatus: jest.fn((status: string) => status === "done") } as never,
+		{
+			isCompletedStatus: jest.fn((status: string) => status === "done"),
+			isStarted: jest.fn((status: string) => status === "done" || status === "in-progress"),
+		} as never,
 		(frontmatter) => Array.isArray((frontmatter as { tags?: unknown }).tags)
 	);
 }

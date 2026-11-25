@@ -2,17 +2,19 @@ import { showToast } from "../../ui/kit/toast";
 import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { changeTaskProperty, openTaskPropertyPicker, updateTaskProjectsWithUndo } from "../../ui/taskPropertyPickers";
-import { Menu, TFile, type TAbstractFile } from "obsidian";
+import { Menu, TFile, type MenuItem, type TAbstractFile } from "obsidian";
 import TaskNotesPlugin from "../../main";
-import { TaskDependency, TaskInfo } from "../../types";
+import { TaskDependency, TaskDependencyRelType, TaskInfo } from "../../types";
 import { addTaskToProject, assignTaskAsSubtask } from "../../services/taskRelationshipActions";
 import { openTaskSelector } from "../../modals/TaskSelectorWithCreateModal";
 import { ProjectSelectModal } from "../../modals/ProjectSelectModal";
+import { findBlockingEdgeDependency } from "../../modals/taskModalDependencies";
 import {
 	DEFAULT_DEPENDENCY_RELTYPE,
 	extractDependencyUid,
 	formatDependencyLink,
 	normalizeDependencyEntry,
+	resolveDependencyEntry,
 } from "../../utils/dependencyUtils";
 import { generateLink } from "../../utils/linkUtils";
 import { createTaskNotesLogger } from "../../utils/tasknotesLogger";
@@ -20,6 +22,51 @@ import type { TaskContextMenuOptions } from "./types";
 import { getSubmenu, menuItemAnchor, toMenuTitle } from "./helpers";
 
 const tasknotesLogger = createTaskNotesLogger({ tag: "Components/TaskContextMenu" });
+
+type DependencyMenuSide = "blockedBy" | "blocking";
+
+const RELTYPE_MENU_TITLES: Record<
+	DependencyMenuSide,
+	Record<TaskDependencyRelType, MessageDescriptor>
+> = {
+	blockedBy: {
+		FINISHTOSTART: msg({
+			message: "Finish → start · this can't start until that finishes",
+			context: "contextMenus.task.dependencies.reltype.blockedBy.finishToStart",
+		}),
+		STARTTOSTART: msg({
+			message: "Start → start · this can't start until that starts",
+			context: "contextMenus.task.dependencies.reltype.blockedBy.startToStart",
+		}),
+		FINISHTOFINISH: msg({
+			message: "Finish → finish · this can't finish until that finishes",
+			context: "contextMenus.task.dependencies.reltype.blockedBy.finishToFinish",
+		}),
+		STARTTOFINISH: msg({
+			message: "Start → finish · this can't finish until that starts",
+			context: "contextMenus.task.dependencies.reltype.blockedBy.startToFinish",
+		}),
+	},
+	blocking: {
+		FINISHTOSTART: msg({
+			message: "Finish → start · they can't start until this finishes",
+			context: "contextMenus.task.dependencies.reltype.blocking.finishToStart",
+		}),
+		STARTTOSTART: msg({
+			message: "Start → start · they can't start until this starts",
+			context: "contextMenus.task.dependencies.reltype.blocking.startToStart",
+		}),
+		FINISHTOFINISH: msg({
+			message: "Finish → finish · they can't finish until this finishes",
+			context: "contextMenus.task.dependencies.reltype.blocking.finishToFinish",
+		}),
+		STARTTOFINISH: msg({
+			message: "Start → finish · they can't finish until this starts",
+			context: "contextMenus.task.dependencies.reltype.blocking.startToFinish",
+		}),
+	},
+};
+
 export class TaskRelationshipMenu {
 	constructor(
 		private options: TaskContextMenuOptions,
@@ -28,6 +75,26 @@ export class TaskRelationshipMenu {
 	private t(key: MessageDescriptor, params?: Record<string, string | number>): string {
 		return this.options.plugin.i18n.translate(key, params);
 	}
+	private onPickDependencyReltype(
+		item: MenuItem,
+		plugin: TaskNotesPlugin,
+		side: DependencyMenuSide,
+		onPick: (reltype: TaskDependencyRelType) => void
+	): void {
+		if (!plugin.settings.enableAdvancedDependencyTypes) {
+			item.onClick(() => onPick(DEFAULT_DEPENDENCY_RELTYPE));
+			return;
+		}
+
+		const submenu = getSubmenu(item);
+		for (const [reltype, title] of Object.entries(RELTYPE_MENU_TITLES[side])) {
+			submenu.addItem((reltypeItem) => {
+				reltypeItem.setTitle(this.t(title));
+				reltypeItem.onClick(() => onPick(reltype as TaskDependencyRelType));
+			});
+		}
+	}
+
 	addDependencyMenuItems(menu: Menu, task: TaskInfo, plugin: TaskNotesPlugin): void {
 		menu.addItem((subItem) => {
 			subItem.setTitle(
@@ -39,9 +106,9 @@ export class TaskRelationshipMenu {
 				)
 			);
 			subItem.setIcon("link-2");
-			subItem.onClick(() => {
+			this.onPickDependencyReltype(subItem, plugin, "blockedBy", (reltype) => {
 				this.menu.hide();
-				void this.openBlockedBySelector(task, plugin);
+				void this.openBlockedBySelector(task, plugin, reltype);
 			});
 		});
 
@@ -115,9 +182,9 @@ export class TaskRelationshipMenu {
 				)
 			);
 			subItem.setIcon("git-branch-plus");
-			subItem.onClick(() => {
+			this.onPickDependencyReltype(subItem, plugin, "blocking", (reltype) => {
 				this.menu.hide();
-				void this.openBlockingSelector(task, plugin);
+				void this.openBlockingSelector(task, plugin, reltype);
 			});
 		});
 
@@ -200,7 +267,11 @@ export class TaskRelationshipMenu {
 		return Array.from(seen.values());
 	}
 
-	async openBlockedBySelector(task: TaskInfo, plugin: TaskNotesPlugin): Promise<void> {
+	async openBlockedBySelector(
+		task: TaskInfo,
+		plugin: TaskNotesPlugin,
+		reltype: TaskDependencyRelType
+	): Promise<void> {
 		const existingUids = new Set(
 			(Array.isArray(task.blockedBy) ? task.blockedBy : []).map(
 				(dependency) => dependency.uid
@@ -219,12 +290,16 @@ export class TaskRelationshipMenu {
 				return !existingUids.has(candidateUid);
 			},
 			async (selected) => {
-				await this.handleBlockedBySelection(task, plugin, selected);
+				await this.handleBlockedBySelection(task, plugin, selected, reltype);
 			}
 		);
 	}
 
-	async openBlockingSelector(task: TaskInfo, plugin: TaskNotesPlugin): Promise<void> {
+	async openBlockingSelector(
+		task: TaskInfo,
+		plugin: TaskNotesPlugin,
+		reltype: TaskDependencyRelType
+	): Promise<void> {
 		const existingPaths = new Set(task.blocking ?? []);
 		await this.openTaskDependencySelector(
 			plugin,
@@ -233,7 +308,7 @@ export class TaskRelationshipMenu {
 				return !existingPaths.has(candidate.path);
 			},
 			async (selected) => {
-				await this.handleBlockingSelection(task, plugin, selected);
+				await this.handleBlockingSelection(task, plugin, selected, reltype);
 			}
 		);
 	}
@@ -283,13 +358,23 @@ export class TaskRelationshipMenu {
 	async handleBlockedBySelection(
 		task: TaskInfo,
 		plugin: TaskNotesPlugin,
-		selectedTask: TaskInfo
+		selectedTask: TaskInfo,
+		reltype: TaskDependencyRelType
 	): Promise<void> {
 		if (selectedTask.path === task.path) {
 			return;
 		}
 
 		try {
+			const existing = Array.isArray(task.blockedBy) ? task.blockedBy : [];
+			const linked = existing.find(
+				(entry) =>
+					resolveDependencyEntry(plugin.app, task.path, entry)?.path === selectedTask.path
+			);
+			if (linked && !this.isRetype(plugin, linked, reltype)) {
+				return;
+			}
+
 			const dependency: TaskDependency = {
 				uid: formatDependencyLink(
 					plugin.app,
@@ -297,11 +382,12 @@ export class TaskRelationshipMenu {
 					selectedTask.path,
 					plugin.settings.useFrontmatterMarkdownLinks
 				),
-				reltype: DEFAULT_DEPENDENCY_RELTYPE,
+				reltype,
 			};
-			const existing = Array.isArray(task.blockedBy) ? task.blockedBy : [];
-			const combined = this.dedupeDependencyEntries([...existing, dependency]);
-			if (combined.length === existing.length) {
+			const combined = linked
+				? existing.map((entry) => (entry === linked ? { ...entry, reltype } : entry))
+				: this.dedupeDependencyEntries([...existing, dependency]);
+			if (!linked && combined.length === existing.length) {
 				return;
 			}
 
@@ -328,36 +414,53 @@ export class TaskRelationshipMenu {
 	async handleBlockingSelection(
 		task: TaskInfo,
 		plugin: TaskNotesPlugin,
-		selectedTask: TaskInfo
+		selectedTask: TaskInfo,
+		reltype: TaskDependencyRelType
 	): Promise<void> {
 		const blockedPath = selectedTask.path;
 		if (blockedPath === task.path) {
 			return;
 		}
-		if (task.blocking?.includes(blockedPath)) {
-			return;
-		}
 
 		try {
-			const rawEntry: TaskDependency = {
-				uid: formatDependencyLink(
-					plugin.app,
-					blockedPath,
-					task.path,
-					plugin.settings.useFrontmatterMarkdownLinks
-				),
-				reltype: DEFAULT_DEPENDENCY_RELTYPE,
-			};
-			await plugin.taskService.updateBlockingRelationships(
-				task,
-				[blockedPath],
-				[],
-				{
-					[blockedPath]: rawEntry,
-				},
-				async (blockedTask, updates) =>
-					changeTaskProperty(plugin, [blockedTask], "blockedBy", updates.blockedBy)
-			);
+			const linked = findBlockingEdgeDependency(plugin, task.path, selectedTask);
+			if (linked && !this.isRetype(plugin, linked, reltype)) {
+				return;
+			}
+
+			const updateBlockedTask = async (blockedTask: TaskInfo, updates: Partial<TaskInfo>) =>
+				changeTaskProperty(plugin, [blockedTask], "blockedBy", updates.blockedBy);
+			if (linked) {
+				await plugin.taskService.updateBlockingRelationships(
+					task,
+					[],
+					[],
+					{
+						[blockedPath]: { ...linked, reltype },
+					},
+					updateBlockedTask,
+					[blockedPath]
+				);
+			} else {
+				const rawEntry: TaskDependency = {
+					uid: formatDependencyLink(
+						plugin.app,
+						blockedPath,
+						task.path,
+						plugin.settings.useFrontmatterMarkdownLinks
+					),
+					reltype,
+				};
+				await plugin.taskService.updateBlockingRelationships(
+					task,
+					[blockedPath],
+					[],
+					{
+						[blockedPath]: rawEntry,
+					},
+					updateBlockedTask
+				);
+			}
 
 			const refreshed = await plugin.cacheManager.getTaskInfo(task.path);
 			if (refreshed) {
@@ -380,6 +483,14 @@ export class TaskRelationshipMenu {
 				),
 			});
 		}
+	}
+
+	private isRetype(
+		plugin: TaskNotesPlugin,
+		linked: TaskDependency,
+		reltype: TaskDependencyRelType
+	): boolean {
+		return plugin.settings.enableAdvancedDependencyTypes && linked.reltype !== reltype;
 	}
 
 	getDependencyKey(entry: TaskDependency): string {

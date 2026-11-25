@@ -1064,6 +1064,12 @@ body.is-mobile .tasknotes-plugin .tasknotes-settings__card-action-btn {
     color: var(--text-normal);
 }
 
+/* DEPENDENCY START READINESS WARNING */
+
+.tn-start-readiness-warning .setting-item-description {
+    color: var(--text-warning);
+}
+
 /* INTEGRATIONS TAB - OAUTH SETUP & CALENDAR CARDS */
 
 /* Calendar & ICS card container spacing */

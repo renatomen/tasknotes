@@ -4,7 +4,7 @@ import {
 	normalizeDependencyEntry,
 } from "../../utils/dependencyUtils";
 
-export type BlockingRelationshipAction = "add" | "remove";
+export type BlockingRelationshipAction = "add" | "remove" | "modify";
 
 export interface BlockingRelationshipPathChanges {
 	uniqueAdditions: string[];
@@ -66,6 +66,13 @@ export function computeBlockedByUpdate({
 		if (resolvedPath === blockingTaskPath) {
 			hasExistingEntry = true;
 			if (action === "remove") {
+				modified = true;
+				continue;
+			}
+			const replacement =
+				action === "modify" && rawEntry ? normalizeDependencyEntry(rawEntry) : null;
+			if (replacement) {
+				result.push({ ...replacement, uid: entry.uid });
 				modified = true;
 				continue;
 			}

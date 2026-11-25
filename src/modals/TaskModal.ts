@@ -48,10 +48,12 @@ import {
 	createDependencyItemFromFile as createDependencyItemFromFileHelper,
 	createDependencyItemFromPath as createDependencyItemFromPathHelper,
 	DependencyItem,
+	type DependencyListSide,
 	getBlockedByDependencyCandidates,
 	getBlockingDependencyCandidates,
 	removeDependencyItemAtIndex,
 	renderDependencyList,
+	updateDependencyItemAtIndex,
 } from "./taskModalDependencies";
 import {
 	createTaskModalContextsField,
@@ -247,23 +249,41 @@ export abstract class TaskModal extends Modal {
 	}
 
 	protected renderBlockedByList(): void {
-		void this.renderDependencyList(this.blockedByList, this.blockedByItems, (index) => {
-			this.blockedByItems = removeDependencyItemAtIndex(this.blockedByItems, index);
-			this.renderBlockedByList();
-		});
+		void this.renderDependencyList(
+			this.blockedByList,
+			this.blockedByItems,
+			(index) => {
+				this.blockedByItems = removeDependencyItemAtIndex(this.blockedByItems, index);
+				this.renderBlockedByList();
+			},
+			"blocked-by",
+			(index, patch) => {
+				this.blockedByItems = updateDependencyItemAtIndex(this.blockedByItems, index, patch);
+			}
+		);
 	}
 
 	protected renderBlockingList(): void {
-		void this.renderDependencyList(this.blockingList, this.blockingItems, (index) => {
-			this.blockingItems = removeDependencyItemAtIndex(this.blockingItems, index);
-			this.renderBlockingList();
-		});
+		void this.renderDependencyList(
+			this.blockingList,
+			this.blockingItems,
+			(index) => {
+				this.blockingItems = removeDependencyItemAtIndex(this.blockingItems, index);
+				this.renderBlockingList();
+			},
+			"blocking",
+			(index, patch) => {
+				this.blockingItems = updateDependencyItemAtIndex(this.blockingItems, index, patch);
+			}
+		);
 	}
 
 	private async renderDependencyList(
 		listEl: HTMLElement | undefined,
 		items: DependencyItem[],
-		onRemove: (index: number) => void
+		onRemove: (index: number) => void,
+		side: DependencyListSide,
+		onUpdate: (index: number, patch: Partial<TaskDependency>) => void
 	): Promise<void> {
 		if (!listEl) {
 			return;
@@ -276,6 +296,16 @@ export abstract class TaskModal extends Modal {
 			linkServices: this.getLinkServices(),
 			translate: (key, params) => this.t(key, params),
 			onRemove,
+			reltypeControls: this.plugin.settings.enableAdvancedDependencyTypes
+				? {
+						side,
+						selfName:
+							this.form.values.title.trim() ||
+							this.t(msg({ message: "This task", context: "modals.task.dependencies.thisTask" })),
+						onReltypeChange: (index, reltype) => onUpdate(index, { reltype }),
+						onGapChange: (index, gap) => onUpdate(index, { gap }),
+					}
+				: undefined,
 		});
 	}
 

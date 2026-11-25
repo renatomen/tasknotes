@@ -179,9 +179,37 @@ Dependencies are separate from project/subtask membership: adding a blocker does
 - The task context menu provides the same selector, enabling dependency management directly from the Task List, Kanban, and calendar views.
 - Task cards show a fork icon whenever a task blocks other work. Clicking it expands an inline list of downstream tasks without triggering the parent card’s modal, so you can inspect dependents in place.
 
-These controls currently create and manage finish-to-start style blockers. Advanced `reltype` values and `gap` data are preserved in frontmatter, but blocking evaluation is currently based on whether unresolved dependencies exist rather than relationship-type-specific scheduling rules.
+These controls create finish-to-start dependencies unless **Advanced dependency types** is on (see below). Other `reltype` values written in frontmatter are preserved and evaluated.
 
 ![Task context menu](../assets/feature-task-context-menu.png)
+
+### Choosing a relationship type and lag
+
+Turn on **Advanced dependency types** in [Task Properties settings](../settings/task-properties.md) to set a relationship type and a lag for each dependency. Each row under “Blocked by” and “Blocking” in the task creation and edit modals then shows:
+
+- **Relationship**: finish-to-start, start-to-start, finish-to-finish or start-to-finish. A line under the controls spells out the choice, for example “Order hardware must finish before Install rack can start”.
+- **Lag**: a whole number of days, weeks or hours, stored as the dependency’s `gap`. Clear the field or enter 0 to remove the lag.
+
+In the task context menu, **Add “blocked by”…** and **Add “blocking”…** under Organization → Dependencies then list the four relationship types, and the task selector opens once you pick one. Picking a task that is already linked changes the relationship type of that dependency; it does not add a second one. The menu does not set a lag.
+
+A change made on a “Blocking” row is saved to the dependent task’s `blockedBy` entry, because that is where the dependency is stored. A `gap` written in frontmatter in a form these fields cannot express, such as `P1DT2H`, is shown as text and left unchanged.
+
+### How blocking is evaluated
+
+Each dependency holds back either the start or the finish of the dependent task, and is released when the blocking task reaches the point its `reltype` names:
+
+| `reltype` | Holds back | Released when the blocking task |
+| --- | --- | --- |
+| `FINISHTOSTART` | Start | Is completed |
+| `STARTTOSTART` | Start | Has started |
+| `FINISHTOFINISH` | Finish | Is completed |
+| `STARTTOFINISH` | Finish | Has started |
+
+A blocking task counts as started once it has an in-progress status (by default, **In progress**) or a completed one. A blocking task with no status counts as not started.
+
+A task is blocked while any dependency still holds back its start or its finish, and it blocks other work while it holds back at least one dependent task. `gap` data is preserved in frontmatter but does not change when a dependency is released.
+
+The generated **Not Blocked** view filters through Bases rather than through this evaluation: it hides a task until every blocking task is completed, whatever the `reltype`.
 
 ## Attachments
 
