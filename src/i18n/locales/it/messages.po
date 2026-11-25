@@ -1995,6 +1995,11 @@ msgctxt "ui.taskCard.labels.blocked"
 msgid "Blocked"
 msgstr "Bloccata"
 
+#: src/ui/taskPropertyPickers.ts
+msgctxt "interaction property"
+msgid "Blocked by"
+msgstr "Bloccata da"
+
 #: src/modals/taskModalOrganizationFields.ts
 msgctxt "modals.task.dependencies.blockedBy"
 msgid "Blocked by"

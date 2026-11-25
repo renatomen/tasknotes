@@ -32,6 +32,7 @@ import { showToast, type ToastAction } from "./kit/toast";
 import { createTaskNotesLogger } from "../utils/tasknotesLogger";
 import { isTaskIdentificationTag } from "../utils/taskTagFiltering";
 import { cloneSnapshotData } from "../utils/cloneSnapshotData";
+import { resolveDependencyEntry } from "../utils/dependencyUtils";
 import {
 	renderPriorityGlyph,
 	renderStatusGlyph,
@@ -79,7 +80,7 @@ export function setsSeriesStatus(tasks: readonly Pick<TaskInfo, "recurrence">[])
 
 /** `tasks` names the tasks a status label applies to, so recurring ones read "Series status". */
 export function taskPropertyLabel(
-	property: TaskPickerProperty,
+	property: TaskPickerProperty | "blockedBy",
 	tasks: readonly Pick<TaskInfo, "recurrence">[] = []
 ): string {
 	switch (property) {
@@ -99,6 +100,8 @@ export function taskPropertyLabel(
 			return uiText(msg({ message: "Contexts", context: "interaction property" }));
 		case "projects":
 			return uiText(msg({ message: "Projects", context: "interaction property" }));
+		case "blockedBy":
+			return uiText(msg({ message: "Blocked by", context: "interaction property" }));
 	}
 }
 
@@ -390,6 +393,9 @@ export async function changeTaskProperty<Property extends keyof TaskInfo>(
 			const date = property === "due" ? task.due : property === "scheduled" ? task.scheduled : undefined;
 			if (date) {
 				return taskDateLabel(date, plugin.settings.calendarViewSettings.timeFormat);
+			}
+			if (property === "blockedBy") {
+				return task.blockedBy?.map(dependency => resolveDependencyEntry(plugin.app, task.path, dependency)?.file.basename ?? dependency.uid).join(", ") || "—";
 			}
 			return config ? configLabel(config) : String(task[property] ?? "—");
 		});
