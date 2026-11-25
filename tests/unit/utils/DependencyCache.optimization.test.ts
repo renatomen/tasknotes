@@ -205,6 +205,35 @@ describe("DependencyCache optimized relationship updates", () => {
 		expect(cache.getStartBlockedDependentPaths("Tasks/Blocker.md")).toEqual([]);
 	});
 
+	it("signals a change when only a dependency's relationship type is edited", async () => {
+		const app = createMockApp();
+		createFile(app, "Tasks/Blocker.md", {
+			title: "Blocker",
+			status: "in-progress",
+			tags: ["task"],
+		});
+		const dependent = (reltype: string) => ({
+			title: "Dependent",
+			status: "open",
+			tags: ["task"],
+			blockedBy: [{ uid: "[[Tasks/Blocker.md]]", reltype }],
+		});
+		createFile(app, "Tasks/Dependent.md", dependent("STARTTOSTART"));
+
+		const cache = createDependencyCache(app);
+		const changeHandler = jest.fn();
+		cache.on(EVENT_DEPENDENCY_CACHE_CHANGED, changeHandler);
+		cache.initialize();
+		await cache.buildIndexes();
+		changeHandler.mockClear();
+
+		app.__metadata.set("Tasks/Dependent.md", { frontmatter: dependent("FINISHTOFINISH") });
+		invokeMetadataChanged(app, "Tasks/Dependent.md");
+
+		expect(changeHandler).toHaveBeenCalledTimes(1);
+		expect(cache.getFinishBlockedDependentPaths("Tasks/Blocker.md")).toEqual(["Tasks/Dependent.md"]);
+	});
+
 	it("follows a dependency whose relationship type alone is edited", async () => {
 		const app = createMockApp();
 		createFile(app, "Tasks/Blocker.md", {

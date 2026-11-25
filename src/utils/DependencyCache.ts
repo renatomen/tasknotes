@@ -194,6 +194,10 @@ export class DependencyCache extends Events {
 
 	private getFileRelationshipSignature(path: string): string {
 		const blockingTasks = this.sortedSetValues(this.dependencySources.get(path));
+		const blockingReltypes = Array.from(
+			this.edgeReltypes.get(path) ?? [],
+			([predecessorPath, reltype]) => `${predecessorPath}|${reltype}`
+		).sort();
 		const blocked = this.computeBlockedDependents(path);
 		const referencedProjects = this.sortedSetValues(this.projectReferenceSources.get(path));
 		const projectTasks = this.sortedSetValues(this.projectReferences.get(path));
@@ -202,6 +206,7 @@ export class DependencyCache extends Events {
 			blockedStart: this.sortedSetValues(blocked.start),
 			blockedFinish: this.sortedSetValues(blocked.finish),
 			blockingTasks,
+			blockingReltypes,
 			projectTasks,
 			referencedProjects,
 		});
